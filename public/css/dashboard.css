@@ -1,0 +1,125 @@
+/* User Dashboard Styles */
+
+/* Table Responsive - Enable horizontal scrolling for all tables */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    position: relative;
+}
+
+/* Ensure minimum width for tables to prevent content squishing */
+.table {
+    min-width: 800px;
+}
+
+/* Ensure action buttons are always visible */
+.table td:last-child,
+.table th:last-child {
+    white-space: nowrap;
+    min-width: 180px;
+}
+
+/* Table Styles */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 0;
+}
+.table th,
+.table td {
+    padding: 8px 10px;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+}
+.table thead th {
+    background-color: #f9fafb;
+    font-weight: 600;
+    color: #374151;
+    font-size: 12px;
+}
+.table tbody tr:hover {
+    background-color: #f9fafb;
+}
+
+.stats-card {
+    border-radius: 10px;
+    padding: 12px 15px;
+    color: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.stats-card.total { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.stats-card.pending { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+.stats-card.in-progress { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+.stats-card.resolved { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+
+.stats-number { font-size: 22px; font-weight: bold; }
+.stats-label { font-size: 11px; opacity: 0.9; }
+
+.table-card {
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.status-badge {
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+}
+.status-pending { background: #fef3c7; color: #92400e; }
+.status-in-progress { background: #dbeafe; color: #1e40af; }
+.status-resolved { background: #d1fae5; color: #065f46; }
+
+.dashboard-header {
+    margin-bottom: 15px;
+}
+.dashboard-title { font-size: 20px; font-weight: bold; color: #1e293b; margin: 0; }
+
+.card-header-custom {
+    padding: 10px 12px;
+    background: white;
+    border-bottom: 1px solid #e5e7eb;
+}
+.card-header-custom h5 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.table-condensed th, .table-condensed td {
+    padding: 8px 10px !important;
+    font-size: 12px;
+}
+
+.calendar-card .card-body {
+    padding: 10px;
+}
+
+/* Compact Calendar Styles */
+#calendar .fc-toolbar-title {
+    font-size: 14px !important;
+}
+#calendar .fc-button {
+    padding: 4px 8px !important;
+    font-size: 11px !important;
+}
+#calendar .fc-col-header-cell-cushion {
+    padding: 4px 0 !important;
+    font-size: 10px !important;
+}
+#calendar .fc-daygrid-day-number {
+    padding: 2px !important;
+    font-size: 10px !important;
+}
+#calendar .fc-event {
+    font-size: 9px !important;
+    padding: 1px 2px !important;
+}
+#calendar .fc-daygrid-event-dot {
+    display: none !important;
+}
+#calendar .fc-daygrid-day-frame {
+    min-height: 40px !important;
+}

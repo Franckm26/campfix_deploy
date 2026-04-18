@@ -1,0 +1,11 @@
+/* Auth Pages Styles */
+
+/* OTP Input Styles */
+.otp::-webkit-outer-spin-button,
+.otp::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.otp[type=number] {
+    -moz-appearance: textfield;
+}

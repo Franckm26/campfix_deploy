@@ -1,0 +1,531 @@
+/* Admin Pages Styles */
+
+/* Admin Dashboard */
+.page-title { font-size: 20px; font-weight: bold; color: #1e293b; margin-bottom: 15px; }
+.table-card { border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow: hidden; background: white; }
+.card-header-custom { padding: 12px 15px; background: white; border-bottom: 1px solid #e5e7eb; }
+.card-header-custom h5 { margin: 0; font-size: 14px; font-weight: 600; }
+
+/* Table Responsive - SCROLLABLE tables within container */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid #ddd;
+    background: #fff;
+}
+
+/* Custom scrollbar for table scroll */
+.table-responsive::-webkit-scrollbar {
+    height: 10px;
+    width: 10px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 5px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 5px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Tables - allow expansion inside responsive container */
+.table {
+    min-width: 100%;
+    width: 100%;       /* ✅ stay inside container */
+    max-width: none;
+    table-layout: auto;
+    border-collapse: collapse;
+    margin-bottom: 0;
+}
+/* Ensure header and body cells have consistent padding */
+.table th,
+.table td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+    border-right: 1px solid #e5e7eb;
+    vertical-align: middle;
+}
+
+.table th:last-child,
+.table td:last-child {
+    border-right: none;
+}
+
+/* Table header styling */
+.table thead th {
+    background-color: #f9fafb;
+    font-weight: 600;
+    color: #374151;
+    font-size: 13px;
+    text-align: center;
+    vertical-align: middle;
+    border-bottom: 2px solid #e5e7eb;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+/* Table body row styling */
+.table tbody tr {
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.table tbody tr:hover {
+    background-color: #f9fafb;
+}
+
+/* Table body cell alignment */
+.table tbody td {
+    text-align: center;
+}
+
+/* Ensure action buttons are always visible */
+.table td:last-child,
+.table th:last-child {
+    white-space: nowrap;
+    overflow: visible !important;
+}
+
+/* Ensure table cells don't hide content */
+.table td {
+    overflow: visible !important;
+}
+
+/* Ensure action buttons container is always visible */
+.table td .btn-group,
+.table td .action-buttons,
+.table td .d-flex {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow: visible !important;
+}
+
+/* Ensure individual buttons are always visible */
+.table td .btn {
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    min-width: 32px;
+    padding: 4px 8px;
+    font-size: 12px;
+}
+
+/* Larger action buttons for deleted pages */
+.deleted-page .table td .btn {
+    min-width: 36px;
+    padding: 6px 10px;
+    font-size: 14px;
+}
+
+/* Action buttons container */
+.action-buttons { 
+    display: flex; 
+    gap: 5px; 
+    flex-wrap: nowrap !important;
+    justify-content: center;
+}
+
+/* Table Styles - consolidated with above */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    border-spacing: 0;
+    margin-bottom: 0;
+}
+.table th,
+.table td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+    vertical-align: middle;
+}
+
+
+.table thead th {
+    background-color: #f9fafb;
+    font-weight: 600;
+    color: #374151;
+    font-size: 13px;
+    text-align: center;
+    white-space: nowrap;
+}
+.table tbody td {
+    text-align: center;
+}
+.table tbody tr:hover {
+    background-color: #f9fafb;
+}
+
+/* Stats Cards */
+.stats-card {
+    border-radius: 10px;
+    padding: 15px;
+    color: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.stats-card.concerns { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.stats-card.pending { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+.stats-card.in-progress { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+.stats-card.resolved { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+.stats-card.users { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+.stats-card.categories { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); }
+
+.stats-number { font-size: 24px; font-weight: bold; }
+.stats-label { font-size: 12px; opacity: 0.9; }
+
+/* Status Select */
+.status-select {
+    padding: 5px 8px;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+    font-size: 12px;
+    background: white;
+}
+
+/* Buttons */
+.btn-update {
+    padding: 5px 12px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+}
+.btn-update:hover {
+    background: #5a67d8;
+}
+
+/* User Management */
+.role-badge { padding: 4px 10px; border-radius: 15px; font-size: 11px; font-weight: 600; }
+.role-admin { background: #fee2e2; color: #991b1b; }
+.role-user { background: #dbeafe; color: #1e40af; }
+
+.form-input, .form-select { padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; }
+.form-input:focus, .form-select:focus { outline: none; border-color: #667eea; }
+
+.btn-add { background: #667eea; color: white; border: none; padding: 8px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; }
+.btn-add:hover { background: #5a67d8; }
+
+.btn-import { background: #10b981; color: white; border: none; padding: 8px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; }
+.btn-import:hover { background: #059669; }
+
+.btn-edit { background: #f59e0b; color: white; border: none; padding: 5px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; text-decoration: none; display: inline-block; }
+.btn-edit:hover { background: #d97706; }
+
+.btn-delete { background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+.btn-delete:hover { background: #dc2626; }
+
+/* Tabs */
+.tab-buttons { display: flex; gap: 10px; margin-bottom: 15px; }
+.tab-btn { padding: 8px 16px; border: none; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; background: #e5e7eb; color: #6b7280; }
+.tab-btn.active { background: #667eea; color: white; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* Alerts */
+.alert-success { background: #d1fae5; color: #065f46; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
+.alert-error { background: #fee2e2; color: #991b1b; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
+
+.action-buttons { display: flex; gap: 5px; }
+
+/* Modal Styles */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    box-sizing: border-box;
+}
+.modal-overlay.show { 
+    display: flex; 
+}
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    padding: 0;
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    margin: auto;
+}
+.modal-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+.modal-header h5 { margin: 0; font-size: 16px; font-weight: 600; }
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #6b7280;
+    padding: 0;
+    line-height: 1;
+}
+.modal-close:hover { color: #1e293b; }
+.modal-body { 
+    padding: 20px; 
+    overflow-y: auto;
+}
+.modal-footer {
+    padding: 15px 20px;
+    border-top: 1px solid #e5e7eb;
+    flex-shrink: 0;
+}
+
+/* Empty State */
+.empty-state { text-align: center; padding: 40px; color: #9ca3af; }
+.empty-state i { font-size: 48px; margin-bottom: 15px; display: block; }
+
+/* ========================================
+   ADMIN MOBILE RESPONSIVE STYLES
+   ======================================== */
+
+/* Tablet and below */
+@media (max-width: 991px) {
+    /* Page title */
+    .page-title {
+        font-size: 18px;
+        margin-bottom: 10px;
+    }
+    
+    /* Table card */
+    .table-card {
+        border-radius: 8px;
+    }
+    
+    /* Stats cards grid */
+    .stats-card {
+        margin-bottom: 10px;
+    }
+    
+    /* Action buttons */
+    .action-buttons {
+        flex-wrap: nowrap !important;
+        justify-content: flex-start;
+    }
+    
+    /* Ensure buttons don't get hidden */
+    .table td .btn {
+        min-width: auto;
+        padding: 4px 8px;
+    }
+    
+    /* Form inputs */
+    .form-input, .form-select {
+        font-size: 14px;
+        padding: 10px 12px;
+    }
+    
+    /* Tabs */
+    .tab-buttons {
+        flex-wrap: wrap;
+    }
+    
+    .tab-btn {
+        padding: 8px 12px;
+        font-size: 13px;
+    }
+    
+    /* Modal */
+    .modal-overlay {
+        padding: 10px;
+    }
+    
+    .modal-content {
+        max-height: 85vh;
+    }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+    /* Tables */
+    .table {
+        font-size: 12px;
+    }
+    
+    .table th,
+    .table td {
+        padding: 8px 8px;
+    }
+    
+    /* Table condensed */
+    .table-condensed th, .table-condensed td {
+        padding: 6px 8px !important;
+        font-size: 11px;
+    }
+    
+    /* Status badges */
+    .status-badge {
+        padding: 3px 6px;
+        font-size: 10px;
+    }
+    
+    /* Role badges */
+    .role-badge {
+        padding: 3px 6px;
+        font-size: 10px;
+    }
+    
+    /* Stats */
+    .stats-number {
+        font-size: 20px;
+    }
+    
+    .stats-label {
+        font-size: 11px;
+    }
+    
+    /* Card header */
+    .card-header-custom {
+        padding: 10px 12px;
+    }
+    
+    .card-header-custom h5 {
+        font-size: 13px;
+    }
+    
+    /* Buttons */
+    .btn-update, .btn-edit, .btn-delete {
+        padding: 4px 8px;
+        font-size: 11px;
+    }
+    
+    .btn-add, .btn-import {
+        padding: 8px 16px;
+        font-size: 13px;
+    }
+    
+    /* Form groups */
+    .row.g-3, .row.g-2 {
+        --bs-gutter-x: 0.5rem;
+    }
+    
+    /* Alerts */
+    .alert-success, .alert-error {
+        padding: 10px;
+        font-size: 13px;
+    }
+    
+    /* Modal full screen on mobile */
+    .modal-dialog {
+        margin: 0;
+        max-width: 100%;
+        height: 100%;
+    }
+    
+    .modal-content {
+        border-radius: 0;
+        height: 100%;
+    }
+    
+    .modal-header {
+        padding: 12px 15px;
+    }
+    
+    .modal-body {
+        padding: 15px;
+    }
+    
+    .modal-footer {
+        padding: 12px 15px;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .modal-footer .btn {
+        flex: 1;
+        min-width: 100px;
+    }
+}
+
+/* Small mobile */
+@media (max-width: 576px) {
+    /* Page title */
+    .page-title {
+        font-size: 16px;
+    }
+    
+    /* Stats */
+    .stats-number {
+        font-size: 18px;
+    }
+    
+    /* Table */
+    .table {
+        font-size: 11px;
+    }
+    
+    /* Buttons full width on mobile */
+    .btn-add, .btn-import {
+        width: 100%;
+        margin-bottom: 8px;
+    }
+    
+    /* Form select full width */
+    .form-select {
+        width: 100%;
+    }
+}
+
+/* Page layout constraints to prevent excessive stretching */
+
+
+/* Card body should not stretch the page */
+.card-body {
+    overflow: visible;
+}
+
+/* Ensure table responsive wrapper constrains the table properly */
+.table-responsive-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Constrain admin page width */
+.admin-page-content {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+@media (max-width: 400px) {
+    .page-title {
+        font-size: 15px;
+    }
+    
+    .stats-number {
+        font-size: 16px;
+    }
+    
+    .stats-label {
+        font-size: 10px;
+    }
+    
+    .table th, .table td {
+        padding: 5px 6px;
+    }
+}

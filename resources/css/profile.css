@@ -1,0 +1,53 @@
+/* Profile Page Styles */
+.profile-card {
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.profile-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 30px;
+    border-radius: 12px 12px 0 0;
+}
+.profile-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: white;
+    color: #667eea;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    font-weight: bold;
+    margin: 0 auto 15px;
+}
+.form-label {
+    font-weight: 600;
+    color: #374151;
+    font-size: 14px;
+}
+.btn-update {
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 10px 25px;
+    border-radius: 8px;
+    font-weight: 600;
+}
+.btn-update:hover {
+    background: #5a67d8;
+    color: white;
+}
+.btn-password {
+    background: #10b981;
+    color: white;
+    border: none;
+    padding: 10px 25px;
+    border-radius: 8px;
+    font-weight: 600;
+}
+.btn-password:hover {
+    background: #059669;
+    color: white;
+}

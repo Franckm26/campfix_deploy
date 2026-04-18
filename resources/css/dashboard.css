@@ -1,0 +1,292 @@
+/* User Dashboard Styles */
+
+/* Table Styles */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 0;
+}
+.table th,
+.table td {
+    padding: 8px 10px;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+}
+.table thead th {
+    background-color: #f9fafb;
+    font-weight: 600;
+    color: #374151;
+    font-size: 12px;
+}
+.table tbody tr:hover {
+    background-color: #f9fafb;
+}
+
+/* Table Responsive - Enable horizontal scrolling for all tables */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    position: relative;
+}
+
+/* Ensure minimum width for tables to prevent content squishing */
+.table {
+    min-width: 800px;
+}
+
+/* Ensure action buttons are always visible */
+.table td:last-child,
+.table th:last-child {
+    white-space: nowrap;
+    min-width: 180px;
+}
+
+.table-responsive::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #a1a1a1;
+}
+
+.stats-card {
+    border-radius: 10px;
+    padding: 12px 15px;
+    color: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.stats-card.total { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.stats-card.pending { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+.stats-card.in-progress { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+.stats-card.resolved { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+
+.stats-number { font-size: 22px; font-weight: bold; }
+.stats-label { font-size: 11px; opacity: 0.9; }
+
+.table-card {
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.status-badge {
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+}
+.status-pending { background: #fef3c7; color: #92400e; }
+.status-in-progress { background: #dbeafe; color: #1e40af; }
+.status-resolved { background: #d1fae5; color: #065f46; }
+
+.dashboard-header {
+    margin-bottom: 15px;
+}
+.dashboard-title { font-size: 20px; font-weight: bold; color: #1e293b; margin: 0; }
+
+.card-header-custom {
+    padding: 10px 12px;
+    background: white;
+    border-bottom: 1px solid #e5e7eb;
+}
+.card-header-custom h5 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.table-condensed th, .table-condensed td {
+    padding: 8px 10px !important;
+    font-size: 12px;
+}
+
+.calendar-card .card-body {
+    padding: 10px;
+}
+
+/* Compact Calendar Styles */
+#calendar .fc-toolbar-title {
+    font-size: 14px !important;
+}
+#calendar .fc-button {
+    padding: 4px 8px !important;
+    font-size: 11px !important;
+}
+#calendar .fc-col-header-cell-cushion {
+    padding: 4px 0 !important;
+    font-size: 10px !important;
+}
+#calendar .fc-daygrid-day-number {
+    padding: 2px !important;
+    font-size: 10px !important;
+}
+#calendar .fc-event {
+    font-size: 9px !important;
+    padding: 1px 2px !important;
+}
+#calendar .fc-daygrid-event-dot {
+    display: none !important;
+}
+#calendar .fc-daygrid-day-frame {
+    min-height: 40px !important;
+}
+
+/* ========================================
+   DASHBOARD MOBILE RESPONSIVE STYLES
+   ======================================== */
+
+/* Tablet and below */
+@media (max-width: 991px) {
+    /* Dashboard layout - stack table and calendar */
+    .row.g-3 > [class*="col-"] {
+        width: 100%;
+    }
+    
+    /* Stats cards */
+    .stats-card {
+        margin-bottom: 10px;
+    }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+    /* Dashboard title */
+    .dashboard-title {
+        font-size: 18px !important;
+    }
+    
+    /* Stats cards - stack horizontally */
+    .row.g-2 {
+        display: flex;
+        flex-wrap: wrap;
+    }
+    
+    .row.g-2 > [class*="col-"] {
+        flex: 0 0 50%;
+        max-width: 50%;
+        padding: 5px;
+    }
+    
+    /* Stats */
+    .stats-number {
+        font-size: 20px;
+    }
+    
+    .stats-label {
+        font-size: 10px;
+    }
+    
+    /* Table */
+    .table-card {
+        margin-bottom: 15px;
+    }
+    
+    .table {
+        font-size: 12px;
+    }
+    
+    .table th, .table td {
+        padding: 6px 8px;
+    }
+    
+    /* Table condensed */
+    .table-condensed th, .table-condensed td {
+        padding: 5px 6px !important;
+        font-size: 11px;
+    }
+    
+    /* Status badges */
+    .status-badge {
+        padding: 2px 6px;
+        font-size: 9px;
+    }
+    
+    /* Card header */
+    .card-header-custom {
+        padding: 8px 10px;
+    }
+    
+    .card-header-custom h5 {
+        font-size: 12px;
+    }
+    
+    /* Calendar - adjust height */
+    #calendar {
+        height: 250px !important;
+    }
+    
+}
+
+/* Small mobile */
+@media (max-width: 576px) {
+    .dashboard-title {
+        font-size: 16px !important;
+    }
+    
+    /* Stats cards - 2 per row */
+    .row.g-2 > [class*="col-"] {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+    
+    .stats-number {
+        font-size: 18px;
+    }
+    
+    .stats-label {
+        font-size: 9px;
+    }
+    
+    /* Calendar */
+    #calendar {
+        height: 200px !important;
+    }
+    
+    /* Table scroll */
+    .table-responsive {
+        margin: 0 -10px;
+        padding: 0 10px;
+    }
+    
+    /* Calendar card */
+    .calendar-card {
+        margin-top: 15px;
+    }
+    
+}
+
+/* Extra small */
+@media (max-width: 400px) {
+    .dashboard-title {
+        font-size: 15px !important;
+    }
+    
+    .row.g-2 > [class*="col-"] {
+        flex: 0 0 50%;
+        max-width: 50%;
+        padding: 4px;
+    }
+    
+    .stats-number {
+        font-size: 16px;
+    }
+    
+    .stats-card {
+        padding: 8px 10px;
+    }
+    
+    #calendar {
+        height: 180px !important;
+    }
+}

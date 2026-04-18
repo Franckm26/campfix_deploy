@@ -1,0 +1,594 @@
+/* Admin Pages Styles */
+
+/* Admin Dashboard */
+.page-title { font-size: 20px; font-weight: bold; color: #1e293b; margin-bottom: 15px; }
+.table-card { border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow: hidden; background: white; }
+.card-header-custom { padding: 12px 15px; background: white; border-bottom: 1px solid #e5e7eb; }
+.card-header-custom h5 { margin: 0; font-size: 14px; font-weight: 600; }
+/* Table Responsive - SCROLLABLE tables within container */
+.table-responsive {
+    overflow-x: auto !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    max-width: 100%;
+    border: 1px solid #ddd;
+    background: #fff;
+    display: block;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Custom scrollbar for table scroll */
+.table-responsive::-webkit-scrollbar {
+    height: 10px;
+    width: 10px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 5px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 5px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Tables - allow expansion inside responsive container */
+.table {
+    min-width: 100%;
+    width: 100% !important;
+    max-width: none;
+    table-layout: auto;
+    border-collapse: collapse;
+    border-spacing: 0;
+    margin-bottom: 0;
+}
+
+/* Ensure header and body cells have consistent padding */
+.table th,
+.table td {
+    padding: 8px 10px;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+    border-right: 1px solid #e5e7eb;
+    vertical-align: middle;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: normal;
+    font-size: 13px;
+}
+
+.table th:last-child,
+.table td:last-child {
+    border-right: none;
+}
+
+/* Table header styling */
+.table thead th {
+    background-color: #f9fafb;
+    font-weight: 600;
+    color: #374151;
+    font-size: 13px;
+    text-align: center;
+    vertical-align: middle;
+    border-bottom: 2px solid #e5e7eb;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+/* Table body row styling */
+.table tbody tr {
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.table tbody tr:hover {
+    background-color: #f9fafb;
+}
+
+/* Table body cell alignment */
+.table tbody td {
+    text-align: center;
+}
+
+/* Ensure action buttons container is always visible */
+.table td .btn-group,
+.table td .action-buttons,
+.table td .d-flex {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow: visible !important;
+}
+
+/* Ensure individual buttons are always visible */
+.table td .btn {
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Action buttons container */
+.action-buttons { 
+    display: flex; 
+    gap: 5px; 
+    flex-wrap: nowrap !important;
+    justify-content: center;
+}
+
+/* Table Styles - consolidated with above */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    border-spacing: 0;
+    margin-bottom: 0;
+}
+.table th,
+.table td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+/* User Management - Student ID column closer to checkbox */
+.container-fluid h2 + .card .table th:nth-child(2),
+.container-fluid h2 + .card .table td:nth-child(2) {
+    padding-left: 2px !important;
+}
+/* User Management - Checkbox column narrower */
+.container-fluid h2 + .card .table th:nth-child(1),
+.container-fluid h2 + .card .table td:nth-child(1) {
+    padding-right: 2px !important;
+    width: 40px;
+}
+/* Student ID column - reduce left padding to move it closer to checkbox */
+.table th:nth-child(2),
+.table td:nth-child(2) {
+    padding-left: 2px !important;
+}
+/* Checkbox column - reduce right padding */
+.table th:nth-child(1),
+.table td:nth-child(1) {
+    min-width: 200px !important;
+    width: auto !important;
+    white-space: normal;
+}
+.table thead th {
+    background-color: #f9fafb;
+    font-weight: 600;
+    color: #374151;
+    font-size: 13px;
+}
+.table tbody tr:hover {
+    background-color: #f9fafb;
+}
+.table-condensed th, .table-condensed td { padding: 10px 12px !important; font-size: 13px; }
+.status-badge { padding: 4px 10px; border-radius: 15px; font-size: 11px; font-weight: 600; }
+.status-pending { background: #fef3c7; color: #92400e; }
+.status-in-progress { background: #dbeafe; color: #1e40af; }
+.status-resolved { background: #d1fae5; color: #065f46; }
+
+/* Stats Cards */
+.stats-card {
+    border-radius: 10px;
+    padding: 15px;
+    color: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.stats-card.concerns { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.stats-card.pending { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+.stats-card.in-progress { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+.stats-card.resolved { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+.stats-card.users { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+.stats-card.categories { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); }
+
+.stats-number { font-size: 24px; font-weight: bold; }
+.stats-label { font-size: 12px; opacity: 0.9; }
+
+/* Status Select */
+.status-select {
+    padding: 5px 8px;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+    font-size: 12px;
+    background: white;
+}
+
+/* Buttons */
+.btn-update {
+    padding: 5px 12px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+}
+.btn-update:hover {
+    background: #5a67d8;
+}
+
+/* User Management */
+.role-badge { padding: 4px 10px; border-radius: 15px; font-size: 11px; font-weight: 600; }
+.role-admin { background: #fee2e2; color: #991b1b; }
+.role-user { background: #dbeafe; color: #1e40af; }
+
+.form-input, .form-select { padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; }
+.form-input:focus, .form-select:focus { outline: none; border-color: #667eea; }
+
+.btn-add { background: #667eea; color: white; border: none; padding: 8px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; }
+.btn-add:hover { background: #5a67d8; }
+
+.btn-import { background: #10b981; color: white; border: none; padding: 8px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; }
+.btn-import:hover { background: #059669; }
+
+.btn-edit { background: #f59e0b; color: white; border: none; padding: 5px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; text-decoration: none; display: inline-block; }
+.btn-edit:hover { background: #d97706; }
+
+.btn-delete { background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+.btn-delete:hover { background: #dc2626; }
+
+/* Tabs */
+.tab-buttons { display: flex; gap: 10px; margin-bottom: 15px; }
+.tab-btn { padding: 8px 16px; border: none; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; background: #e5e7eb; color: #6b7280; }
+.tab-btn.active { background: #667eea; color: white; }
+/* Note: Removed conflicting .tab-content rules that hid content by default
+   Bootstrap 5 handles tab visibility with .show and .active classes on .tab-pane */
+.tab-content { /* Let Bootstrap handle display */ }
+.tab-content.active { /* Let Bootstrap handle display */ }
+
+/* Alerts */
+.alert-success { background: #d1fae5; color: #065f46; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
+.alert-error { background: #fee2e2; color: #991b1b; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
+
+.action-buttons { display: flex; gap: 5px; flex-wrap: nowrap !important; justify-content: center; }
+
+/* Modal Styles */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+.modal-overlay.show { display: flex; }
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    padding: 0;
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+.modal-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.modal-header h5 { margin: 0; font-size: 16px; font-weight: 600; }
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #6b7280;
+    padding: 0;
+    line-height: 1;
+}
+.modal-close:hover { color: #1e293b; }
+.modal-body { padding: 20px; }
+
+/* Empty State */
+.empty-state { text-align: center; padding: 40px; color: #9ca3af; }
+.empty-state i { font-size: 48px; margin-bottom: 15px; display: block; }
+
+/* Pagination - Smaller Arrows */
+.pagination {
+    --bs-pagination-padding-x: 0.5rem;
+    --bs-pagination-padding-y: 0.25rem;
+    --bs-pagination-font-size: 0.875rem;
+}
+.pagination .page-link {
+    padding: 0.25rem 0.5rem;
+    min-width: 32px;
+    text-align: center;
+}
+.pagination svg {
+    width: 16px;
+    height: 16px;
+}
+/* Prevent parent containers from blocking scroll */
+.card,
+.container-fluid,
+.row {
+    overflow: visible !important;
+}
+
+/* Page layout constraints to prevent excessive stretching */
+.container-fluid {
+    max-width: 100%;
+    width: 100%;
+    overflow-x: hidden;
+}
+
+/* Card body should not stretch the page */
+.card-body {
+    overflow: visible;
+}
+
+/* Ensure table responsive wrapper constrains the table properly */
+.table-responsive-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Constrain admin page width */
+.admin-page-content {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+/* Remove button background in Actions column */
+.table td .btn {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 4px !important;
+}
+
+/* Remove hover background too */
+.table td .btn:hover {
+    background: transparent !important;
+}
+
+/* Optional: make icons cleaner */
+.table td .btn i {
+    font-size: 16px;
+}
+
+/* Optional: spacing between icons */
+.table td .btn + .btn {
+    margin-left: 5px;
+}
+
+/* Set icon colors for action buttons */
+/* View (eye) */
+.table td .btn-info i {
+    color: #0dcaf0 !important; /* light blue */
+}
+
+/* Edit (pencil) */
+.table td .btn-warning i {
+    color: #ffc107 !important; /* yellow */
+}
+
+/* Archive */
+.table td .btn-secondary i {
+    color: #6c757d !important; /* gray */
+}
+
+/* Delete */
+.table td .btn-danger i {
+    color: #dc3545 !important; /* red */
+}
+
+/* Success (restore, etc.) */
+.table td .btn-success i {
+    color: #198754 !important; /* green */
+}
+
+/* Primary */
+.table td .btn-primary i {
+    color: #0d6efd !important; /* blue */
+}
+
+/* Better hover effect */
+.table td .btn i {
+    transition: 0.2s ease;
+}
+
+.table td .btn:hover i {
+    transform: scale(1.2);
+    opacity: 0.8;
+}
+
+/* Fix Actions alignment */
+.table td:last-child {
+    vertical-align: middle;
+}
+
+/* Make all action buttons consistent */
+.table td .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 28px;
+    width: 28px;
+    padding: 0;
+}
+
+/* Fix icon alignment inside */
+.table td .btn i {
+    line-height: 1;
+    font-size: 16px;
+}
+
+/* Action icons container for perfect alignment */
+.action-icons {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+/* Nudge restore icon if needed */
+.fa-trash-restore {
+    transform: translateY(1px);
+}
+
+/* Checkbox column - collapse to minimum width */
+.checkbox-col,
+th:has(> input[type="checkbox"]),
+td:has(> input[type="checkbox"]) {
+    width: 30px !important;
+    min-width: 30px !important;
+    max-width: 30px !important;
+    white-space: nowrap;
+    text-align: center !important;
+    padding: 2px !important;
+    vertical-align: middle !important;
+}
+
+/* Extra specificity to override Bootstrap */
+.table .checkbox-col,
+.table th:has(> input[type="checkbox"]),
+.table td:has(> input[type="checkbox"]) {
+    width: 30px !important;
+    min-width: 30px !important;
+    max-width: 30px !important;
+    padding: 2px !important;
+}
+
+/* Remove margin from checkbox inputs */
+.checkbox-col input[type="checkbox"],
+th input[type="checkbox"],
+td input[type="checkbox"] {
+    margin: 0 !important;
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+}
+
+
+
+/* ========================================
+   DARK THEME SUPPORT
+   ======================================== */
+
+[data-theme="dark"] .table-card {
+    background: #1a1a2e !important;
+    color: #e0e0e0 !important;
+}
+
+[data-theme="dark"] .card-header-custom {
+    background: #1e1e38 !important;
+    color: #e0e0e0 !important;
+    border-color: #2a2a45 !important;
+}
+
+[data-theme="dark"] .table-responsive {
+    background: #1a1a2e !important;
+    border-color: #2a2a45 !important;
+}
+
+[data-theme="dark"] .table {
+    color: #e0e0e0 !important;
+}
+
+[data-theme="dark"] .table th,
+[data-theme="dark"] .table td {
+    border-color: #2a2a45 !important;
+    color: #e0e0e0 !important;
+}
+
+[data-theme="dark"] .table thead th {
+    background-color: #1e1e38 !important;
+    color: #aaa !important;
+}
+
+[data-theme="dark"] .table tbody tr {
+    background: #1a1a2e !important;
+}
+
+[data-theme="dark"] .table tbody tr:hover {
+    background-color: #22223a !important;
+}
+
+[data-theme="dark"] .table tbody tr:nth-child(even) {
+    background: #1e1e38 !important;
+}
+
+[data-theme="dark"] .status-select {
+    background: #1e1e38 !important;
+    color: #e0e0e0 !important;
+    border-color: #2a2a45 !important;
+}
+
+[data-theme="dark"] .form-input,
+[data-theme="dark"] .form-select {
+    background: #1e1e38 !important;
+    color: #e0e0e0 !important;
+    border-color: #2a2a45 !important;
+}
+
+[data-theme="dark"] .modal-content {
+    background: #1a1a2e !important;
+    color: #e0e0e0 !important;
+}
+
+[data-theme="dark"] .modal-header {
+    border-color: #2a2a45 !important;
+}
+
+[data-theme="dark"] .modal-close {
+    color: #aaa !important;
+}
+
+[data-theme="dark"] .modal-close:hover {
+    color: #e0e0e0 !important;
+}
+
+[data-theme="dark"] .empty-state {
+    color: #888 !important;
+}
+
+[data-theme="dark"] .page-title {
+    color: #e0e0e0 !important;
+}
+
+[data-theme="dark"] .card {
+    background: #1a1a2e !important;
+    color: #e0e0e0 !important;
+}
+
+[data-theme="dark"] .card-body {
+    background: #1a1a2e !important;
+    color: #e0e0e0 !important;
+}
+
+[data-theme="dark"] .table-responsive::-webkit-scrollbar-track {
+    background: #1e1e38 !important;
+}
+
+[data-theme="dark"] .table-responsive::-webkit-scrollbar-thumb {
+    background: #2a2a45 !important;
+}
+
+[data-theme="dark"] .table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #3a3a60 !important;
+}
+
+/* Dark theme support for checkboxes */
+[data-theme="dark"] .checkbox-col input[type="checkbox"],
+[data-theme="dark"] th input[type="checkbox"],
+[data-theme="dark"] td input[type="checkbox"] {
+    accent-color: #4f6ef7;
+}
+
+
+

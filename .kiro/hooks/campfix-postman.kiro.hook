@@ -1,0 +1,19 @@
+{
+  "enabled": true,
+  "name": "CampFix API Postman Testing",
+  "description": "Monitors PHP API files and routes for changes, then runs the Postman collection automatically",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "app/Http/Controllers/*.php",
+      "routes/api.php",
+      "app/Models/*.php",
+      "composer.json"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "An API file was modified. Read .postman.json to get the collection_uid and environment_id, then run the Postman collection using the postman power's runCollection tool. Show me the test results and flag any failures with suggested fixes."
+  }
+}

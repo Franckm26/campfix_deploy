@@ -1,0 +1,863 @@
+{
+  "info": {
+    "name": "CampFix - Full Test Suite",
+    "_postman_id": "campfix-full-suite",
+    "description": "Complete end-to-end test collection for CampFix. Covers Auth (login, OTP, JWT), Profile, Settings, Concerns, Reports, Events, and Admin flows.\n\n## Setup\n1. Set `base_url` to your app URL (default: http://127.0.0.1:8000)\n2. For web routes: log in via browser, copy `laravel_session` cookie → `session_cookie`, and copy `_token` from any form → `csrf_token`\n3. For API routes: run the 'API Login' request first — it auto-saves `jwt_token`\n4. Set `test_email`, `test_password`, `admin_email`, `admin_password` to real credentials\n\n## Run Order\nFolders are ordered: Auth → API Auth → Profile → Settings → Concerns → Reports → Events → Admin",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url",        "value": "http://127.0.0.1:8000", "type": "string" },
+    { "key": "csrf_token",      "value": "PASTE_CSRF_TOKEN_HERE",  "type": "string" },
+    { "key": "session_cookie",  "value": "PASTE_SESSION_COOKIE",   "type": "string" },
+    { "key": "jwt_token",       "value": "",                        "type": "string" },
+    { "key": "test_email",      "value": "student@novaliches.sti.edu.ph", "type": "string" },
+    { "key": "test_password",   "value": "YourPassword@123",        "type": "string" },
+    { "key": "admin_email",     "value": "admin@novaliches.sti.edu.ph",   "type": "string" },
+    { "key": "admin_password",  "value": "AdminPass@123",            "type": "string" },
+    { "key": "concern_id",      "value": "1",                        "type": "string" },
+    { "key": "report_id",       "value": "1",                        "type": "string" },
+    { "key": "event_id",        "value": "1",                        "type": "string" },
+    { "key": "category_id",     "value": "1",                        "type": "string" },
+    { "key": "user_id",         "value": "1",                        "type": "string" }
+  ],
+  "item": [
+
+    {
+      "name": "1. Web Auth",
+      "item": [
+        {
+          "name": "Login (Web - valid credentials)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 or 302', () => pm.expect(pm.response.code).to.be.oneOf([200, 302]));",
+            "pm.test('No error in response', () => { if (pm.response.headers.get('Content-Type') && pm.response.headers.get('Content-Type').includes('application/json')) { pm.expect(pm.response.json().error).to.not.exist; } });"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" },
+              { "key": "X-CSRF-TOKEN", "value": "{{csrf_token}}" },
+              { "key": "Cookie", "value": "laravel_session={{session_cookie}}" }
+            ],
+            "body": { "mode": "urlencoded", "urlencoded": [
+              { "key": "_token", "value": "{{csrf_token}}" },
+              { "key": "email", "value": "{{test_email}}" },
+              { "key": "password", "value": "{{test_password}}" }
+            ]},
+            "url": { "raw": "{{base_url}}/login", "host": ["{{base_url}}"], "path": ["login"] },
+            "description": "Web login. Redirects to OTP choice on success. Rate limited to 5/min."
+          }
+        },
+        {
+          "name": "Login - Invalid Domain (should fail)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 or 302 (redirect back with error)', () => pm.expect(pm.response.code).to.be.oneOf([200, 302, 422]));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" },
+              { "key": "X-CSRF-TOKEN", "value": "{{csrf_token}}" },
+              { "key": "Cookie", "value": "laravel_session={{session_cookie}}" }
+            ],
+            "body": { "mode": "urlencoded", "urlencoded": [
+              { "key": "_token", "value": "{{csrf_token}}" },
+              { "key": "email", "value": "user@gmail.com" },
+              { "key": "password", "value": "SomePass@1" }
+            ]},
+            "url": { "raw": "{{base_url}}/login", "host": ["{{base_url}}"], "path": ["login"] },
+            "description": "Non-STI email should be rejected."
+          }
+        },
+        {
+          "name": "Logout (Web)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 or 302', () => pm.expect(pm.response.code).to.be.oneOf([200, 302]));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" },
+              { "key": "X-CSRF-TOKEN", "value": "{{csrf_token}}" },
+              { "key": "Cookie", "value": "laravel_session={{session_cookie}}" }
+            ],
+            "body": { "mode": "urlencoded", "urlencoded": [
+              { "key": "_token", "value": "{{csrf_token}}" }
+            ]},
+            "url": { "raw": "{{base_url}}/logout", "host": ["{{base_url}}"], "path": ["logout"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "2. API Auth (JWT)",
+      "item": [
+        {
+          "name": "Health Check",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Status is healthy', () => pm.expect(pm.response.json().status).to.eql('healthy'));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/health", "host": ["{{base_url}}"], "path": ["api","health"] }
+          }
+        },
+        {
+          "name": "API Register",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "pm.test('Token returned', () => { const j = pm.response.json(); pm.expect(j.token).to.be.a('string'); pm.environment.set('jwt_token', j.token); });"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Test Student\",\n  \"email\": \"teststudent@novaliches.sti.edu.ph\",\n  \"password\": \"TestPass@123\",\n  \"password_confirmation\": \"TestPass@123\"\n}", "options": { "raw": { "language": "json" }}},
+            "url": { "raw": "{{base_url}}/api/auth/register", "host": ["{{base_url}}"], "path": ["api","auth","register"] },
+            "description": "Email must be @novaliches.sti.edu.ph. Password: min 8, uppercase, lowercase, number, special char."
+          }
+        },
+        {
+          "name": "API Register - Weak Password (422)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 422', () => pm.response.to.have.status(422));",
+            "pm.test('Password error present', () => pm.expect(pm.response.json().errors).to.have.property('password'));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Test\",\n  \"email\": \"weak@novaliches.sti.edu.ph\",\n  \"password\": \"password\",\n  \"password_confirmation\": \"password\"\n}", "options": { "raw": { "language": "json" }}},
+            "url": { "raw": "{{base_url}}/api/auth/register", "host": ["{{base_url}}"], "path": ["api","auth","register"] }
+          }
+        },
+        {
+          "name": "API Login",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('JWT token saved', () => { const j = pm.response.json(); pm.expect(j.token).to.be.a('string'); pm.expect(j.token_type).to.eql('bearer'); pm.collectionVariables.set('jwt_token', j.token); });",
+            "pm.test('User info returned', () => { const j = pm.response.json(); pm.expect(j.user).to.have.all.keys('id','name','email','role'); });"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"password\": \"{{test_password}}\"\n}", "options": { "raw": { "language": "json" }}},
+            "url": { "raw": "{{base_url}}/api/auth/login", "host": ["{{base_url}}"], "path": ["api","auth","login"] },
+            "description": "Rate limited to 5 attempts/min. Token auto-saved to jwt_token variable."
+          }
+        },
+        {
+          "name": "API Login - Wrong Password (401)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 401', () => pm.response.to.have.status(401));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"password\": \"WrongPass@999\"\n}", "options": { "raw": { "language": "json" }}},
+            "url": { "raw": "{{base_url}}/api/auth/login", "host": ["{{base_url}}"], "path": ["api","auth","login"] }
+          }
+        },
+        {
+          "name": "API Get Current User",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('User object valid', () => { const j = pm.response.json(); pm.expect(j.user).to.have.all.keys('id','name','email','role'); });"
+          ]}}],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]},
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/auth/user", "host": ["{{base_url}}"], "path": ["api","auth","user"] }
+          }
+        },
+        {
+          "name": "API Refresh Token",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('New token saved', () => { const j = pm.response.json(); pm.expect(j.token).to.be.a('string'); pm.collectionVariables.set('jwt_token', j.token); });"
+          ]}}],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]},
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/auth/refresh", "host": ["{{base_url}}"], "path": ["api","auth","refresh"] }
+          }
+        },
+        {
+          "name": "API Logout",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Logged out message', () => pm.expect(pm.response.json().message).to.include('Logged out'));"
+          ]}}],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]},
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/auth/logout", "host": ["{{base_url}}"], "path": ["api","auth","logout"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "3. Profile (Web - requires session)",
+      "item": [
+        {
+          "name": "View Profile",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "text/html" },
+              { "key": "Cookie", "value": "laravel_session={{session_cookie}}" }
+            ],
+            "url": { "raw": "{{base_url}}/profile", "host": ["{{base_url}}"], "path": ["profile"] }
+          }
+        },
+        {
+          "name": "Update Profile Info",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 or 302', () => pm.expect(pm.response.code).to.be.oneOf([200, 302]));"
+          ]}}],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-CSRF-TOKEN", "value": "{{csrf_token}}" },
+              { "key": "Cookie", "value": "laravel_session={{session_cookie}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Updated Name\",\n  \"email\": \"{{test_email}}\",\n  \"phone\": \"09123456789\"\n}", "options": { "raw": { "language": "json" }}},
+            "url": { "raw": "{{base_url}}/profile", "host": ["{{base_url}}"], "path": ["profile"] },
+            "description": "Phone must match 09XXXXXXXXX format."
+          }
+        },
+        {
+          "name": "Update Profile - Invalid Phone (422)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 422', () => pm.response.to.have.status(422));",
+            "pm.test('Phone error present', () => pm.expect(pm.response.json().errors).to.have.property('phone'));"
+          ]}}],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-CSRF-TOKEN", "value": "{{csrf_token}}" },
+              { "key": "Cookie", "value": "laravel_session={{session_cookie}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Test\",\n  \"email\": \"{{test_email}}\",\n  \"phone\": \"12345\"\n}", "options": { "raw": { "language": "json" }}},
+            "url": { "raw": "{{base_url}}/profile", "host": ["{{base_url}}"], "path": ["profile"] }
+          }
+        },
+        {
+          "name": "Change Password - Valid",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 or 302', () => pm.expect(pm.response.code).to.be.oneOf([200, 302]));"
+          ]}}],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-CSRF-TOKEN", "value": "{{csrf_token}}" },
+              { "key": "Cookie", "value": "laravel_session={{session_cookie}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"current_password\": \"{{test_password}}\",\n  \"new_password\": \"NewPass@456\",\n  \"new_password_confirmation\": \"NewPass@456\"\n}", "options": { "raw": { "language": "json" }}},
+            "url": { "raw": "{{base_url}}/profile/password", "host": ["{{base_url}}"], "path": ["profile","password"] }
+          }
+        },
+        {
+          "name": "Change Password - Common Password (422)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 422', () => pm.response.to.have.status(422));",
+            "pm.test('Too common error', () => { const msg = pm.response.json().errors.new_password.join(' '); pm.expect(msg).to.include('too common'); });"
+          ]}}],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-CSRF-TOKEN", "value": "{{csrf_token}}" },
+              { "key": "Cookie", "value": "laravel_session={{session_cookie}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"current_password\": \"{{test_password}}\",\n  \"new_password\": \"admin123\",\n  \"new_password_confirmation\": \"admin123\"\n}", "options": { "raw": { "language": "json" }}},
+            "url": { "raw": "{{base_url}}/profile/password", "host": ["{{base_url}}"], "path": ["profile","password"] }
+          }
+        },
+        {
+          "name": "Change Password - Wrong Current Password (422)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 422', () => pm.response.to.have.status(422));",
+            "pm.test('current_password error', () => pm.expect(pm.response.json().errors).to.have.property('current_password'));"
+          ]}}],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-CSRF-TOKEN", "value": "{{csrf_token}}" },
+              { "key": "Cookie", "value": "laravel_session={{session_cookie}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"current_password\": \"WrongPass@999\",\n  \"new_password\": \"NewPass@456\",\n  \"new_password_confirmation\": \"NewPass@456\"\n}", "options": { "raw": { "language": "json" }}},
+            "url": { "raw": "{{base_url}}/profile/password", "host": ["{{base_url}}"], "path": ["profile","password"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "4. Settings (Web - requires session)",
+      "item": [
+        {
+          "name": "View Settings",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "text/html" },
+              { "key": "Cookie", "value": "laravel_session={{session_cookie}}" }
+            ],
+            "url": { "raw": "{{base_url}}/settings", "host": ["{{base_url}}"], "path": ["settings"] }
+          }
+        },
+        {
+          "name": "Update Notification Settings",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 or 302', () => pm.expect(pm.response.code).to.be.oneOf([200, 302]));"
+          ]}}],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-CSRF-TOKEN", "value": "{{csrf_token}}" },
+              { "key": "Cookie", "value": "laravel_session={{session_cookie}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"email_notifications\": true,\n  \"sms_notifications\": false,\n  \"push_notifications\": true\n}", "options": { "raw": { "language": "json" }}},
+            "url": { "raw": "{{base_url}}/settings/notifications", "host": ["{{base_url}}"], "path": ["settings","notifications"] }
+          }
+        },
+        {
+          "name": "Update Display Preferences",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 or 302', () => pm.expect(pm.response.code).to.be.oneOf([200, 302]));"
+          ]}}],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-CSRF-TOKEN", "value": "{{csrf_token}}" },
+              { "key": "Cookie", "value": "laravel_session={{session_cookie}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"language\": \"en\",\n  \"timezone\": \"Asia/Manila\",\n  \"date_format\": \"Y-m-d\",\n  \"items_per_page\": 10\n}", "options": { "raw": { "language": "json" }}},
+            "url": { "raw": "{{base_url}}/settings/preferences", "host": ["{{base_url}}"], "path": ["settings","preferences"] }
+          }
+        },
+        {
+          "name": "Update Privacy Settings",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 or 302', () => pm.expect(pm.response.code).to.be.oneOf([200, 302]));"
+          ]}}],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-CSRF-TOKEN", "value": "{{csrf_token}}" },
+              { "key": "Cookie", "value": "laravel_session={{session_cookie}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"show_online_status\": true,\n  \"show_activity\": true,\n  \"allow_messages\": false\n}", "options": { "raw": { "language": "json" }}},
+            "url": { "raw": "{{base_url}}/settings/privacy", "host": ["{{base_url}}"], "path": ["settings","privacy"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "5. Categories (API)",
+      "item": [
+        {
+          "name": "List Categories (Public)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Categories array returned + save ID', () => { const j = pm.response.json(); pm.expect(j.categories).to.be.an('array'); if (j.categories.length > 0) { pm.collectionVariables.set('category_id', j.categories[0].id); } });"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/categories", "host": ["{{base_url}}"], "path": ["api","categories"] },
+            "description": "Public endpoint. No auth required. Saves first category_id."
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "6. Concerns (API - JWT)",
+      "item": [
+        {
+          "name": "List My Concerns",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Paginated data returned', () => pm.expect(pm.response.json()).to.have.property('data'));"
+          ]}}],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]},
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/concerns", "host": ["{{base_url}}"], "path": ["api","concerns"] }
+          }
+        },
+        {
+          "name": "Create Concern",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "pm.test('Concern created + ID saved', () => { const j = pm.response.json(); pm.expect(j.concern.id).to.exist; pm.expect(j.concern.status).to.eql('Pending'); pm.collectionVariables.set('concern_id', j.concern.id); });"
+          ]}}],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]},
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"category_id\": {{category_id}},\n  \"description\": \"The projector in the classroom is not working properly.\",\n  \"location\": \"Building A Room 101\",\n  \"priority\": \"medium\"\n}", "options": { "raw": { "language": "json" }}},
+            "url": { "raw": "{{base_url}}/api/concerns", "host": ["{{base_url}}"], "path": ["api","concerns"] },
+            "description": "Maintenance role cannot create concerns. category_id auto-filled from List Categories."
+          }
+        },
+        {
+          "name": "Create Concern - Missing Required Fields (422)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 422', () => pm.response.to.have.status(422));",
+            "pm.test('Validation errors present', () => pm.expect(pm.response.json().errors).to.exist);"
+          ]}}],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]},
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"description\": \"Missing category and location\"\n}", "options": { "raw": { "language": "json" }}},
+            "url": { "raw": "{{base_url}}/api/concerns", "host": ["{{base_url}}"], "path": ["api","concerns"] }
+          }
+        },
+        {
+          "name": "Get Concern",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Concern has required fields', () => { const j = pm.response.json(); pm.expect(j.concern).to.have.property('id'); pm.expect(j.concern).to.have.property('status'); pm.expect(j.concern).to.have.property('description'); });"
+          ]}}],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]},
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/concerns/{{concern_id}}", "host": ["{{base_url}}"], "path": ["api","concerns","{{concern_id}}"] }
+          }
+        },
+        {
+          "name": "Get Concern Edit Data",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Returns concern + categories', () => { const j = pm.response.json(); pm.expect(j.concern).to.have.property('id'); pm.expect(j.categories).to.be.an('array'); });"
+          ]}}],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]},
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/concerns/{{concern_id}}/edit-data", "host": ["{{base_url}}"], "path": ["api","concerns","{{concern_id}}","edit-data"] }
+          }
+        },
+        {
+          "name": "Update Concern",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Concern updated', () => pm.expect(pm.response.json().concern).to.have.property('id'));"
+          ]}}],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]},
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"category_id\": {{category_id}},\n  \"description\": \"Updated: The projector is still not working.\",\n  \"location\": \"Building A Room 101\",\n  \"priority\": \"high\"\n}", "options": { "raw": { "language": "json" }}},
+            "url": { "raw": "{{base_url}}/api/concerns/{{concern_id}}", "host": ["{{base_url}}"], "path": ["api","concerns","{{concern_id}}"] },
+            "description": "Only works on Pending or Assigned status."
+          }
+        },
+        {
+          "name": "Delete Concern",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 or 204', () => pm.expect(pm.response.code).to.be.oneOf([200, 204]));"
+          ]}}],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]},
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/concerns/{{concern_id}}", "host": ["{{base_url}}"], "path": ["api","concerns","{{concern_id}}"] },
+            "description": "Soft-deletes the concern."
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "7. Reports (Web - requires session)",
+      "item": [
+        {
+          "name": "List Reports",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Cookie", "value": "laravel_session={{session_cookie}}" }
+            ],
+            "url": { "raw": "{{base_url}}/reports", "host": ["{{base_url}}"], "path": ["reports"] }
+          }
+        },
+        {
+          "name": "Create Report",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 or 302', () => pm.expect(pm.response.code).to.be.oneOf([200, 302]));",
+            "if (pm.response.headers.get('Content-Type') && pm.response.headers.get('Content-Type').includes('application/json')) {",
+            "  pm.test('Report ID saved', () => { const j = pm.response.json(); if (j.report) pm.collectionVariables.set('report_id', j.report.id); });",
+            "}"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-CSRF-TOKEN", "value": "{{csrf_token}}" },
+              { "key": "Cookie", "value": "laravel_session={{session_cookie}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"Broken Window in Room 201\",\n  \"category_id\": {{category_id}},\n  \"description\": \"The window in Room 201 is cracked and needs replacement.\",\n  \"location\": \"Building B Room 201\",\n  \"severity\": \"medium\"\n}", "options": { "raw": { "language": "json" }}},
+            "url": { "raw": "{{base_url}}/reports", "host": ["{{base_url}}"], "path": ["reports"] },
+            "description": "severity: low, medium, high, critical"
+          }
+        },
+        {
+          "name": "Create Report - Missing Fields (422)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 422', () => pm.response.to.have.status(422));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-CSRF-TOKEN", "value": "{{csrf_token}}" },
+              { "key": "Cookie", "value": "laravel_session={{session_cookie}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"Incomplete report\"\n}", "options": { "raw": { "language": "json" }}},
+            "url": { "raw": "{{base_url}}/reports", "host": ["{{base_url}}"], "path": ["reports"] }
+          }
+        },
+        {
+          "name": "View Report",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 or 403', () => pm.expect(pm.response.code).to.be.oneOf([200, 403]));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Cookie", "value": "laravel_session={{session_cookie}}" }
+            ],
+            "url": { "raw": "{{base_url}}/reports/{{report_id}}", "host": ["{{base_url}}"], "path": ["reports","{{report_id}}"] }
+          }
+        },
+        {
+          "name": "Archive Report",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 or 302', () => pm.expect(pm.response.code).to.be.oneOf([200, 302]));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-CSRF-TOKEN", "value": "{{csrf_token}}" },
+              { "key": "Cookie", "value": "laravel_session={{session_cookie}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{}", "options": { "raw": { "language": "json" }}},
+            "url": { "raw": "{{base_url}}/reports/{{report_id}}/archive", "host": ["{{base_url}}"], "path": ["reports","{{report_id}}","archive"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "8. Events (API - JWT)",
+      "item": [
+        {
+          "name": "List Events",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 or 403', () => pm.expect(pm.response.code).to.be.oneOf([200, 403]));",
+            "if (pm.response.code === 200) pm.test('Has data', () => pm.expect(pm.response.json()).to.have.property('data'));"
+          ]}}],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]},
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/events", "host": ["{{base_url}}"], "path": ["api","events"] }
+          }
+        },
+        {
+          "name": "Create Event (Faculty only)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 201 or 403', () => pm.expect(pm.response.code).to.be.oneOf([201, 403]));",
+            "if (pm.response.code === 201) { pm.test('Event ID saved', () => { const j = pm.response.json(); pm.expect(j.event.id).to.exist; pm.collectionVariables.set('event_id', j.event.id); }); }"
+          ]}}],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]},
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"Department Meeting\",\n  \"description\": \"Monthly ICT department meeting to discuss curriculum updates.\",\n  \"event_date\": \"2026-05-15\",\n  \"location\": \"Room 301\",\n  \"start_time\": \"09:00\",\n  \"end_time\": \"11:00\",\n  \"category\": \"Area Use\",\n  \"area_of_use\": \"Room\",\n  \"room_number\": \"301\",\n  \"department\": \"ICT\",\n  \"priority\": \"medium\"\n}", "options": { "raw": { "language": "json" }}},
+            "url": { "raw": "{{base_url}}/api/events", "host": ["{{base_url}}"], "path": ["api","events"] },
+            "description": "Faculty role only. category: Area Use, Equipment Use, Event Setup, ICT support setup"
+          }
+        },
+        {
+          "name": "Create Event - Missing Fields (422)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 422 or 403', () => pm.expect(pm.response.code).to.be.oneOf([422, 403]));"
+          ]}}],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]},
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"No\"\n}", "options": { "raw": { "language": "json" }}},
+            "url": { "raw": "{{base_url}}/api/events", "host": ["{{base_url}}"], "path": ["api","events"] }
+          }
+        },
+        {
+          "name": "Get Event",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200, 403 or 404', () => pm.expect(pm.response.code).to.be.oneOf([200, 403, 404]));"
+          ]}}],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]},
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/events/{{event_id}}", "host": ["{{base_url}}"], "path": ["api","events","{{event_id}}"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "9. Admin (API - JWT, requires mis/admin role)",
+      "item": [
+        {
+          "name": "Admin Dashboard Stats",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 or 403', () => pm.expect(pm.response.code).to.be.oneOf([200, 403]));",
+            "if (pm.response.code === 200) { pm.test('Stats structure valid', () => { const j = pm.response.json(); pm.expect(j.concerns).to.have.all.keys('total','pending','resolved'); pm.expect(j.users).to.have.property('total'); }); }"
+          ]}}],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]},
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/admin/dashboard", "host": ["{{base_url}}"], "path": ["api","admin","dashboard"] },
+            "description": "Requires mis or admin role. Returns concern counts and user totals."
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. Admin Panel (Web - requires admin session)",
+      "item": [
+        {
+          "name": "Admin Dashboard",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 or 302 or 403', () => pm.expect(pm.response.code).to.be.oneOf([200, 302, 403]));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "text/html" },
+              { "key": "Cookie", "value": "laravel_session={{session_cookie}}" }
+            ],
+            "url": { "raw": "{{base_url}}/admin", "host": ["{{base_url}}"], "path": ["admin"] }
+          }
+        },
+        {
+          "name": "List Users (Admin)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 or 403', () => pm.expect(pm.response.code).to.be.oneOf([200, 403]));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Cookie", "value": "laravel_session={{session_cookie}}" }
+            ],
+            "url": { "raw": "{{base_url}}/admin/users", "host": ["{{base_url}}"], "path": ["admin","users"] }
+          }
+        },
+        {
+          "name": "Create User (Admin)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200, 201 or 302', () => pm.expect(pm.response.code).to.be.oneOf([200, 201, 302, 403]));",
+            "if (pm.response.headers.get('Content-Type') && pm.response.headers.get('Content-Type').includes('application/json')) {",
+            "  const j = pm.response.json();",
+            "  if (j.user) pm.collectionVariables.set('user_id', j.user.id);",
+            "}"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-CSRF-TOKEN", "value": "{{csrf_token}}" },
+              { "key": "Cookie", "value": "laravel_session={{session_cookie}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"New Student\",\n  \"email\": \"newstudent@novaliches.sti.edu.ph\",\n  \"password\": \"TempPass@123\",\n  \"password_confirmation\": \"TempPass@123\",\n  \"role\": \"student\"\n}", "options": { "raw": { "language": "json" }}},
+            "url": { "raw": "{{base_url}}/admin/users", "host": ["{{base_url}}"], "path": ["admin","users"] },
+            "description": "Admin only. Roles: student, faculty, maintenance, mis, building_admin, school_admin."
+          }
+        },
+        {
+          "name": "Update Concern Status (Maintenance)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200, 302 or 403', () => pm.expect(pm.response.code).to.be.oneOf([200, 302, 403]));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-CSRF-TOKEN", "value": "{{csrf_token}}" },
+              { "key": "Cookie", "value": "laravel_session={{session_cookie}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"In Progress\",\n  \"damaged_part\": \"Projector bulb\"\n}", "options": { "raw": { "language": "json" }}},
+            "url": { "raw": "{{base_url}}/update-status/{{concern_id}}", "host": ["{{base_url}}"], "path": ["update-status","{{concern_id}}"] },
+            "description": "Maintenance only. status: Pending, Assigned, In Progress, Resolved"
+          }
+        },
+        {
+          "name": "Resolve Concern (Maintenance)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200, 302 or 403', () => pm.expect(pm.response.code).to.be.oneOf([200, 302, 403]));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-CSRF-TOKEN", "value": "{{csrf_token}}" },
+              { "key": "Cookie", "value": "laravel_session={{session_cookie}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"Resolved\",\n  \"resolution_notes\": \"Replaced the projector bulb.\",\n  \"cost\": 1500,\n  \"damaged_part\": \"Projector bulb\",\n  \"replaced_part\": \"New Osram bulb\"\n}", "options": { "raw": { "language": "json" }}},
+            "url": { "raw": "{{base_url}}/update-status/{{concern_id}}", "host": ["{{base_url}}"], "path": ["update-status","{{concern_id}}"] }
+          }
+        },
+        {
+          "name": "Admin Analytics",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 or 403', () => pm.expect(pm.response.code).to.be.oneOf([200, 403]));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Cookie", "value": "laravel_session={{session_cookie}}" }
+            ],
+            "url": { "raw": "{{base_url}}/admin/analytics", "host": ["{{base_url}}"], "path": ["admin","analytics"] }
+          }
+        },
+        {
+          "name": "Admin Activity Logs",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 or 403', () => pm.expect(pm.response.code).to.be.oneOf([200, 403]));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Cookie", "value": "laravel_session={{session_cookie}}" }
+            ],
+            "url": { "raw": "{{base_url}}/admin/logs", "host": ["{{base_url}}"], "path": ["admin","logs"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "11. Unauthenticated / Edge Cases",
+      "item": [
+        {
+          "name": "Access Protected Route Without Token (401)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 401', () => pm.response.to.have.status(401));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/concerns", "host": ["{{base_url}}"], "path": ["api","concerns"] },
+            "description": "No Authorization header. Should return 401."
+          }
+        },
+        {
+          "name": "Access Admin Route as Regular User (403)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 403', () => pm.response.to.have.status(403));"
+          ]}}],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]},
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/admin/dashboard", "host": ["{{base_url}}"], "path": ["api","admin","dashboard"] },
+            "description": "Non-admin JWT token should get 403."
+          }
+        },
+        {
+          "name": "Get Non-Existent Concern (404)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 404', () => pm.response.to.have.status(404));"
+          ]}}],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]},
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/concerns/999999", "host": ["{{base_url}}"], "path": ["api","concerns","999999"] }
+          }
+        }
+      ]
+    }
+  ]
+}

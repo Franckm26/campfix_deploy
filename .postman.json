@@ -1,0 +1,12 @@
+{
+  "workspace_id": "b07705a1-321e-44dd-9171-e7f1a52fbbf6",
+  "workspace_name": "CampFix API",
+  "collection_id": "33462ba8-bc58-4cd7-9a90-d1ae00f21173",
+  "collection_uid": "53379166-33462ba8-bc58-4cd7-9a90-d1ae00f21173",
+  "collection_name": "CampFix API",
+  "environment_id": "c32d1d3d-0f72-4b32-80b5-1eb7fdad9dfd",
+  "environment_uid": "53379166-c32d1d3d-0f72-4b32-80b5-1eb7fdad9dfd",
+  "environment_name": "CampFix Local",
+  "base_url": "http://127.0.0.1:8000/api",
+  "notes": "Run order: Login first to auto-save token, then List Categories to auto-save category_id, then Concerns/Events."
+}
