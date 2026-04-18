@@ -1108,8 +1108,8 @@ class EventRequestController extends Controller
         $eventRequest = EventRequest::findOrFail($id);
 
         // Only owner can cancel
-        if ($eventRequest->user_id !== auth()->id() && ! auth()->user()->canApproveRequests()) {
-            return back()->with('error', 'You cannot cancel this request.');
+        if ((int)$eventRequest->user_id !== (int)auth()->id() && ! auth()->user()->canApproveRequests()) {
+            return redirect()->route('events.my')->with('error', 'You cannot cancel this request.');
         }
 
         $eventRequest->status = 'Cancelled';
@@ -1121,7 +1121,7 @@ class EventRequestController extends Controller
             null
         );
 
-        return back()->with('success', 'Event request cancelled.');
+        return redirect()->route('events.my')->with('success', 'Event request cancelled.');
     }
 
     // Delete event request (soft delete - moves to deleted events)
@@ -1130,25 +1130,41 @@ class EventRequestController extends Controller
         $eventRequest = EventRequest::findOrFail($id);
 
         // Allow owner or admin to delete
-        if ($eventRequest->user_id !== auth()->id() && ! auth()->user()->canApproveRequests()) {
-            return back()->with('error', 'You cannot delete this event request.');
+        if ((int)$eventRequest->user_id !== (int)auth()->id() && ! auth()->user()->canApproveRequests()) {
+            return redirect()->route('events.my')->with('error', 'You cannot delete this event request.');
         }
 
-        // Find or create the deleted events folder
+        // Permanent delete — physically remove from database
+        if ($request->input('permanent') == '1') {
+            ActivityLog::log(
+                'event_permanent_deleted',
+                'Event permanently deleted: '.$eventRequest->title,
+                null
+            );
+
+            $eventRequest->delete();
+
+            if ($request->expectsJson()) {
+                return response()->json(['success' => true, 'message' => 'Event permanently deleted.']);
+            }
+
+            return redirect()->route('events.my', ['view' => 'deleted'])->with('success', 'Event permanently deleted.');
+        }
+
+        // Soft delete — move to deleted folder
         $deletedFolder = ArchiveFolder::where('name', 'Deleted Events')
-            ->whereIn('type', ['events', 'mixed'])
+            ->where('type', 'mixed')
             ->first();
 
         if (! $deletedFolder) {
             $deletedFolder = ArchiveFolder::create([
                 'name' => 'Deleted Events',
-                'type' => 'events',
+                'type' => 'mixed',
                 'description' => 'Deleted event requests',
                 'is_system' => true,
             ]);
         }
 
-        // Move to deleted folder
         $eventRequest->archive_folder_id = $deletedFolder->id;
         $eventRequest->is_deleted = true;
         $eventRequest->deleted_by = auth()->id();
@@ -1160,12 +1176,11 @@ class EventRequestController extends Controller
             null
         );
 
-        // Return JSON for AJAX requests
         if ($request->expectsJson()) {
             return response()->json(['success' => true, 'message' => 'Event request deleted.']);
         }
 
-        return back()->with('success', 'Event request deleted.');
+        return redirect()->route('events.my')->with('success', 'Event request deleted.');
     }
 
     // Archive event request
@@ -1175,8 +1190,8 @@ class EventRequestController extends Controller
         $user = auth()->user();
 
         // Owner or admin can archive
-        if ($eventRequest->user_id !== $user->id && ! $user->canApproveRequests()) {
-            return back()->with('error', 'You cannot archive this event request.');
+        if ((int)$eventRequest->user_id !== (int)$user->id && ! $user->canApproveRequests()) {
+            return redirect()->route('events.my')->with('error', 'You cannot archive this event request.');
         }
 
         $role = $user->role;
@@ -1184,12 +1199,12 @@ class EventRequestController extends Controller
 
         // Check if the column exists in the fillable array
         if (! in_array($archiveColumn, $eventRequest->getFillable())) {
-            return back()->with('error', 'Invalid role for archiving.');
+            return redirect()->route('events.my')->with('error', 'Invalid role for archiving.');
         }
 
         // Check if already archived by this role
         if ($eventRequest->$archiveColumn) {
-            return back()->with('error', 'This event is already archived by your role.');
+            return redirect()->route('events.my')->with('error', 'This event is already archived by your role.');
         }
 
         // Set role-specific archive column to true (role-based archiving)
@@ -1213,26 +1228,44 @@ class EventRequestController extends Controller
             return response()->json(['success' => true, 'message' => 'Event request archived successfully.']);
         }
 
-        return back()->with('success', 'Event request archived successfully.');
+        return redirect()->route('events.my', ['view' => 'archives'])->with('success', 'Event request archived successfully.');
     }
 
-    // Restore event request - users can only restore their OWN archived event requests
+    // Restore event request - handles both archive restore and deleted restore
     public function restore($id)
     {
-        $eventRequest = EventRequest::findOrFail($id);
+        // Use findOrFail without is_deleted filter since deleted records have is_deleted=true
+        $eventRequest = EventRequest::where('id', $id)->firstOrFail();
         $user = auth()->user();
 
         // Only owner or admin can restore
-        if ($eventRequest->user_id !== $user->id && ! $user->canApproveRequests()) {
-            return back()->with('error', 'You cannot restore this event request.');
+        if ((int)$eventRequest->user_id !== (int)$user->id && ! $user->canApproveRequests()) {
+            return redirect()->route('events.my')->with('error', 'You cannot restore this event request.');
         }
 
+        // If restoring from deleted state
+        if ($eventRequest->is_deleted) {
+            $eventRequest->is_deleted = false;
+            $eventRequest->deleted_by = null;
+            $eventRequest->archive_folder_id = null;
+            $eventRequest->save();
+
+            ActivityLog::log(
+                'event_restored_from_deleted',
+                'Event restored from deleted: '.$eventRequest->title,
+                null
+            );
+
+            return redirect()->route('events.my')->with('success', 'Event request restored successfully.');
+        }
+
+        // Restoring from archive
         $role = $user->role;
         $archiveColumn = $role.'_archived';
 
         // Check if the column exists in the fillable array
         if (! in_array($archiveColumn, $eventRequest->getFillable())) {
-            return back()->with('error', 'Invalid role for restoring.');
+            return redirect()->route('events.my')->with('error', 'Invalid role for restoring.');
         }
 
         // Set role-specific archive column to false (role-based restoring)
@@ -1247,7 +1280,7 @@ class EventRequestController extends Controller
             null
         );
 
-        return back()->with('success', 'Event request restored successfully.');
+        return redirect()->route('events.my')->with('success', 'Event request restored successfully.');
     }
 
     // Show all event requests (for admin)
