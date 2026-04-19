@@ -2928,6 +2928,16 @@ class AdminController extends Controller
         foreach ($allRows as $rowIndex => $row) {
             $row = array_map(fn($v) => trim((string) $v), $row);
 
+            // Skip header row (first row) - it contains column names not data
+            if ($rowIndex === 0) {
+                $skippedRows[] = "Row 0: skipped (header row)";
+                continue;
+            }
+
+            // Skip completely empty rows
+            if (empty(array_filter($row))) {
+                continue;
+            }
             if ($isMasterlist) {
                 if ($defaultRole === 'faculty') {
                     if (count($row) < 6) {
