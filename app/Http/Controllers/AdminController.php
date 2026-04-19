@@ -3003,6 +3003,7 @@ class AdminController extends Controller
             if (! empty($studentId) && in_array($studentIdLower, $existingStudentIds)) continue;
 
             $usersToCreate[] = [
+                'uuid'                  => (string) \Illuminate\Support\Str::uuid(),
                 'student_id'            => $studentId,
                 'name'                  => $name,
                 'email'                 => $email,
@@ -3013,6 +3014,10 @@ class AdminController extends Controller
                 'force_password_change' => true,
                 'archive_folder_id'     => $archiveFolder->id,
                 'is_archived'           => true,
+                'is_deleted'            => false,
+                'failed_login_attempts' => 0,
+                'otp_attempts'          => 0,
+                'is_admin'              => false,
                 'created_at'            => now(),
                 'updated_at'            => now(),
             ];
