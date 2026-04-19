@@ -16,7 +16,7 @@
                         <div class="mb-3">
                             <label for="category_id" class="form-label">Category *</label>
                             <select class="form-select" id="category_id" name="category_id" required>
-                                <option value="">Select a category</option>
+                                <option value="" disabled>Select a category</option>
                                 @foreach($categories as $category)
                                     <option value="{{ $category->id }}" {{ old('category_id', $report->category_id) == $category->id ? 'selected' : '' }}>
                                         {{ $category->name }}
