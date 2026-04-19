@@ -12,11 +12,21 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('activity_logs', function (Blueprint $table) {
-            $table->string('ip_address', 45)->nullable()->after('description');
-            $table->text('user_agent')->nullable()->after('ip_address');
-            $table->json('old_values')->nullable()->after('user_agent');
-            $table->json('new_values')->nullable()->after('old_values');
-            $table->json('metadata')->nullable()->after('new_values');
+            if (!Schema::hasColumn('activity_logs', 'ip_address')) {
+                $table->string('ip_address', 45)->nullable()->after('description');
+            }
+            if (!Schema::hasColumn('activity_logs', 'user_agent')) {
+                $table->text('user_agent')->nullable()->after('ip_address');
+            }
+            if (!Schema::hasColumn('activity_logs', 'old_values')) {
+                $table->json('old_values')->nullable()->after('user_agent');
+            }
+            if (!Schema::hasColumn('activity_logs', 'new_values')) {
+                $table->json('new_values')->nullable()->after('old_values');
+            }
+            if (!Schema::hasColumn('activity_logs', 'metadata')) {
+                $table->json('metadata')->nullable()->after('new_values');
+            }
         });
     }
 
@@ -26,7 +36,12 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('activity_logs', function (Blueprint $table) {
-            $table->dropColumn(['ip_address', 'user_agent', 'old_values', 'new_values', 'metadata']);
+            $columnsToCheck = ['ip_address', 'user_agent', 'old_values', 'new_values', 'metadata'];
+            foreach ($columnsToCheck as $column) {
+                if (Schema::hasColumn('activity_logs', $column)) {
+                    $table->dropColumn($column);
+                }
+            }
         });
     }
 };

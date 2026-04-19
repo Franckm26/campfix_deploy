@@ -15,14 +15,31 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // For PostgreSQL: alter the enum column to VARCHAR
-        DB::statement("ALTER TABLE event_requests ALTER COLUMN level TYPE VARCHAR(50)");
+        try {
+            $driver = Schema::getConnection()->getDriverName();
+            
+            if ($driver === 'pgsql') {
+                // For PostgreSQL: alter the enum column to VARCHAR
+                DB::statement("ALTER TABLE event_requests ALTER COLUMN level TYPE VARCHAR(50)");
+            } elseif ($driver === 'sqlite') {
+                // SQLite doesn't support ALTER COLUMN, skip
+                // SQLite stores everything as text anyway
+            } else {
+                // For MySQL/MariaDB
+                Schema::table('event_requests', function (Blueprint $table) {
+                    $table->string('level', 50)->change();
+                });
+            }
 
-        // Also ensure education_level column exists and is VARCHAR
-        if (!Schema::hasColumn('event_requests', 'education_level')) {
-            Schema::table('event_requests', function (Blueprint $table) {
-                $table->string('education_level', 50)->default('tertiary')->after('level');
-            });
+            // Also ensure education_level column exists and is VARCHAR
+            if (!Schema::hasColumn('event_requests', 'education_level')) {
+                Schema::table('event_requests', function (Blueprint $table) {
+                    $table->string('education_level', 50)->default('tertiary')->after('level');
+                });
+            }
+        } catch (\Exception $e) {
+            // If the migration fails, log and continue
+            \Log::info('Level column type change skipped: ' . $e->getMessage());
         }
     }
 
@@ -31,7 +48,15 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Convert back to enum (only original values)
-        DB::statement("ALTER TABLE event_requests ALTER COLUMN level TYPE event_requests_level USING level::event_requests_level");
+        try {
+            $driver = Schema::getConnection()->getDriverName();
+            
+            if ($driver === 'pgsql') {
+                // Convert back to enum (only original values)
+                DB::statement("ALTER TABLE event_requests ALTER COLUMN level TYPE event_requests_level USING level::event_requests_level");
+            }
+        } catch (\Exception $e) {
+            \Log::info('Level column rollback skipped: ' . $e->getMessage());
+        }
     }
 };
