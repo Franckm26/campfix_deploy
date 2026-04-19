@@ -17,8 +17,10 @@
 @endsection
 
 @section('page_title')
-<h2><i class="fas fa-tachometer-alt"></i> MIS Dashboard</h2>
-<p>User Management Overview</p>
+<div style="display:flex;align-items:center;gap:12px">
+    <img src="{{ asset('Campfix/Images/images.png') }}" alt="STI Logo" style="height:40px">
+    <h2 style="margin:0">Home</h2>
+</div>
 @endsection
 
 @section('content')
@@ -240,12 +242,6 @@
             <a href="{{ route('admin.logs') }}" class="card text-decoration-none text-center h-100 p-3">
                 <i class="fas fa-clipboard-list fa-2x text-info mb-2"></i>
                 <div class="small fw-semibold">Activity Logs</div>
-            </a>
-        </div>
-        <div class="col-6 col-md-3">
-            <a href="{{ route('admin.categories') }}" class="card text-decoration-none text-center h-100 p-3">
-                <i class="fas fa-tags fa-2x text-warning mb-2"></i>
-                <div class="small fw-semibold">Categories</div>
             </a>
         </div>
         <div class="col-6 col-md-3">

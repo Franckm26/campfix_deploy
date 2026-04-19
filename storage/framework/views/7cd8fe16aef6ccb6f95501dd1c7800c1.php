@@ -256,32 +256,17 @@
 </style>
 <?php $__env->stopSection(); ?>
 
+<?php $__env->startSection('page_title'); ?>
+<div style="display:flex;align-items:center;gap:12px">
+    <img src="<?php echo e(asset('Campfix/Images/images.png')); ?>" alt="STI Logo" style="height:40px">
+    <h2 style="margin:0">Home</h2>
+</div>
+<?php $__env->stopSection(); ?>
+
 <?php $__env->startSection('content'); ?>
 <div class="container-fluid px-3">
     <div class="row mb-4">
         <div class="col-12">
-            <h2><i class="fas fa-user-tie"></i> 
-                <?php switch($user->role):
-                    case ('school_admin'): ?>
-                        School Administrator Dashboard
-                        <?php break; ?>
-                    <?php case ('building_admin'): ?>
-                        Building Administrator Dashboard
-                        <?php break; ?>
-                    <?php case ('academic_head'): ?>
-                        Academic Head Dashboard
-                        <?php break; ?>
-                    <?php case ('program_head'): ?>
-                        Program Head Dashboard
-                        <?php break; ?>
-                    <?php case ('principal_assistant'): ?>
-                        Principal Assistant Dashboard
-                        <?php break; ?>
-                    <?php default: ?>
-                        Principal Dashboard
-                <?php endswitch; ?>
-            </h2>
-            <p class="text-muted">Welcome, <?php echo e(auth()->user()->name); ?>!</p>
         </div>
     </div>
 

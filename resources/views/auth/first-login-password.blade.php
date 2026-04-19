@@ -64,12 +64,12 @@
                                     </div>
                                 </div>
                                 <!-- Requirements tooltip -->
-                                <div id="passwordRequirements" class="mt-2 p-3 rounded shadow-sm" style="display:none;background:#f8f9fa;font-size:13px;border:1px solid #dee2e6">
-                                    <div class="fw-semibold mb-2">Password must include:</div>
-                                    <div id="req-length"  class="req-item"><i class="fas fa-times-circle text-danger me-2"></i>8-20 <strong>Characters</strong></div>
-                                    <div id="req-upper"   class="req-item mt-1"><i class="fas fa-times-circle text-danger me-2"></i>At least one <strong>capital letter</strong></div>
-                                    <div id="req-number"  class="req-item mt-1"><i class="fas fa-times-circle text-danger me-2"></i>At least one <strong>number</strong></div>
-                                    <div id="req-nospace" class="req-item mt-1"><i class="fas fa-times-circle text-danger me-2"></i><strong>No spaces</strong></div>
+                                <div id="passwordRequirements" class="mt-1 p-2 rounded" style="display:none;background:#f8f9fa;font-size:12px;border:1px solid #dee2e6">
+                                    <div class="fw-semibold mb-1" style="font-size:12px">Password must include:</div>
+                                    <div id="req-length"  class="req-item"><i class="fas fa-times-circle text-danger me-1"></i>8-20 <strong>Characters</strong></div>
+                                    <div id="req-upper"   class="req-item"><i class="fas fa-times-circle text-danger me-1"></i>At least one <strong>capital letter</strong></div>
+                                    <div id="req-number"  class="req-item"><i class="fas fa-times-circle text-danger me-1"></i>At least one <strong>number</strong></div>
+                                    <div id="req-nospace" class="req-item"><i class="fas fa-times-circle text-danger me-1"></i><strong>No spaces</strong></div>
                                 </div>
                             </div>
 
@@ -91,7 +91,7 @@
                                     <span class="input-group-text"><i class="fas fa-phone"></i></span>
                                     <input type="text" class="form-control" id="phone" name="phone" placeholder="09XXXXXXXXX" maxlength="11" pattern="09[0-9]{9}" required>
                                 </div>
-                                <small class="text-muted">Enter 11-digit PH mobile number (e.g., 09123456789) - This will be used for SMS OTP verification</small>
+                                <small class="text-muted" style="font-size:11px">11-digit PH mobile number (e.g., 09123456789)</small>
                             </div>
 
                             <div class="d-grid">

@@ -894,54 +894,71 @@
                 <h5 class="modal-title">Add New User</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form action="<?php echo e(route('admin.users.store')); ?>" method="POST">
+            <form action="<?php echo e(route('admin.users.store')); ?>" method="POST" id="addUserForm" novalidate>
                 <?php echo csrf_field(); ?>
                 <div class="modal-body">
+
+                    <?php if($errors->hasAny(['name','email','password','phone','role'])): ?>
+                        <div class="alert alert-danger py-2 mb-3">
+                            <ul class="mb-0 ps-3">
+                                <?php $__currentLoopData = $errors->only(['name','email','password','phone','role']); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $field => $msgs): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                    <?php $__currentLoopData = $msgs; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $msg): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <li style="font-size:13px"><?php echo e($msg); ?></li>
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                            </ul>
+                        </div>
+                    <?php endif; ?>
+
                     <div class="mb-3">
                         <label class="form-label">Name</label>
-                        <input type="text" name="name" class="form-control" required>
+                        <input type="text" name="name" class="form-control <?php echo e($errors->has('name') ? 'is-invalid' : ''); ?>" value="<?php echo e(old('name')); ?>" required>
+                        <div class="invalid-feedback"><?php echo e($errors->first('name') ?: 'Name is required.'); ?></div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Email</label>
-                        <input type="email" name="email" class="form-control" required>
+                        <input type="email" name="email" class="form-control <?php echo e($errors->has('email') ? 'is-invalid' : ''); ?>" value="<?php echo e(old('email')); ?>" required>
+                        <div class="invalid-feedback"><?php echo e($errors->first('email') ?: 'A valid email is required.'); ?></div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Role</label>
-                        <select name="role" class="form-select" required>
-                            <option value="student">Student</option>
-                            <option value="faculty">Faculty</option>
-                            <option value="maintenance">Maintenance</option>
-                            <option value="mis">MIS</option>
-                            <option value="school_admin">School Administrator</option>
-                            <option value="building_admin">Building Administrator</option>
-                            <option value="academic_head">Academic Head</option>
-                            <option value="program_head">Program Head</option>
-                            <option value="principal_assistant">Principal Assistant</option>
+                        <select name="role" class="form-select <?php echo e($errors->has('role') ? 'is-invalid' : ''); ?>" required>
+                            <option value="student"              <?php echo e(old('role') == 'student'              ? 'selected' : ''); ?>>Student</option>
+                            <option value="faculty"              <?php echo e(old('role') == 'faculty'              ? 'selected' : ''); ?>>Faculty</option>
+                            <option value="maintenance"          <?php echo e(old('role') == 'maintenance'          ? 'selected' : ''); ?>>Maintenance</option>
+                            <option value="mis"                  <?php echo e(old('role') == 'mis'                  ? 'selected' : ''); ?>>MIS</option>
+                            <option value="school_admin"         <?php echo e(old('role') == 'school_admin'         ? 'selected' : ''); ?>>School Administrator</option>
+                            <option value="building_admin"       <?php echo e(old('role') == 'building_admin'       ? 'selected' : ''); ?>>Building Administrator</option>
+                            <option value="academic_head"        <?php echo e(old('role') == 'academic_head'        ? 'selected' : ''); ?>>Academic Head</option>
+                            <option value="program_head"         <?php echo e(old('role') == 'program_head'         ? 'selected' : ''); ?>>Program Head</option>
+                            <option value="principal_assistant"  <?php echo e(old('role') == 'principal_assistant'  ? 'selected' : ''); ?>>Principal Assistant</option>
                         </select>
                     </div>
-                    <div class="mb-3" id="departmentField" style="display: none;">
+                    <div class="mb-3" id="departmentField" style="display: <?php echo e(old('role') == 'program_head' ? 'block' : 'none'); ?>;">
                         <label class="form-label">Department</label>
                         <select name="department" class="form-select">
                             <option value="">Select Department</option>
-                            <option value="GE">GE</option>
-                            <option value="ICT">ICT</option>
-                            <option value="Business Management">Business Management</option>
-                            <option value="THM">THM</option>
+                            <option value="GE"                  <?php echo e(old('department') == 'GE'                  ? 'selected' : ''); ?>>GE</option>
+                            <option value="ICT"                 <?php echo e(old('department') == 'ICT'                 ? 'selected' : ''); ?>>ICT</option>
+                            <option value="Business Management" <?php echo e(old('department') == 'Business Management' ? 'selected' : ''); ?>>Business Management</option>
+                            <option value="THM"                 <?php echo e(old('department') == 'THM'                 ? 'selected' : ''); ?>>THM</option>
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Phone</label>
-                        <input type="text" name="phone" class="form-control" maxlength="11" pattern="09[0-9]{9}" placeholder="09XXXXXXXXX">
+                        <label class="form-label">Phone <small class="text-muted">(optional)</small></label>
+                        <input type="text" name="phone" class="form-control <?php echo e($errors->has('phone') ? 'is-invalid' : ''); ?>" maxlength="11" placeholder="09XXXXXXXXX" value="<?php echo e(old('phone')); ?>">
+                        <div class="invalid-feedback"><?php echo e($errors->first('phone') ?: 'Enter a valid 11-digit PH number (e.g., 09123456789).'); ?></div>
                         <small class="text-muted">11-digit PH number (e.g., 09123456789)</small>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Password</label>
-                        <input type="password" name="password" class="form-control" minlength="8" required>
+                        <input type="password" name="password" id="addUserPassword" class="form-control <?php echo e($errors->has('password') ? 'is-invalid' : ''); ?>" required>
+                        <div class="invalid-feedback"><?php echo e($errors->first('password') ?: 'Password must be at least 8 characters.'); ?></div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Create User</button>
+                    <button type="button" class="btn btn-primary" onclick="submitAddUserForm()">Create User</button>
                 </div>
             </form>
         </div>
@@ -1229,6 +1246,35 @@ document.getElementById('deleteAllModal')?.addEventListener('hidden.bs.modal', f
 // Global variable for selected user ID
 window.selectedUserId = null;
 
+function submitAddUserForm() {
+    const form = document.getElementById('addUserForm');
+    let valid = true;
+
+    // Clear previous errors
+    form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+
+    const name     = form.querySelector('[name="name"]');
+    const email    = form.querySelector('[name="email"]');
+    const password = form.querySelector('[name="password"]');
+    const phone    = form.querySelector('[name="phone"]');
+
+    if (!name.value.trim()) { name.classList.add('is-invalid'); valid = false; }
+
+    if (!email.value.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
+        email.classList.add('is-invalid'); valid = false;
+    }
+
+    if (!password.value || password.value.length < 8) {
+        password.classList.add('is-invalid'); valid = false;
+    }
+
+    if (phone.value && !/^09[0-9]{9}$/.test(phone.value)) {
+        phone.classList.add('is-invalid'); valid = false;
+    }
+
+    if (valid) form.submit();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Show/hide department field based on role selection (Add User modal)
     const addUserModal = document.getElementById('addUserModal');
@@ -1240,15 +1286,21 @@ document.addEventListener('DOMContentLoaded', function() {
             roleSelect.addEventListener('change', function() {
                 if (this.value === 'program_head') {
                     departmentField.style.display = 'block';
-                    departmentField.querySelector('select').required = true;
                 } else {
                     departmentField.style.display = 'none';
-                    departmentField.querySelector('select').required = false;
                     departmentField.querySelector('select').value = '';
                 }
             });
         }
     }
+
+    // Auto-reopen Add User modal if server returned validation errors for it
+    <?php if($errors->hasAny(['name','email','password','phone','role'])): ?>
+    (function() {
+        var modal = new bootstrap.Modal(document.getElementById('addUserModal'));
+        modal.show();
+    })();
+    <?php endif; ?>
 
     // Show/hide department field for Edit User modal (using event delegation)
     document.addEventListener('shown.bs.modal', function(event) {

@@ -73,7 +73,7 @@ html[data-theme="dark"] body {
     background-color: #0f0f1a !important;
     color: #e0e0e0 !important;
 }
-[data-theme="dark"] .sidebar { background: #12122a !important; }
+[data-theme="dark"] .sidebar { background: #0a1628 !important; }
 [data-theme="dark"] .main-content { background: #0f0f1a !important; }
 [data-theme="dark"] .card { background: #1a1a2e !important; border-color: #2a2a45 !important; color: #e0e0e0 !important; }
 [data-theme="dark"] .card-header { background: #1e1e38 !important; border-color: #2a2a45 !important; color: #e0e0e0 !important; }
@@ -113,6 +113,7 @@ html[data-theme="dark"] body {
 [data-theme="dark"] .notification-bell { color: #e0e0e0 !important; }
 [data-theme="dark"] .notification-bell:hover { background: #2a2a45 !important; }
 [data-theme="dark"] .notification-bell i { color: #e0e0e0 !important; }
+[data-theme="dark"] .user-dropdown-top span { color: #e0e0e0 !important; }
 [data-theme="dark"] .notification-dropdown { background: #1a1a2e !important; border-color: #2a2a45 !important; }
 [data-theme="dark"] .notification-header { background: #1e1e38 !important; color: #e0e0e0 !important; border-color: #2a2a45 !important; }
 [data-theme="dark"] .notification-item { border-color: #2a2a45 !important; }
@@ -153,7 +154,7 @@ html[data-theme="dark"] body {
 <!-- Sidebar/Nav -->
 <div class="sidebar">
     <div class="sidebar-header">
-        <img src="<?php echo e(asset('Campfix/Images/logo.png')); ?>" alt="CampFix Logo" height="35" style="margin-right: 8px;"><span class="sidebar-logo-text"><span class="camp-text">Camp</span><span class="fix-text">fix</span></span>
+        <img src="<?php echo e(asset('Campfix/Images/logo.png')); ?>" alt="CampFix Logo">
     </div>
 
     <div class="sidebar-content">
@@ -199,8 +200,6 @@ html[data-theme="dark"] body {
                 <i class="fas fa-tasks"></i> <?php echo e(app()->getLocale() === 'tl' ? 'Gawain' : 'Task'); ?>
 
             </a>
-
-            <hr>
 
             <a href="#" onclick="requirePasswordToAccess('/admin/users', event)" class="<?php echo e(Request::is('admin/users') ? 'active' : ''); ?>">
                 <i class="fas fa-users"></i> <?php echo e(app()->getLocale() === 'tl' ? 'Mga Gumagamit' : 'Users'); ?>
@@ -307,8 +306,9 @@ html[data-theme="dark"] body {
             
             <!-- User Dropdown -->
             <?php if(auth()->guard()->check()): ?>
-            <div class="user-dropdown-top">
-                <div class="user-icon" onclick="toggleDropdown(event)">
+            <div class="user-dropdown-top" onclick="toggleDropdown(event)" style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+                <span style="font-weight:700;font-size:14px;color:var(--header-text,#1e293b);white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis;"><?php echo e(auth()->user()->name); ?></span>
+                <div class="user-icon" style="pointer-events:none;">
                     <?php if(auth()->user()->profile_picture): ?>
                         <img src="<?php echo e(asset('storage/' . auth()->user()->profile_picture)); ?>?t=<?php echo e(time()); ?>" alt="Profile" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
                     <?php else: ?>
@@ -1934,11 +1934,14 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 });
     
-    // Auto-open modal if there are validation errors
-    <?php if($errors->any()): ?>
+    // Auto-open modal if there are validation errors (only on event-related pages)
+    <?php if($errors->any() && !Request::is('admin/users*', 'admin/logs*', 'admin/reports*', 'admin/dashboard*', 'settings*', 'profile*', 'my-concerns*', 'reports*')): ?>
     document.addEventListener('DOMContentLoaded', function() {
-        var modal = new bootstrap.Modal(document.getElementById('eventRequestModal'));
-        modal.show();
+        var modalEl = document.getElementById('eventRequestModal');
+        if (modalEl) {
+            var modal = new bootstrap.Modal(modalEl);
+            modal.show();
+        }
     });
     <?php endif; ?>
     

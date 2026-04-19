@@ -219,39 +219,88 @@
                         @forelse($logs as $log)
                             @php
                                 $changes = $log->changes ?? [];
-                                $badgeColor = str_contains($log->action, 'created') || str_contains($log->action, 'imported') ? 'success' :
-                                             (str_contains($log->action, 'deleted') || str_contains($log->action, 'permanent') ? 'danger' :
-                                             (str_contains($log->action, 'updated') || str_contains($log->action, 'restored') ? 'warning' :
-                                             (str_contains($log->action, 'archived') ? 'secondary' : 'info')));
                             @endphp
                             <tr>
-                                <td>
-                                    <span class="badge bg-{{ $badgeColor }}" style="font-size:11px">
-                                        {{ ucfirst(str_replace('_', ' ', $log->action)) }}
-                                    </span>
+                                <td style="font-size:13px; color:#374151; font-weight:500;">
+                                    {{ ucfirst(str_replace('_', ' ', $log->action)) }}
                                 </td>
                                 <td>
-                                    <div>{{ $log->description }}</div>
-                                    @if(!empty($changes))
-                                        <div class="mt-1" style="font-size:11px">
-                                            @foreach($changes as $field => $diff)
-                                                @if($field === 'is_admin') @continue @endif
-                                                <span class="diff-field">{{ ucfirst(str_replace('_', ' ', $field)) }}:</span>
-                                                <span class="diff-old">{{ $diff['old'] ?? '—' }}</span>
-                                                <i class="fas fa-arrow-right mx-1 text-muted" style="font-size:9px"></i>
-                                                <span class="diff-new">{{ $diff['new'] ?? '—' }}</span>
-                                                @if(!$loop->last) &nbsp;&bull;&nbsp; @endif
-                                            @endforeach
-                                        </div>
-                                    @elseif($log->new_values && !$log->old_values)
-                                        <div class="mt-1 text-muted" style="font-size:11px">
-                                            @foreach($log->new_values as $field => $value)
-                                                <span class="diff-field">{{ ucfirst(str_replace('_', ' ', $field)) }}:</span>
-                                                <span>{{ $value ?? '—' }}</span>
-                                                @if(!$loop->last) &nbsp;&bull;&nbsp; @endif
-                                            @endforeach
-                                        </div>
-                                    @endif
+                                    @php
+                                        $desc    = $log->description;
+                                        $action  = $log->action;
+                                        $friendlyLines = [];
+
+                                        // ── User updated (has changes diff) ──────────────────────
+                                        if (!empty($changes)) {
+                                            $targetName = $log->properties['target_user_name']
+                                                ?? (preg_match('/Updated user:\s*(.+)/i', $desc, $m) ? trim($m[1]) : null);
+                                            if ($targetName) {
+                                                $friendlyLines[] = 'User: <strong>' . e($targetName) . '</strong> has been updated.';
+                                            }
+                                            foreach ($changes as $field => $diff) {
+                                                if (in_array($field, ['is_admin', 'department'])) continue;
+                                                $label = ucfirst(str_replace('_', ' ', $field));
+                                                $old   = $diff['old'] ?? '—';
+                                                $new   = $diff['new'] ?? '—';
+                                                if ($field === 'password') {
+                                                    $friendlyLines[] = 'Password has been changed.';
+                                                } else {
+                                                    $friendlyLines[] = e($label) . ' changed from <strong>' . e($old) . '</strong> to <strong>' . e($new) . '</strong>.';
+                                                }
+                                            }
+
+                                        // ── User created (new_values only) ───────────────────────
+                                        } elseif ($log->new_values && !$log->old_values) {
+                                            $targetName = $log->properties['target_user_name'] ?? null;
+                                            if ($targetName) {
+                                                $friendlyLines[] = 'User: <strong>' . e($targetName) . '</strong> has been created.';
+                                            }
+                                            foreach ($log->new_values as $field => $value) {
+                                                if (in_array($field, ['is_admin', 'department'])) continue;
+                                                $label = ucfirst(str_replace('_', ' ', $field));
+                                                $friendlyLines[] = e($label) . ': <strong>' . e($value ?? '—') . '</strong>.';
+                                            }
+
+                                        // ── Notification sent — event approval chain ─────────────
+                                        } elseif ($action === 'notification_sent' && str_contains($desc, "Event request '")) {
+
+                                            // FULLY APPROVED
+                                            if (preg_match("/Event request '(.+?)' FULLY APPROVED - Notification sent to (.+)/i", $desc, $m)) {
+                                                $friendlyLines[] = 'Event request <strong>\'' . e($m[1]) . '\'</strong> has been <strong>fully approved</strong>.';
+                                                $friendlyLines[] = 'Notification sent to <strong>' . e($m[2]) . '</strong>.';
+
+                                            // approved by X - Waiting for Y
+                                            } elseif (preg_match("/Event request '(.+?)' approved by (.+?) - Waiting for (.+?) - Notification sent to (.+)/i", $desc, $m)) {
+                                                $friendlyLines[] = 'Event request <strong>\'' . e($m[1]) . '\'</strong> approved by <strong>' . e($m[2]) . '</strong>.';
+                                                $friendlyLines[] = 'Waiting for <strong>' . e($m[3]) . '</strong>.';
+                                                $friendlyLines[] = 'Notification sent to <strong>' . e($m[4]) . '</strong>.';
+
+                                            // rejected
+                                            } elseif (preg_match("/Event request '(.+?)' rejected by (.+?) - Notification sent to (.+)/i", $desc, $m)) {
+                                                $friendlyLines[] = 'Event request <strong>\'' . e($m[1]) . '\'</strong> was <strong>rejected</strong> by <strong>' . e($m[2]) . '</strong>.';
+                                                $friendlyLines[] = 'Notification sent to <strong>' . e($m[3]) . '</strong>.';
+
+                                            // old format fallback: "approved by X - Waiting for Next Level"
+                                            } elseif (preg_match("/Event request '(.+?)' approved by (.+?) - Waiting for Next Level - Notification sent to (.+)/i", $desc, $m)) {
+                                                $friendlyLines[] = 'Event request <strong>\'' . e($m[1]) . '\'</strong> approved by <strong>' . e($m[2]) . '</strong>.';
+                                                $friendlyLines[] = 'Waiting for next approver.';
+                                                $friendlyLines[] = 'Notification sent to <strong>' . e($m[3]) . '</strong>.';
+
+                                            } else {
+                                                $friendlyLines[] = e($desc);
+                                            }
+
+                                        // ── Everything else — plain text ─────────────────────────
+                                        } else {
+                                            $friendlyLines[] = e($desc);
+                                        }
+                                    @endphp
+
+                                    <div style="font-size:13px; line-height:1.7;">
+                                        @foreach($friendlyLines as $line)
+                                            <div>{!! $line !!}</div>
+                                        @endforeach
+                                    </div>
                                 </td>
                                 <td>
                                     <div class="fw-semibold">{{ $log->user->name ?? 'System' }}</div>

@@ -259,17 +259,10 @@
 @endsection
 
 @section('page_title')
-<h2><i class="fas fa-user-tie"></i>
-    @switch($user->role)
-        @case('school_admin') School Administrator Dashboard @break
-        @case('building_admin') Building Administrator Dashboard @break
-        @case('academic_head') Academic Head Dashboard @break
-        @case('program_head') Program Head Dashboard @break
-        @case('principal_assistant') Principal Assistant Dashboard @break
-        @default Principal Dashboard
-    @endswitch
-</h2>
-<p>Welcome, {{ auth()->user()->name }}!</p>
+<div style="display:flex;align-items:center;gap:12px">
+    <img src="{{ asset('Campfix/Images/images.png') }}" alt="STI Logo" style="height:40px">
+    <h2 style="margin:0">Home</h2>
+</div>
 @endsection
 
 @section('content')

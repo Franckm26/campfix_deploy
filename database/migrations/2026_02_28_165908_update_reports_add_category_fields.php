@@ -18,20 +18,29 @@ return new class extends Migration
         }
 
         Schema::table('reports', function (Blueprint $table) {
+            if (!Schema::hasColumn('reports', 'category_id')) {
+                $table->foreignId('category_id')
+                    ->nullable()
+                    ->constrained()
+                    ->nullOnDelete();
+            }
 
-            $table->foreignId('category_id')
-                ->nullable()
-                ->constrained()
-                ->nullOnDelete();
+            if (!Schema::hasColumn('reports', 'severity')) {
+                $table->enum('severity', ['low', 'medium', 'high', 'critical'])
+                    ->nullable();
+            }
 
-            $table->enum('severity', ['low', 'medium', 'high', 'critical'])
-                ->nullable();
+            if (!Schema::hasColumn('reports', 'photo_path')) {
+                $table->string('photo_path')->nullable();
+            }
 
-            $table->string('photo_path')->nullable();
+            if (!Schema::hasColumn('reports', 'is_archived')) {
+                $table->boolean('is_archived')->default(false);
+            }
 
-            $table->boolean('is_archived')->default(false);
-
-            $table->timestamp('auto_delete_at')->nullable();
+            if (!Schema::hasColumn('reports', 'auto_delete_at')) {
+                $table->timestamp('auto_delete_at')->nullable();
+            }
         });
     }
 
@@ -41,17 +50,20 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('reports', function (Blueprint $table) {
+            if (!Schema::hasColumn('reports', 'title')) {
+                $table->string('title')->nullable();
+            }
 
-            $table->string('title')->nullable();
-
-            $table->dropConstrainedForeignId('category_id');
-            $table->dropColumn([
-                'category_id',
-                'severity',
-                'photo_path',
-                'is_archived',
-                'auto_delete_at',
-            ]);
+            if (Schema::hasColumn('reports', 'category_id')) {
+                $table->dropConstrainedForeignId('category_id');
+            }
+            
+            $columnsToCheck = ['severity', 'photo_path', 'is_archived', 'auto_delete_at'];
+            foreach ($columnsToCheck as $column) {
+                if (Schema::hasColumn('reports', $column)) {
+                    $table->dropColumn($column);
+                }
+            }
         });
     }
 };

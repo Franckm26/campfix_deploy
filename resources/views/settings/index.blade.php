@@ -17,31 +17,32 @@
     
     .settings-card {
         background: var(--card-bg);
-        border-radius: 10px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        margin-bottom: 20px;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        margin-bottom: 16px;
         overflow: hidden;
+        border: 1px solid #e5e7eb;
     }
     
     .settings-header {
-        padding: 20px;
-        border-bottom: 1px solid #ccc;
+        padding: 12px 16px;
+        border-bottom: 1px solid #e5e7eb;
         display: flex;
-        align-items: center;
-        gap: 15px;
-        background: #1b5e20;
+        align-items:center;
+        gap: 10px;
+        background: #f8f9fa;
     }
     
     .settings-header i {
-        font-size: 24px;
-        color: #ffffff;
+        font-size: 16px;
+        color: #5e5ce6;
     }
     
-    .settings-header h3 {
+    .settings-header h6 {
         margin: 0;
-        color: #ffffff;
-        font-weight: 700;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        color: #1e293b;
+        font-weight: 600;
+        font-size: 15px;
     }
     
     .settings-body {
@@ -49,7 +50,7 @@
     }
     
     .settings-section {
-        margin-bottom: 25px;
+        margin-bottom: 20px;
     }
     
     .settings-section:last-child {
@@ -57,37 +58,28 @@
     }
     
     .settings-section h5 {
-        color: #2e7d32;
-        font-size: 14px;
+        color: #64748b;
+        font-size: 12px;
         text-transform: uppercase;
-        letter-spacing: 1px;
-        margin-bottom: 15px;
+        letter-spacing: 0.5px;
+        margin-bottom: 12px;
         font-weight: 600;
     }
     
     .settings-body {
-        padding: 20px;
+        padding: 16px;
     }
     
     .settings-section:last-child {
         margin-bottom: 0;
-    }
-    
-    .settings-section h5 {
-        color: var(--primary-color);
-        font-size: 14px;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        margin-bottom: 15px;
-        font-weight: 600;
     }
     
     .setting-item {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 12px 0;
-        border-bottom: 1px solid var(--border-color);
+        padding: 10px 0;
+        border-bottom: 1px solid #e5e7eb;
     }
     
     .setting-item:last-child {
@@ -99,14 +91,16 @@
     }
     
     .setting-label {
-        font-weight: 500;
-        color: var(--text-primary);
-        margin-bottom: 3px;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 2px;
+        font-size: 14px;
     }
     
     .setting-description {
         font-size: 12px;
-        color: var(--text-secondary);
+        color: #64748b;
+        line-height: 1.4;
     }
     
     /* Toggle Switch */
@@ -147,7 +141,7 @@
     }
     
     input:checked + .toggle-slider {
-        background-color: #2e7d32;
+        background-color: #5e5ce6;
     }
     
     input:checked + .toggle-slider:before {
@@ -157,49 +151,59 @@
     /* Form Controls */
     .form-select-sm, .form-control-sm {
         padding: 6px 12px;
+        font-size: 13px;
+    }
+    
+    .form-select, .form-control {
         font-size: 14px;
     }
     
     .btn-save {
-        background: #2e7d32;
-        color: white;
-        border: none;
-        padding: 12px 24px;
-        border-radius: 5px;
-        cursor: pointer;
-        font-weight: 600;
-        font-size: 14px;
-    }
-    
-    .btn-save:hover {
-        background: #4caf50;
-        color: white;
-        opacity: 1;
-    }
-    
-    .btn-add {
-        background: #2e7d32;
+        background: #5e5ce6;
         color: white;
         border: none;
         padding: 10px 20px;
-        border-radius: 5px;
-        font-weight: 500;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 13px;
+        transition: all 0.2s;
+    }
+    
+    .btn-save:hover {
+        background: #4f4dd6;
+        color: white;
+        opacity: 1;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(94, 92, 230, 0.3);
+    }
+    
+    .btn-add {
+        background: #5e5ce6;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 13px;
+        transition: all 0.2s;
     }
     
     .btn-add:hover {
-        background: #4caf50;
+        background: #4f4dd6;
         color: white;
+        transform: translateY(-1px);
     }
     
     .btn-primary {
-        background: #2e7d32;
-        border-color: #2e7d32;
+        background: #5e5ce6;
+        border-color: #5e5ce6;
         color: white;
     }
     
     .btn-primary:hover {
-        background: #4caf50;
-        border-color: #4caf50;
+        background: #4f4dd6;
+        border-color: #4f4dd6;
         color: white;
     }
     
@@ -228,11 +232,13 @@
     }
     
     .alert-success {
-        background: #d4edda;
-        color: #155724;
-        padding: 12px;
-        border-radius: 5px;
-        margin-bottom: 20px;
+        background: #d1fae5;
+        color: #065f46;
+        padding: 12px 16px;
+        border-radius: 6px;
+        margin-bottom: 16px;
+        border-left: 4px solid #10b981;
+        font-size: 14px;
     }
     
     .settings-tabs {
@@ -243,21 +249,28 @@
     }
     
     .settings-tab {
-        padding: 12px 24px;
-        background: #e8f5e9;
-        border: 2px solid #2e7d32;
+        padding: 10px 20px;
+        background: #f8f9fa;
+        border: 2px solid #e5e7eb;
         border-radius: 8px;
         cursor: pointer;
-        color: #2e7d32;
+        color: #64748b;
         text-decoration: none;
-        transition: all 0.3s;
+        transition: all 0.2s;
         font-weight: 600;
+        font-size: 13px;
     }
     
-    .settings-tab:hover, .settings-tab.active {
-        background: #2e7d32;
+    .settings-tab:hover {
+        background: #f1f5f9;
+        border-color: #5e5ce6;
+        color: #5e5ce6;
+    }
+    
+    .settings-tab.active {
+        background: #5e5ce6;
         color: white;
-        border-color: #2e7d32;
+        border-color: #5e5ce6;
     }
     
     .tab-content {
@@ -271,7 +284,10 @@
 @endsection
 
 @section('page_title')
-<h2><i class="fas fa-cog"></i> {{ app()->getLocale() === 'tl' ? 'Mga Setting' : 'Settings' }}</h2>
+<div style="display:flex;align-items:center;gap:12px">
+    <img src="{{ asset('Campfix/Images/images.png') }}" alt="STI Logo" style="height:40px">
+    <h2 style="margin:0">Home</h2>
+</div>
 @endsection
 
 @section('content')
@@ -308,7 +324,7 @@
         <div class="settings-card">
             <div class="settings-header">
                 <i class="fas fa-bell"></i>
-                <h3>{{ $isTagalog ? 'Mga Setting ng Abiso' : 'Notification Settings' }}</h3>
+                <h6>{{ $isTagalog ? 'Mga Setting ng Abiso' : 'Notification Settings' }}</h6>
             </div>
             <div class="settings-body">
                 <form action="{{ route('settings.notifications') }}" method="POST">
@@ -363,7 +379,7 @@
         <div class="settings-card">
             <div class="settings-header">
                 <i class="fas fa-sliders-h"></i>
-                <h3>{{ $isTagalog ? 'Mga Kagustuhan sa Display' : 'Display Preferences' }}</h3>
+                <h6>{{ $isTagalog ? 'Mga Kagustuhan sa Display' : 'Display Preferences' }}</h6>
             </div>
             <div class="settings-body">
                 <form action="{{ route('settings.preferences') }}" method="POST">
@@ -438,7 +454,7 @@
         <div class="settings-card">
             <div class="settings-header">
                 <i class="fas fa-shield-alt"></i>
-                <h3>Privacy Settings</h3>
+                <h6>Privacy Settings</h6>
             </div>
             <div class="settings-body">
                 <form action="{{ route('settings.privacy') }}" method="POST">
@@ -495,7 +511,7 @@
         <div class="settings-card">
             <div class="settings-header">
                 <i class="fas fa-shield-alt"></i>
-                <h3>Security Misconfiguration Controls</h3>
+                <h6>Security Misconfiguration Controls</h6>
             </div>
             <div class="settings-body">
                 <form action="{{ route('settings.security-misconfiguration') }}" method="POST">
@@ -555,10 +571,10 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Current Password (required to save settings)</label>
-                        <input type="password" name="current_password" class="form-control" required>
+                        <label class="form-label fw-semibold" style="font-size:13px">Current Password (required to save settings)</label>
+                        <input type="password" name="current_password" class="form-control" required style="font-size:14px">
                         @if($errors->has('current_password'))
-                            <span class="text-danger">{{ $errors->first('current_password') }}</span>
+                            <span class="text-danger" style="font-size:12px">{{ $errors->first('current_password') }}</span>
                         @endif
                     </div>
 
@@ -571,7 +587,7 @@
         <div class="settings-card">
             <div class="settings-header">
                 <i class="fas fa-user-circle"></i>
-                <h3>Account Information</h3>
+                <h6>Account Information</h6>
             </div>
             <div class="settings-body">
                 <div class="settings-section">
@@ -606,7 +622,7 @@
                     </div>
                 </div>
                 
-                <a href="/profile" class="btn-save" style="display: inline-block; text-decoration: none;">
+                <a href="/profile" class="btn-save" style="display: inline-block; text-decoration: none; text-align: center;">
                     <i class="fas fa-edit"></i> Manage Account
                 </a>
             </div>

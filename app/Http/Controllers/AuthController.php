@@ -231,6 +231,12 @@ class AuthController extends Controller
 
         $userId = session('otp_user');
 
+        \Log::info('[OTP] sendOtp called', [
+            'session_user_id' => $userId,
+            'delivery_method' => $request->delivery_method,
+            'ip'              => $request->ip(),
+        ]);
+
         if (! $userId) {
             return redirect('/')->with('error', 'Session expired. Please login again.');
         }
@@ -257,16 +263,42 @@ class AuthController extends Controller
             'otp_attempts' => 0,
         ]);
 
+        \Log::info('[OTP] Generated OTP for user', [
+            'user_id'         => $user->id,
+            'delivery_method' => $deliveryMethod,
+            'otp_expires_at'  => now()->utc()->addMinutes(5)->toDateTimeString(),
+        ]);
+
         $destination = '';
 
         if ($deliveryMethod === 'email') {
             // Send via email immediately (not queued to avoid queue issues)
             try {
+                \Log::info('[OTP] Attempting to send OTP email', [
+                    'user_id'  => $user->id,
+                    'email'    => $user->email,
+                    'mailer'   => config('mail.default'),
+                    'host'     => config('mail.mailers.smtp.host'),
+                    'port'     => config('mail.mailers.smtp.port'),
+                    'username' => config('mail.mailers.smtp.username'),
+                    'from'     => config('mail.from.address'),
+                ]);
+
                 Mail::to($user->email)->send(new SendOtpMail($otp));
+
                 $destination = $user->email;
-                \Log::info('OTP email sent successfully', ['email' => $user->email, 'user_id' => $user->id]);
+                \Log::info('[OTP] Email sent successfully', [
+                    'user_id' => $user->id,
+                    'email'   => $user->email,
+                ]);
             } catch (\Exception $e) {
-                \Log::error('Failed to send OTP email: ' . $e->getMessage(), ['email' => $user->email, 'user_id' => $user->id]);
+                \Log::error('[OTP] Failed to send OTP email', [
+                    'user_id' => $user->id,
+                    'email'   => $user->email,
+                    'from'    => config('mail.from.address'),
+                    'error'   => $e->getMessage(),
+                    'trace'   => $e->getTraceAsString(),
+                ]);
                 return back()->with('error', 'Failed to send email. Please try again or choose SMS instead.');
             }
         } elseif ($deliveryMethod === 'phone') {

@@ -49,22 +49,22 @@ class NotificationService
      */
     private function logNotification(User $user, string $eventTitle, int $approvalLevel, string $status): void
     {
-        $levelNames = [
+        $approverNames = [
             1 => 'Program Head',
             2 => 'Academic Head',
-            3 => 'School Admin',
+            3 => 'Building Admin',
+            4 => 'School Admin',
         ];
 
-        $levelName = $levelNames[$approvalLevel] ?? 'Approval';
+        $approverName = $approverNames[$approvalLevel] ?? 'Approver';
 
         if ($status === 'Rejected') {
-            $message = "Event request '{$eventTitle}' REJECTED by {$levelName} - Notification sent to {$user->email}";
-        } elseif ($approvalLevel === 3) {
+            $message = "Event request '{$eventTitle}' rejected by {$approverName} - Notification sent to {$user->email}";
+        } elseif (in_array($status, ['Fully Approved', 'Approved']) && $approvalLevel >= 4) {
             $message = "Event request '{$eventTitle}' FULLY APPROVED - Notification sent to {$user->email}";
         } else {
-            $nextLevel = $approvalLevel + 1;
-            $nextLevelName = $levelNames[$nextLevel] ?? 'Next Level';
-            $message = "Event request '{$eventTitle}' approved by {$levelName} - Waiting for {$nextLevelName} - Notification sent to {$user->email}";
+            $nextApproverName = $approverNames[$approvalLevel + 1] ?? 'Next Approver';
+            $message = "Event request '{$eventTitle}' approved by {$approverName} - Waiting for {$nextApproverName} - Notification sent to {$user->email}";
         }
 
         ActivityLog::log('notification_sent', $message, $user->id, 'user');

@@ -414,8 +414,10 @@
 @endsection
 
 @section('page_title')
-<h2>Maintenance Dashboard</h2>
-<p>Welcome, {{ auth()->user()->name }}!</p>
+<div style="display:flex;align-items:center;gap:12px">
+    <img src="{{ asset('Campfix/Images/images.png') }}" alt="STI Logo" style="height:40px">
+    <h2 style="margin:0">Home</h2>
+</div>
 @endsection
 
 @section('content')

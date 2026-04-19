@@ -2,12 +2,15 @@
 <link href="<?php echo e(asset('css/admin.css')); ?>" rel="stylesheet">
 <?php $__env->stopSection(); ?>
 
+<?php $__env->startSection('page_title'); ?>
+<h2><i class="fas fa-check-circle"></i> Pending Event Requests</h2>
+<p>Review and approve event/agenda requests</p>
+<?php $__env->stopSection(); ?>
+
 <?php $__env->startSection('content'); ?>
 <div class="container-fluid px-3">
     <div class="row mb-4">
         <div class="col-md-6">
-            <h2><i class="fas fa-check-circle"></i> Pending Event Requests</h2>
-            <p class="text-muted">Review and approve event/agenda requests</p>
         </div>
         <div class="col-md-6 text-end">
             <a href="<?php echo e(route('events.calendar')); ?>" class="btn btn-info">

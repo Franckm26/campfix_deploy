@@ -476,7 +476,10 @@
 @endsection
 
 @section('page_title')
-<h2>Home</h2>
+<div style="display:flex;align-items:center;gap:12px">
+    <img src="{{ asset('Campfix/Images/images.png') }}" alt="STI Logo" style="height:40px">
+    <h2 style="margin:0">Home</h2>
+</div>
 @endsection
 
 @section('content')
@@ -493,7 +496,16 @@
             <!-- My Event Requests Carousel -->
             <div class="welcome-card">
                 <div class="welcome-card-header">
-                    <span>Announcement</span>
+                    <div style="display:flex; align-items:center; gap:0;">
+                        <button id="ann-tab-announcement" onclick="switchAnnTab('announcement')"
+                            style="padding:3px 14px; border-radius:20px; border:none; font-weight:700; font-size:13px; cursor:pointer; background:#1a8fc1; color:#fff; transition:all .2s; line-height:1.6;">
+                            Announcement
+                        </button>
+                        <button id="ann-tab-news" onclick="switchAnnTab('news')"
+                            style="padding:3px 14px; border-radius:20px; border:none; font-weight:700; font-size:13px; cursor:pointer; background:transparent; color:var(--cal-text-muted,#6b7280); transition:all .2s; line-height:1.6;">
+                            News
+                        </button>
+                    </div>
                     <div class="header-controls">
                         <button id="carouselPauseBtn" onclick="toggleWelcomeCarousel()" title="Pause/Play">
                             <i class="fas fa-pause" id="carouselPauseIcon"></i>
@@ -501,6 +513,9 @@
                         <button title="More"><i class="fas fa-ellipsis-v"></i></button>
                     </div>
                 </div>
+
+                {{-- Announcement carousel panel --}}
+                <div id="ann-panel-announcement">
 
                 @php
                     $slideGradients = [
@@ -599,7 +614,51 @@
                     @endif
 
                 </div>
-            </div>
+                </div>{{-- end ann-panel-announcement --}}
+
+                {{-- News inline list panel --}}
+                <div id="ann-panel-news" style="display:none;">
+                    @php
+                        $newsItems = \App\Models\EventRequest::where('status', 'Approved')
+                            ->where('event_date', '>=', now()->toDateString())
+                            ->orderBy('event_date', 'asc')
+                            ->limit(20)
+                            ->get();
+                    @endphp
+                    @if($newsItems->isEmpty())
+                        <div style="text-align:center; padding:40px 20px; color:#6b7280;">
+                            <i class="fas fa-bell-slash" style="font-size:32px; margin-bottom:10px; opacity:.4; display:block;"></i>
+                            <p style="font-size:14px; margin:0;">No announcements at this time.</p>
+                        </div>
+                    @else
+                        <div style="display:flex; flex-direction:column; gap:0;">
+                            @foreach($newsItems as $item)
+                            @php
+                                $nColors = ['#1a237e','#1b5e20','#4a148c','#1565c0','#004d40','#e65100','#880e4f','#006064','#33691e','#bf360c'];
+                                $nColor = $nColors[$loop->index % count($nColors)];
+                            @endphp
+                            <div style="display:flex; gap:12px; align-items:center; padding:11px 16px; border-bottom:1px solid var(--cal-border,#e2e8f0); {{ $loop->last ? 'border-bottom:none;' : '' }}">
+                                <div style="width:38px; height:38px; border-radius:8px; background:{{ $nColor }}; flex-shrink:0; display:flex; align-items:center; justify-content:center;">
+                                    <i class="fas fa-calendar-check" style="color:#fff; font-size:15px;"></i>
+                                </div>
+                                <div style="flex:1; min-width:0;">
+                                    <div style="font-weight:700; font-size:13px; color:var(--cal-text,#1e293b); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ $item->title }}</div>
+                                    <div style="display:flex; flex-wrap:wrap; gap:8px; font-size:11px; color:#6b7280; margin-top:2px;">
+                                        <span><i class="fas fa-calendar-day me-1"></i>{{ \Carbon\Carbon::parse($item->event_date)->format('M d, Y') }}</span>
+                                        @if($item->location)<span><i class="fas fa-map-marker-alt me-1"></i>{{ $item->location }}</span>@endif
+                                        @if($item->start_time && $item->end_time)<span><i class="fas fa-clock me-1"></i>{{ \Carbon\Carbon::parse($item->start_time)->format('g:i A') }} – {{ \Carbon\Carbon::parse($item->end_time)->format('g:i A') }}</span>@endif
+                                    </div>
+                                </div>
+                                <a href="{{ route('events.calendar') }}" style="flex-shrink:0; font-size:11px; color:#1a8fc1; font-weight:600; text-decoration:none; white-space:nowrap;">
+                                    View <i class="fas fa-arrow-right"></i>
+                                </a>
+                            </div>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>{{-- end ann-panel-news --}}
+
+            </div>{{-- end welcome-card --}}
 
             <!-- Quick Stats -->
             <div class="quick-stats">
@@ -716,6 +775,19 @@
 
 @section('scripts')
 <script>
+function switchAnnTab(tab) {
+    const isAnn = tab === 'announcement';
+    document.getElementById('ann-panel-announcement').style.display = isAnn ? '' : 'none';
+    document.getElementById('ann-panel-news').style.display = isAnn ? 'none' : '';
+    document.getElementById('carouselPauseBtn').style.display = isAnn ? '' : 'none';
+    const btnAnn = document.getElementById('ann-tab-announcement');
+    const btnNews = document.getElementById('ann-tab-news');
+    btnAnn.style.background = isAnn ? '#1a8fc1' : 'transparent';
+    btnAnn.style.color = isAnn ? '#fff' : 'var(--cal-text-muted, #6b7280)';
+    btnNews.style.background = isAnn ? 'transparent' : '#1a8fc1';
+    btnNews.style.color = isAnn ? 'var(--cal-text-muted, #6b7280)' : '#fff';
+}
+
     const calEvents = @json($calendarEvents ?? []);
 
     let miniDate = new Date();

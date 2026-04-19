@@ -1635,30 +1635,52 @@ class AdminController extends Controller
     // Store new user
     public function storeUser(Request $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8',
-            'phone' => 'nullable|regex:/^09[0-9]{9}$/',
-            'role' => 'required|in:student,faculty,maintenance,mis,school_admin,building_admin,academic_head,program_head,principal_assistant',
+        \Log::info('[storeUser] Request received', [
+            'name'  => $request->input('name'),
+            'email' => $request->input('email'),
+            'role'  => $request->input('role'),
+            'phone' => $request->input('phone'),
+            'has_password' => $request->filled('password'),
         ]);
 
-        $user = User::create([
-            'name' => $request->input('name'),
-            'email' => $request->input('email'),
-            'password' => Hash::make($request->input('password')),
-            'role' => $request->input('role'),
-            'phone' => $request->input('phone'),
-            'department' => $request->input('department'),
-            'student_id' => $request->input('student_id'),
-            'force_password_change' => $request->input('role') === 'student',
-        ]);
+        try {
+            $validated = $request->validate([
+                'name'     => 'required|string|max:255',
+                'email'    => 'required|string|email|max:255|unique:users',
+                'password' => 'required|string|min:8',
+                'phone'    => 'nullable|regex:/^09[0-9]{9}$/',
+                'role'     => 'required|in:student,faculty,maintenance,mis,school_admin,building_admin,academic_head,program_head,principal_assistant',
+            ]);
+
+            \Log::info('[storeUser] Validation passed');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::warning('[storeUser] Validation failed', ['errors' => $e->errors()]);
+            throw $e;
+        }
+
+        try {
+            $user = User::create([
+                'name'                  => $request->input('name'),
+                'email'                 => $request->input('email'),
+                'password'              => Hash::make($request->input('password')),
+                'role'                  => $request->input('role'),
+                'phone'                 => $request->input('phone'),
+                'department'            => $request->input('department'),
+                'student_id'            => $request->input('student_id'),
+                'force_password_change' => $request->input('role') === 'student',
+            ]);
+
+            \Log::info('[storeUser] User created successfully', ['user_id' => $user->id, 'email' => $user->email]);
+        } catch (\Exception $e) {
+            \Log::error('[storeUser] User::create failed', ['error' => $e->getMessage()]);
+            throw $e;
+        }
 
         ActivityLog::log('user_created', "Created user: {$user->name}", $user->id, 'user', null, [
-            'name' => $user->name,
-            'email' => $user->email,
-            'role' => $user->role,
-            'phone' => $user->phone,
+            'name'       => $user->name,
+            'email'      => $user->email,
+            'role'       => $user->role,
+            'phone'      => $user->phone,
             'department' => $user->department,
             'student_id' => $user->student_id,
         ], ['target_user_id' => $user->id, 'target_user_name' => $user->name]);
