@@ -223,7 +223,7 @@
                                             <i class="fas fa-edit"></i>
                                         </button>
                                         @if($user->locked_until)
-                                        <form action="{{ route('admin.users.unlock', $user->uuid) }}" method="POST" class="d-inline">
+                                        <form action="{{ route('admin.users.unlock', $user->uuid ?? $user->id) }}" method="POST" class="d-inline">
                                             @csrf
                                             <button type="submit" class="btn btn-sm btn-success" title="Unlock Account" onclick="return confirm('Unlock account for {{ $user->name }}?')">
                                                 <i class="fas fa-unlock"></i>
@@ -231,16 +231,16 @@
                                         </form>
                                         @endif
                                         @if(!$user->is_archived)
-                                        <button type="button" class="btn btn-sm btn-secondary" title="Archive" onclick="showUserActionModal('archive', '{{ $user->uuid }}', '{{ $user->name }}')">
+                                        <button type="button" class="btn btn-sm btn-secondary" title="Archive" onclick="showUserActionModal('archive', '{{ $user->uuid ?? $user->id }}', '{{ $user->name }}')">
                                             <i class="fas fa-archive"></i>
                                         </button>
                                         @else
-                                        <button type="button" class="btn btn-sm btn-success" title="Restore" onclick="showUserActionModal('restore', '{{ $user->uuid }}', '{{ $user->name }}')">
+                                        <button type="button" class="btn btn-sm btn-success" title="Restore" onclick="showUserActionModal('restore', '{{ $user->uuid ?? $user->id }}', '{{ $user->name }}')">
                                             <i class="fas fa-trash-restore"></i>
                                         </button>
                                         @endif
                                         @if($user->id !== auth()->id())
-                                        <button type="button" class="btn btn-sm btn-danger" title="Delete" onclick="showUserActionModal('delete', '{{ $user->uuid }}', '{{ $user->name }}')">
+                                        <button type="button" class="btn btn-sm btn-danger" title="Delete" onclick="showUserActionModal('delete', '{{ $user->uuid ?? $user->id }}', '{{ $user->name }}')">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                         @endif
@@ -256,7 +256,7 @@
                                             <h5 class="modal-title">Edit User: {{ $user->name }}</h5>
                                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                         </div>
-                                        <form action="{{ route('admin.users.update', $user->uuid) }}" method="POST">
+                                        <form action="{{ route('admin.users.update', $user->uuid ?? $user->id) }}" method="POST">
                                             @csrf
                                             @method('PUT')
                                             <div class="modal-body">
@@ -788,7 +788,7 @@
                                     </td>
                                     <td class="text-muted">{{ $lu->updated_at->format('M d, Y h:i A') }}</td>
                                     <td>
-                                        <form action="{{ route('admin.users.unlock', $lu->uuid) }}" method="POST" class="d-inline">
+                                        <form action="{{ route('admin.users.unlock', $lu->uuid ?? $lu->id) }}" method="POST" class="d-inline">
                                             @csrf
                                             <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Unlock account for {{ $lu->name }}?')">
                                                 <i class="fas fa-unlock"></i>
