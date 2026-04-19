@@ -12,14 +12,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('concerns', function (Blueprint $table) {
-            $table->string('status')->default('Pending');
+            if (!Schema::hasColumn('concerns', 'status')) {
+                $table->string('status')->default('Pending');
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('concerns', function (Blueprint $table) {
-            $table->dropColumn('status');
+            if (Schema::hasColumn('concerns', 'status')) {
+                $table->dropColumn('status');
+            }
         });
     }
 };

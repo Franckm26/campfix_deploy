@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('reports', function (Blueprint $table) {
-            $table->timestamp('delete_at')->nullable();
+            if (!Schema::hasColumn('reports', 'delete_at')) {
+                $table->timestamp('delete_at')->nullable();
+            }
         });
     }
 

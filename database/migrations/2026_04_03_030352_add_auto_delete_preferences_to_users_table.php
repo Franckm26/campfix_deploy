@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->integer('auto_delete_days')->default(15)->after('allow_messages');
+            if (!Schema::hasColumn('users', 'auto_delete_days')) {
+                $table->integer('auto_delete_days')->default(15)->after('allow_messages');
+            }
         });
     }
 
@@ -22,7 +24,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('auto_delete_days');
+            if (Schema::hasColumn('users', 'auto_delete_days')) {
+                $table->dropColumn('auto_delete_days');
+            }
         });
     }
 };

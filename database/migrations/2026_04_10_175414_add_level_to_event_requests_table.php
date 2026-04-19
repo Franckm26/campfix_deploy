@@ -10,14 +10,18 @@ return new class extends Migration
     {
         Schema::table('event_requests', function (Blueprint $table) {
             // 'tertiary' or 'shs'
-            $table->string('education_level')->default('tertiary')->after('department');
+            if (!Schema::hasColumn('event_requests', 'education_level')) {
+                $table->string('education_level')->default('tertiary')->after('department');
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('event_requests', function (Blueprint $table) {
-            $table->dropColumn('education_level');
+            if (Schema::hasColumn('event_requests', 'education_level')) {
+                $table->dropColumn('education_level');
+            }
         });
     }
 };

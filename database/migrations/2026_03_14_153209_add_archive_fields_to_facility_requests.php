@@ -12,9 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('facility_requests', function (Blueprint $table) {
-            $table->boolean('is_archived')->default(false);
-            $table->boolean('is_deleted')->default(false);
-            $table->integer('delete_after_days')->nullable();
+            if (!Schema::hasColumn('facility_requests', 'is_archived')) {
+                $table->boolean('is_archived')->default(false);
+            }
+            if (!Schema::hasColumn('facility_requests', 'is_deleted')) {
+                $table->boolean('is_deleted')->default(false);
+            }
+            if (!Schema::hasColumn('facility_requests', 'delete_after_days')) {
+                $table->integer('delete_after_days')->nullable();
+            }
         });
     }
 

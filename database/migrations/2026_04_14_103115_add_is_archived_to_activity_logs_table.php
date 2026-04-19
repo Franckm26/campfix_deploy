@@ -9,16 +9,27 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('activity_logs', function (Blueprint $table) {
-            $table->boolean('is_archived')->default(false)->after('metadata');
-            $table->timestamp('archived_at')->nullable()->after('is_archived');
-            $table->unsignedBigInteger('archived_by')->nullable()->after('archived_at');
+            if (!Schema::hasColumn('activity_logs', 'is_archived')) {
+                $table->boolean('is_archived')->default(false)->after('metadata');
+            }
+            if (!Schema::hasColumn('activity_logs', 'archived_at')) {
+                $table->timestamp('archived_at')->nullable()->after('is_archived');
+            }
+            if (!Schema::hasColumn('activity_logs', 'archived_by')) {
+                $table->unsignedBigInteger('archived_by')->nullable()->after('archived_at');
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('activity_logs', function (Blueprint $table) {
-            $table->dropColumn(['is_archived', 'archived_at', 'archived_by']);
+            $columnsToCheck = ['is_archived', 'archived_at', 'archived_by'];
+            foreach ($columnsToCheck as $column) {
+                if (Schema::hasColumn('activity_logs', $column)) {
+                    $table->dropColumn($column);
+                }
+            }
         });
     }
 };

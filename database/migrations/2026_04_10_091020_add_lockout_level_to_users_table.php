@@ -10,14 +10,18 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             // 0 = no lockout, 1 = first lockout (1 min), 2 = second lockout (5 hrs)
-            $table->tinyInteger('login_lockout_level')->default(0)->after('locked_until');
+            if (!Schema::hasColumn('users', 'login_lockout_level')) {
+                $table->tinyInteger('login_lockout_level')->default(0)->after('locked_until');
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('login_lockout_level');
+            if (Schema::hasColumn('users', 'login_lockout_level')) {
+                $table->dropColumn('login_lockout_level');
+            }
         });
     }
 };

@@ -9,14 +9,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->boolean('is_archived')->default(false)->after('department');
+            if (!Schema::hasColumn('users', 'is_archived')) {
+                $table->boolean('is_archived')->default(false)->after('department');
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('is_archived');
+            if (Schema::hasColumn('users', 'is_archived')) {
+                $table->dropColumn('is_archived');
+            }
         });
     }
 };

@@ -12,8 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('event_requests', function (Blueprint $table) {
-            $table->enum('department', ['GE', 'ICT', 'Business Management', 'THM'])->nullable()->after('category');
-            $table->string('other_category')->nullable()->after('department');
+            if (!Schema::hasColumn('event_requests', 'department')) {
+                $table->enum('department', ['GE', 'ICT', 'Business Management', 'THM'])->nullable()->after('category');
+            }
+            if (!Schema::hasColumn('event_requests', 'other_category')) {
+                $table->string('other_category')->nullable()->after('department');
+            }
         });
     }
 
@@ -23,7 +27,12 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('event_requests', function (Blueprint $table) {
-            $table->dropColumn(['department', 'other_category']);
+            $columnsToCheck = ['department', 'other_category'];
+            foreach ($columnsToCheck as $column) {
+                if (Schema::hasColumn('event_requests', $column)) {
+                    $table->dropColumn($column);
+                }
+            }
         });
     }
 };

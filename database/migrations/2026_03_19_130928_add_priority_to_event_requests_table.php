@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('event_requests', function (Blueprint $table) {
-            $table->enum('priority', ['low', 'medium', 'high', 'urgent'])->default('medium')->after('category');
+            if (!Schema::hasColumn('event_requests', 'priority')) {
+                $table->enum('priority', ['low', 'medium', 'high', 'urgent'])->default('medium')->after('category');
+            }
         });
     }
 
@@ -22,7 +24,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('event_requests', function (Blueprint $table) {
-            $table->dropColumn('priority');
+            if (Schema::hasColumn('event_requests', 'priority')) {
+                $table->dropColumn('priority');
+            }
         });
     }
 };

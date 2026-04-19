@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('concerns', function (Blueprint $table) {
-            $table->boolean('is_archived')->default(false)->after('assigned_at');
+            if (!Schema::hasColumn('concerns', 'is_archived')) {
+                $table->boolean('is_archived')->default(false)->after('assigned_at');
+            }
         });
     }
 
@@ -22,7 +24,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('concerns', function (Blueprint $table) {
-            $table->dropColumn('is_archived');
+            if (Schema::hasColumn('concerns', 'is_archived')) {
+                $table->dropColumn('is_archived');
+            }
         });
     }
 };

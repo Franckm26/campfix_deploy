@@ -12,14 +12,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('concerns', function (Blueprint $table) {
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            if (!Schema::hasColumn('concerns', 'user_id')) {
+                $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('concerns', function (Blueprint $table) {
-            $table->dropColumn('user_id');
+            if (Schema::hasColumn('concerns', 'user_id')) {
+                $table->dropColumn('user_id');
+            }
         });
     }
 };

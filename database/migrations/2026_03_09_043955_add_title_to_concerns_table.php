@@ -12,14 +12,18 @@ return new class extends Migration
     public function up()
     {
         Schema::table('concerns', function (Blueprint $table) {
-            $table->string('title')->after('user_id'); // adjust type if needed
+            if (!Schema::hasColumn('concerns', 'title')) {
+                $table->string('title')->after('user_id'); // adjust type if needed
+            }
         });
     }
 
     public function down()
     {
         Schema::table('concerns', function (Blueprint $table) {
-            $table->dropColumn('title');
+            if (Schema::hasColumn('concerns', 'title')) {
+                $table->dropColumn('title');
+            }
         });
     }
 };

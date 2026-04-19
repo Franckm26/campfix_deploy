@@ -12,8 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('concerns', function (Blueprint $table) {
-            $table->string('damaged_part', 255)->nullable()->after('cost');
-            $table->string('replaced_part', 255)->nullable()->after('damaged_part');
+            if (!Schema::hasColumn('concerns', 'damaged_part')) {
+                $table->string('damaged_part', 255)->nullable()->after('cost');
+            }
+            if (!Schema::hasColumn('concerns', 'replaced_part')) {
+                $table->string('replaced_part', 255)->nullable()->after('damaged_part');
+            }
         });
     }
 
@@ -23,8 +27,12 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('concerns', function (Blueprint $table) {
-            $table->dropColumn('damaged_part');
-            $table->dropColumn('replaced_part');
+            if (Schema::hasColumn('concerns', 'damaged_part')) {
+                $table->dropColumn('damaged_part');
+            }
+            if (Schema::hasColumn('concerns', 'replaced_part')) {
+                $table->dropColumn('replaced_part');
+            }
         });
     }
 };

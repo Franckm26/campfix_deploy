@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('event_requests', function (Blueprint $table) {
-            $table->boolean('is_archived')->default(false)->after('notes');
+            if (!Schema::hasColumn('event_requests', 'is_archived')) {
+                $table->boolean('is_archived')->default(false)->after('notes');
+            }
         });
     }
 
@@ -22,7 +24,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('event_requests', function (Blueprint $table) {
-            $table->dropColumn('is_archived');
+            if (Schema::hasColumn('event_requests', 'is_archived')) {
+                $table->dropColumn('is_archived');
+            }
         });
     }
 };

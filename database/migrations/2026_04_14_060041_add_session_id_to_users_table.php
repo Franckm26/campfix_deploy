@@ -9,14 +9,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->string('active_session_id')->nullable()->after('remember_token');
+            if (!Schema::hasColumn('users', 'active_session_id')) {
+                $table->string('active_session_id')->nullable()->after('remember_token');
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('active_session_id');
+            if (Schema::hasColumn('users', 'active_session_id')) {
+                $table->dropColumn('active_session_id');
+            }
         });
     }
 };

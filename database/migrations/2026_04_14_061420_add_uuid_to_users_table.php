@@ -10,7 +10,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->uuid('uuid')->nullable()->unique()->after('id');
+            if (!Schema::hasColumn('users', 'uuid')) {
+                $table->uuid('uuid')->nullable()->unique()->after('id');
+            }
         });
 
         // Backfill existing users
@@ -22,7 +24,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('uuid');
+            if (Schema::hasColumn('users', 'uuid')) {
+                $table->dropColumn('uuid');
+            }
         });
     }
 };

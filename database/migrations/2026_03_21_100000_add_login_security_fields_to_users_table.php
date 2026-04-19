@@ -13,8 +13,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->integer('failed_login_attempts')->default(0)->after('password');
-            $table->timestamp('locked_until')->nullable()->after('failed_login_attempts');
+            if (!Schema::hasColumn('users', 'failed_login_attempts')) {
+                $table->integer('failed_login_attempts')->default(0)->after('password');
+            }
+            if (!Schema::hasColumn('users', 'locked_until')) {
+                $table->timestamp('locked_until')->nullable()->after('failed_login_attempts');
+            }
         });
     }
 
@@ -24,7 +28,12 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['failed_login_attempts', 'locked_until']);
+            $columnsToCheck = ['failed_login_attempts', 'locked_until'];
+            foreach ($columnsToCheck as $column) {
+                if (Schema::hasColumn('users', $column)) {
+                    $table->dropColumn($column);
+                }
+            }
         });
     }
 };

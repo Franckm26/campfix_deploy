@@ -12,11 +12,21 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->integer('reports_auto_delete_days')->default(15)->after('auto_delete_days');
-            $table->integer('concerns_auto_delete_days')->default(15)->after('reports_auto_delete_days');
-            $table->integer('event_requests_auto_delete_days')->default(15)->after('concerns_auto_delete_days');
-            $table->integer('facility_requests_auto_delete_days')->default(15)->after('event_requests_auto_delete_days');
-            $table->integer('users_auto_delete_days')->default(15)->after('facility_requests_auto_delete_days');
+            if (!Schema::hasColumn('users', 'reports_auto_delete_days')) {
+                $table->integer('reports_auto_delete_days')->default(15)->after('auto_delete_days');
+            }
+            if (!Schema::hasColumn('users', 'concerns_auto_delete_days')) {
+                $table->integer('concerns_auto_delete_days')->default(15)->after('reports_auto_delete_days');
+            }
+            if (!Schema::hasColumn('users', 'event_requests_auto_delete_days')) {
+                $table->integer('event_requests_auto_delete_days')->default(15)->after('concerns_auto_delete_days');
+            }
+            if (!Schema::hasColumn('users', 'facility_requests_auto_delete_days')) {
+                $table->integer('facility_requests_auto_delete_days')->default(15)->after('event_requests_auto_delete_days');
+            }
+            if (!Schema::hasColumn('users', 'users_auto_delete_days')) {
+                $table->integer('users_auto_delete_days')->default(15)->after('facility_requests_auto_delete_days');
+            }
         });
     }
 
@@ -26,13 +36,18 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn([
+            $columnsToCheck = [
                 'reports_auto_delete_days',
                 'concerns_auto_delete_days',
                 'event_requests_auto_delete_days',
                 'facility_requests_auto_delete_days',
                 'users_auto_delete_days',
-            ]);
+            ];
+            foreach ($columnsToCheck as $column) {
+                if (Schema::hasColumn('users', $column)) {
+                    $table->dropColumn($column);
+                }
+            }
         });
     }
 };
