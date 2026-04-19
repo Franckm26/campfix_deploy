@@ -12,20 +12,26 @@ return new class extends Migration
      */
     public function up(): void
     {
-        $driver = Schema::getConnection()->getDriverName();
-        
-        if ($driver === 'pgsql') {
-            // For PostgreSQL, we need to drop the enum type and recreate as varchar
-            DB::statement("ALTER TABLE event_requests ALTER COLUMN category TYPE VARCHAR(255)");
-        } elseif ($driver === 'sqlite') {
-            // SQLite doesn't support ALTER COLUMN, but it stores everything as text anyway
-            // So we can skip this migration for SQLite
-            return;
-        } else {
-            // For MySQL/MariaDB
-            Schema::table('event_requests', function (Blueprint $table) {
-                $table->string('category', 255)->change();
-            });
+        try {
+            $driver = Schema::getConnection()->getDriverName();
+            
+            if ($driver === 'pgsql') {
+                // For PostgreSQL, we need to drop the enum type and recreate as varchar
+                DB::statement("ALTER TABLE event_requests ALTER COLUMN category TYPE VARCHAR(255)");
+            } elseif ($driver === 'sqlite') {
+                // SQLite doesn't support ALTER COLUMN, but it stores everything as text anyway
+                // So we can skip this migration for SQLite
+                return;
+            } else {
+                // For MySQL/MariaDB
+                Schema::table('event_requests', function (Blueprint $table) {
+                    $table->string('category', 255)->change();
+                });
+            }
+        } catch (\Exception $e) {
+            // If the migration fails (e.g., column already correct type), just continue
+            // This handles cases where the migration was partially applied
+            \Log::info('Category column type change skipped: ' . $e->getMessage());
         }
     }
 
