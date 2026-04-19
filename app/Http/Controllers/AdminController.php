@@ -2908,6 +2908,7 @@ class AdminController extends Controller
         }
 
         $rowCount = 0;
+        $skippedRows = [];
 
         $existingEmails     = User::selectRaw('LOWER(email) as email')->pluck('email')->toArray();
         $existingStudentIds = User::selectRaw('LOWER(student_id) as student_id')->whereNotNull('student_id')->pluck('student_id')->toArray();
@@ -2924,17 +2925,21 @@ class AdminController extends Controller
 
         $usersToCreate = [];
 
-        foreach ($allRows as $row) {
+        foreach ($allRows as $rowIndex => $row) {
             $row = array_map(fn($v) => trim((string) $v), $row);
 
             if ($isMasterlist) {
                 if ($defaultRole === 'faculty') {
-                    // Faculty format columns:
-                    // 0:No, 1:Last Name, 2:First Name, 3:Middle Name, 4:Display Name, 5:Emp Number
-                    if (count($row) < 6) continue;
+                    if (count($row) < 6) {
+                        $skippedRows[] = "Row {$rowIndex}: too few columns (".count($row).")";
+                        continue;
+                    }
 
-                    $empNumber = preg_replace('/\s+/', '', $row[5]); // e.g. NVS0543F
-                    if (! preg_match('/^NVS\d+/i', $empNumber)) continue; // skip non-data rows
+                    $empNumber = preg_replace('/\s+/', '', $row[5]);
+                    if (! preg_match('/^NVS\d+/i', $empNumber)) {
+                        $skippedRows[] = "Row {$rowIndex}: emp number '{$empNumber}' doesn't match NVS pattern";
+                        continue;
+                    }
 
                     $lastName   = $row[1];
                     $firstName  = $row[2];
@@ -2955,11 +2960,15 @@ class AdminController extends Controller
                     $level      = null;
 
                 } else {
-                    // Student masterlist columns:
-                    // 0:Student ID, 1:OMEGA ID, 2:Last Name, 3:First Name, 4:Middle Name, 5:Program, 6:Level, 7:Type
-                    if (count($row) < 4) continue;
+                    if (count($row) < 4) {
+                        $skippedRows[] = "Row {$rowIndex}: too few columns (".count($row).")";
+                        continue;
+                    }
                     $studentId = $row[0];
-                    if (! preg_match('/^\d{11}$/', $studentId)) continue;
+                    if (! preg_match('/^\d{11}$/', $studentId)) {
+                        $skippedRows[] = "Row {$rowIndex}: student ID '{$studentId}' doesn't match 11-digit pattern";
+                        continue;
+                    }
 
                     $lastName   = $row[2];
                     $firstName  = $row[3];
@@ -2981,7 +2990,10 @@ class AdminController extends Controller
                 }
 
             } else {
-                if (count($row) < 3) continue;
+                if (count($row) < 3) {
+                    $skippedRows[] = "Row {$rowIndex}: too few columns (".count($row).")";
+                    continue;
+                }
                 $studentId  = $row[0];
                 $email      = $row[1];
                 $password   = $row[2];
@@ -2990,7 +3002,10 @@ class AdminController extends Controller
                 $department = null;
                 $level      = null;
 
-                if (! filter_var($email, FILTER_VALIDATE_EMAIL)) continue;
+                if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $skippedRows[] = "Row {$rowIndex}: invalid email '{$email}'";
+                    continue;
+                }
                 if (! in_array($role, ['student', 'faculty', 'maintenance', 'mis'])) {
                     $role = $defaultRole;
                 }
@@ -2999,8 +3014,14 @@ class AdminController extends Controller
             $emailLower     = strtolower($email);
             $studentIdLower = strtolower($studentId);
 
-            if (in_array($emailLower, $existingEmails)) continue;
-            if (! empty($studentId) && in_array($studentIdLower, $existingStudentIds)) continue;
+            if (in_array($emailLower, $existingEmails)) {
+                $skippedRows[] = "Row {$rowIndex}: email '{$email}' already exists";
+                continue;
+            }
+            if (! empty($studentId) && in_array($studentIdLower, $existingStudentIds)) {
+                $skippedRows[] = "Row {$rowIndex}: student ID '{$studentId}' already exists";
+                continue;
+            }
 
             $usersToCreate[] = [
                 'uuid'                  => (string) \Illuminate\Support\Str::uuid(),
@@ -3037,7 +3058,21 @@ class AdminController extends Controller
 
         ActivityLog::log('users_imported', "Imported {$rowCount} users to folder '{$folderName}'");
 
-        return redirect()->route('admin.users')->with('success', "Successfully imported {$rowCount} users!");
+        \Log::info('Import debug', [
+            'total_rows' => count($allRows),
+            'imported' => $rowCount,
+            'skipped_count' => count($skippedRows),
+            'first_10_skipped' => array_slice($skippedRows, 0, 10),
+            'format' => $isMasterlist ? 'masterlist' : 'standard',
+            'role' => $defaultRole,
+            'extension' => $extension,
+        ]);
+
+        $debugMsg = count($skippedRows) > 0
+            ? ' (Skipped '.count($skippedRows).' rows. First reason: '.($skippedRows[0] ?? 'none').')'
+            : '';
+
+        return redirect()->route('admin.users')->with('success', "Successfully imported {$rowCount} users!{$debugMsg}");
     }
 
     // Activity logs
