@@ -2504,7 +2504,7 @@ class AdminController extends Controller
             ActivityLog::log('archive_folder_deleted', "Deleted empty archive folder: {$folderName}");
         }
 
-        return redirect()->route('admin.archiveFolders')->with('success', "Successfully restored {$count} users from folder '{$folderName}'! The empty folder has been deleted.");
+        return redirect()->route('admin.users', ['view' => 'archives'])->with('success', "Successfully restored {$count} users from folder '{$folderName}'! The empty folder has been deleted.");
     }
 
     // Archive all users

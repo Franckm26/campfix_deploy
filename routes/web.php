@@ -301,6 +301,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::delete('/admin/logs/folders/{id}', [AdminController::class, 'deleteLogArchiveFolder'])->name('admin.logs.folder.delete');
 
     // Archive Folders for Items (concerns, reports, facilities)
+    Route::get('/admin/archive-folders', [AdminController::class, 'archiveFolders'])->name('admin.archiveFolders');
     Route::post('/admin/archive-folders/create', [AdminController::class, 'createArchiveFolder'])->name('admin.archiveFolders.create');
     Route::get('/admin/archive-folders/{id}/edit', [AdminController::class, 'editArchiveFolder'])->name('admin.archiveFolders.edit');
     Route::put('/admin/archive-folders/{id}', [AdminController::class, 'updateArchiveFolder'])->name('admin.archiveFolders.update');
