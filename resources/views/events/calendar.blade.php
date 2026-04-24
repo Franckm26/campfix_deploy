@@ -382,16 +382,6 @@
 
         <!-- Right Panel -->
         <div class="cal-right-panel">
-            <!-- Mini Calendar -->
-            <div class="mini-cal-card">
-                <h6><i class="fas fa-calendar-alt text-primary"></i> Calendar</h6>
-                <div class="mini-cal-nav">
-                    <button onclick="changeMiniMonth(-1)"><i class="fas fa-chevron-left"></i></button>
-                    <span id="mini-cal-label"></span>
-                    <button onclick="changeMiniMonth(1)"><i class="fas fa-chevron-right"></i></button>
-                </div>
-                <div class="mini-cal-grid" id="mini-cal-grid"></div>
-            </div>
 
             <!-- Event Types -->
             <div class="cal-list-card">

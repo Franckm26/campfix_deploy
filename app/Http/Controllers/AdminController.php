@@ -1659,7 +1659,8 @@ class AdminController extends Controller
 
         try {
             $validated = $request->validate([
-                'name'     => 'required|string|max:255',
+                'first_name' => 'required|string|max:255',
+                'last_name'  => 'required|string|max:255',
                 'email'    => 'required|string|email|max:255|unique:users',
                 'password' => 'required|string|min:8',
                 'phone'    => 'nullable|regex:/^09[0-9]{9}$/',
@@ -1674,7 +1675,7 @@ class AdminController extends Controller
 
         try {
             $user = User::create([
-                'name'                  => $request->input('name'),
+                'name'                  => trim($request->input('first_name') . ' ' . $request->input('last_name')),
                 'email'                 => $request->input('email'),
                 'password'              => Hash::make($request->input('password')),
                 'role'                  => $request->input('role'),
@@ -1873,7 +1874,6 @@ class AdminController extends Controller
         $users = User::hideSuperadmin()->withoutGlobalScope('not_deleted')
             ->where('archive_folder_id', $deletedFolder->id)
             ->where('is_deleted', true)
-            ->where('deleted_at', '<=', now()->subDays($days))
             ->orderBy('updated_at', 'desc')
             ->get();
 
@@ -1886,7 +1886,7 @@ class AdminController extends Controller
         $user = User::hideSuperadmin()->withoutGlobalScope('not_deleted')->findOrFail($id);
 
         if (! $user->is_deleted) {
-            return redirect()->route('admin.deletedUsers')->with('error', 'User is not in the Deleted Users folder.');
+            return redirect()->route('admin.users', ['view' => 'deleted'])->with('error', 'User is not in the Deleted Users folder.');
         }
 
         $userName = $user->name;
@@ -1908,7 +1908,7 @@ class AdminController extends Controller
 
         ActivityLog::log('user_restored', "Restored deleted user: {$userName}");
 
-        return redirect()->route('admin.deletedUsers')->with('success', "User '{$userName}' has been restored successfully!");
+        return redirect()->route('admin.users', ['view' => 'deleted'])->with('success', "User '{$userName}' has been restored successfully!");
     }
 
     // Restore all deleted users
@@ -1919,7 +1919,7 @@ class AdminController extends Controller
             ->get();
 
         if ($deletedUsers->isEmpty()) {
-            return redirect()->route('admin.deletedUsers')->with('error', 'No deleted users to restore.');
+            return redirect()->route('admin.users', ['view' => 'deleted'])->with('error', 'No deleted users to restore.');
         }
 
         $count = 0;
@@ -1945,7 +1945,7 @@ class AdminController extends Controller
             $count++;
         }
 
-        return redirect()->route('admin.deletedUsers')->with('success', "All {$count} deleted user(s) have been restored successfully!");
+        return redirect()->route('admin.users', ['view' => 'deleted'])->with('success', "All {$count} deleted user(s) have been restored successfully!");
     }
 
     // Restore selected deleted users
@@ -1954,7 +1954,7 @@ class AdminController extends Controller
         $userIds = $request->input('user_ids', []);
 
         if (empty($userIds)) {
-            return redirect()->route('admin.deletedUsers')->with('error', 'No users selected.');
+            return redirect()->route('admin.users', ['view' => 'deleted'])->with('error', 'No users selected.');
         }
 
         $count = 0;
@@ -1981,7 +1981,7 @@ class AdminController extends Controller
             }
         }
 
-        return redirect()->route('admin.deletedUsers')->with('success', "{$count} user(s) have been restored successfully!");
+        return redirect()->route('admin.users', ['view' => 'deleted'])->with('success', "{$count} user(s) have been restored successfully!");
     }
 
     // Permanently delete a user from Deleted Users folder
@@ -1990,7 +1990,7 @@ class AdminController extends Controller
         $user = User::hideSuperadmin()->withoutGlobalScope('not_deleted')->findOrFail($id);
 
         if (! $user->is_deleted) {
-            return redirect()->route('admin.deletedUsers')->with('error', 'User is not in the Deleted Users folder.');
+            return redirect()->route('admin.users', ['view' => 'deleted'])->with('error', 'User is not in the Deleted Users folder.');
         }
 
         $userName = $user->name;
@@ -2007,7 +2007,7 @@ class AdminController extends Controller
             $folder->save();
         }
 
-        return redirect()->route('admin.deletedUsers')->with('success', "User '{$userName}' has been permanently deleted!");
+        return redirect()->route('admin.users', ['view' => 'deleted'])->with('success', "User '{$userName}' has been permanently deleted!");
     }
 
     // Permanently delete all users in Deleted Users folder
@@ -2016,7 +2016,7 @@ class AdminController extends Controller
         $deletedFolder = UserArchiveFolder::where('name', 'Deleted Users')->first();
 
         if (! $deletedFolder) {
-            return redirect()->route('admin.deletedUsers')->with('error', 'Deleted Users folder not found.');
+            return redirect()->route('admin.users', ['view' => 'deleted'])->with('error', 'Deleted Users folder not found.');
         }
 
         $users = User::hideSuperadmin()->withoutGlobalScope('not_deleted')
@@ -2035,7 +2035,7 @@ class AdminController extends Controller
         $deletedFolder->user_count = 0;
         $deletedFolder->save();
 
-        return redirect()->route('admin.deletedUsers')->with('success', "{$count} user(s) have been permanently deleted!");
+        return redirect()->route('admin.users', ['view' => 'deleted'])->with('success', "{$count} user(s) have been permanently deleted!");
     }
 
     // =====================================================
@@ -2449,7 +2449,10 @@ class AdminController extends Controller
     // Restore user
     public function restoreUser($uuid)
     {
-        $user = User::hideSuperadmin()->where('uuid', $uuid)->firstOrFail();
+        // Support both UUID and numeric ID
+        $user = is_numeric($uuid)
+            ? User::hideSuperadmin()->where('id', $uuid)->firstOrFail()
+            : User::hideSuperadmin()->where('uuid', $uuid)->firstOrFail();
 
         // Get the folder before clearing
         $folderId = $user->archive_folder_id;
@@ -2458,30 +2461,36 @@ class AdminController extends Controller
         $user->archive_folder_id = null;
         $user->save();
 
-        // Update folder user count or delete if empty
-        if ($folderId) {
-            $folder = UserArchiveFolder::find($folderId);
-            if ($folder) {
-                $remainingUsers = $folder->archivedUsers()->count();
-                if ($remainingUsers == 0) {
-                    // Delete the folder if it's now empty
-                    $folderName = $folder->name;
-                    $folder->delete();
-                    ActivityLog::log('archive_folder_deleted', "Deleted empty archive folder: {$folderName}");
-                } else {
-                    $folder->user_count = $remainingUsers;
-                    $folder->save();
-                }
-            }
-        }
-
         ActivityLog::log('user_restored', "Restored user from archive: {$user->name}");
 
         if (request()->ajax()) {
             return response()->json(['success' => 'User restored successfully!']);
         }
 
-        return redirect()->route('admin.users')->with('success', 'User restored successfully!');
+        // Check remaining users in the folder
+        if ($folderId) {
+            $folder = UserArchiveFolder::find($folderId);
+            if ($folder) {
+                $remainingUsers = $folder->archivedUsers()->count();
+                if ($remainingUsers === 0) {
+                    // Folder is now empty — delete it and go to archives list
+                    $folderName = $folder->name;
+                    $folder->delete();
+                    ActivityLog::log('archive_folder_deleted', "Deleted empty archive folder: {$folderName}");
+                    return redirect()->route('admin.users', ['view' => 'archives'])
+                        ->with('success', 'User restored successfully! The folder is now empty and has been removed.');
+                } else {
+                    // Still users in folder — stay in the folder view
+                    $folder->user_count = $remainingUsers;
+                    $folder->save();
+                    return redirect()->route('admin.archiveFolderUsers', $folderId)
+                        ->with('success', 'User restored successfully!');
+                }
+            }
+        }
+
+        return redirect()->route('admin.users', ['view' => 'archives'])
+            ->with('success', 'User restored successfully!');
     }
 
     // Restore selected users
@@ -3184,7 +3193,9 @@ class AdminController extends Controller
             $query->where(function ($q) {
                 $q->whereNotNull('item_user_id')
                     ->orWhere('action', 'like', 'user_%')
-                    ->orWhere('action', 'like', 'users_%');
+                    ->orWhere('action', 'like', 'users_%')
+                    ->orWhere('action', 'like', 'log_%')
+                    ->orWhere('action', 'like', 'logs_%');
             });
         } elseif ($currentUser && $currentUser->role === 'building_admin') {
             $query->where(function ($q) {
@@ -3227,15 +3238,32 @@ class AdminController extends Controller
 
     public function restoreLog(Request $request, ActivityLog $log)
     {
+        $folderId = $log->log_archive_folder_id;
+
         $log->update([
-            'is_archived' => false,
-            'archived_at' => null,
-            'archived_by' => null,
+            'is_archived'           => false,
+            'archived_at'           => null,
+            'archived_by'           => null,
+            'log_archive_folder_id' => null,
         ]);
 
-        ActivityLog::log('log_restored', 'Audit log #' . $log->id . ' restored by ' . auth()->user()->name, $log->id, 'concern');
+        // Update folder log count
+        if ($folderId) {
+            $folder = LogArchiveFolder::find($folderId);
+            if ($folder) {
+                $remaining = ActivityLog::where('log_archive_folder_id', $folderId)->count();
+                if ($remaining === 0) {
+                    $folder->delete();
+                    return redirect()->route('admin.logs', ['view' => 'archived'])
+                        ->with('success', 'Log restored successfully. Folder was empty and has been removed.');
+                }
+                $folder->log_count = $remaining;
+                $folder->save();
+            }
+        }
 
-        return back()->with('success', 'Log restored successfully.');
+        return redirect()->route('admin.logs.folder', $folderId)
+            ->with('success', 'Log restored successfully.');
     }
 
     public function archiveLogsBulk(Request $request)
@@ -3280,13 +3308,16 @@ class AdminController extends Controller
         $folder = LogArchiveFolder::findOrFail($id);
         $count  = ActivityLog::where('log_archive_folder_id', $id)->count();
 
-        // Move all logs back to active (set folder_id to null)
-        ActivityLog::where('log_archive_folder_id', $id)->update(['log_archive_folder_id' => null]);
-        
+        // Move all logs back to active (clear archive fields)
+        ActivityLog::where('log_archive_folder_id', $id)->update([
+            'log_archive_folder_id' => null,
+            'is_archived'           => false,
+            'archived_at'           => null,
+            'archived_by'           => null,
+        ]);
+
         // Delete the folder
         $folder->delete();
-
-        ActivityLog::log('log_folder_restored', "Restored log archive folder '{$folder->name}' with {$count} logs back to active logs.");
 
         return redirect()->route('admin.logs', ['view' => 'archived'])
             ->with('success', "Folder '{$folder->name}' restored. {$count} log(s) moved back to active logs.");
@@ -4040,4 +4071,5 @@ class AdminController extends Controller
         return back()->with('success', 'Facility request moved to deleted successfully!');
     }
 }
+
 

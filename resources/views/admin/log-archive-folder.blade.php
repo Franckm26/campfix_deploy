@@ -51,6 +51,7 @@
                             <th style="width:16%">Performed By</th>
                             <th style="width:12%">IP Address</th>
                             <th style="width:14%">Date / Time</th>
+                            <th style="width:6%"></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -102,10 +103,29 @@
                                     {{ $log->created_at->format('M d, Y') }}<br>
                                     <small>{{ $log->created_at->format('h:i:s A') }}</small>
                                 </td>
+                                <td>
+                                    <div class="d-flex gap-1">
+                                        <form method="POST" action="{{ route('admin.logs.restore', $log->id) }}"
+                                              onsubmit="return confirm('Restore this log entry back to active logs?')">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-success" title="Restore">
+                                                <i class="fas fa-trash-restore"></i>
+                                            </button>
+                                        </form>
+                                        <form method="POST" action="{{ route('admin.logs.delete', $log->id) }}"
+                                              onsubmit="return confirm('Delete this log entry?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-danger" title="Delete">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="text-center py-4 text-muted">No logs in this folder</td>
+                                <td colspan="6" class="text-center py-4 text-muted">No logs in this folder</td>
                             </tr>
                         @endforelse
                     </tbody>

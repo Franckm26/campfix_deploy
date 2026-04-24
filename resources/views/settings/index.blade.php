@@ -337,7 +337,7 @@
                         <div class="setting-item">
                             <div class="setting-info">
                                 <div class="setting-label">{{ $isTagalog ? 'Mga Abiso sa Email' : 'Email Notifications' }}</div>
-                                <div class="setting-description">{{ $isTagalog ? 'Tumanggap ng mga update at alerto sa pamamagitan ng email' : 'Receive updates and alerts via email' }}</div>
+                                <div class="setting-description">{{ $isTagalog ? 'Tumanggap ng mga update sa pamamagitan ng email' : 'Receive updates via email' }}</div>
                             </div>
                             <label class="toggle-switch">
                                 <input type="checkbox" name="email_notifications" value="1" {{ $user->email_notifications ? 'checked' : '' }}>
@@ -348,7 +348,7 @@
                         <div class="setting-item">
                             <div class="setting-info">
                                 <div class="setting-label">{{ $isTagalog ? 'Mga Abiso sa SMS' : 'SMS Notifications' }}</div>
-                                <div class="setting-description">{{ $isTagalog ? 'Tumanggap ng mahahalagang alerto sa pamamagitan ng SMS' : 'Receive important alerts via SMS' }}</div>
+                                <div class="setting-description">{{ $isTagalog ? 'Tumanggap ng mga update sa pamamagitan ng SMS' : 'Receive updates via SMS' }}</div>
                             </div>
                             <label class="toggle-switch">
                                 <input type="checkbox" name="sms_notifications" value="1" {{ $user->sms_notifications ? 'checked' : '' }}>
@@ -359,7 +359,7 @@
                         <div class="setting-item">
                             <div class="setting-info">
                                 <div class="setting-label">{{ $isTagalog ? 'Push Notifications' : 'Push Notifications' }}</div>
-                                <div class="setting-description">{{ $isTagalog ? 'Tumanggap ng real-time na mga abiso sa app' : 'Receive real-time notifications in the app' }}</div>
+                                <div class="setting-description">{{ $isTagalog ? 'Tumanggap ng mga update sa app' : 'Receive updates in the app' }}</div>
                             </div>
                             <label class="toggle-switch">
                                 <input type="checkbox" name="push_notifications" value="1" {{ $user->push_notifications ? 'checked' : '' }}>

@@ -236,6 +236,13 @@ html[data-theme="dark"] body {
             </a>
         @endif
 
+        {{-- Settings — visible to all roles --}}
+        @if(auth()->user()->role !== 'mis')
+            <a href="/settings" class="{{ Request::is('settings') ? 'active' : '' }}">
+                <i class="fas fa-cog"></i> {{ app()->getLocale() === 'tl' ? 'Mga Setting' : 'Settings' }}
+            </a>
+        @endif
+
         @endauth
     </div>
 </div>

@@ -17,6 +17,9 @@
                             <select class="form-select" id="category_id" name="category_id" required>
                                 <option value="" disabled selected>Select a category</option>
                                 @foreach($categories as $category)
+                                    @if(auth()->user()->role === 'student' && strtolower($category->name) === 'rooms')
+                                        @continue
+                                    @endif
                                     <option value="{{ $category->id }}">{{ $category->name }}</option>
                                 @endforeach
                             </select>

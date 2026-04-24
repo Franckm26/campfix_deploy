@@ -25,6 +25,70 @@
             background: #fff;
             padding: 20px;
         }
+
+        /* ── Letterhead ── */
+        .letterhead {
+            display: table;
+            width: 100%;
+            margin-bottom: 18px;
+            border-bottom: 3px solid #003087;
+            padding-bottom: 12px;
+        }
+        .letterhead-logo {
+            display: table-cell;
+            width: 80px;
+            vertical-align: middle;
+        }
+        .letterhead-logo img {
+            width: 70px;
+            height: 70px;
+        }
+        .letterhead-info {
+            display: table-cell;
+            vertical-align: middle;
+            padding-left: 12px;
+        }
+        .letterhead-info .school-name {
+            font-size: 16px;
+            font-weight: bold;
+            color: #003087;
+            letter-spacing: 0.5px;
+        }
+        .letterhead-info .school-address {
+            font-size: 10px;
+            color: #555;
+            margin-top: 2px;
+        }
+        .letterhead-info .school-tagline {
+            font-size: 10px;
+            color: #003087;
+            font-style: italic;
+            margin-top: 2px;
+        }
+
+        /* ── Footer ── */
+        .pdf-footer {
+            margin-top: 30px;
+            border-top: 3px solid #003087;
+            padding-top: 8px;
+            text-align: center;
+        }
+        .pdf-footer .footer-name {
+            font-size: 11px;
+            font-weight: bold;
+            color: #003087;
+            letter-spacing: 1px;
+        }
+        .pdf-footer .footer-address {
+            font-size: 9px;
+            color: #555;
+            margin-top: 2px;
+        }
+        .pdf-footer .footer-contact {
+            font-size: 9px;
+            color: #555;
+            margin-top: 1px;
+        }
         
         .header {
             text-align: center;
@@ -166,9 +230,23 @@
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
+        <!-- Letterhead -->
+        @php $logoPath = public_path('Campfix/Images/images.png'); @endphp
+        <div class="letterhead">
+            <div class="letterhead-logo">
+                @if(file_exists($logoPath))
+                    <img src="data:image/png;base64,{{ base64_encode(file_get_contents($logoPath)) }}" alt="STI Logo">
+                @endif
+            </div>
+            <div class="letterhead-info">
+                <div class="school-name">STI COLLEGE NOVALICHES</div>
+                <div class="school-address">STI Academic Center, Diamond Avenue corner Quirino Highway, San Bartolome, Novaliches, Quezon City, 1116 Metro Manila</div>
+                <div class="school-tagline">Where Careers Begin</div>
+            </div>
+        </div>
+
+        <!-- Title -->
         <div class="header">
-            <h1>STI NOVALICHES COLLEGE</h1>
             <h2>EVENT REQUEST FORM</h2>
         </div>
 
@@ -177,7 +255,7 @@
             <tr>
                 <th>Request No.:</th>
                 <td>{{ $eventRequest->id }}</td>
-                <th>Date:</th>
+                <th>Date Requested:</th>
                 <td>{{ $eventRequest->created_at->format('m/d/Y') }}</td>
             </tr>
             <tr>
@@ -194,7 +272,7 @@
                 <th>Date Needed:</th>
                 <td>{{ \Carbon\Carbon::parse($eventRequest->event_date)->format('m/d/Y') }}</td>
                 <th>Time Needed:</th>
-                <td>{{ $eventRequest->start_time }} - {{ $eventRequest->end_time }}</td>
+                <td>{{ \Carbon\Carbon::parse($eventRequest->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($eventRequest->end_time)->format('g:i A') }}</td>
             </tr>
             <tr>
                 <th>Category:</th>
@@ -240,8 +318,8 @@
         <table class="approvers-table">
             <thead>
                 <tr>
-                    <th>Approver</th>
-                    <th>Role</th>
+                    <th>Approved By</th>
+                    <th>Position</th>
                     <th>Date/Time</th>
                     <th>Status</th>
                 </tr>
@@ -273,6 +351,12 @@
                 @endif
             </tbody>
         </table>
+        <!-- Footer -->
+        <div class="pdf-footer">
+            <div class="footer-name">STI COLLEGE NOVALICHES</div>
+            <div class="footer-address">STI Academic Center, Diamond Avenue corner Quirino Highway, San Bartolome, Novaliches, Quezon City, 1116 Metro Manila</div>
+            <div class="footer-contact">Tel: (02) 8936-0818 &nbsp;|&nbsp; www.sti.edu</div>
+        </div>
     </div>
 </body>
 </html>

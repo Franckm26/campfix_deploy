@@ -211,6 +211,10 @@ class AuthController extends Controller
                 return redirect('/first-login-password')->with('info', 'Please set your new password and contact number.');
             }
 
+            if ($user->is_superadmin || $user->role === 'superadmin') {
+                return redirect()->route('superadmin.dashboard');
+            }
+
             if ($user->role == 'mis') {
                 return redirect('/admin');
             }
@@ -409,7 +413,6 @@ class AuthController extends Controller
 
         // OWASP A2: Strong password requirements
         $request->validate([
-            'name' => 'required|min:2|max:255',
             'password' => [
                 'required',
                 'confirmed',
@@ -428,7 +431,6 @@ class AuthController extends Controller
         ]);
 
         $user->update([
-            'name' => $request->name,
             'password' => Hash::make($request->password),
             'phone' => $request->phone,
             'force_password_change' => false,

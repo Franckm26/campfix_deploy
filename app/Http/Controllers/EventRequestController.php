@@ -1401,7 +1401,7 @@ class EventRequestController extends Controller
                     'level' => $h['level'],
                     'role' => $role,
                     'name' => $name,
-                    'date' => isset($h['at']) ? \Carbon\Carbon::parse($h['at'])->format('M d, Y h:i A') : 'N/A',
+                    'date' => isset($h['at']) ? \Carbon\Carbon::parse($h['at'])->format('m/d/Y h:i A') : 'N/A',
                 ];
                 $seenNames[$name.'-'.$role] = true;
             }
@@ -1425,7 +1425,7 @@ class EventRequestController extends Controller
                         'level' => '1',
                         'role' => 'Building Admin',
                         'name' => $name,
-                        'date' => $eventRequest->approved_at_level_1 ? \Carbon\Carbon::parse($eventRequest->approved_at_level_1)->format('M d, Y h:i A') : 'N/A',
+                        'date' => $eventRequest->approved_at_level_1 ? \Carbon\Carbon::parse($eventRequest->approved_at_level_1)->format('m/d/Y h:i A') : 'N/A',
                     ];
                 }
             }
@@ -1449,7 +1449,7 @@ class EventRequestController extends Controller
                         'level' => '2',
                         'role' => 'Academic Head',
                         'name' => $name,
-                        'date' => $eventRequest->approved_at_level_2 ? \Carbon\Carbon::parse($eventRequest->approved_at_level_2)->format('M d, Y h:i A') : 'N/A',
+                        'date' => $eventRequest->approved_at_level_2 ? \Carbon\Carbon::parse($eventRequest->approved_at_level_2)->format('m/d/Y h:i A') : 'N/A',
                     ];
                 }
             }
@@ -1473,7 +1473,7 @@ class EventRequestController extends Controller
                         'level' => '3',
                         'role' => 'Additional Approver',
                         'name' => $name,
-                        'date' => $eventRequest->approved_at_level_3 ? \Carbon\Carbon::parse($eventRequest->approved_at_level_3)->format('M d, Y h:i A') : 'N/A',
+                        'date' => $eventRequest->approved_at_level_3 ? \Carbon\Carbon::parse($eventRequest->approved_at_level_3)->format('m/d/Y h:i A') : 'N/A',
                     ];
                 }
             }

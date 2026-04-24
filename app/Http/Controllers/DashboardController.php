@@ -13,6 +13,10 @@ class DashboardController extends Controller
         $user = auth()->user();
 
         // Redirect based on role
+        if ($user->is_superadmin || $user->role === 'superadmin') {
+            return redirect()->route('superadmin.dashboard');
+        }
+
         if ($user->role === 'mis') {
             return redirect('/admin');
         }

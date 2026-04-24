@@ -744,7 +744,7 @@
                 <div class="calendar-header">
                     <div class="card-title-modern">
                         <i class="fas fa-calendar"></i>
-                        Campus Events
+                        Calendar
                     </div>
                     <button onclick="window.location.href='/events-calendar'" style="border: none; background: none; color: #5e5ce6; font-size: 13px; cursor: pointer; font-weight: 500;">View Calendar</button>
                 </div>
@@ -785,25 +785,7 @@
                         ->orderBy('start_time', 'asc')
                         ->first();
                 @endphp
-                
-                @if($upcomingEvent)
-                <div class="calendar-event">
-                    <div class="event-title">{{ $upcomingEvent->title }}</div>
-                    <div class="event-time">
-                        {{ \Carbon\Carbon::parse($upcomingEvent->event_date)->format('M d, Y') }} • 
-                        {{ \Carbon\Carbon::parse($upcomingEvent->start_time)->format('g:i A') }} - 
-                        {{ \Carbon\Carbon::parse($upcomingEvent->end_time)->format('g:i A') }}
-                    </div>
-                    <div class="event-badge">
-                        <i class="fas fa-map-marker-alt"></i>
-                        {{ $upcomingEvent->location }}
-                    </div>
-                </div>
-                @else
-                <div style="padding: 16px; text-align: center; color: #999; font-size: 13px;">
-                    No upcoming events
-                </div>
-                @endif
+
             </div>
         </div>
         
@@ -1021,6 +1003,9 @@
                                 $categories = \App\Models\Category::all();
                             @endphp
                             @foreach($categories as $category)
+                                @if(auth()->user()->role === 'student' && strtolower($category->name) === 'rooms')
+                                    @continue
+                                @endif
                                 <option value="{{ $category->id }}">{{ $category->name }}</option>
                             @endforeach
                         </select>

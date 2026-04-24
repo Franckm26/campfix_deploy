@@ -123,6 +123,13 @@
                                     <button type="button" class="btn btn-sm btn-success" title="Restore" onclick="showRestoreItemModal('concern', {{ $concern->id }}, '{{ $concern->title }}')">
                                         <i class="fas fa-trash-restore"></i>
                                     </button>
+                                    <form method="POST" action="{{ route('admin.concerns.softDelete', $concern->id) }}" class="d-inline"
+                                          onsubmit="return confirm('Move this concern to deleted? It can be restored from the deleted folder.')">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-danger" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
                                 </td>
                             </tr>
                         @endforeach
@@ -186,6 +193,13 @@
                                     <button type="button" class="btn btn-sm btn-success" title="Restore" onclick="showRestoreItemModal('report', {{ $report->id }}, '{{ $report->title }}')">
                                         <i class="fas fa-trash-restore"></i>
                                     </button>
+                                    <form method="POST" action="{{ route('admin.reports.softDelete', $report->id) }}" class="d-inline"
+                                          onsubmit="return confirm('Move this report to deleted? It can be restored from the deleted folder.')">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-danger" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
                                 </td>
                             </tr>
                         @endforeach
@@ -242,6 +256,13 @@
                                     <button type="button" class="btn btn-sm btn-success" title="Restore" onclick="showRestoreItemModal('facility', {{ $facility->id }}, '{{ $facility->event_title }}')">
                                         <i class="fas fa-trash-restore"></i>
                                     </button>
+                                    <form method="POST" action="{{ route('admin.facilities.softDelete', $facility->id) }}" class="d-inline"
+                                          onsubmit="return confirm('Move this facility request to deleted? It can be restored from the deleted folder.')">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-danger" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
                                 </td>
                             </tr>
                         @endforeach

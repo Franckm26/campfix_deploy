@@ -38,14 +38,6 @@
                             @csrf
                             
                             <div class="mb-3">
-                                <label for="name" class="form-label">Full Name</label>
-                                <div class="input-group">
-                                    <span class="input-group-text"><i class="fas fa-user"></i></span>
-                                    <input type="text" class="form-control" id="name" name="name" placeholder="Enter your full name" required>
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
                                 <label for="password" class="form-label">New Password</label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="fas fa-lock"></i></span>

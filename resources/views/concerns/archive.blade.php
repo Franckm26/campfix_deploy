@@ -116,6 +116,13 @@
                                                 <i class="fas fa-trash-restore"></i> Restore
                                             </button>
                                         </form>
+                                        <form method="POST" action="{{ route('concerns.softDelete', $concern->id) }}" class="d-inline"
+                                              onsubmit="return confirm('Move this concern to deleted? It can be restored from the deleted folder.')">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-danger" title="Delete">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </button>
+                                        </form>
                                     </td>
                                 </tr>
                             @endforeach
@@ -176,6 +183,13 @@
                                             @csrf
                                             <button type="submit" class="btn btn-sm btn-success" title="Restore">
                                                 <i class="fas fa-trash-restore"></i> Restore
+                                            </button>
+                                        </form>
+                                        <form method="POST" action="{{ route('events.delete', $event->id) }}" class="d-inline"
+                                              onsubmit="return confirm('Move this event to deleted? It can be restored from the deleted folder.')">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-danger" title="Delete">
+                                                <i class="fas fa-trash"></i> Delete
                                             </button>
                                         </form>
                                     </td>

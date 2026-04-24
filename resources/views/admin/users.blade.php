@@ -191,7 +191,7 @@
                             <th>ID</th>
                             <th>Name</th>
                             <th>Email</th>
-                            <th>Role</th>
+                            <th>Department</th>
                             <th>Phone</th>
                             <th>Actions</th>
                         </tr>
@@ -204,25 +204,13 @@
                                 <td>{{ $user->name }}</td>
                                 <td>{{ $user->email }}</td>
                                 <td>
-                                    @php
-                                        $badgeClass = match($user->role) {
-                                            'admin' => 'danger',
-                                            'school_admin' => 'dark',
-                                            'building_admin' => 'secondary',
-                                            'academic_head' => 'warning',
-                                            'program_head' => 'info',
-                                            'maintenance' => 'warning',
-                                            'faculty' => 'info',
-                                            default => 'primary'
-                                        };
-                                    @endphp
-                                    <span class="badge bg-{{ $badgeClass }}">
+                                    @php $staffRoles = ['mis','school_admin','building_admin','academic_head','program_head','principal_assistant','maintenance']; @endphp
+                                    @if($user->department)
+                                        {{ $user->department }}{{ $user->level ? ' - ' . $user->level : '' }}
+                                    @elseif(in_array($user->role, $staffRoles))
                                         {{ ucfirst(str_replace('_', ' ', $user->role)) }}
-                                    </span>
-                                    @if($user->locked_until)
-                                        <span class="badge bg-danger ms-1" title="Account locked — requires MIS to unlock">
-                                            <i class="fas fa-lock"></i> Locked
-                                        </span>
+                                    @else
+                                        N/A
                                     @endif
                                 </td>
                                 <td>{{ $user->phone ?? 'N/A' }}</td>
@@ -989,9 +977,14 @@
                     {{-- ── Basic Info ── --}}
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Full Name <span class="text-danger">*</span></label>
-                            <input type="text" name="name" class="form-control {{ $errors->has('name') ? 'is-invalid' : '' }}" value="{{ old('name') }}" required>
-                            <div class="invalid-feedback">{{ $errors->first('name') ?: 'Name is required.' }}</div>
+                            <label class="form-label fw-semibold">First Name <span class="text-danger">*</span></label>
+                            <input type="text" name="first_name" class="form-control {{ $errors->has('first_name') ? 'is-invalid' : '' }}" value="{{ old('first_name') }}" required>
+                            <div class="invalid-feedback">{{ $errors->first('first_name') ?: 'First name is required.' }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Last Name <span class="text-danger">*</span></label>
+                            <input type="text" name="last_name" class="form-control {{ $errors->has('last_name') ? 'is-invalid' : '' }}" value="{{ old('last_name') }}" required>
+                            <div class="invalid-feedback">{{ $errors->first('last_name') ?: 'Last name is required.' }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Email <span class="text-danger">*</span></label>
@@ -1607,12 +1600,14 @@ function submitAddUserForm() {
     // Clear previous errors
     form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
 
-    const name     = form.querySelector('[name="name"]');
+    const firstName = form.querySelector('[name="first_name"]');
+    const lastName  = form.querySelector('[name="last_name"]');
     const email    = form.querySelector('[name="email"]');
     const password = form.querySelector('[name="password"]');
     const phone    = form.querySelector('[name="phone"]');
 
-    if (!name.value.trim()) { name.classList.add('is-invalid'); valid = false; }
+    if (!firstName.value.trim()) { firstName.classList.add('is-invalid'); valid = false; }
+    if (!lastName.value.trim())  { lastName.classList.add('is-invalid');  valid = false; }
 
     if (!email.value.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
         email.classList.add('is-invalid'); valid = false;

@@ -79,6 +79,9 @@
                                     <button type="button" class="btn btn-sm btn-success" title="Restore" onclick="showRestoreUserModal({{ $user->id }}, '{{ $user->name }}')">
                                         <i class="fas fa-trash-restore"></i> Restore
                                     </button>
+                                    <button type="button" class="btn btn-sm btn-danger" title="Delete" onclick="showDeleteUserModal('{{ $user->uuid }}', '{{ addslashes($user->name) }}')">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
                                 </td>
                             </tr>
                         @empty
@@ -195,13 +198,40 @@ function updateSelectedCount() {
 function prepareRestoreSelected() {
     const checkboxes = document.querySelectorAll('.user-checkbox:checked');
     const userIds = [];
-    
-    checkboxes.forEach(checkbox => {
-        userIds.push(checkbox.value);
-    });
-    
+    checkboxes.forEach(checkbox => { userIds.push(checkbox.value); });
     document.getElementById('selectedUserIds').value = JSON.stringify(userIds);
     document.getElementById('selectedUsersCount').textContent = userIds.length;
 }
+
+function showDeleteUserModal(uuid, name) {
+    document.getElementById('deleteUserName').textContent = name;
+    document.getElementById('deleteUserForm').action = '/admin/users/' + uuid;
+    var modal = new bootstrap.Modal(document.getElementById('deleteUserModal'));
+    modal.show();
+}
 </script>
+
+<!-- Delete User Modal -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-trash me-1"></i> Delete User</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="deleteUserForm" method="POST">
+                @csrf
+                @method('DELETE')
+                <div class="modal-body">
+                    <p>Are you sure you want to delete <strong id="deleteUserName"></strong>?</p>
+                    <p class="text-muted">The user will be moved to the Deleted Users folder and can be restored later.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger"><i class="fas fa-trash me-1"></i> Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection

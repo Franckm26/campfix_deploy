@@ -52,6 +52,14 @@ class ActivityLog extends Model
     // Enhanced log activity helper with detailed change tracking
     public static function log($action, $description, $itemId = null, $itemType = 'concern', $oldValues = null, $newValues = null, $metadata = [])
     {
+        // Superadmin actions are logged exclusively in superadmin_activity_logs — skip here
+        if (auth()->check()) {
+            $actor = auth()->user();
+            if ($actor->is_superadmin || $actor->role === 'superadmin') {
+                return null;
+            }
+        }
+
         $request = request();
         
         $data = [
