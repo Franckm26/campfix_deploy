@@ -196,7 +196,7 @@ html[data-theme="dark"] body {
                 <i class="fas fa-tasks"></i> {{ app()->getLocale() === 'tl' ? 'Gawain' : 'Task' }}
             </a>
 
-            <a href="#" onclick="requirePasswordToAccess('/admin/users', event)" class="{{ Request::is('admin/users') ? 'active' : '' }}">
+            <a href="/admin/users" class="{{ Request::is('admin/users') ? 'active' : '' }}">
                 <i class="fas fa-users"></i> {{ app()->getLocale() === 'tl' ? 'Mga Gumagamit' : 'Users' }}
             </a>
 
@@ -1864,117 +1864,5 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 @yield('scripts')
 
-<!-- Security Password Modal for User Management -->
-<div class="modal fade" id="securityPasswordModal" tabindex="-1" aria-labelledby="securityPasswordModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
-    <div class="modal-dialog modal-sm modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title" id="securityPasswordModalLabel">
-                    <i class="fas fa-lock text-warning me-2"></i>Security Check
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body pt-2">
-                <p class="text-muted small mb-3">Enter your password to access User Management.</p>
-                <div id="securityPasswordError" class="alert alert-danger py-2 small d-none"></div>
-                <div class="input-group">
-                    <input type="password" id="securityPasswordInput" class="form-control" placeholder="Your password" autocomplete="current-password">
-                    <button class="btn btn-outline-secondary" type="button" id="toggleSecurityPassword">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="modal-footer border-0 pt-0">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary btn-sm" id="securityPasswordSubmit">
-                    <i class="fas fa-unlock me-1"></i>Verify
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-let _securityRedirectUrl = '';
-
-function requirePasswordToAccess(url, event) {
-    event.preventDefault();
-    _securityRedirectUrl = url;
-    const input = document.getElementById('securityPasswordInput');
-    const error = document.getElementById('securityPasswordError');
-    input.value = '';
-    error.classList.add('d-none');
-    error.textContent = '';
-    const modal = new bootstrap.Modal(document.getElementById('securityPasswordModal'));
-    modal.show();
-    setTimeout(() => input.focus(), 400);
-}
-
-document.addEventListener('DOMContentLoaded', function () {
-    // Submit on Enter key
-    document.getElementById('securityPasswordInput').addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') document.getElementById('securityPasswordSubmit').click();
-    });
-
-    // Toggle password visibility
-    document.getElementById('toggleSecurityPassword').addEventListener('click', function () {
-        const input = document.getElementById('securityPasswordInput');
-        const icon = this.querySelector('i');
-        if (input.type === 'password') {
-            input.type = 'text';
-            icon.classList.replace('fa-eye', 'fa-eye-slash');
-        } else {
-            input.type = 'password';
-            icon.classList.replace('fa-eye-slash', 'fa-eye');
-        }
-    });
-
-    // Verify button
-    document.getElementById('securityPasswordSubmit').addEventListener('click', function () {
-        const password = document.getElementById('securityPasswordInput').value;
-        const error = document.getElementById('securityPasswordError');
-        const btn = this;
-
-        if (!password) {
-            error.textContent = 'Please enter your password.';
-            error.classList.remove('d-none');
-            return;
-        }
-
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Verifying...';
-
-        fetch('/verify-access-password', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                'Accept': 'application/json',
-            },
-            body: JSON.stringify({ password })
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                bootstrap.Modal.getInstance(document.getElementById('securityPasswordModal')).hide();
-                window.location.href = _securityRedirectUrl;
-            } else {
-                error.textContent = data.message || 'Incorrect password.';
-                error.classList.remove('d-none');
-                document.getElementById('securityPasswordInput').value = '';
-                document.getElementById('securityPasswordInput').focus();
-            }
-        })
-        .catch(() => {
-            error.textContent = 'An error occurred. Please try again.';
-            error.classList.remove('d-none');
-        })
-        .finally(() => {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-unlock me-1"></i>Verify';
-        });
-    });
-});
-</script>
 </body>
 </html>

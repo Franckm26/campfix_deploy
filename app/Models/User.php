@@ -37,6 +37,7 @@ class User extends Authenticatable implements JWTSubject
         'password',
         'role',
         'is_admin',
+        'permissions',
         'otp',
         'otp_expires_at',
         'phone',
@@ -84,6 +85,7 @@ class User extends Authenticatable implements JWTSubject
         'security_notifications_enabled',
         'password_change_frequency_days',
         'file_security_enabled',
+        'created_by',
     ];
 
     protected $hidden = [
@@ -93,8 +95,9 @@ class User extends Authenticatable implements JWTSubject
 
     protected $casts = [
         'email_verified_at' => 'datetime',
-        'otp_expires_at' => 'datetime',
-        'locked_until' => 'datetime',
+        'otp_expires_at'    => 'datetime',
+        'locked_until'      => 'datetime',
+        'permissions'       => 'array',
     ];
 
     public function concerns()
@@ -115,6 +118,144 @@ class User extends Authenticatable implements JWTSubject
     public function eventRequests()
     {
         return $this->hasMany(EventRequest::class);
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return (bool) $this->is_superadmin;
+    }
+
+    /**
+     * Scope to exclude superadmin accounts.
+     * Use this on every AdminController query instead of a global scope
+     * (global scopes that call auth() cause infinite recursion in Laravel).
+     */
+    public function scopeHideSuperadmin($query)
+    {
+        return $query->where('is_superadmin', false)
+                     ->where('role', '!=', 'superadmin');
+    }
+
+    /**
+     * All system modules with labels and which roles have access by default.
+     */
+    public static function allModules(): array
+    {
+        return [
+            'concerns'        => ['label' => 'Concerns'],
+            'reports'         => ['label' => 'Reports'],
+            'events'          => ['label' => 'Event Requests'],
+            'users'           => ['label' => 'User Management'],
+            'module_access'   => ['label' => 'Module Access Control'],
+            'categories'      => ['label' => 'Categories'],
+            'logs'            => ['label' => 'Audit Logs'],
+            'analytics'       => ['label' => 'Analytics'],
+            'mis_tasks'       => ['label' => 'MIS Tasks'],
+            'settings'        => ['label' => 'Settings'],
+        ];
+    }
+
+    /**
+     * Sub-permissions that belong to a parent module.
+     */
+    public static function subPermissions(): array
+    {
+        return [
+            'users' => [
+                'users_create'  => 'Create',
+                'users_archive' => 'Archive',
+                'users_lock'    => 'Lock',
+                'users_unlock'  => 'Unlock',
+                'users_edit'    => 'Edit',
+                'users_delete'  => 'Delete',
+            ],
+        ];
+    }
+
+    /**
+     * Default module access per role.
+     */
+    public static function defaultPermissions(string $role): array
+    {
+        $map = [
+            'mis' => [
+                'concerns', 'reports', 'events', 'users',
+                'users_create', 'users_archive', 'users_lock', 'users_unlock', 'users_edit', 'users_delete',
+                'module_access', 'categories', 'logs', 'analytics', 'mis_tasks', 'settings',
+            ],
+            'school_admin' => [
+                'concerns', 'reports', 'events', 'analytics', 'settings',
+            ],
+            'building_admin' => [
+                'concerns', 'reports', 'events', 'analytics', 'settings',
+            ],
+            'academic_head' => [
+                'events', 'settings',
+            ],
+            'program_head' => [
+                'events', 'settings',
+            ],
+            'principal_assistant' => [
+                'events', 'settings',
+            ],
+            'maintenance' => [
+                'reports', 'concerns', 'settings',
+            ],
+            'faculty' => [
+                'events', 'concerns', 'settings',
+            ],
+            'student' => [
+                'concerns', 'settings',
+            ],
+        ];
+
+        return $map[$role] ?? ['settings'];
+    }
+
+    /**
+     * Check if this user can access a given module.
+     * Explicit permissions override role defaults.
+     */
+    public function canAccess(string $module): bool
+    {
+        if ($this->is_superadmin || $this->role === 'superadmin') {
+            return true;
+        }
+
+        // If explicit permissions are set, use them
+        if (! is_null($this->permissions)) {
+            $perms = is_array($this->permissions) ? $this->permissions : json_decode($this->permissions, true);
+            return in_array($module, $perms ?? []);
+        }
+
+        // Fall back to role defaults
+        return in_array($module, self::defaultPermissions($this->role));
+    }
+
+    /**
+     * Returns true if $actor should NOT be allowed to edit/delete/archive this user.
+     * Rule: you can only modify a user that YOU created. If created_by is null or
+     * Rule: MIS users can edit anyone EXCEPT the account that created them.
+     * Other roles and superadmins are exempt from this restriction.
+     */
+    public function isProtectedFrom(User $actor): bool
+    {
+        // Superadmin can always act
+        if ($actor->isSuperAdmin()) {
+            return false;
+        }
+
+        // Only enforce this restriction for MIS role
+        if ($actor->role !== 'mis') {
+            return false;
+        }
+
+        // Block editing the account that created the actor (e.g. Xeena cannot edit Franck)
+        if ($actor->created_by !== null && $this->id === $actor->created_by) {
+            return true;
+        }
+
+        return false;
     }
 
     public function isAdmin()
@@ -210,6 +351,8 @@ class User extends Authenticatable implements JWTSubject
     const ROLE_PROGRAM_HEAD = 'program_head';
 
     const ROLE_PRINCIPAL_ASSISTANT = 'principal_assistant';
+
+    const ROLE_SUPERADMIN = 'superadmin';
 
     // Priority constants
     const PRIORITY_LOW = 'low';

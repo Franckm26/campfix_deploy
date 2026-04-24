@@ -26,7 +26,14 @@ class AdminController extends Controller
     // Unlock a locked user account
     public function unlockUser($uuid)
     {
-        $user = User::where('uuid', $uuid)->firstOrFail();
+        if (! auth()->user()->canAccess('users_unlock')) {
+            if (request()->expectsJson()) {
+                return response()->json(['error' => 'You do not have permission to perform this action.'], 403);
+            }
+            return redirect()->route('admin.users')->with('error', 'You do not have permission to perform this action.');
+        }
+
+        $user = User::hideSuperadmin()->where('uuid', $uuid)->firstOrFail();
 
         $user->update([
             'locked_until' => null,
@@ -69,40 +76,40 @@ class AdminController extends Controller
         }
 
         // User stats
-        $totalUsers        = User::where('is_deleted', false)->count();
-        $activeUsers       = User::where('is_deleted', false)->where('is_archived', false)->whereNull('locked_until')->count();
-        $archivedUsers     = User::where('is_archived', true)->where('is_deleted', false)->count();
-        $lockedUsers       = User::where('is_deleted', false)->whereNotNull('locked_until')->where('locked_until', '>', now())->count();
-        $forceChangeUsers  = User::where('is_deleted', false)->where('force_password_change', true)->count();
+        $totalUsers        = User::hideSuperadmin()->where('is_deleted', false)->count();
+        $activeUsers       = User::hideSuperadmin()->where('is_deleted', false)->where('is_archived', false)->whereNull('locked_until')->count();
+        $archivedUsers     = User::hideSuperadmin()->where('is_archived', true)->where('is_deleted', false)->count();
+        $lockedUsers       = User::hideSuperadmin()->where('is_deleted', false)->whereNotNull('locked_until')->where('locked_until', '>', now())->count();
+        $forceChangeUsers  = User::hideSuperadmin()->where('is_deleted', false)->where('force_password_change', true)->count();
 
         // Locked users list for dashboard modal
-        $lockedUsersList = User::where('is_deleted', false)
+        $lockedUsersList = User::hideSuperadmin()->where('is_deleted', false)
             ->whereNotNull('locked_until')
             ->where('locked_until', '>', now())
             ->orderBy('updated_at', 'desc')
             ->get();
 
         // Users by role
-        $usersByRole = User::where('is_deleted', false)
+        $usersByRole = User::hideSuperadmin()->where('is_deleted', false)
             ->where('is_archived', false)
             ->selectRaw('role, count(*) as count')
             ->groupBy('role')
             ->pluck('count', 'role');
 
         // New users this month
-        $newUsersThisMonth = User::where('is_deleted', false)
+        $newUsersThisMonth = User::hideSuperadmin()->where('is_deleted', false)
             ->whereMonth('created_at', now()->month)
             ->whereYear('created_at', now()->year)
             ->count();
 
         // New users last month
-        $newUsersLastMonth = User::where('is_deleted', false)
+        $newUsersLastMonth = User::hideSuperadmin()->where('is_deleted', false)
             ->whereMonth('created_at', now()->subMonth()->month)
             ->whereYear('created_at', now()->subMonth()->year)
             ->count();
 
         // Recent registrations
-        $recentUsers = User::where('is_deleted', false)
+        $recentUsers = User::hideSuperadmin()->where('is_deleted', false)
             ->orderBy('created_at', 'desc')
             ->limit(8)
             ->get();
@@ -112,14 +119,14 @@ class AdminController extends Controller
             $date = now()->subMonths($i);
             return [
                 'month' => $date->format('M'),
-                'count' => User::whereMonth('created_at', $date->month)
+                'count' => User::hideSuperadmin()->whereMonth('created_at', $date->month)
                                ->whereYear('created_at', $date->year)
                                ->count(),
             ];
         });
 
         // MIS staff count
-        $misCount = User::where('role', 'mis')->where('is_deleted', false)->count();
+        $misCount = User::hideSuperadmin()->where('role', 'mis')->where('is_deleted', false)->count();
 
         return view('admin.dashboard', compact(
             'totalUsers',
@@ -1499,7 +1506,7 @@ class AdminController extends Controller
             $perPage = $request->get('per_page', 20);
             $perPage = in_array($perPage, [20, 50, 100]) ? $perPage : 20;
 
-            $lockedUsersList = User::where('is_deleted', false)
+            $lockedUsersList = User::hideSuperadmin()->where('is_deleted', false)
                 ->whereNotNull('locked_until')
                 ->orderBy('updated_at', 'desc')
                 ->paginate($perPage);
@@ -1528,7 +1535,7 @@ class AdminController extends Controller
                 $perPage = $request->get('per_page', 20);
                 $perPage = in_array($perPage, [20, 50, 100]) ? $perPage : 20;
                 
-                $deletedUsers = User::withoutGlobalScope('not_deleted')
+                $deletedUsers = User::hideSuperadmin()->withoutGlobalScope('not_deleted')
                     ->where('archive_folder_id', $deletedFolder->id)
                     ->where('is_deleted', true)
                     ->with('deletedBy')
@@ -1563,7 +1570,7 @@ class AdminController extends Controller
         }
 
         // Only show active (non-archived) users - deleted users are automatically excluded by global scope
-        $query = User::where(function ($q) {
+        $query = User::hideSuperadmin()->where(function ($q) {
             $q->where('is_archived', false)->orWhereNull('is_archived');
         });
 
@@ -1604,30 +1611,30 @@ class AdminController extends Controller
 
         // Get edit user from query parameter
         $editUserId = $request->query('edit');
-        $editUser = $editUserId ? User::find($editUserId) : null;
+        $editUser = $editUserId ? User::hideSuperadmin()->find($editUserId) : null;
 
         // Get archive folders (exclude Deleted Users system folder)
         $archiveFolders = UserArchiveFolder::where('name', '!=', 'Deleted Users')->orderBy('created_at', 'desc')->get();
 
         // Calculate total counts for role tabs (ignoring pagination)
-        $totalAll = User::where(function ($q) {
+        $totalAll = User::hideSuperadmin()->where(function ($q) {
             $q->where('is_archived', false)->orWhereNull('is_archived');
         })->count();
 
-        $totalStudent = User::where(function ($q) {
+        $totalStudent = User::hideSuperadmin()->where(function ($q) {
             $q->where('is_archived', false)->orWhereNull('is_archived');
         })->where('role', 'student')->count();
 
-        $totalFaculty = User::where(function ($q) {
+        $totalFaculty = User::hideSuperadmin()->where(function ($q) {
             $q->where('is_archived', false)->orWhereNull('is_archived');
         })->where('role', 'faculty')->count();
 
         $staffRoles = ['maintenance', 'mis', 'school_admin', 'building_admin', 'academic_head', 'program_head', 'principal_assistant'];
-        $totalStaff = User::where(function ($q) {
+        $totalStaff = User::hideSuperadmin()->where(function ($q) {
             $q->where('is_archived', false)->orWhereNull('is_archived');
         })->whereIn('role', $staffRoles)->count();
 
-        $lockedCount = User::where('is_deleted', false)->whereNotNull('locked_until')->count();
+        $lockedCount = User::hideSuperadmin()->where('is_deleted', false)->whereNotNull('locked_until')->count();
 
         return view('admin.users', compact('users', 'editUser', 'viewType', 'archiveFolders', 'totalAll', 'totalStudent', 'totalFaculty', 'totalStaff', 'lockedCount'));
     }
@@ -1635,6 +1642,13 @@ class AdminController extends Controller
     // Store new user
     public function storeUser(Request $request)
     {
+        if (! auth()->user()->canAccess('users_create')) {
+            if (request()->expectsJson()) {
+                return response()->json(['error' => 'You do not have permission to perform this action.'], 403);
+            }
+            return redirect()->route('admin.users')->with('error', 'You do not have permission to perform this action.');
+        }
+
         \Log::info('[storeUser] Request received', [
             'name'  => $request->input('name'),
             'email' => $request->input('email'),
@@ -1668,6 +1682,8 @@ class AdminController extends Controller
                 'department'            => $request->input('department'),
                 'student_id'            => $request->input('student_id'),
                 'force_password_change' => $request->input('role') === 'student',
+                'permissions'           => $request->input('permissions', []),
+                'created_by'            => auth()->id(),
             ]);
 
             \Log::info('[storeUser] User created successfully', ['user_id' => $user->id, 'email' => $user->email]);
@@ -1691,8 +1707,8 @@ class AdminController extends Controller
     // Show edit user form
     public function editUser($uuid)
     {
-        $user = User::where('uuid', $uuid)->firstOrFail();
-        $users = User::all();
+        $user = User::hideSuperadmin()->where('uuid', $uuid)->firstOrFail();
+        $users = User::hideSuperadmin()->get();
 
         return view('admin.users', compact('user', 'users'));
     }
@@ -1700,7 +1716,22 @@ class AdminController extends Controller
     // Update user
     public function updateUser(Request $request, $uuid)
     {
-        $user = User::where('uuid', $uuid)->firstOrFail();
+        if (! auth()->user()->canAccess('users_edit')) {
+            if (request()->expectsJson()) {
+                return response()->json(['error' => 'You do not have permission to perform this action.'], 403);
+            }
+            return redirect()->route('admin.users')->with('error', 'You do not have permission to perform this action.');
+        }
+
+        $user = User::hideSuperadmin()->where('uuid', $uuid)->firstOrFail();
+
+        // Prevent editing a user that was created by someone else
+        if ($user->isProtectedFrom(auth()->user())) {
+            if (request()->expectsJson()) {
+                return response()->json(['error' => 'You cannot edit a user that was created by another administrator.'], 403);
+            }
+            return redirect()->route('admin.users')->with('error', 'You cannot edit a user that was created by another administrator.');
+        }
 
         $request->validate([
             'name' => 'required|string|max:255',
@@ -1711,12 +1742,13 @@ class AdminController extends Controller
 
         // Capture old values before changes
         $oldValues = [
-            'name'       => $user->name,
-            'email'      => $user->email,
-            'role'       => ucfirst(str_replace('_', ' ', $user->role)),
-            'phone'      => $user->phone,
-            'department' => $user->department,
-            'student_id' => $user->student_id,
+            'name'        => $user->name,
+            'email'       => $user->email,
+            'role'        => ucfirst(str_replace('_', ' ', $user->role)),
+            'phone'       => $user->phone,
+            'department'  => $user->department,
+            'student_id'  => $user->student_id,
+            'permissions' => implode(', ', (array) ($user->permissions ?? [])) ?: '(none)',
         ];
 
         $user->name = $request->input('name');
@@ -1726,6 +1758,7 @@ class AdminController extends Controller
         $user->department = $request->input('department');
         $user->student_id = $request->input('student_id');
         $user->is_admin = $request->has('is_admin');
+        $user->permissions = $request->input('permissions', []);
 
         $passwordChanged = false;
         if ($request->filled('password')) {
@@ -1737,12 +1770,13 @@ class AdminController extends Controller
         $user->save();
 
         $newValues = [
-            'name'       => $user->name,
-            'email'      => $user->email,
-            'role'       => ucfirst(str_replace('_', ' ', $user->role)),
-            'phone'      => $user->phone,
-            'department' => $user->department,
-            'student_id' => $user->student_id,
+            'name'        => $user->name,
+            'email'       => $user->email,
+            'role'        => ucfirst(str_replace('_', ' ', $user->role)),
+            'phone'       => $user->phone,
+            'department'  => $user->department,
+            'student_id'  => $user->student_id,
+            'permissions' => implode(', ', (array) ($user->permissions ?? [])) ?: '(none)',
         ];
 
         if ($passwordChanged) {
@@ -1761,7 +1795,14 @@ class AdminController extends Controller
     // Delete user - moves to Deleted Users folder for potential restore
     public function deleteUser($uuid)
     {
-        $user = User::where('uuid', $uuid)->firstOrFail();
+        if (! auth()->user()->canAccess('users_delete')) {
+            if (request()->expectsJson()) {
+                return response()->json(['error' => 'You do not have permission to perform this action.'], 403);
+            }
+            return redirect()->route('admin.users')->with('error', 'You do not have permission to perform this action.');
+        }
+
+        $user = User::hideSuperadmin()->where('uuid', $uuid)->firstOrFail();
 
         // Prevent deleting yourself
         if ($user->id === auth()->id()) {
@@ -1770,6 +1811,14 @@ class AdminController extends Controller
             }
 
             return redirect()->route('admin.users')->with('error', 'You cannot delete your own account!');
+        }
+
+        // Prevent deleting a user created by another administrator
+        if ($user->isProtectedFrom(auth()->user())) {
+            if (request()->ajax()) {
+                return response()->json(['error' => 'You cannot delete a user that was created by another administrator.'], 403);
+            }
+            return redirect()->route('admin.users')->with('error', 'You cannot delete a user that was created by another administrator.');
         }
 
         $userName = $user->name;
@@ -1821,7 +1870,7 @@ class AdminController extends Controller
         $days = $request->get('days', $user->users_auto_delete_days ?? 15);
 
         // Get users in the Deleted Users folder
-        $users = User::withoutGlobalScope('not_deleted')
+        $users = User::hideSuperadmin()->withoutGlobalScope('not_deleted')
             ->where('archive_folder_id', $deletedFolder->id)
             ->where('is_deleted', true)
             ->where('deleted_at', '<=', now()->subDays($days))
@@ -1834,7 +1883,7 @@ class AdminController extends Controller
     // Restore a deleted user
     public function restoreDeletedUser($id)
     {
-        $user = User::withoutGlobalScope('not_deleted')->findOrFail($id);
+        $user = User::hideSuperadmin()->withoutGlobalScope('not_deleted')->findOrFail($id);
 
         if (! $user->is_deleted) {
             return redirect()->route('admin.deletedUsers')->with('error', 'User is not in the Deleted Users folder.');
@@ -1865,7 +1914,7 @@ class AdminController extends Controller
     // Restore all deleted users
     public function restoreAllDeletedUsers(Request $request)
     {
-        $deletedUsers = User::withoutGlobalScope('not_deleted')
+        $deletedUsers = User::hideSuperadmin()->withoutGlobalScope('not_deleted')
             ->where('is_deleted', true)
             ->get();
 
@@ -1910,7 +1959,7 @@ class AdminController extends Controller
 
         $count = 0;
         foreach ($userIds as $id) {
-            $user = User::withoutGlobalScope('not_deleted')->find($id);
+            $user = User::hideSuperadmin()->withoutGlobalScope('not_deleted')->find($id);
             if ($user && $user->is_deleted) {
                 $oldFolderId = $user->archive_folder_id;
 
@@ -1938,7 +1987,7 @@ class AdminController extends Controller
     // Permanently delete a user from Deleted Users folder
     public function permanentDeleteUser($id)
     {
-        $user = User::withoutGlobalScope('not_deleted')->findOrFail($id);
+        $user = User::hideSuperadmin()->withoutGlobalScope('not_deleted')->findOrFail($id);
 
         if (! $user->is_deleted) {
             return redirect()->route('admin.deletedUsers')->with('error', 'User is not in the Deleted Users folder.');
@@ -1970,7 +2019,7 @@ class AdminController extends Controller
             return redirect()->route('admin.deletedUsers')->with('error', 'Deleted Users folder not found.');
         }
 
-        $users = User::withoutGlobalScope('not_deleted')
+        $users = User::hideSuperadmin()->withoutGlobalScope('not_deleted')
             ->where('archive_folder_id', $deletedFolder->id)
             ->where('is_deleted', true)
             ->get();
@@ -2342,7 +2391,14 @@ class AdminController extends Controller
     // Archive user
     public function archiveUser($uuid)
     {
-        $user = User::where('uuid', $uuid)->firstOrFail();
+        if (! auth()->user()->canAccess('users_archive')) {
+            if (request()->expectsJson()) {
+                return response()->json(['error' => 'You do not have permission to perform this action.'], 403);
+            }
+            return redirect()->route('admin.users')->with('error', 'You do not have permission to perform this action.');
+        }
+
+        $user = User::hideSuperadmin()->where('uuid', $uuid)->firstOrFail();
 
         // Prevent archiving yourself
         if ($user->id === auth()->id()) {
@@ -2351,6 +2407,14 @@ class AdminController extends Controller
             }
 
             return redirect()->route('admin.users')->with('error', 'You cannot archive your own account!');
+        }
+
+        // Prevent archiving a user created by another administrator
+        if ($user->isProtectedFrom(auth()->user())) {
+            if (request()->ajax()) {
+                return response()->json(['error' => 'You cannot archive a user that was created by another administrator.'], 403);
+            }
+            return redirect()->route('admin.users')->with('error', 'You cannot archive a user that was created by another administrator.');
         }
 
         // Get or create the 2025-2026 archive folder
@@ -2385,7 +2449,7 @@ class AdminController extends Controller
     // Restore user
     public function restoreUser($uuid)
     {
-        $user = User::where('uuid', $uuid)->firstOrFail();
+        $user = User::hideSuperadmin()->where('uuid', $uuid)->firstOrFail();
 
         // Get the folder before clearing
         $folderId = $user->archive_folder_id;
@@ -2441,7 +2505,7 @@ class AdminController extends Controller
             return redirect()->back()->with('error', 'No users selected.');
         }
 
-        $users = User::whereIn('id', $userIds)->get();
+        $users = User::hideSuperadmin()->whereIn('id', $userIds)->get();
 
         $count = 0;
         $folderIds = [];
@@ -2877,6 +2941,13 @@ class AdminController extends Controller
     // Import users from CSV / XLSX
     public function importUsers(Request $request)
     {
+        if (! auth()->user()->canAccess('users_create')) {
+            if (request()->expectsJson()) {
+                return response()->json(['error' => 'You do not have permission to perform this action.'], 403);
+            }
+            return redirect()->route('admin.users')->with('error', 'You do not have permission to perform this action.');
+        }
+
         set_time_limit(300);
 
         $request->validate([
@@ -2890,6 +2961,12 @@ class AdminController extends Controller
         $folderName   = $request->input('archive_folder_name', '2025-2026');
         $extension    = strtolower($request->file('file')->getClientOriginalExtension());
         $filePath     = $request->file('file')->getRealPath();
+
+        // Resolve permissions for imported users
+        // If custom permissions were submitted, use them; otherwise fall back to role defaults
+        $importPermissions = $request->has('import_use_custom_permissions')
+            ? $request->input('import_permissions', [])
+            : \App\Models\User::defaultPermissions($defaultRole);
 
         // Build flat array of rows
         $allRows = [];
@@ -3049,6 +3126,7 @@ class AdminController extends Controller
                 'failed_login_attempts' => 0,
                 'otp_attempts'          => 0,
                 'is_admin'              => false,
+                'permissions'           => json_encode($importPermissions),
                 'created_at'            => now(),
                 'updated_at'            => now(),
             ];
@@ -3094,7 +3172,13 @@ class AdminController extends Controller
         $isArchived = $request->input('view') === 'archived';
 
         $query = ActivityLog::with('user', 'concern')
-            ->where('is_archived', $isArchived);
+            ->where('is_archived', $isArchived)
+            // Never expose superadmin actions to regular admins
+            ->whereDoesntHave('user', fn($q) => $q->withoutGlobalScopes()
+                ->where(function ($q) {
+                    $q->where('is_superadmin', true)->orWhere('role', 'superadmin');
+                })
+            );
 
         if ($currentUser && $currentUser->role === 'mis') {
             $query->where(function ($q) {
@@ -3865,4 +3949,95 @@ class AdminController extends Controller
         // Check if the transition is valid
         return isset($validTransitions[$oldStatus]) && in_array($newStatus, $validTransitions[$oldStatus]);
     }
+
+    // Soft delete an archived report (admin)
+    public function softDeleteArchivedReport(Request $request, $id)
+    {
+        $report = Report::findOrFail($id);
+
+        if ($report->is_deleted) {
+            return back()->with('error', 'Report is already deleted.');
+        }
+
+        $deletedFolder = ArchiveFolder::where('name', 'Deleted Reports')->where('is_system', true)->first();
+        if (! $deletedFolder) {
+            $deletedFolder = ArchiveFolder::create([
+                'name' => 'Deleted Reports',
+                'description' => 'Reports that have been deleted and can be restored',
+                'type' => 'reports',
+                'is_system' => true,
+                'item_count' => 0,
+            ]);
+        }
+
+        $report->update([
+            'is_deleted' => true,
+            'archive_folder_id' => $deletedFolder->id,
+            'deleted_by' => auth()->id(),
+        ]);
+
+        ActivityLog::log('report_soft_deleted', 'Report moved to deleted: ' . $report->title, $report->id, 'report');
+
+        return back()->with('success', 'Report moved to deleted successfully!');
+    }
+
+    // Soft delete an archived event (admin)
+    public function softDeleteArchivedEvent(Request $request, $id)
+    {
+        $event = EventRequest::findOrFail($id);
+
+        if ($event->is_deleted) {
+            return back()->with('error', 'Event is already deleted.');
+        }
+
+        $deletedFolder = ArchiveFolder::where('name', 'Deleted Events')->where('type', 'mixed')->first();
+        if (! $deletedFolder) {
+            $deletedFolder = ArchiveFolder::create([
+                'name' => 'Deleted Events',
+                'type' => 'mixed',
+                'description' => 'Deleted event requests',
+                'is_system' => true,
+            ]);
+        }
+
+        $event->archive_folder_id = $deletedFolder->id;
+        $event->is_deleted = true;
+        $event->deleted_by = auth()->id();
+        $event->save();
+
+        ActivityLog::log('event_soft_deleted', 'Event moved to deleted: ' . $event->title, null);
+
+        return back()->with('success', 'Event moved to deleted successfully!');
+    }
+
+    // Soft delete an archived facility request (admin)
+    public function softDeleteArchivedFacility(Request $request, $id)
+    {
+        $facility = FacilityRequest::findOrFail($id);
+
+        if ($facility->is_deleted) {
+            return back()->with('error', 'Facility request is already deleted.');
+        }
+
+        $deletedFolder = ArchiveFolder::where('name', 'Deleted Facility Requests')->where('is_system', true)->first();
+        if (! $deletedFolder) {
+            $deletedFolder = ArchiveFolder::create([
+                'name' => 'Deleted Facility Requests',
+                'description' => 'Facility requests that have been deleted',
+                'type' => 'mixed',
+                'is_system' => true,
+                'item_count' => 0,
+            ]);
+        }
+
+        $facility->update([
+            'is_deleted' => true,
+            'archive_folder_id' => $deletedFolder->id,
+        ]);
+
+        ActivityLog::log('facility_soft_deleted', 'Facility request moved to deleted: ' . ($facility->event_title ?? 'N/A'), null);
+
+        return back()->with('success', 'Facility request moved to deleted successfully!');
+    }
 }
+

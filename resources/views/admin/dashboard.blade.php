@@ -29,9 +29,9 @@
     {{-- Header --}}
     <div class="row mb-3 mb-md-4 align-items-center">
         <div class="col-auto">
-            <button class="btn btn-primary btn-sm" onclick="openManageUsers()">
+            <a href="{{ route('admin.users') }}" class="btn btn-primary btn-sm">
                 <i class="fas fa-users me-1"></i> Manage Users
-            </button>
+            </a>
         </div>
     </div>
 
@@ -233,7 +233,7 @@
     {{-- Quick Actions --}}
     <div class="row g-2 mb-3">
         <div class="col-6 col-md-3">
-            <a href="#" onclick="openManageUsers(); return false;" class="card text-decoration-none text-center h-100 p-3">
+            <a href="{{ route('admin.users') }}" class="card text-decoration-none text-center h-100 p-3">
                 <i class="fas fa-users fa-2x text-primary mb-2"></i>
                 <div class="small fw-semibold">Manage Users</div>
             </a>
@@ -317,50 +317,6 @@
     </div>
 </div>
 
-{{-- Re-authentication Modal --}}
-<div class="modal fade" id="reauthModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-    <div class="modal-dialog modal-dialog-centered" style="max-width:380px">
-        <div class="modal-content">
-            <div class="modal-header border-0 pb-0">
-                <div class="d-flex align-items-center gap-2">
-                    <span class="bg-warning rounded-circle d-flex align-items-center justify-content-center" style="width:36px;height:36px">
-                        <i class="fas fa-shield-alt text-white"></i>
-                    </span>
-                    <div>
-                        <h6 class="mb-0 fw-bold">Security Check</h6>
-                        <small class="text-muted">Confirm your identity to continue</small>
-                    </div>
-                </div>
-                <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body pt-3">
-                <p class="text-muted small mb-3">
-                    You're about to access <strong>User Management</strong>. Please re-enter your password to proceed.
-                </p>
-                <div class="mb-2">
-                    <label class="form-label small fw-semibold">Password</label>
-                    <div class="input-group">
-                        <input type="password" id="reauthPassword" class="form-control" placeholder="Enter your password" autocomplete="current-password">
-                        <button type="button" class="btn btn-outline-secondary" id="reauthToggle">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                    </div>
-                    <div id="reauthError" class="text-danger mt-1" style="font-size:12px;display:none">
-                        <i class="fas fa-exclamation-circle me-1"></i><span></span>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer border-0 pt-0">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary btn-sm" id="reauthSubmit">
-                    <span id="reauthBtnText"><i class="fas fa-unlock me-1"></i>Verify & Continue</span>
-                    <span id="reauthBtnSpinner" style="display:none"><i class="fas fa-spinner fa-spin me-1"></i>Verifying...</span>
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
 @endsection
 
 @section('scripts')
@@ -401,75 +357,6 @@ function unlockUser(uuid, userId, name) {
     .catch(() => alert('Failed to unlock. Please try again.'));
 }
 
-const reauthModal = new bootstrap.Modal(document.getElementById('reauthModal'));
-
-function openManageUsers() {
-    document.getElementById('reauthPassword').value = '';
-    document.getElementById('reauthError').style.display = 'none';
-    document.getElementById('reauthBtnText').style.display = '';
-    document.getElementById('reauthBtnSpinner').style.display = 'none';
-    reauthModal.show();
-    setTimeout(() => document.getElementById('reauthPassword').focus(), 400);
-}
-
-// Toggle password visibility
-document.getElementById('reauthToggle').addEventListener('click', function () {
-    const inp = document.getElementById('reauthPassword');
-    const isText = inp.type === 'text';
-    inp.type = isText ? 'password' : 'text';
-    this.querySelector('i').className = isText ? 'fas fa-eye' : 'fas fa-eye-slash';
-});
-
-// Submit on Enter
-document.getElementById('reauthPassword').addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') document.getElementById('reauthSubmit').click();
-});
-
-document.getElementById('reauthSubmit').addEventListener('click', function () {
-    const password = document.getElementById('reauthPassword').value.trim();
-    const errBox   = document.getElementById('reauthError');
-
-    if (!password) {
-        errBox.querySelector('span').textContent = 'Password is required.';
-        errBox.style.display = 'block';
-        return;
-    }
-
-    // Show spinner
-    document.getElementById('reauthBtnText').style.display    = 'none';
-    document.getElementById('reauthBtnSpinner').style.display = '';
-    errBox.style.display = 'none';
-
-    fetch('{{ route("admin.reauth") }}', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-            'Accept': 'application/json',
-        },
-        body: JSON.stringify({ password }),
-    })
-    .then(r => r.json().then(data => ({ ok: r.ok, data })))
-    .then(({ ok, data }) => {
-        if (ok && data.success) {
-            reauthModal.hide();
-            window.location.href = '{{ route("admin.users") }}';
-        } else {
-            errBox.querySelector('span').textContent = data.message || 'Incorrect password.';
-            errBox.style.display = 'block';
-            document.getElementById('reauthBtnText').style.display    = '';
-            document.getElementById('reauthBtnSpinner').style.display = 'none';
-            document.getElementById('reauthPassword').value = '';
-            document.getElementById('reauthPassword').focus();
-        }
-    })
-    .catch(() => {
-        errBox.querySelector('span').textContent = 'Something went wrong. Please try again.';
-        errBox.style.display = 'block';
-        document.getElementById('reauthBtnText').style.display    = '';
-        document.getElementById('reauthBtnSpinner').style.display = 'none';
-    });
-});
 
 // Checkbox functions for bulk actions
 function toggleAllUsers(checkbox) {

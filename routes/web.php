@@ -277,6 +277,11 @@ Route::middleware(['auth', 'admin'])->group(function () {
     // Soft delete concerns (move to deleted folder)
     Route::post('/admin/concerns/{id}/soft-delete', [AdminController::class, 'softDeleteConcern'])->name('admin.concerns.softDelete');
 
+    // Soft delete archived reports, events, facilities (admin)
+    Route::post('/admin/reports/{id}/soft-delete', [AdminController::class, 'softDeleteArchivedReport'])->name('admin.reports.softDelete');
+    Route::post('/admin/events/{id}/soft-delete', [AdminController::class, 'softDeleteArchivedEvent'])->name('admin.events.softDelete');
+    Route::post('/admin/facilities/{id}/soft-delete', [AdminController::class, 'softDeleteArchivedFacility'])->name('admin.facilities.softDelete');
+
     // MIS Task specific archive and delete routes
     Route::post('/admin/mis-tasks/{id}/archive', [AdminController::class, 'archiveMisTaskConcern'])->name('admin.mis-tasks.archive');
     Route::post('/admin/mis-tasks/{id}/delete', [AdminController::class, 'deleteMisTaskConcern'])->name('admin.mis-tasks.delete');
@@ -335,6 +340,53 @@ Route::get('/verify-otp', function () {
 });
 
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
+
+/* SUPERADMIN PANEL - SUPERADMIN ONLY (HIDDEN FROM ALL OTHER USERS) */
+Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {
+    // Dashboard
+    Route::get('/', [\App\Http\Controllers\SuperadminController::class, 'dashboard'])->name('dashboard');
+    
+    // User Management
+    Route::get('/users', [\App\Http\Controllers\SuperadminController::class, 'users'])->name('users');
+    Route::get('/users/create', [\App\Http\Controllers\SuperadminController::class, 'createUser'])->name('users.create');
+    Route::post('/users', [\App\Http\Controllers\SuperadminController::class, 'storeUser'])->name('users.store');
+    Route::get('/users/{uuid}/edit', [\App\Http\Controllers\SuperadminController::class, 'editUser'])->name('users.edit');
+    Route::put('/users/{uuid}', [\App\Http\Controllers\SuperadminController::class, 'updateUser'])->name('users.update');
+    Route::delete('/users/{uuid}', [\App\Http\Controllers\SuperadminController::class, 'deleteUser'])->name('users.delete');
+    Route::post('/users/{uuid}/restore', [\App\Http\Controllers\SuperadminController::class, 'restoreUser'])->name('users.restore');
+    Route::post('/users/{uuid}/unlock', [\App\Http\Controllers\SuperadminController::class, 'unlockUser'])->name('users.unlock');
+    
+    // System Overview
+    Route::get('/concerns', [\App\Http\Controllers\SuperadminController::class, 'concerns'])->name('concerns');
+    Route::delete('/concerns/{id}/force-delete', [\App\Http\Controllers\SuperadminController::class, 'forceDeleteConcern'])->name('concerns.force-delete');
+    
+    Route::get('/reports', [\App\Http\Controllers\SuperadminController::class, 'reports'])->name('reports');
+    Route::delete('/reports/{id}/force-delete', [\App\Http\Controllers\SuperadminController::class, 'forceDeleteReport'])->name('reports.force-delete');
+    
+    Route::get('/events', [\App\Http\Controllers\SuperadminController::class, 'events'])->name('events');
+    Route::delete('/events/{id}/force-delete', [\App\Http\Controllers\SuperadminController::class, 'forceDeleteEvent'])->name('events.force-delete');
+    
+    // Activity Logs
+    Route::get('/activity-logs', [\App\Http\Controllers\SuperadminController::class, 'activityLogs'])->name('activity-logs');
+    Route::delete('/activity-logs/{id}', [\App\Http\Controllers\SuperadminController::class, 'deleteActivityLog'])->name('activity-logs.delete');
+    Route::delete('/activity-logs', [\App\Http\Controllers\SuperadminController::class, 'clearAllActivityLogs'])->name('activity-logs.clear');
+    
+    // Superadmin Logs (Hidden from regular admins)
+    Route::get('/superadmin-logs', [\App\Http\Controllers\SuperadminController::class, 'superadminLogs'])->name('superadmin-logs');
+    
+    // Categories
+    Route::get('/categories', [\App\Http\Controllers\SuperadminController::class, 'categories'])->name('categories');
+    Route::post('/categories', [\App\Http\Controllers\SuperadminController::class, 'storeCategory'])->name('categories.store');
+    Route::put('/categories/{id}', [\App\Http\Controllers\SuperadminController::class, 'updateCategory'])->name('categories.update');
+    Route::delete('/categories/{id}', [\App\Http\Controllers\SuperadminController::class, 'deleteCategory'])->name('categories.delete');
+    
+    // Analytics
+    Route::get('/analytics', [\App\Http\Controllers\SuperadminController::class, 'analytics'])->name('analytics');
+    
+    // Settings
+    Route::get('/settings', [\App\Http\Controllers\SuperadminController::class, 'settings'])->name('settings');
+    Route::put('/settings', [\App\Http\Controllers\SuperadminController::class, 'updateSettings'])->name('settings.update');
+});
 
 /* EVENTS */
 Route::get('/events', function () {
