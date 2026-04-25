@@ -68,6 +68,54 @@ class ConcernController extends Controller
             ]);
         }
 
+        // Normalize room number: strip any leading location-type prefix (e.g. "Room 211" → "211")
+        $normalizeRoomNumber = function (string $value): string {
+            $prefixes = ['computer laboratory', 'computer lab', 'room', 'avr'];
+            $lower = strtolower(trim($value));
+            foreach ($prefixes as $prefix) {
+                if (str_starts_with($lower, $prefix)) {
+                    $value = trim(substr($value, strlen($prefix)));
+                    break;
+                }
+            }
+            return trim($value);
+        };
+
+        // Check if the same room/location already has an active assigned concern
+        $baseQuery = Concern::whereIn('status', ['Assigned', 'In Progress'])
+            ->where('is_deleted', false);
+
+        if ($isRoomsCategory) {
+            $normalizedInput = $normalizeRoomNumber($request->room_number);
+            // Fetch candidates matching location_type, then normalize room_number for comparison
+            $existingConcern = Concern::whereIn('status', ['Assigned', 'In Progress'])
+                ->where('is_deleted', false)
+                ->where('location_type', $request->location_type)
+                ->get()
+                ->first(function ($concern) use ($normalizedInput, $normalizeRoomNumber) {
+                    return strcasecmp(
+                        $normalizeRoomNumber($concern->room_number ?? ''),
+                        $normalizedInput
+                    ) === 0;
+                });
+        } else {
+            $normalizedLocation = trim($request->location);
+            $existingConcern = $baseQuery->get()->first(function ($concern) use ($normalizedLocation) {
+                return strcasecmp(trim($concern->location ?? ''), $normalizedLocation) === 0;
+            });
+        }
+
+        if ($existingConcern) {
+            $locationLabel = $isRoomsCategory
+                ? $request->location_type . ' ' . $request->room_number
+                : $request->location;
+
+            return redirect()->back()->withInput()->with(
+                'warning',
+                "A concern for \"{$locationLabel}\" has already been reported and is currently {$existingConcern->status}. Please wait for it to be resolved before submitting a new one."
+            );
+        }
+
         // Handle image upload with security validation
         $imagePath = null;
         if ($request->hasFile('image')) {
@@ -1053,7 +1101,7 @@ class ConcernController extends Controller
         $concern = Concern::findOrFail($id);
 
         // Only owner can permanently delete their own concerns
-        if ($concern->user_id !== auth()->id()) {
+        if ($concern->user_id != auth()->id()) {
             if ($request->expectsJson()) {
                 return response()->json(['error' => 'You cannot permanently delete this concern.'], 403);
             }
@@ -1068,7 +1116,7 @@ class ConcernController extends Controller
             Storage::disk('public')->delete($concern->image_path);
         }
 
-        $concern->forceDelete();
+        $concern->delete();
 
         ActivityLog::log(
             'concern_permanent_deleted',
@@ -1291,7 +1339,7 @@ class ConcernController extends Controller
             $concern = Concern::find($id);
             if ($concern) {
                 // Only owner can permanently delete their own concerns
-                if ($concern->user_id === auth()->id()) {
+                if ($concern->user_id == auth()->id()) {
                     $concernTitle = $concern->title;
 
                     // Delete image if exists
@@ -1299,7 +1347,7 @@ class ConcernController extends Controller
                         Storage::disk('public')->delete($concern->image_path);
                     }
 
-                    $concern->forceDelete();
+                    $concern->delete();
                     $count++;
 
                     ActivityLog::log(

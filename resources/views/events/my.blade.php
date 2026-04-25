@@ -185,7 +185,7 @@
                                                 </span>
                                             </td>
                                             <td>{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</td>
-                                            <td>{{ $request->start_time }} - {{ $request->end_time }}</td>
+                                            <td>{{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</td>
                                             <td>{{ $request->location }}</td>
                                             <td>
                                                 <span class="badge bg-{{
@@ -329,7 +329,7 @@
                                                 </span>
                                             </td>
                                             <td>{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</td>
-                                            <td>{{ $request->start_time }} - {{ $request->end_time }}</td>
+                                            <td>{{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</td>
                                             <td>{{ $request->location }}</td>
                                             <td>
                                                 <span class="badge bg-{{ $request->status == 'Approved' ? 'success' : ($request->status == 'Rejected' ? 'danger' : ($request->status == 'Cancelled' ? 'secondary' : 'warning')) }}">
@@ -461,7 +461,7 @@
                                                 </span>
                                             </td>
                                             <td>{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</td>
-                                            <td>{{ $request->start_time }} - {{ $request->end_time }}</td>
+                                            <td>{{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</td>
                                             <td>{{ $request->location }}</td>
                                             <td>
                                                 <span class="badge bg-{{ $request->status == 'Approved' ? 'success' : ($request->status == 'Rejected' ? 'danger' : ($request->status == 'Cancelled' ? 'secondary' : 'warning')) }}">
@@ -644,6 +644,13 @@
 
 <script>
 // View Event Modal
+function formatTime12(t) {
+    if (!t) return '';
+    const [h, m] = t.split(':');
+    const hour = parseInt(h, 10);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    return (hour % 12 || 12) + ':' + m + ' ' + ampm;
+}
 function viewEvent(id) {
     const modal = new bootstrap.Modal(document.getElementById('viewEventModal'));
     const contentDiv = document.getElementById('viewEventContent');
@@ -790,7 +797,7 @@ function viewEvent(id) {
                 <div class="col-md-6">
                     <p><strong>Category:</strong> ${categoryBadge}</p>
                     <p><strong>Date:</strong> ${new Date(event.event_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                    <p><strong>Time:</strong> ${event.start_time} - ${event.end_time}</p>
+                    <p><strong>Time:</strong> ${formatTime12(event.start_time)} - ${formatTime12(event.end_time)}</p>
                 </div>
                 <div class="col-md-6">
                     <p><strong>Location:</strong> ${event.location}</p>

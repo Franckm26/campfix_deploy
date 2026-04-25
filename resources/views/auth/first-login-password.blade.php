@@ -56,12 +56,13 @@
                                     </div>
                                 </div>
                                 <!-- Requirements tooltip -->
-                                <div id="passwordRequirements" class="mt-1 p-2 rounded" style="display:none;background:#f8f9fa;font-size:12px;border:1px solid #dee2e6">
-                                    <div class="fw-semibold mb-1" style="font-size:12px">Password must include:</div>
-                                    <div id="req-length"  class="req-item"><i class="fas fa-times-circle text-danger me-1"></i>8-20 <strong>Characters</strong></div>
-                                    <div id="req-upper"   class="req-item"><i class="fas fa-times-circle text-danger me-1"></i>At least one <strong>capital letter</strong></div>
-                                    <div id="req-number"  class="req-item"><i class="fas fa-times-circle text-danger me-1"></i>At least one <strong>number</strong></div>
-                                    <div id="req-nospace" class="req-item"><i class="fas fa-times-circle text-danger me-1"></i><strong>No spaces</strong></div>
+                                <div id="passwordRequirements" class="mt-1 p-2 rounded" style="display:none;background:#f8f9fa;font-size:13px;border:1px solid #dee2e6">
+                                    <div class="fw-semibold mb-1" style="font-size:13px">Password Must Include:</div>
+                                    <div id="req-length"  class="req-item"><i class="fas fa-times-circle text-danger me-1"></i>8–20 <strong>Characters</strong></div>
+                                    <div id="req-upper"   class="req-item"><i class="fas fa-times-circle text-danger me-1"></i>At Least One <strong>Capital Letter</strong></div>
+                                    <div id="req-number"  class="req-item"><i class="fas fa-times-circle text-danger me-1"></i>At Least One <strong>Number</strong></div>
+                                    <div id="req-special" class="req-item"><i class="fas fa-times-circle text-danger me-1"></i>At Least One <strong>Special Character</strong></div>
+                                    <div id="req-nospace" class="req-item"><i class="fas fa-times-circle text-danger me-1"></i><strong>No Spaces</strong></div>
                                 </div>
                             </div>
 
@@ -130,18 +131,21 @@
         const okLength  = val.length >= 8 && val.length <= 20;
         const okUpper   = /[A-Z]/.test(val);
         const okNumber  = /[0-9]/.test(val);
+        const okSpecial = /[@$!%*?&]/.test(val);
         const okNoSpace = val.length > 0 && !/\s/.test(val);
 
         setReq('req-length',  okLength);
         setReq('req-upper',   okUpper);
         setReq('req-number',  okNumber);
+        setReq('req-special', okSpecial);
         setReq('req-nospace', okNoSpace);
 
-        const score = [okLength, okUpper, okNumber, okNoSpace].filter(Boolean).length;
+        const score = [okLength, okUpper, okNumber, okSpecial, okNoSpace].filter(Boolean).length;
         const levels = [
-            { pct: 25,  color: '#dc3545', text: 'Weak'   },
-            { pct: 50,  color: '#fd7e14', text: 'Fair'   },
-            { pct: 75,  color: '#ffc107', text: 'Medium' },
+            { pct: 20,  color: '#dc3545', text: 'Weak'   },
+            { pct: 40,  color: '#fd7e14', text: 'Weak'   },
+            { pct: 60,  color: '#ffc107', text: 'Fair'   },
+            { pct: 80,  color: '#0dcaf0', text: 'Medium' },
             { pct: 100, color: '#198754', text: 'Strong' },
         ];
         const lvl = levels[score - 1] || { pct: 0, color: '#dee2e6', text: '' };
@@ -189,7 +193,7 @@
     // Block submit if requirements not met
     document.querySelector('form').addEventListener('submit', function (e) {
         const val = pwInput.value;
-        const ok = val.length >= 8 && val.length <= 20 && /[A-Z]/.test(val) && /[0-9]/.test(val) && !/\s/.test(val);
+        const ok = val.length >= 8 && val.length <= 20 && /[A-Z]/.test(val) && /[0-9]/.test(val) && /[@$!%*?&]/.test(val) && !/\s/.test(val);
         if (!ok) {
             e.preventDefault();
             barWrap.style.display = 'block';

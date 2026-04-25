@@ -534,7 +534,7 @@
                                                 </span>
                                             </td>
                                             <td>{{ $concern->archivedByUsers->first()?->name ?? 'Self' }}</td>
-                                            <td>{{ $concern->archivedByUsers->first()?->pivot->archived_at ? \Carbon\Carbon::parse($concern->archivedByUsers->first()->pivot->archived_at)->format('M d, Y H:i') : $concern->updated_at->format('M d, Y') }}</td>
+                                            <td>{{ $concern->archivedByUsers->first()?->pivot->archived_at ? \Carbon\Carbon::parse($concern->archivedByUsers->first()->pivot->archived_at)->format('M d, Y g:i A') : $concern->updated_at->format('M d, Y') }}</td>
                                             <td>
                                                 <div class="btn-group" role="group">
                                                     <button type="button" class="btn btn-sm btn-info bg-transparent border-0" onclick="viewConcern({{ $concern->id }})" title="View">
@@ -714,7 +714,7 @@
                                                 </span>
                                             </td>
                                             <td>{{ $concern->deletedBy ? $concern->deletedBy->name : 'System' }}</td>
-                                            <td>{{ $concern->deleted_at ? $concern->deleted_at->format('M d, Y H:i') : 'N/A' }}</td>
+                                            <td>{{ $concern->deleted_at ? $concern->deleted_at->format('M d, Y g:i A') : 'N/A' }}</td>
                                             <td>
                                                 <div class="btn-group" role="group">
                                                     <button type="button" class="btn btn-sm btn-info bg-transparent border-0" onclick="viewConcern({{ $concern->id }})" title="View">
@@ -884,24 +884,49 @@
                 <h5 class="modal-title" id="permanentDeleteModalLabel"><i class="fas fa-exclamation-triangle"></i> Permanently Delete Concern</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="permanentDeleteConcernForm" method="POST">
-                @csrf
-                @method('DELETE')
-                <div class="modal-body">
-                    <input type="hidden" id="permanentDeleteConcernId" name="concern_id" value="">
-                    <div class="alert alert-danger">
-                        <i class="fas fa-ban"></i> <strong>Warning:</strong> This action cannot be undone! The concern will be permanently removed from the database.
-                    </div>
-                    <p class="mb-0">Are you sure you want to permanently delete this concern?</p>
+            <div class="modal-body">
+                <input type="hidden" id="permanentDeleteConcernId" value="">
+                <div class="alert alert-danger">
+                    <i class="fas fa-ban"></i> <strong>Warning:</strong> This action cannot be undone! The concern will be permanently removed.
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-danger"><i class="fas fa-ban"></i> Permanent Delete</button>
-                </div>
-            </form>
+                <p class="mb-0">Are you sure you want to permanently delete this concern?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmPermanentDeleteBtn"><i class="fas fa-ban"></i> Permanent Delete</button>
+            </div>
         </div>
     </div>
 </div>
+
+<!-- Duplicate Concern Warning Modal -->
+@if(session('warning'))
+<div class="modal fade" id="duplicateConcernWarningModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Concern Already Reported</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <div class="mb-3">
+                    <i class="fas fa-tools fa-3x text-warning"></i>
+                </div>
+                <p class="mb-0">{{ session('warning') }}</p>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-warning" data-bs-dismiss="modal">Got it</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var warningModal = new bootstrap.Modal(document.getElementById('duplicateConcernWarningModal'));
+        warningModal.show();
+    });
+</script>
+@endif
 
 <!-- New Concern Modal -->
 <div class="modal fade" id="newConcernModal" tabindex="-1" aria-labelledby="newConcernModalLabel" aria-hidden="true">
@@ -1440,12 +1465,45 @@ function softDeleteArchivedConcern(id) {
 
 // Permanent Delete Function
 function permanentDeleteConcern(id) {
-    document.getElementById('permanentDeleteConcernForm').action = '/concerns/' + id + '/permanent-delete';
     document.getElementById('permanentDeleteConcernId').value = id;
-    
     var modal = new bootstrap.Modal(document.getElementById('permanentDeleteModal'));
     modal.show();
 }
+
+document.addEventListener('DOMContentLoaded', function () {
+    document.getElementById('confirmPermanentDeleteBtn').addEventListener('click', function () {
+        var id = document.getElementById('permanentDeleteConcernId').value;
+        var btn = this;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+
+        fetch('/concerns/' + id + '/permanent-delete', {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(function (response) { return response.json(); })
+        .then(function (data) {
+            if (data.success) {
+                var modalEl = bootstrap.Modal.getInstance(document.getElementById('permanentDeleteModal'));
+                if (modalEl) modalEl.hide();
+                location.reload();
+            } else {
+                alert(data.error || 'Failed to delete concern.');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-ban"></i> Permanent Delete';
+            }
+        })
+        .catch(function () {
+            alert('An error occurred. Please try again.');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-ban"></i> Permanent Delete';
+        });
+    });
+});
 
 // Send Follow-up Function
 function sendFollowUp(id) {

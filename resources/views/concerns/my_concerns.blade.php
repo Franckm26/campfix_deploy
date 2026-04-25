@@ -21,7 +21,7 @@
                         <p class="text-gray-600 mb-1" style="font-size: 14px;"><span class="font-semibold">Category:</span> {{ $concern->category }}</p>
                         <p class="text-gray-700 mt-2" style="font-size: 14px;">{{ $concern->description }}</p>
                         <p class="text-gray-400 text-sm mt-2 mt-md-3">
-                            {{ $concern->created_at->format('M d, Y H:i') }}
+                            {{ $concern->created_at->format('M d, Y g:i A') }}
                         </p>
                     </div>
                 </div>

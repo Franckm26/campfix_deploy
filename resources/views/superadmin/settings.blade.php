@@ -78,7 +78,7 @@
                         'Database Driver'  => config('database.default'),
                         'Cache Driver'     => config('cache.default'),
                         'Queue Driver'     => config('queue.default'),
-                        'Server Time'      => now()->format('Y-m-d H:i:s T'),
+                        'Server Time'      => now()->format('M d, Y g:i:s A T'),
                     ];
                 @endphp
                 @foreach($info as $label => $value)

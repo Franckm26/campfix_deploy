@@ -258,12 +258,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                         <!-- Requirements -->
                         <div id="profilePwReqs" class="mt-2 p-3 rounded shadow-sm" style="display:none;background:#f8f9fa;font-size:13px;border:1px solid #dee2e6">
-                            <div class="fw-semibold mb-2">Password must include:</div>
-                            <div id="prof-req-length"  class="req-item"><i class="fas fa-times-circle text-danger me-2"></i>8-20 <strong>Characters</strong></div>
-                            <div id="prof-req-upper"   class="req-item mt-1"><i class="fas fa-times-circle text-danger me-2"></i>At least one <strong>capital letter</strong></div>
-                            <div id="prof-req-number"  class="req-item mt-1"><i class="fas fa-times-circle text-danger me-2"></i>At least one <strong>number</strong></div>
-                            <div id="prof-req-special" class="req-item mt-1"><i class="fas fa-times-circle text-danger me-2"></i>At least one <strong>special character</strong></div>
-                            <div id="prof-req-nospace" class="req-item mt-1"><i class="fas fa-times-circle text-danger me-2"></i><strong>No spaces</strong></div>
+                            <div class="fw-semibold mb-2">Password Must Include:</div>
+                            <div id="prof-req-length"  class="req-item"><i class="fas fa-times-circle text-danger me-2"></i>8–20 <strong>Characters</strong></div>
+                            <div id="prof-req-upper"   class="req-item mt-1"><i class="fas fa-times-circle text-danger me-2"></i>At Least One <strong>Capital Letter</strong></div>
+                            <div id="prof-req-number"  class="req-item mt-1"><i class="fas fa-times-circle text-danger me-2"></i>At Least One <strong>Number</strong></div>
+                            <div id="prof-req-special" class="req-item mt-1"><i class="fas fa-times-circle text-danger me-2"></i>At Least One <strong>Special Character</strong></div>
+                            <div id="prof-req-nospace" class="req-item mt-1"><i class="fas fa-times-circle text-danger me-2"></i><strong>No Spaces</strong></div>
                         </div>
                     </div>
                     

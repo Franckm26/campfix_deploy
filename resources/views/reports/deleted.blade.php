@@ -122,7 +122,7 @@
                                         </span>
                                     </td>
                                     <td>{{ $report->deletedBy->name ?? 'Unknown' }}</td>
-                                    <td>{{ $report->deleted_at->format('M d, Y H:i') }}</td>
+                                    <td>{{ $report->deleted_at->format('M d, Y g:i A') }}</td>
                                     <td>
                                         <a href="{{ route('reports.show', $report) }}" class="btn btn-sm btn-info">
                                             <i class="fas fa-eye"></i> View

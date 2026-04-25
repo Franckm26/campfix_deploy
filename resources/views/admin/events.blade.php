@@ -236,7 +236,7 @@
                                 <span class="badge bg-info">{{ ucfirst($request->category) }}</span>
                             </td>
                             <td>{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</td>
-                            <td>{{ $request->start_time }} - {{ $request->end_time }}</td>
+                            <td>{{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</td>
                             <td>{{ $request->location }}</td>
                             <td>
                                 <span class="badge bg-{{ 
@@ -311,7 +311,7 @@
                                             <div class="col-md-6">
                                                 <p><strong>Requestor:</strong> {{ $request->user->name ?? 'N/A' }}</p>
                                                 <p><strong>Event Date:</strong> {{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</p>
-                                                <p><strong>Time:</strong> {{ $request->start_time }} - {{ $request->end_time }}</p>
+                                                <p><strong>Time:</strong> {{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</p>
                                                 <p><strong>Location:</strong> {{ $request->location }}</p>
                                             </div>
                                         </div>
@@ -419,7 +419,7 @@
                                                 <span class="badge bg-info">{{ ucfirst($event->category) }}</span>
                                             </td>
                                             <td>{{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</td>
-                                            <td>{{ $event->start_time }} - {{ $event->end_time }}</td>
+                                            <td>{{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}</td>
                                             <td>{{ $event->location }}</td>
                                             <td>
                                                 <span class="badge bg-{{
@@ -475,7 +475,7 @@
                                                             <div class="col-md-6">
                                                                 <p><strong>Requestor:</strong> {{ $event->user->name ?? 'N/A' }}</p>
                                                                 <p><strong>Event Date:</strong> {{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</p>
-                                                                <p><strong>Time:</strong> {{ $event->start_time }} - {{ $event->end_time }}</p>
+                                                                <p><strong>Time:</strong> {{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}</p>
                                                                 <p><strong>Location:</strong> {{ $event->location }}</p>
                                                             </div>
                                                         </div>
@@ -735,7 +735,7 @@
                                                     <div class="col-md-6">
                                                         <p><strong>Requestor:</strong> {{ $event->user->name ?? 'N/A' }}</p>
                                                         <p><strong>Event Date:</strong> {{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</p>
-                                                        <p><strong>Time:</strong> {{ $event->start_time }} - {{ $event->end_time }}</p>
+                                                        <p><strong>Time:</strong> {{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}</p>
                                                         <p><strong>Location:</strong> {{ $event->location }}</p>
                                                     </div>
                                                 </div>

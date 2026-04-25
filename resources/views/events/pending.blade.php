@@ -93,7 +93,7 @@
                                     <td>{{ $request->user->name }}</td>
                                     <td>{{ ucfirst($request->category) }}</td>
                                     <td>{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</td>
-                                    <td>{{ $request->start_time }} - {{ $request->end_time }}</td>
+                                    <td>{{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</td>
                                     <td>{{ $request->location }}</td>
                                     <td>
                                         <span class="badge bg-warning text-dark">{{ $request->status }}</span>
@@ -128,7 +128,7 @@
                                                     </div>
                                                     <div class="col-md-6">
                                                         <p><strong>Date:</strong> {{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</p>
-                                                        <p><strong>Time:</strong> {{ $request->start_time }} - {{ $request->end_time }}</p>
+                                                        <p><strong>Time:</strong> {{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</p>
                                                         <p><strong>Location:</strong> {{ $request->location }}</p>
                                                         <p><strong>Priority:</strong> 
                                                             <span class="badge bg-{{ $request->priority == 'urgent' ? 'danger' : ($request->priority == 'high' ? 'warning' : 'info') }}">

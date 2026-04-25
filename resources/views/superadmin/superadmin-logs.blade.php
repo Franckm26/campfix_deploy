@@ -67,7 +67,7 @@
                     </td>
                     <td style="color:var(--sa-muted);font-size:12px">{{ $log->ip_address ?? '—' }}</td>
                     <td style="color:var(--sa-muted);font-size:12px;white-space:nowrap">
-                        {{ $log->created_at->format('M d, Y H:i:s') }}
+                        {{ $log->created_at->format('M d, Y g:i:s A') }}
                         <div style="font-size:10px;color:var(--sa-muted)">{{ $log->created_at->diffForHumans() }}</div>
                     </td>
                 </tr>

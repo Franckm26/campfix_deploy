@@ -244,7 +244,7 @@
                                                 <div class="col-md-6">
                                                     <p><strong>Requestor:</strong> {{ $event->user->name ?? 'N/A' }}</p>
                                                     <p><strong>Event Date:</strong> {{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</p>
-                                                    <p><strong>Time:</strong> {{ $event->start_time }} - {{ $event->end_time }}</p>
+                                                    <p><strong>Time:</strong> {{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}</p>
                                                     <p><strong>Location:</strong> {{ $event->location }}</p>
                                                 </div>
                                             </div>

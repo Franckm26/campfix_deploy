@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AdminMiddleware;
+use App\Http\Middleware\SuperadminMiddleware;
 use App\Http\Middleware\ApiRequestContext;
 use App\Http\Middleware\ApiSecurityHeaders;
 use App\Http\Middleware\BlockSuspiciousQuery;
@@ -58,7 +59,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToGroup('api', ApiSecurityHeaders::class);
 
         $middleware->alias([
-            'admin' => AdminMiddleware::class,
+            'admin'      => AdminMiddleware::class,
+            'superadmin' => SuperadminMiddleware::class,
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'security' => SecurityHeaders::class,
             'sanitize' => SanitizeInput::class,

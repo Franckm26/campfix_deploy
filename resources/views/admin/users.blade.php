@@ -322,11 +322,12 @@
                                                             </div>
                                                         </div>
                                                         <div class="edit-pw-reqs mt-2 p-3 rounded shadow-sm" style="display:none;background:#f8f9fa;font-size:13px;border:1px solid #dee2e6">
-                                                            <div class="fw-semibold mb-2">Password must include:</div>
-                                                            <div class="edit-req-length  req-item"><i class="fas fa-times-circle text-danger me-2"></i>8-20 <strong>Characters</strong></div>
-                                                            <div class="edit-req-upper   req-item mt-1"><i class="fas fa-times-circle text-danger me-2"></i>At least one <strong>capital letter</strong></div>
-                                                            <div class="edit-req-number  req-item mt-1"><i class="fas fa-times-circle text-danger me-2"></i>At least one <strong>number</strong></div>
-                                                            <div class="edit-req-nospace req-item mt-1"><i class="fas fa-times-circle text-danger me-2"></i><strong>No spaces</strong></div>
+                                                            <div class="fw-semibold mb-2">Password Must Include:</div>
+                                                            <div class="edit-req-length  req-item"><i class="fas fa-times-circle text-danger me-2"></i>8–20 <strong>Characters</strong></div>
+                                                            <div class="edit-req-upper   req-item mt-1"><i class="fas fa-times-circle text-danger me-2"></i>At Least One <strong>Capital Letter</strong></div>
+                                                            <div class="edit-req-number  req-item mt-1"><i class="fas fa-times-circle text-danger me-2"></i>At Least One <strong>Number</strong></div>
+                                                            <div class="edit-req-special req-item mt-1"><i class="fas fa-times-circle text-danger me-2"></i>At Least One <strong>Special Character</strong></div>
+                                                            <div class="edit-req-nospace req-item mt-1"><i class="fas fa-times-circle text-danger me-2"></i><strong>No Spaces</strong></div>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -533,8 +534,8 @@
                                 <td>{{ $folder->created_at->format('M d, Y') }}</td>
                                 <td>
                                     <div class="btn-group" role="group">
-                                        <a href="{{ route('admin.archiveFolderUsers', $folder->id) }}" class="btn btn-sm btn-primary">
-                                            <i class="fas fa-folder-open"></i> View Users
+                                        <a href="{{ route('admin.archiveFolderUsers', $folder->id) }}" class="btn btn-sm btn-outline-primary" title="View Users">
+                                            <i class="fas fa-folder-open"></i>
                                         </a>
                                         <button type="button" class="btn btn-sm btn-danger" title="Delete Folder" data-bs-toggle="modal" data-bs-target="#deleteFolderModal{{ $folder->id }}">
                                             <i class="fas fa-trash"></i>
@@ -2174,6 +2175,7 @@ document.addEventListener('input', function(e) {
     const okLength  = val.length >= 8 && val.length <= 20;
     const okUpper   = /[A-Z]/.test(val);
     const okNumber  = /[0-9]/.test(val);
+    const okSpecial = /[@$!%*?&]/.test(val);
     const okNoSpace = val.length > 0 && !/\s/.test(val);
 
     function setReq(cls, pass) {
@@ -2185,13 +2187,15 @@ document.addEventListener('input', function(e) {
     setReq('edit-req-length',  okLength);
     setReq('edit-req-upper',   okUpper);
     setReq('edit-req-number',  okNumber);
+    setReq('edit-req-special', okSpecial);
     setReq('edit-req-nospace', okNoSpace);
 
-    const score  = [okLength, okUpper, okNumber, okNoSpace].filter(Boolean).length;
+    const score  = [okLength, okUpper, okNumber, okSpecial, okNoSpace].filter(Boolean).length;
     const levels = [
-        { pct: 25,  color: '#dc3545', text: 'Weak'   },
-        { pct: 50,  color: '#fd7e14', text: 'Fair'   },
-        { pct: 75,  color: '#ffc107', text: 'Medium' },
+        { pct: 20,  color: '#dc3545', text: 'Weak'   },
+        { pct: 40,  color: '#fd7e14', text: 'Weak'   },
+        { pct: 60,  color: '#ffc107', text: 'Fair'   },
+        { pct: 80,  color: '#0dcaf0', text: 'Medium' },
         { pct: 100, color: '#198754', text: 'Strong' },
     ];
     const lvl = levels[score - 1] || { pct: 0, color: '#dee2e6', text: '' };

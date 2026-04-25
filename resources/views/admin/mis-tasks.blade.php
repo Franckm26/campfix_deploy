@@ -119,7 +119,7 @@
                                         </span>
                                     </td>
                                     <td>{{ $concern->created_at->format('M d, Y') }}</td>
-                                    <td>{{ $concern->updated_at->format('M d, Y H:i') }}</td>
+                                    <td>{{ $concern->updated_at->format('M d, Y g:i A') }}</td>
                                     <td>
                                         <div class="btn-group" role="group">
                                             <button type="button" class="btn btn-sm btn-info bg-transparent border-0" onclick="viewConcern({{ $concern->id }})" title="View">
@@ -184,9 +184,9 @@
                                 </td>
                                 <td>{{ $concern->created_at->format('M d, Y') }}</td>
                                 @if($viewType === 'archives')
-                                    <td>{{ $concern->archivedByUsers->first()?->pivot->archived_at ? \Carbon\Carbon::parse($concern->archivedByUsers->first()->pivot->archived_at)->format('M d, Y H:i') : $concern->updated_at->format('M d, Y') }}</td>
+                                    <td>{{ $concern->archivedByUsers->first()?->pivot->archived_at ? \Carbon\Carbon::parse($concern->archivedByUsers->first()->pivot->archived_at)->format('M d, Y g:i A') : $concern->updated_at->format('M d, Y') }}</td>
                                 @elseif($viewType === 'deleted')
-                                    <td>{{ $concern->deleted_at ? \Carbon\Carbon::parse($concern->deleted_at)->format('M d, Y H:i') : $concern->updated_at->format('M d, Y') }}</td>
+                                    <td>{{ $concern->deleted_at ? \Carbon\Carbon::parse($concern->deleted_at)->format('M d, Y g:i A') : $concern->updated_at->format('M d, Y') }}</td>
                                 @endif
                                 <td>
                                     <div class="btn-group" role="group">

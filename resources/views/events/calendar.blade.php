@@ -784,6 +784,14 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
     }
 
     function showEventDetails(id, title, type, date, startTime, endTime, location, requestedBy, description) {
+        function to12hr(t) {
+            if (!t) return '';
+            const [h, m] = t.split(':');
+            const hour = parseInt(h, 10);
+            const ampm = hour >= 12 ? 'PM' : 'AM';
+            const h12 = hour % 12 || 12;
+            return h12 + ':' + m + ' ' + ampm;
+        }
         document.getElementById('eventTitle').textContent = title;
 
         var typeBadge = document.getElementById('eventType');
@@ -803,7 +811,7 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
         var options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
         document.getElementById('eventDate').textContent = dateObj.toLocaleDateString('en-US', options);
 
-        document.getElementById('eventTime').textContent = startTime + ' - ' + endTime;
+        document.getElementById('eventTime').textContent = to12hr(startTime) + ' - ' + to12hr(endTime);
         document.getElementById('eventLocation').textContent = location || 'N/A';
         document.getElementById('eventRequestedBy').textContent = requestedBy;
         document.getElementById('eventDescription').textContent = description || 'No description provided.';

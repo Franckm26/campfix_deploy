@@ -57,7 +57,7 @@
                     </td>
                     <td style="color:var(--sa-muted);font-size:12px">{{ $log->ip_address ?? '—' }}</td>
                     <td style="color:var(--sa-muted);font-size:12px;white-space:nowrap">
-                        {{ $log->created_at->format('M d, Y H:i') }}
+                        {{ $log->created_at->format('M d, Y g:i A') }}
                     </td>
                     <td>
                         <form method="POST" action="{{ route('superadmin.activity-logs.delete', $log->id) }}"

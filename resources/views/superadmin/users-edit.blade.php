@@ -69,7 +69,7 @@
                                 <span class="sa-badge sa-badge-green">Active</span>
                             @endif
                             @if($user->locked_until && $user->locked_until > now())
-                                <span class="sa-badge sa-badge-red"><i class="fas fa-lock me-1"></i>Locked until {{ $user->locked_until->format('M d H:i') }}</span>
+                                <span class="sa-badge sa-badge-red"><i class="fas fa-lock me-1"></i>Locked until {{ $user->locked_until->format('M d g:i A') }}</span>
                             @endif
                             @if($user->force_password_change)
                                 <span class="sa-badge sa-badge-yellow">Force PW Change</span>
@@ -79,8 +79,8 @@
                             @endif
                         </div>
                         <div style="font-size:11px;color:var(--sa-muted);margin-top:8px">
-                            Joined: {{ $user->created_at->format('M d, Y H:i') }}
-                            · Last updated: {{ $user->updated_at->format('M d, Y H:i') }}
+                            Joined: {{ $user->created_at->format('M d, Y g:i A') }}
+                            · Last updated: {{ $user->updated_at->format('M d, Y g:i A') }}
                         </div>
                     </div>
                 </div>

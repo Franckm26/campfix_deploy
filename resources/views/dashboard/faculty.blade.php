@@ -624,8 +624,16 @@
                             ->orderBy('event_date', 'asc')
                             ->limit(20)
                             ->get();
+                        $maintenanceNews = \App\Models\Report::with('category')
+                            ->where('is_deleted', false)
+                            ->where('maintenance_archived', false)
+                            ->whereIn('status', ['Pending', 'Assigned', 'In Progress'])
+                            ->orderBy('created_at', 'desc')
+                            ->limit(10)
+                            ->get();
+                        $allNewsEmpty = $newsItems->isEmpty() && $maintenanceNews->isEmpty();
                     @endphp
-                    @if($newsItems->isEmpty())
+                    @if($allNewsEmpty)
                         <div style="text-align:center; padding:40px 20px; color:#6b7280;">
                             <i class="fas fa-bell-slash" style="font-size:32px; margin-bottom:10px; opacity:.4; display:block;"></i>
                             <p style="font-size:14px; margin:0;">No announcements at this time.</p>
@@ -637,7 +645,7 @@
                                 $nColors = ['#1a237e','#1b5e20','#4a148c','#1565c0','#004d40','#e65100','#880e4f','#006064','#33691e','#bf360c'];
                                 $nColor = $nColors[$loop->index % count($nColors)];
                             @endphp
-                            <div style="display:flex; gap:12px; align-items:center; padding:11px 16px; border-bottom:1px solid var(--cal-border,#e2e8f0); {{ $loop->last ? 'border-bottom:none;' : '' }}">
+                            <div style="display:flex; gap:12px; align-items:center; padding:11px 16px; border-bottom:1px solid var(--cal-border,#e2e8f0);">
                                 <div style="width:38px; height:38px; border-radius:8px; background:{{ $nColor }}; flex-shrink:0; display:flex; align-items:center; justify-content:center;">
                                     <i class="fas fa-calendar-check" style="color:#fff; font-size:15px;"></i>
                                 </div>
@@ -652,6 +660,33 @@
                                 <a href="{{ route('events.calendar') }}" style="flex-shrink:0; font-size:11px; color:#1a8fc1; font-weight:600; text-decoration:none; white-space:nowrap;">
                                     View <i class="fas fa-arrow-right"></i>
                                 </a>
+                            </div>
+                            @endforeach
+                            @foreach($maintenanceNews as $report)
+                            @php
+                                $mColors = ['#b71c1c','#e65100','#4e342e','#37474f','#6a1b9a','#880e4f'];
+                                $mColor = $mColors[$loop->index % count($mColors)];
+                                $statusBadge = match($report->status) {
+                                    'In Progress' => ['bg'=>'#fff3e0','color'=>'#e65100'],
+                                    'Assigned'    => ['bg'=>'#e3f2fd','color'=>'#1565c0'],
+                                    default       => ['bg'=>'#fce4ec','color'=>'#c62828'],
+                                };
+                            @endphp
+                            <div style="display:flex; gap:12px; align-items:center; padding:11px 16px; border-bottom:1px solid var(--cal-border,#e2e8f0); {{ $loop->last ? 'border-bottom:none;' : '' }}">
+                                <div style="width:38px; height:38px; border-radius:8px; background:{{ $mColor }}; flex-shrink:0; display:flex; align-items:center; justify-content:center;">
+                                    <i class="fas fa-wrench" style="color:#fff; font-size:15px;"></i>
+                                </div>
+                                <div style="flex:1; min-width:0;">
+                                    <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                                        <div style="font-weight:700; font-size:13px; color:var(--cal-text,#1e293b); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ $report->title }}</div>
+                                        <span style="font-size:10px; font-weight:600; padding:1px 7px; border-radius:20px; background:{{ $statusBadge['bg'] }}; color:{{ $statusBadge['color'] }};">{{ $report->status }}</span>
+                                    </div>
+                                    <div style="display:flex; flex-wrap:wrap; gap:8px; font-size:11px; color:#6b7280; margin-top:2px;">
+                                        @if($report->category)<span><i class="fas fa-tag me-1"></i>{{ $report->category->name }}</span>@endif
+                                        @if($report->location)<span><i class="fas fa-map-marker-alt me-1"></i>{{ $report->location }}</span>@endif
+                                        <span><i class="fas fa-clock me-1"></i>{{ $report->created_at->format('M d, Y') }}</span>
+                                    </div>
+                                </div>
                             </div>
                             @endforeach
                         </div>

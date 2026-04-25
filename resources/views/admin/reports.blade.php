@@ -28,7 +28,7 @@
                 <div class="modal-header">
                     <h5 class="modal-title" id="viewConcernModalLabel">Concern Details</h5>
                     @if(in_array(auth()->user()->role, ['building_admin', 'school_admin', 'academic_head']))
-                        <button type="button" class="btn btn-primary btn-sm ms-2" onclick="showAssignModal()">
+                        <button type="button" class="btn btn-primary btn-sm ms-2" onclick="assignReport(window.currentReportId)">
                             <i class="fas fa-user-plus"></i> Assign
                         </button>
                     @endif
@@ -327,14 +327,14 @@
                                             {{ $report->user->name ?? 'Unknown' }}
                                         </td>
                                         <td>{{ $report->created_at->format('M d, Y') }}</td>
-                                        <td>{{ $report->resolved_at ? $report->resolved_at->format('M d, Y H:i') : '-' }}</td>
+                                        <td>{{ $report->resolved_at ? $report->resolved_at->format('M d, Y g:i A') : '-' }}</td>
                                         <td>
                                             <div class="btn-group" role="group">
                                                 <button type="button" class="btn btn-sm btn-info" onclick="viewReport({{ $report->id }})" title="View">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
-                                                <button type="button" class="btn btn-sm btn-warning" onclick="editReport({{ $report->id }})" title="Edit">
-                                                    <i class="fas fa-edit"></i>
+                                                <button type="button" class="btn btn-sm btn-primary" onclick="assignReport({{ $report->id }})" title="Assign">
+                                                    <i class="fas fa-user-plus"></i>
                                                 </button>
                                                 @if(!$report->isArchivedByUser(auth()->id()))
                                                     <button type="button" class="btn btn-sm btn-secondary" onclick="showReportArchiveModal({{ $report->id }})" title="Archive">
@@ -416,7 +416,7 @@
                                     </td>
                                     <td>{{ $report->user->name ?? 'Unknown' }}</td>
                                     <td>{{ $report->created_at->format('M d, Y') }}</td>
-                                    <td>{{ $report->resolved_at ? $report->resolved_at->format('M d, Y H:i') : '-' }}</td>
+                                    <td>{{ $report->resolved_at ? $report->resolved_at->format('M d, Y g:i A') : '-' }}</td>
                                     <td>₱{{ number_format($report->cost ?? 0, 2) }}</td>
                                     <td>
                                         <div class="btn-group" role="group">
@@ -977,7 +977,7 @@
                         <tr>
                             <td>{{ $report->location }}</td>
                             <td>{{ $report->damaged_part ?? 'N/A' }}</td>
-                            <td>{{ $report->resolved_at ? \Carbon\Carbon::parse($report->resolved_at)->format('M d, Y H:i') : 'Not Fixed' }}</td>
+                            <td>{{ $report->resolved_at ? \Carbon\Carbon::parse($report->resolved_at)->format('M d, Y g:i A') : 'Not Fixed' }}</td>
                             <td><span class="cost-badge">₱{{ number_format($report->cost ?? 0, 2) }}</span></td>
                         </tr>
                         @endforeach
@@ -1058,7 +1058,7 @@
             </div>
             <div class="modal-body">
                 @foreach($locationStats as $stat)
-                <div class="room-item" onclick="showRoomDetails('{{ $stat['location'] }}')" style="cursor: pointer; padding: 10px; border-bottom: 1px solid #eee;">
+                <div class="room-item" onclick="showRoomDetails({{ json_encode($stat['location']) }})" style="cursor: pointer; padding: 10px; border-bottom: 1px solid #eee;">
                     <strong>{{ $stat['location'] }}</strong> - {{ $stat['count'] }} repairs, Total Cost: ₱{{ number_format($stat['total_cost'], 2) }}
                 </div>
                 @endforeach
@@ -1395,9 +1395,10 @@
 }
 </style>
 
+@section('scripts')
 <script>
 @if(isset($groupedReports))
-window.groupedReports = @json($groupedReports);
+window.groupedReports = {!! json_encode($groupedReports, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) !!};
 @else
 window.groupedReports = {};
 @endif
@@ -1443,13 +1444,14 @@ document.addEventListener('touchstart', function(e) {
 // Initialize charts when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     @if(($viewType ?? '') == 'analytics')
-    window.chartLocations = {!! json_encode($chartLocations ?? []) !!};
-    window.chartCounts    = {!! json_encode($chartCounts ?? []) !!};
-    window.chartCosts     = {!! json_encode($chartCosts ?? []) !!};
-    window.chartStatuses  = {!! json_encode($chartStatuses ?? []) !!};
-    window.chartStatusCounts = {!! json_encode($chartStatusCounts ?? []) !!};
+    window.chartLocations = {!! json_encode($chartLocations ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) !!};
+    window.chartCounts    = {!! json_encode($chartCounts ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) !!};
+    window.chartCosts     = {!! json_encode($chartCosts ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) !!};
+    window.chartStatuses  = {!! json_encode($chartStatuses ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) !!};
+    window.chartStatusCounts = {!! json_encode($chartStatusCounts ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) !!};
     window.monthlyData    = {!! json_encode(
-        isset($monthlyStats) ? $monthlyStats->map(fn($s) => ['month' => \Carbon\Carbon::parse($s->month)->format('M Y'), 'count' => $s->total_count, 'cost' => $s->total_cost])->values() : []
+        isset($monthlyStats) ? $monthlyStats->map(fn($s) => ['month' => \Carbon\Carbon::parse($s->month)->format('M Y'), 'count' => $s->total_count, 'cost' => $s->total_cost])->values() : [],
+        JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
     ) !!};
     initializeCharts();
     @endif
@@ -1726,15 +1728,18 @@ function editReport(id) {
 
         form.action = '/reports/' + id;
 
+        const categories = data.categories || [];
+        const categoryOptions = categories.map(cat =>
+            '<option value="' + cat.id + '" ' + (data.report.category_id == cat.id ? 'selected' : '') + '>' + cat.name + '</option>'
+        ).join('');
+
         contentDiv.innerHTML = '<div class="mb-3">' +
             '<label class="form-label">Title</label>' +
             '<input type="text" name="title" class="form-control" value="' + (data.report.title || '') + '" required>' +
             '</div><div class="mb-3">' +
             '<label class="form-label">Category</label>' +
             '<select name="category_id" class="form-control" required>' +
-            '@foreach($categories as $category)' +
-            '<option value="{{ $category->id }}" ' + (data.report.category_id == {{ $category->id }} ? 'selected' : '') + '>{{ $category->name }}</option>' +
-            '@endforeach' +
+            categoryOptions +
             '</select>' +
             '</div><div class="mb-3">' +
             '<label class="form-label">Location</label>' +
@@ -2182,8 +2187,15 @@ function confirmReportDelete() {
 // Store current concern ID for assignment
 let currentConcernId = null;
 
+// Assign Report directly from table button
+window.assignReport = function(id) {
+    window.currentReportId = id;
+    window.currentConcernId = null;
+    window.showAssignModal();
+}
+
 // Show Assign Modal
-function showAssignModal() {
+window.showAssignModal = function showAssignModal() {
     const concernId = window.currentConcernId;
     const reportId = window.currentReportId;
 
@@ -2315,10 +2327,16 @@ function viewReport(id) {
     fetch('/api/reports/' + id, {
         headers: {
             'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Accept': 'application/json',
             'Content-Type': 'application/json'
         }
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => { throw new Error(err.error || 'HTTP ' + response.status); });
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.error) {
             bodyDiv.innerHTML = '<div class="alert alert-danger">' + data.error + '</div>';
@@ -2360,7 +2378,8 @@ function viewReport(id) {
         '</div>';
     })
     .catch(error => {
-        bodyDiv.innerHTML = '<div class="alert alert-danger">Error loading report details</div>';
+        console.error('viewReport error:', error);
+        bodyDiv.innerHTML = '<div class="alert alert-danger">Error loading report details. Check console for details.</div>';
     });
 }
 
@@ -2418,7 +2437,7 @@ function acknowledgeConcern(concernId) {
                     .then(data => {
                         if (data.success) {
                             // Reload the page to show filtered results
-                            window.location.href = '{{ route("admin.reports", ["view" => "deleted"]) }}&days=' + days;
+                            window.location.href = '{{ route("admin.reports") }}?view=deleted&days=' + days;
                         } else {
                             alert('Error saving preference.');
                         }
@@ -2451,4 +2470,117 @@ function getSelectedReports() {
     const checkboxes = document.querySelectorAll('.report-checkbox:checked');
     return Array.from(checkboxes).map(cb => cb.value);
 }
+
+// Assign Report from table button
+function assignReport(id) {
+    window.currentReportId = id;
+    window.currentConcernId = null;
+
+    const modal = new bootstrap.Modal(document.getElementById('assignConcernModal'));
+    const select = document.getElementById('assigned_to');
+    const form = document.getElementById('assignConcernForm');
+
+    document.getElementById('assignConcernId').value = id;
+    form.setAttribute('data-type', 'report');
+    form.action = '/admin/report/' + id + '/assign';
+
+    select.innerHTML = '<option value="">Loading...</option>';
+
+    fetch('/admin/maintenance-users', {
+        method: 'GET',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'Content-Type': 'application/json'
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            select.innerHTML = '<option value="">Error loading users</option>';
+            return;
+        }
+        select.innerHTML = '<option value="">Select maintenance staff</option>';
+        data.users.forEach(function(user) {
+            select.innerHTML += '<option value="' + user.id + '">' + user.name + '</option>';
+        });
+    })
+    .catch(function() {
+        select.innerHTML = '<option value="">Error loading users</option>';
+    });
+
+    modal.show();
+}
+
+// View Report from table button
+function viewReport(id) {
+    window.currentReportId = id;
+    const modal = new bootstrap.Modal(document.getElementById('viewConcernModal'));
+    const contentDiv = document.getElementById('viewConcernModalLabel');
+    const bodyDiv = document.getElementById('viewConcernContent');
+
+    contentDiv.textContent = 'Report Details';
+    bodyDiv.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+    modal.show();
+
+    fetch('/api/reports/' + id, {
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => { throw new Error(err.error || 'HTTP ' + response.status); });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.error) {
+            bodyDiv.innerHTML = '<div class="alert alert-danger">' + data.error + '</div>';
+            return;
+        }
+        const report = data.report;
+        const severityClass = report.severity === 'critical' ? 'danger' :
+            (report.severity === 'high' ? 'warning' :
+            (report.severity === 'medium' ? 'info' : 'secondary'));
+        const statusClass = report.status === 'Resolved' ? 'success' :
+            (report.status === 'In Progress' ? 'warning' :
+            (report.status === 'Assigned' ? 'primary' : 'secondary'));
+        let imageHtml = '';
+        if (report.photo_path) {
+            imageHtml = '<div class="mb-3"><p><strong>Photo:</strong></p><img src="' + report.photo_path + '" alt="Report photo" class="img-fluid rounded" style="max-width:400px;"></div>';
+        }
+        bodyDiv.innerHTML = '<div class="card">' +
+            '<div class="card-header d-flex justify-content-between align-items-center">' +
+                '<h4>Report #' + report.id + '</h4>' +
+                '<div><span class="badge bg-' + severityClass + ' me-2">' + report.severity.charAt(0).toUpperCase() + report.severity.slice(1) + ' Severity</span>' +
+                '<span class="badge bg-' + statusClass + '">' + report.status + '</span></div>' +
+            '</div>' +
+            '<div class="card-body">' +
+                '<h5 class="card-title">' + (report.title || 'No Title') + '</h5>' +
+                '<div class="row mb-3">' +
+                    '<div class="col-md-6"><p><strong>Category:</strong> ' + (report.category ? report.category.name : 'N/A') + '</p>' +
+                    '<p><strong>Location:</strong> ' + report.location + '</p></div>' +
+                    '<div class="col-md-6"><p><strong>Reported by:</strong> ' + (report.user ? report.user.name : 'Unknown') + '</p>' +
+                    '<p><strong>Date:</strong> ' + report.created_at + '</p></div>' +
+                '</div>' +
+                (report.assigned_to ? '<div class="mb-3"><p><strong>Assigned to:</strong> ' + (report.assigned_user_name || 'Unknown') + '</p></div>' : '') +
+                (report.damaged_part ? '<div class="mb-3"><p><strong>Damaged Part:</strong> ' + report.damaged_part + '</p></div>' : '') +
+                '<div class="mb-3"><p><strong>Description:</strong></p><p>' + (report.description || '') + '</p></div>' +
+                imageHtml +
+                (report.resolution_notes ? '<div class="mb-3"><p><strong>Resolution Notes:</strong></p><p>' + report.resolution_notes + '</p></div>' : '') +
+                ((report.cost || report.replaced_part) ? '<div class="mb-3"><p><strong>Maintenance Details:</strong></p><div class="row">' +
+                    '<div class="col-md-6">' + (report.cost ? '<p><strong>Cost:</strong> ₱' + parseFloat(report.cost).toFixed(2) + '</p>' : '') + '</div>' +
+                    '<div class="col-md-6">' + (report.replaced_part ? '<p><strong>Replaced With:</strong> ' + report.replaced_part + '</p>' : '') + '</div>' +
+                '</div></div>' : '') +
+            '</div></div>';
+    })
+    .catch(function(error) {
+        console.error('viewReport error:', error);
+        bodyDiv.innerHTML = '<div class="alert alert-danger">Error loading report details.</div>';
+    });
+}
 </script>
+@endsection

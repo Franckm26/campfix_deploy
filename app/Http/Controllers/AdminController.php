@@ -823,6 +823,17 @@ class AdminController extends Controller
 
             $groupedReports = $reports->groupBy('location');
 
+            // Debug: log any report descriptions that might contain problematic characters
+            \Log::info('groupedReports locations: ' . implode(', ', $groupedReports->keys()->toArray()));
+            foreach ($groupedReports as $location => $group) {
+                foreach ($group as $report) {
+                    $encoded = json_encode($report->toArray(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+                    if ($encoded === false) {
+                        \Log::error('json_encode failed for report ID: ' . $report->id . ' - ' . json_last_error_msg());
+                    }
+                }
+            }
+
             // Prepare data for charts
             $chartLocations = $locationStats->pluck('location')->toArray();
             $chartCounts = $locationStats->pluck('count')->toArray();
@@ -1851,10 +1862,10 @@ class AdminController extends Controller
         ActivityLog::log('user_deleted', "Deleted user: {$userName} (moved to Deleted Users folder)");
 
         if (request()->ajax()) {
-            return response()->json(['success' => 'User deleted successfully! They can be restored from the Deleted Users folder.']);
+            return response()->json(['success' => 'User deleted successfully!']);
         }
 
-        return redirect()->route('admin.users')->with('success', 'User deleted successfully! They can be restored from the Deleted Users folder.');
+        return redirect()->route('admin.users')->with('success', 'User deleted successfully!');
     }
 
     // View deleted users
@@ -3047,8 +3058,9 @@ class AdminController extends Controller
                     $firstNameSlug = strtolower(preg_replace('/[^a-zA-Z]/', '', $firstName));
                     $email         = $firstNameSlug . '.' . $lastNameSlug . '@novaliches.sti.edu.ph';
 
-                    $lastNameTitle = ucfirst(strtolower(preg_replace('/[^a-zA-Z]/', '', $lastName)));
-                    $password      = '@' . $lastNameTitle . '_' . $empNumber . '_' . now()->year;
+                    $lastNameClean  = ucfirst(strtolower(preg_replace('/[^a-zA-Z]/', '', $lastName)));
+                    $firstNameClean = ucfirst(strtolower(preg_replace('/[^a-zA-Z]/', '', $firstName)));
+                    $password       = $lastNameClean . '_' . $firstNameClean . '_' . now()->year;
 
                     $studentId  = $empNumber;
                     $role       = 'faculty';
@@ -3078,8 +3090,10 @@ class AdminController extends Controller
                     $last6         = substr($studentId, -6);
                     $email         = $lastNameSlug . '.' . $last6 . '@novaliches.sti.edu.ph';
 
-                    $lastNameTitle = ucfirst(strtolower(preg_replace('/[^a-zA-Z]/', '', $lastName)));
-                    $password      = '@' . $lastNameTitle . '_' . $studentId . '_' . now()->year;
+                    $firstInitial  = strtoupper(substr(preg_replace('/[^a-zA-Z]/', '', $firstName), 0, 1));
+                    $lastInitial   = strtoupper(substr(preg_replace('/[^a-zA-Z]/', '', $lastName), 0, 1));
+                    $last6         = substr($studentId, -6);
+                    $password      = '@' . $firstInitial . $lastInitial . '_' . $last6;
 
                     $role       = 'student';
                     $department = $program ?: null;
