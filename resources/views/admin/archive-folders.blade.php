@@ -21,9 +21,7 @@
     </div>
 
     <div class="row mb-4">
-        <div class="col-md-6">
-        </div>
-        <div class="col-md-6 text-end">
+        <div class="col-12 text-end">
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createFolderModal">
                 <i class="fas fa-folder-plus"></i> Create Folder
             </button>

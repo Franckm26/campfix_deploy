@@ -311,9 +311,6 @@
         <a href="#" class="settings-tab" onclick="showTab(event, 'preferences')">
             <i class="fas fa-sliders-h"></i> {{ $isTagalog ? 'Mga Kagustuhan' : 'Preferences' }}
         </a>
-        <a href="#" class="settings-tab" onclick="showTab(event, 'privacy')">
-            <i class="fas fa-shield-alt"></i> {{ $isTagalog ? 'Pagkapribado' : 'Privacy' }}
-        </a>
         <a href="#" class="settings-tab" onclick="showTab(event, 'security')">
             <i class="fas fa-lock"></i> {{ $isTagalog ? 'Seguridad' : 'Security' }}
         </a>
@@ -447,61 +444,6 @@
         
         <!-- Categories Management (Admin Only) -->
         <!-- REMOVED: Category management has been moved to admin panel -->
-    </div>
-    
-    <!-- Privacy Tab -->
-    <div id="privacy" class="tab-content">
-        <div class="settings-card">
-            <div class="settings-header">
-                <i class="fas fa-shield-alt"></i>
-                <h6>Privacy Settings</h6>
-            </div>
-            <div class="settings-body">
-                <form action="{{ route('settings.privacy') }}" method="POST">
-                    @csrf
-                    @method('PUT')
-                    
-                    <div class="settings-section">
-                        <h5>Profile Visibility</h5>
-                        
-                        <div class="setting-item">
-                            <div class="setting-info">
-                                <div class="setting-label">Show Online Status</div>
-                                <div class="setting-description">Allow others to see when you're online</div>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" name="show_online_status" value="1" {{ $user->show_online_status ? 'checked' : '' }}>
-                                <span class="toggle-slider"></span>
-                            </label>
-                        </div>
-                        
-                        <div class="setting-item">
-                            <div class="setting-info">
-                                <div class="setting-label">Show Activity</div>
-                                <div class="setting-description">Allow others to see your recent activity</div>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" name="show_activity" value="1" {{ $user->show_activity ? 'checked' : '' }}>
-                                <span class="toggle-slider"></span>
-                            </label>
-                        </div>
-                        
-                        <div class="setting-item">
-                            <div class="setting-info">
-                                <div class="setting-label">Allow Messages</div>
-                                <div class="setting-description">Allow other users to send you messages</div>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" name="allow_messages" value="1" {{ $user->allow_messages ? 'checked' : '' }}>
-                                <span class="toggle-slider"></span>
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <button type="submit" class="btn-save">Save Privacy Settings</button>
-                </form>
-            </div>
-        </div>
     </div>
     
     <!-- Security Tab -->
@@ -651,7 +593,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        const validTabs = ['notifications', 'preferences', 'privacy', 'security'];
+        const validTabs = ['notifications', 'preferences', 'security'];
         const hashTab = window.location.hash ? window.location.hash.substring(1) : '';
         const activeTab = validTabs.includes(hashTab) ? hashTab : 'notifications';
 

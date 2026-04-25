@@ -13,9 +13,15 @@
     <div id="contextMenu" class="context-menu">
         <ul>
             <li><a href="#" onclick="contextView()"><i class="fas fa-eye"></i> View</a></li>
+            <?php if(auth()->user()->canAccess('users_edit')): ?>
             <li><a href="#" onclick="contextEdit()"><i class="fas fa-edit"></i> Edit</a></li>
+            <?php endif; ?>
+            <?php if(auth()->user()->canAccess('users_archive')): ?>
             <li><a href="#" onclick="contextArchive()"><i class="fas fa-archive"></i> Archive</a></li>
+            <?php endif; ?>
+            <?php if(auth()->user()->canAccess('users_delete')): ?>
             <li><a href="#" onclick="contextDelete()"><i class="fas fa-trash"></i> Delete</a></li>
+            <?php endif; ?>
         </ul>
     </div>
 
@@ -23,12 +29,14 @@
         <div class="col-md-6">
         </div>
         <div class="col-md-6 text-end">
+            <?php if(auth()->user()->canAccess('users_create')): ?>
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
                 <i class="fas fa-plus"></i> Add User
             </button>
             <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#importModal">
                 <i class="fas fa-upload"></i> Import CSV
             </button>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -93,7 +101,7 @@
                             </select>
                         </div>
                         <div class="col-auto">
-                            <select name="per_page" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <select name="per_page" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width:110px;padding-right:2rem">
                                 <option value="20" <?php echo e((!request('per_page') || request('per_page') == '20') ? 'selected' : ''); ?>>20 per page</option>
                                 <option value="50" <?php echo e(request('per_page') == '50' ? 'selected' : ''); ?>>50 per page</option>
                                 <option value="100" <?php echo e(request('per_page') == '100' ? 'selected' : ''); ?>>100 per page</option>
@@ -123,15 +131,19 @@
                     </select>
                 </div>
                 <div class="col-md-9 text-end">
+                    <?php if(auth()->user()->canAccess('users_archive')): ?>
                     <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#archiveAllModal">
                         <i class="fas fa-archive"></i> Archive All
-                    </button>
-                    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteAllModal">
-                        <i class="fas fa-trash"></i> Delete All
                     </button>
                     <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#archiveSelectedModal" onclick="prepareArchiveSelected()">
                         <i class="fas fa-check-circle"></i> Archive Selected
                     </button>
+                    <?php endif; ?>
+                    <?php if(auth()->user()->canAccess('users_delete')): ?>
+                    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteAllModal">
+                        <i class="fas fa-trash"></i> Delete All
+                    </button>
+                    <?php endif; ?>
                     <span id="selectedCount" class="text-muted ms-3">0 users selected</span>
                 </div>
             </div>
@@ -177,7 +189,7 @@
                             <th>ID</th>
                             <th>Name</th>
                             <th>Email</th>
-                            <th>Role</th>
+                            <th>Department</th>
                             <th>Phone</th>
                             <th>Actions</th>
                         </tr>
@@ -190,26 +202,15 @@
                                 <td><?php echo e($user->name); ?></td>
                                 <td><?php echo e($user->email); ?></td>
                                 <td>
-                                    <?php
-                                        $badgeClass = match($user->role) {
-                                            'admin' => 'danger',
-                                            'school_admin' => 'dark',
-                                            'building_admin' => 'secondary',
-                                            'academic_head' => 'warning',
-                                            'program_head' => 'info',
-                                            'maintenance' => 'warning',
-                                            'faculty' => 'info',
-                                            default => 'primary'
-                                        };
-                                    ?>
-                                    <span class="badge bg-<?php echo e($badgeClass); ?>">
+                                    <?php $staffRoles = ['mis','school_admin','building_admin','academic_head','program_head','principal_assistant','maintenance']; ?>
+                                    <?php if($user->department): ?>
+                                        <?php echo e($user->department); ?><?php echo e($user->level ? ' - ' . $user->level : ''); ?>
+
+                                    <?php elseif(in_array($user->role, $staffRoles)): ?>
                                         <?php echo e(ucfirst(str_replace('_', ' ', $user->role))); ?>
 
-                                    </span>
-                                    <?php if($user->locked_until): ?>
-                                        <span class="badge bg-danger ms-1" title="Account locked — requires MIS to unlock">
-                                            <i class="fas fa-lock"></i> Locked
-                                        </span>
+                                    <?php else: ?>
+                                        N/A
                                     <?php endif; ?>
                                 </td>
                                 <td><?php echo e($user->phone ?? 'N/A'); ?></td>
@@ -218,28 +219,32 @@
                                         <button type="button" class="btn btn-sm btn-info" onclick="viewUser(<?php echo e($user->id); ?>)" title="View">
                                             <i class="fas fa-eye"></i>
                                         </button>
+                                        <?php if(auth()->user()->canAccess('users_edit') && !$user->isProtectedFrom(auth()->user())): ?>
                                         <button type="button" class="btn btn-sm btn-warning" onclick="editUser(<?php echo e($user->id); ?>)" title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <?php if($user->locked_until): ?>
-                                        <form action="<?php echo e(route('admin.users.unlock', $user->uuid)); ?>" method="POST" class="d-inline">
+                                        <?php endif; ?>
+                                        <?php if(auth()->user()->canAccess('users_unlock') && $user->locked_until): ?>
+                                        <form action="<?php echo e(route('admin.users.unlock', $user->uuid ?? $user->id)); ?>" method="POST" class="d-inline">
                                             <?php echo csrf_field(); ?>
                                             <button type="submit" class="btn btn-sm btn-success" title="Unlock Account" onclick="return confirm('Unlock account for <?php echo e($user->name); ?>?')">
                                                 <i class="fas fa-unlock"></i>
                                             </button>
                                         </form>
                                         <?php endif; ?>
-                                        <?php if(!$user->is_archived): ?>
-                                        <button type="button" class="btn btn-sm btn-secondary" title="Archive" onclick="showUserActionModal('archive', '<?php echo e($user->uuid); ?>', '<?php echo e($user->name); ?>')">
-                                            <i class="fas fa-archive"></i>
-                                        </button>
-                                        <?php else: ?>
-                                        <button type="button" class="btn btn-sm btn-success" title="Restore" onclick="showUserActionModal('restore', '<?php echo e($user->uuid); ?>', '<?php echo e($user->name); ?>')">
-                                            <i class="fas fa-trash-restore"></i>
-                                        </button>
+                                        <?php if(auth()->user()->canAccess('users_archive') && !$user->isProtectedFrom(auth()->user())): ?>
+                                            <?php if(!$user->is_archived): ?>
+                                            <button type="button" class="btn btn-sm btn-secondary" title="Archive" onclick="showUserActionModal('archive', '<?php echo e($user->uuid ?? $user->id); ?>', '<?php echo e($user->name); ?>')">
+                                                <i class="fas fa-archive"></i>
+                                            </button>
+                                            <?php else: ?>
+                                            <button type="button" class="btn btn-sm btn-success" title="Restore" onclick="showUserActionModal('restore', '<?php echo e($user->uuid ?? $user->id); ?>', '<?php echo e($user->name); ?>')">
+                                                <i class="fas fa-trash-restore"></i>
+                                            </button>
+                                            <?php endif; ?>
                                         <?php endif; ?>
-                                        <?php if($user->id !== auth()->id()): ?>
-                                        <button type="button" class="btn btn-sm btn-danger" title="Delete" onclick="showUserActionModal('delete', '<?php echo e($user->uuid); ?>', '<?php echo e($user->name); ?>')">
+                                        <?php if(auth()->user()->canAccess('users_delete') && $user->id !== auth()->id() && !$user->isProtectedFrom(auth()->user())): ?>
+                                        <button type="button" class="btn btn-sm btn-danger" title="Delete" onclick="showUserActionModal('delete', '<?php echo e($user->uuid ?? $user->id); ?>', '<?php echo e($user->name); ?>')">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                         <?php endif; ?>
@@ -249,87 +254,154 @@
 
                             <!-- Edit User Modal -->
                             <div class="modal fade" id="editUserModal<?php echo e($user->id); ?>" tabindex="-1">
-                                <div class="modal-dialog">
+                                <div class="modal-dialog modal-lg">
                                     <div class="modal-content">
                                         <div class="modal-header">
-                                            <h5 class="modal-title">Edit User: <?php echo e($user->name); ?></h5>
+                                            <h5 class="modal-title"><i class="fas fa-user-pen me-2"></i>Edit User: <?php echo e($user->name); ?></h5>
                                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                         </div>
-                                        <form action="<?php echo e(route('admin.users.update', $user->uuid)); ?>" method="POST">
+                                        <form action="<?php echo e(route('admin.users.update', $user->uuid ?? $user->id)); ?>" method="POST">
                                             <?php echo csrf_field(); ?>
                                             <?php echo method_field('PUT'); ?>
                                             <div class="modal-body">
-                                                <div class="mb-3">
-                                                    <label class="form-label">Name</label>
-                                                    <input type="text" name="name" class="form-control" value="<?php echo e($user->name); ?>" required>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label">Email</label>
-                                                    <input type="email" name="email" class="form-control" value="<?php echo e($user->email); ?>" required>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label">Role</label>
-                                                    <select name="role" class="form-select" required>
-                                                        <option value="student" <?php echo e($user->role == 'student' ? 'selected' : ''); ?>>Student</option>
-                                                        <option value="faculty" <?php echo e($user->role == 'faculty' ? 'selected' : ''); ?>>Faculty</option>
-                                                        <option value="maintenance" <?php echo e($user->role == 'maintenance' ? 'selected' : ''); ?>>Maintenance</option>
-                                                        <option value="mis" <?php echo e($user->role == 'mis' ? 'selected' : ''); ?>>MIS</option>
-                                                        <option value="school_admin" <?php echo e($user->role == 'school_admin' ? 'selected' : ''); ?>>School Administrator</option>
-                                                        <option value="building_admin" <?php echo e($user->role == 'building_admin' ? 'selected' : ''); ?>>Building Administrator</option>
-                                                        <option value="academic_head" <?php echo e($user->role == 'academic_head' ? 'selected' : ''); ?>>Academic Head</option>
-                                                        <option value="program_head" <?php echo e($user->role == 'program_head' ? 'selected' : ''); ?>>Program Head</option>
-                                                        <option value="principal_assistant" <?php echo e($user->role == 'principal_assistant' ? 'selected' : ''); ?>>Principal Assistant</option>
-                                                    </select>
-                                                </div>
-                                                <div class="mb-3" id="departmentField">
-                                                    <label class="form-label">Department</label>
-                                                    <select name="department" class="form-select">
-                                                        <option value="">Select Department</option>
-                                                        <option value="GE" <?php echo e($user->department == 'GE' ? 'selected' : ''); ?>>GE</option>
-                                                        <option value="ICT" <?php echo e($user->department == 'ICT' ? 'selected' : ''); ?>>ICT</option>
-                                                        <option value="Business Management" <?php echo e($user->department == 'Business Management' ? 'selected' : ''); ?>>Business Management</option>
-                                                        <option value="THM" <?php echo e($user->department == 'THM' ? 'selected' : ''); ?>>THM</option>
-                                                    </select>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label">Phone</label>
-                                                    <input type="text" name="phone" class="form-control" value="<?php echo e($user->phone); ?>" maxlength="11" pattern="09[0-9]{9}" placeholder="09XXXXXXXXX">
-                                                    <small class="text-muted">11-digit PH number (e.g., 09123456789)</small>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label">Student ID</label>
-                                                    <input type="text" name="student_id" class="form-control" value="<?php echo e($user->student_id); ?>">
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label">New Password (leave blank to keep current)</label>
-                                                    <div class="input-group">
-                                                        <input type="password" name="password" class="form-control edit-user-password" id="editPassword<?php echo e($user->id); ?>" minlength="8" maxlength="20" autocomplete="new-password">
-                                                        <button type="button" class="btn btn-outline-secondary toggle-edit-pw" data-target="editPassword<?php echo e($user->id); ?>">
-                                                            <i class="fas fa-eye"></i>
-                                                        </button>
+                                                <div class="row g-3 mb-3">
+                                                    <div class="col-md-6">
+                                                        <label class="form-label fw-semibold">Name</label>
+                                                        <input type="text" name="name" class="form-control" value="<?php echo e($user->name); ?>" required>
                                                     </div>
-                                                    <!-- Strength bar -->
-                                                    <div class="edit-pw-bar-wrap mt-1" style="display:none">
-                                                        <div class="d-flex align-items-center gap-2">
-                                                            <div class="progress flex-grow-1" style="height:6px">
-                                                                <div class="edit-pw-bar progress-bar" style="width:0%;transition:width .3s,background .3s"></div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label fw-semibold">Email</label>
+                                                        <input type="email" name="email" class="form-control" value="<?php echo e($user->email); ?>" required>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label fw-semibold">Role</label>
+                                                        <select name="role" class="form-select edit-role-select" data-userid="<?php echo e($user->id); ?>" required>
+                                                            <option value="student"             <?php echo e($user->role == 'student'             ? 'selected' : ''); ?>>Student</option>
+                                                            <option value="faculty"             <?php echo e($user->role == 'faculty'             ? 'selected' : ''); ?>>Faculty</option>
+                                                            <option value="maintenance"         <?php echo e($user->role == 'maintenance'         ? 'selected' : ''); ?>>Maintenance</option>
+                                                            <option value="mis"                 <?php echo e($user->role == 'mis'                 ? 'selected' : ''); ?>>MIS</option>
+                                                            <option value="school_admin"        <?php echo e($user->role == 'school_admin'        ? 'selected' : ''); ?>>School Administrator</option>
+                                                            <option value="building_admin"      <?php echo e($user->role == 'building_admin'      ? 'selected' : ''); ?>>Building Administrator</option>
+                                                            <option value="academic_head"       <?php echo e($user->role == 'academic_head'       ? 'selected' : ''); ?>>Academic Head</option>
+                                                            <option value="program_head"        <?php echo e($user->role == 'program_head'        ? 'selected' : ''); ?>>Program Head</option>
+                                                            <option value="principal_assistant" <?php echo e($user->role == 'principal_assistant' ? 'selected' : ''); ?>>Principal Assistant</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-6" id="editDeptField<?php echo e($user->id); ?>" style="display:<?php echo e($user->role == 'program_head' ? 'block' : 'none'); ?>">
+                                                        <label class="form-label fw-semibold">Department</label>
+                                                        <select name="department" class="form-select">
+                                                            <option value="">Select Department</option>
+                                                            <option value="GE"                  <?php echo e($user->department == 'GE'                  ? 'selected' : ''); ?>>GE</option>
+                                                            <option value="ICT"                 <?php echo e($user->department == 'ICT'                 ? 'selected' : ''); ?>>ICT</option>
+                                                            <option value="Business Management" <?php echo e($user->department == 'Business Management' ? 'selected' : ''); ?>>Business Management</option>
+                                                            <option value="THM"                 <?php echo e($user->department == 'THM'                 ? 'selected' : ''); ?>>THM</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label fw-semibold">Phone</label>
+                                                        <input type="text" name="phone" class="form-control" value="<?php echo e($user->phone); ?>" maxlength="11" placeholder="09XXXXXXXXX">
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label fw-semibold">Student ID</label>
+                                                        <input type="text" name="student_id" class="form-control" value="<?php echo e($user->student_id); ?>">
+                                                    </div>
+                                                    <div class="col-12">
+                                                        <label class="form-label fw-semibold">New Password <small class="text-muted fw-normal">(leave blank to keep current)</small></label>
+                                                        <div class="input-group">
+                                                            <input type="password" name="password" class="form-control edit-user-password" id="editPassword<?php echo e($user->id); ?>" minlength="8" maxlength="20" autocomplete="new-password">
+                                                            <button type="button" class="btn btn-outline-secondary toggle-edit-pw" data-target="editPassword<?php echo e($user->id); ?>">
+                                                                <i class="fas fa-eye"></i>
+                                                            </button>
+                                                        </div>
+                                                        <div class="edit-pw-bar-wrap mt-1" style="display:none">
+                                                            <div class="d-flex align-items-center gap-2">
+                                                                <div class="progress flex-grow-1" style="height:6px">
+                                                                    <div class="edit-pw-bar progress-bar" style="width:0%;transition:width .3s,background .3s"></div>
+                                                                </div>
+                                                                <small class="edit-pw-label fw-semibold" style="min-width:52px;font-size:12px"></small>
                                                             </div>
-                                                            <small class="edit-pw-label fw-semibold" style="min-width:52px;font-size:12px"></small>
+                                                        </div>
+                                                        <div class="edit-pw-reqs mt-2 p-3 rounded shadow-sm" style="display:none;background:#f8f9fa;font-size:13px;border:1px solid #dee2e6">
+                                                            <div class="fw-semibold mb-2">Password Must Include:</div>
+                                                            <div class="edit-req-length  req-item"><i class="fas fa-times-circle text-danger me-2"></i>8–20 <strong>Characters</strong></div>
+                                                            <div class="edit-req-upper   req-item mt-1"><i class="fas fa-times-circle text-danger me-2"></i>At Least One <strong>Capital Letter</strong></div>
+                                                            <div class="edit-req-number  req-item mt-1"><i class="fas fa-times-circle text-danger me-2"></i>At Least One <strong>Number</strong></div>
+                                                            <div class="edit-req-special req-item mt-1"><i class="fas fa-times-circle text-danger me-2"></i>At Least One <strong>Special Character</strong></div>
+                                                            <div class="edit-req-nospace req-item mt-1"><i class="fas fa-times-circle text-danger me-2"></i><strong>No Spaces</strong></div>
                                                         </div>
                                                     </div>
-                                                    <!-- Requirements -->
-                                                    <div class="edit-pw-reqs mt-2 p-3 rounded shadow-sm" style="display:none;background:#f8f9fa;font-size:13px;border:1px solid #dee2e6">
-                                                        <div class="fw-semibold mb-2">Password must include:</div>
-                                                        <div class="edit-req-length  req-item"><i class="fas fa-times-circle text-danger me-2"></i>8-20 <strong>Characters</strong></div>
-                                                        <div class="edit-req-upper   req-item mt-1"><i class="fas fa-times-circle text-danger me-2"></i>At least one <strong>capital letter</strong></div>
-                                                        <div class="edit-req-number  req-item mt-1"><i class="fas fa-times-circle text-danger me-2"></i>At least one <strong>number</strong></div>
-                                                        <div class="edit-req-nospace req-item mt-1"><i class="fas fa-times-circle text-danger me-2"></i><strong>No spaces</strong></div>
+                                                </div>
+
+                                                
+                                                <?php
+                                                    $userPerms   = $user->permissions;
+                                                    $activePerms = is_array($userPerms) && count($userPerms)
+                                                                    ? $userPerms
+                                                                    : \App\Models\User::defaultPermissions($user->role);
+                                                    $allMods     = \App\Models\User::allModules();
+                                                    $subPerms    = \App\Models\User::subPermissions();
+                                                ?>
+                                                <?php if($user->id !== auth()->id()): ?>
+                                                <div class="border rounded p-3" style="background:#f8fafc">
+                                                    <div class="mb-3">
+                                                        <span class="fw-semibold"><i class="fas fa-shield-halved me-1 text-primary"></i>Module Access</span>
+                                                        <small class="text-muted ms-2">Select which modules this user can access</small>
+                                                    </div>
+                                                    <input type="hidden" name="use_custom_permissions" value="1">
+                                                    <div class="row g-2">
+                                                        <?php $__currentLoopData = $allMods; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $key => $mod): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                                        <div class="col-6 col-md-4">
+                                                            <div class="form-check">
+                                                                <input class="form-check-input" type="checkbox"
+                                                                       name="permissions[]" value="<?php echo e($key); ?>"
+                                                                       id="editPerm<?php echo e($user->id); ?>_<?php echo e($key); ?>"
+                                                                       <?php echo e(in_array($key, $activePerms) ? 'checked' : ''); ?>
+
+                                                                       <?php if(isset($subPerms[$key])): ?> onchange="toggleSubPerms('edit<?php echo e($user->id); ?>','<?php echo e($key); ?>',this.checked)" <?php endif; ?>>
+                                                                <label class="form-check-label" for="editPerm<?php echo e($user->id); ?>_<?php echo e($key); ?>" style="font-size:14px">
+                                                                    <?php echo e($mod['label']); ?>
+
+                                                                </label>
+                                                            </div>
+                                                            
+                                                            <?php if(isset($subPerms[$key])): ?>
+                                                            <div id="edit<?php echo e($user->id); ?>_sub_<?php echo e($key); ?>" class="ms-4 mt-1<?php echo e(in_array($key, $activePerms) ? '' : ' d-none'); ?>">
+                                                                <?php $__currentLoopData = $subPerms[$key]; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $subKey => $subLabel): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                                                <div class="form-check">
+                                                                    <input class="form-check-input" type="checkbox"
+                                                                           name="permissions[]" value="<?php echo e($subKey); ?>"
+                                                                           id="editPerm<?php echo e($user->id); ?>_<?php echo e($subKey); ?>"
+                                                                           <?php echo e(in_array($subKey, $activePerms) ? 'checked' : ''); ?>>
+                                                                    <label class="form-check-label text-muted" for="editPerm<?php echo e($user->id); ?>_<?php echo e($subKey); ?>" style="font-size:13px">
+                                                                        <?php echo e($subLabel); ?>
+
+                                                                    </label>
+                                                                </div>
+                                                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                                            </div>
+                                                            <?php endif; ?>
+                                                        </div>
+                                                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                                    </div>
+                                                    <div class="d-flex gap-2 mt-3">
+                                                        <button type="button" class="btn btn-sm btn-outline-primary"
+                                                                onclick="selectAllEditPerms('<?php echo e($user->id); ?>', true)">
+                                                            <i class="fas fa-check-double me-1"></i>Select All
+                                                        </button>
+                                                        <button type="button" class="btn btn-sm btn-outline-secondary"
+                                                                onclick="selectAllEditPerms('<?php echo e($user->id); ?>', false)">
+                                                            <i class="fas fa-xmark me-1"></i>Clear All
+                                                        </button>
                                                     </div>
                                                 </div>
+                                                <?php endif; ?>
+
                                             </div>
                                             <div class="modal-footer">
                                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                                <button type="submit" class="btn btn-primary">Update User</button>
+                                                <button type="submit" class="btn btn-primary">
+                                                    <i class="fas fa-save me-1"></i>Update User
+                                                </button>
                                             </div>
                                         </form>
                                     </div>
@@ -399,9 +471,11 @@
                                         </div>
                                         <div class="modal-footer">
                                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                            <?php if(auth()->user()->canAccess('users_edit') && !$user->isProtectedFrom(auth()->user())): ?>
                                             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editUserModal<?php echo e($user->id); ?>" data-bs-dismiss="modal">
                                                 <i class="fas fa-edit"></i> Edit
                                             </button>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
                                 </div>
@@ -466,8 +540,8 @@
                                 <td><?php echo e($folder->created_at->format('M d, Y')); ?></td>
                                 <td>
                                     <div class="btn-group" role="group">
-                                        <a href="<?php echo e(route('admin.archiveFolderUsers', $folder->id)); ?>" class="btn btn-sm btn-primary">
-                                            <i class="fas fa-folder-open"></i> View Users
+                                        <a href="<?php echo e(route('admin.archiveFolderUsers', $folder->id)); ?>" class="btn btn-sm btn-outline-primary" title="View Users">
+                                            <i class="fas fa-folder-open"></i>
                                         </a>
                                         <button type="button" class="btn btn-sm btn-danger" title="Delete Folder" data-bs-toggle="modal" data-bs-target="#deleteFolderModal<?php echo e($folder->id); ?>">
                                             <i class="fas fa-trash"></i>
@@ -792,7 +866,7 @@
                                     </td>
                                     <td class="text-muted"><?php echo e($lu->updated_at->format('M d, Y h:i A')); ?></td>
                                     <td>
-                                        <form action="<?php echo e(route('admin.users.unlock', $lu->uuid)); ?>" method="POST" class="d-inline">
+                                        <form action="<?php echo e(route('admin.users.unlock', $lu->uuid ?? $lu->id)); ?>" method="POST" class="d-inline">
                                             <?php echo csrf_field(); ?>
                                             <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Unlock account for <?php echo e($lu->name); ?>?')">
                                                 <i class="fas fa-unlock"></i>
@@ -888,10 +962,10 @@
 
 <!-- Add User Modal -->
 <div class="modal fade" id="addUserModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Add New User</h5>
+                <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>Add New User</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form action="<?php echo e(route('admin.users.store')); ?>" method="POST" id="addUserForm" novalidate>
@@ -910,55 +984,122 @@
                         </div>
                     <?php endif; ?>
 
-                    <div class="mb-3">
-                        <label class="form-label">Name</label>
-                        <input type="text" name="name" class="form-control <?php echo e($errors->has('name') ? 'is-invalid' : ''); ?>" value="<?php echo e(old('name')); ?>" required>
-                        <div class="invalid-feedback"><?php echo e($errors->first('name') ?: 'Name is required.'); ?></div>
+                    
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">First Name <span class="text-danger">*</span></label>
+                            <input type="text" name="first_name" class="form-control <?php echo e($errors->has('first_name') ? 'is-invalid' : ''); ?>" value="<?php echo e(old('first_name')); ?>" required>
+                            <div class="invalid-feedback"><?php echo e($errors->first('first_name') ?: 'First name is required.'); ?></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Last Name <span class="text-danger">*</span></label>
+                            <input type="text" name="last_name" class="form-control <?php echo e($errors->has('last_name') ? 'is-invalid' : ''); ?>" value="<?php echo e(old('last_name')); ?>" required>
+                            <div class="invalid-feedback"><?php echo e($errors->first('last_name') ?: 'Last name is required.'); ?></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Email <span class="text-danger">*</span></label>
+                            <input type="email" name="email" class="form-control <?php echo e($errors->has('email') ? 'is-invalid' : ''); ?>" value="<?php echo e(old('email')); ?>" required>
+                            <div class="invalid-feedback"><?php echo e($errors->first('email') ?: 'A valid email is required.'); ?></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Role <span class="text-danger">*</span></label>
+                            <select name="role" id="addUserRole" class="form-select <?php echo e($errors->has('role') ? 'is-invalid' : ''); ?>" required onchange="onRoleChange(this.value)">
+                                <option value="student"             <?php echo e(old('role') == 'student'             ? 'selected' : ''); ?>>Student</option>
+                                <option value="faculty"             <?php echo e(old('role') == 'faculty'             ? 'selected' : ''); ?>>Faculty</option>
+                                <option value="maintenance"         <?php echo e(old('role') == 'maintenance'         ? 'selected' : ''); ?>>Maintenance</option>
+                                <option value="mis"                 <?php echo e(old('role') == 'mis'                 ? 'selected' : ''); ?>>MIS</option>
+                                <option value="school_admin"        <?php echo e(old('role') == 'school_admin'        ? 'selected' : ''); ?>>School Administrator</option>
+                                <option value="building_admin"      <?php echo e(old('role') == 'building_admin'      ? 'selected' : ''); ?>>Building Administrator</option>
+                                <option value="academic_head"       <?php echo e(old('role') == 'academic_head'       ? 'selected' : ''); ?>>Academic Head</option>
+                                <option value="program_head"        <?php echo e(old('role') == 'program_head'        ? 'selected' : ''); ?>>Program Head</option>
+                                <option value="principal_assistant" <?php echo e(old('role') == 'principal_assistant' ? 'selected' : ''); ?>>Principal Assistant</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6" id="departmentField" style="display:<?php echo e(old('role') == 'program_head' ? 'block' : 'none'); ?>">
+                            <label class="form-label fw-semibold">Department</label>
+                            <select name="department" class="form-select">
+                                <option value="">Select Department</option>
+                                <option value="GE"                  <?php echo e(old('department') == 'GE'                  ? 'selected' : ''); ?>>GE</option>
+                                <option value="ICT"                 <?php echo e(old('department') == 'ICT'                 ? 'selected' : ''); ?>>ICT</option>
+                                <option value="Business Management" <?php echo e(old('department') == 'Business Management' ? 'selected' : ''); ?>>Business Management</option>
+                                <option value="THM"                 <?php echo e(old('department') == 'THM'                 ? 'selected' : ''); ?>>THM</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Phone <small class="text-muted fw-normal">(optional)</small></label>
+                            <input type="text" name="phone" class="form-control <?php echo e($errors->has('phone') ? 'is-invalid' : ''); ?>" maxlength="11" placeholder="09XXXXXXXXX" value="<?php echo e(old('phone')); ?>">
+                            <div class="invalid-feedback"><?php echo e($errors->first('phone') ?: 'Enter a valid 11-digit PH number.'); ?></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Password <span class="text-danger">*</span></label>
+                            <input type="password" name="password" id="addUserPassword" class="form-control <?php echo e($errors->has('password') ? 'is-invalid' : ''); ?>" required>
+                            <div class="invalid-feedback"><?php echo e($errors->first('password') ?: 'Password must be at least 8 characters.'); ?></div>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Email</label>
-                        <input type="email" name="email" class="form-control <?php echo e($errors->has('email') ? 'is-invalid' : ''); ?>" value="<?php echo e(old('email')); ?>" required>
-                        <div class="invalid-feedback"><?php echo e($errors->first('email') ?: 'A valid email is required.'); ?></div>
+
+                    
+                    <div class="border rounded p-3" style="background:#f8fafc">
+                        <div class="mb-3">
+                            <span class="fw-semibold"><i class="fas fa-shield-halved me-1 text-primary"></i>Module Access</span>
+                            <small class="text-muted ms-2">Select which modules this user can access</small>
+                        </div>
+                        <input type="hidden" name="use_custom_permissions" value="1">
+                        <?php
+                            $modules    = \App\Models\User::allModules();
+                            $subPerms   = \App\Models\User::subPermissions();
+                            $oldPerms   = old('permissions', \App\Models\User::defaultPermissions(old('role', 'student')));
+                        ?>
+                        <div class="row g-2">
+                            <?php $__currentLoopData = $modules; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $key => $mod): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <div class="col-6 col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox"
+                                           name="permissions[]" value="<?php echo e($key); ?>"
+                                           id="perm_<?php echo e($key); ?>"
+                                           <?php echo e(in_array($key, $oldPerms) ? 'checked' : ''); ?>
+
+                                           <?php if(isset($subPerms[$key])): ?> onchange="toggleSubPerms('add','<?php echo e($key); ?>',this.checked)" <?php endif; ?>>
+                                    <label class="form-check-label" for="perm_<?php echo e($key); ?>" style="font-size:14px">
+                                        <?php echo e($mod['label']); ?>
+
+                                    </label>
+                                </div>
+                                
+                                <?php if(isset($subPerms[$key])): ?>
+                                <div id="add_sub_<?php echo e($key); ?>" class="ms-4 mt-1<?php echo e(in_array($key, $oldPerms) ? '' : ' d-none'); ?>">
+                                    <?php $__currentLoopData = $subPerms[$key]; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $subKey => $subLabel): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox"
+                                               name="permissions[]" value="<?php echo e($subKey); ?>"
+                                               id="perm_<?php echo e($subKey); ?>"
+                                               <?php echo e(in_array($subKey, $oldPerms) ? 'checked' : ''); ?>>
+                                        <label class="form-check-label text-muted" for="perm_<?php echo e($subKey); ?>" style="font-size:13px">
+                                            <?php echo e($subLabel); ?>
+
+                                        </label>
+                                    </div>
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                </div>
+                                <?php endif; ?>
+                            </div>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                        </div>
+                        <div class="d-flex gap-2 mt-3">
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllPerms(true)">
+                                <i class="fas fa-check-double me-1"></i>Select All
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="selectAllPerms(false)">
+                                <i class="fas fa-xmark me-1"></i>Clear All
+                            </button>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Role</label>
-                        <select name="role" class="form-select <?php echo e($errors->has('role') ? 'is-invalid' : ''); ?>" required>
-                            <option value="student"              <?php echo e(old('role') == 'student'              ? 'selected' : ''); ?>>Student</option>
-                            <option value="faculty"              <?php echo e(old('role') == 'faculty'              ? 'selected' : ''); ?>>Faculty</option>
-                            <option value="maintenance"          <?php echo e(old('role') == 'maintenance'          ? 'selected' : ''); ?>>Maintenance</option>
-                            <option value="mis"                  <?php echo e(old('role') == 'mis'                  ? 'selected' : ''); ?>>MIS</option>
-                            <option value="school_admin"         <?php echo e(old('role') == 'school_admin'         ? 'selected' : ''); ?>>School Administrator</option>
-                            <option value="building_admin"       <?php echo e(old('role') == 'building_admin'       ? 'selected' : ''); ?>>Building Administrator</option>
-                            <option value="academic_head"        <?php echo e(old('role') == 'academic_head'        ? 'selected' : ''); ?>>Academic Head</option>
-                            <option value="program_head"         <?php echo e(old('role') == 'program_head'         ? 'selected' : ''); ?>>Program Head</option>
-                            <option value="principal_assistant"  <?php echo e(old('role') == 'principal_assistant'  ? 'selected' : ''); ?>>Principal Assistant</option>
-                        </select>
-                    </div>
-                    <div class="mb-3" id="departmentField" style="display: <?php echo e(old('role') == 'program_head' ? 'block' : 'none'); ?>;">
-                        <label class="form-label">Department</label>
-                        <select name="department" class="form-select">
-                            <option value="">Select Department</option>
-                            <option value="GE"                  <?php echo e(old('department') == 'GE'                  ? 'selected' : ''); ?>>GE</option>
-                            <option value="ICT"                 <?php echo e(old('department') == 'ICT'                 ? 'selected' : ''); ?>>ICT</option>
-                            <option value="Business Management" <?php echo e(old('department') == 'Business Management' ? 'selected' : ''); ?>>Business Management</option>
-                            <option value="THM"                 <?php echo e(old('department') == 'THM'                 ? 'selected' : ''); ?>>THM</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Phone <small class="text-muted">(optional)</small></label>
-                        <input type="text" name="phone" class="form-control <?php echo e($errors->has('phone') ? 'is-invalid' : ''); ?>" maxlength="11" placeholder="09XXXXXXXXX" value="<?php echo e(old('phone')); ?>">
-                        <div class="invalid-feedback"><?php echo e($errors->first('phone') ?: 'Enter a valid 11-digit PH number (e.g., 09123456789).'); ?></div>
-                        <small class="text-muted">11-digit PH number (e.g., 09123456789)</small>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Password</label>
-                        <input type="password" name="password" id="addUserPassword" class="form-control <?php echo e($errors->has('password') ? 'is-invalid' : ''); ?>" required>
-                        <div class="invalid-feedback"><?php echo e($errors->first('password') ?: 'Password must be at least 8 characters.'); ?></div>
-                    </div>
+
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" onclick="submitAddUserForm()">Create User</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="submitAddUserForm()">
+                        <i class="fas fa-user-plus me-1"></i>Create User
+                    </button>
                 </div>
             </form>
         </div>
@@ -967,7 +1108,7 @@
 
 <!-- Import Modal -->
 <div class="modal fade" id="importModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title"><i class="fas fa-upload me-2"></i>Import Users from CSV</h5>
@@ -976,6 +1117,15 @@
             <form action="<?php echo e(route('admin.users.import')); ?>" method="POST" enctype="multipart/form-data">
                 <?php echo csrf_field(); ?>
                 <div class="modal-body">
+
+                    
+                    <div class="d-flex align-items-center gap-2 mb-4" id="importStepIndicator">
+                        <span class="import-step-dot active" id="dot1">1</span>
+                        <div class="flex-grow-1" style="height:2px;background:#dee2e6"></div>
+                        <span class="import-step-dot" id="dot2">2</span>
+                        <div class="flex-grow-1" style="height:2px;background:#dee2e6"></div>
+                        <span class="import-step-dot" id="dot3">3</span>
+                    </div>
 
                     
                     <div id="importStep1">
@@ -999,7 +1149,7 @@
                     
                     <div id="importStep2" style="display:none">
                         <div class="d-flex align-items-center mb-3">
-                            <button type="button" class="btn btn-sm btn-outline-secondary me-2" onclick="backToRoleSelect()">
+                            <button type="button" class="btn btn-sm btn-outline-secondary me-2" onclick="importGoTo(1)">
                                 <i class="fas fa-arrow-left"></i>
                             </button>
                             <span>Importing as: <span id="importRoleLabel" class="badge bg-primary fs-6"></span></span>
@@ -1008,13 +1158,83 @@
                         <input type="hidden" name="file_format" value="masterlist">
 
                         <div class="mb-3">
-                            <label class="form-label">Archive Folder Name</label>
+                            <label class="form-label fw-semibold">Archive Folder Name</label>
                             <input type="text" name="archive_folder_name" class="form-control" value="2025-2026" placeholder="e.g., 2025-2026">
                             <small class="text-muted">The folder will be created automatically if it doesn't exist.</small>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">CSV File</label>
-                            <input type="file" name="file" class="form-control" accept=".csv,.txt,.xlsx" required>
+                            <label class="form-label fw-semibold">CSV / XLSX File</label>
+                            <input type="file" name="file" id="importFileInput" class="form-control" accept=".csv,.txt,.xlsx" required>
+                        </div>
+                        <div class="d-flex justify-content-end">
+                            <button type="button" class="btn btn-primary" onclick="importGoTo(3)">
+                                Next: Set Access <i class="fas fa-arrow-right ms-1"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    
+                    <div id="importStep3" style="display:none">
+                        <div class="d-flex align-items-center mb-3">
+                            <button type="button" class="btn btn-sm btn-outline-secondary me-2" onclick="importGoTo(2)">
+                                <i class="fas fa-arrow-left"></i>
+                            </button>
+                            <span class="fw-semibold">Module Access for imported users</span>
+                        </div>
+
+                        <input type="hidden" name="import_use_custom_permissions" value="1">
+
+                        <?php
+                            $importModules  = \App\Models\User::allModules();
+                            $importSubPerms = \App\Models\User::subPermissions();
+                        ?>
+
+                        <div class="border rounded p-3 mb-3" style="background:#f8fafc">
+                            <p class="text-muted mb-3" style="font-size:13px">
+                                <i class="fas fa-info-circle me-1"></i>
+                                These permissions will apply to <strong>all users</strong> in this import batch.
+                                Defaults are pre-selected based on the chosen role.
+                            </p>
+                            <div class="row g-2">
+                                <?php $__currentLoopData = $importModules; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $key => $mod): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <div class="col-6 col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox"
+                                               name="import_permissions[]" value="<?php echo e($key); ?>"
+                                               id="import_perm_<?php echo e($key); ?>"
+                                               <?php if(isset($importSubPerms[$key])): ?> onchange="toggleSubPerms('import','<?php echo e($key); ?>',this.checked)" <?php endif; ?>>
+                                        <label class="form-check-label" for="import_perm_<?php echo e($key); ?>" style="font-size:14px">
+                                            <?php echo e($mod['label']); ?>
+
+                                        </label>
+                                    </div>
+                                    
+                                    <?php if(isset($importSubPerms[$key])): ?>
+                                    <div id="import_sub_<?php echo e($key); ?>" class="ms-4 mt-1 d-none">
+                                        <?php $__currentLoopData = $importSubPerms[$key]; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $subKey => $subLabel): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox"
+                                                   name="import_permissions[]" value="<?php echo e($subKey); ?>"
+                                                   id="import_perm_<?php echo e($subKey); ?>">
+                                            <label class="form-check-label text-muted" for="import_perm_<?php echo e($subKey); ?>" style="font-size:13px">
+                                                <?php echo e($subLabel); ?>
+
+                                            </label>
+                                        </div>
+                                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                    </div>
+                                    <?php endif; ?>
+                                </div>
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                            </div>
+                            <div class="d-flex gap-2 mt-3">
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllImportPerms(true)">
+                                    <i class="fas fa-check-double me-1"></i>Select All
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="selectAllImportPerms(false)">
+                                    <i class="fas fa-xmark me-1"></i>Clear All
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -1033,28 +1253,83 @@
 <style>
 .import-role-card:hover { background: #f0f4ff; border-color: #0d6efd !important; }
 .import-role-card.selected { background: #e7f1ff; border-color: #0d6efd !important; border-width: 2px !important; }
+.import-step-dot {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: #dee2e6; color: #6c757d;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; flex-shrink: 0;
+}
+.import-step-dot.active { background: #0d6efd; color: #fff; }
+.import-step-dot.done   { background: #198754; color: #fff; }
 </style>
 
 <script>
+// Role defaults for import (mirrors PHP)
+const importRoleDefaults = {
+    student: ['concerns','settings'],
+    faculty: ['events','concerns','settings'],
+};
+
 function selectImportRole(role) {
     document.getElementById('importRoleInput').value = role;
     document.getElementById('importRoleLabel').textContent = role.charAt(0).toUpperCase() + role.slice(1);
     document.getElementById('importRoleLabel').className = 'badge fs-6 ' + (role === 'student' ? 'bg-primary' : 'bg-success');
-    document.getElementById('importStep1').style.display = 'none';
-    document.getElementById('importStep2').style.display = 'block';
-    document.getElementById('importSubmitBtn').style.display = 'inline-block';
+    // Pre-apply role defaults to import permissions
+    applyImportRoleDefaults(role);
+    importGoTo(2);
 }
 
-function backToRoleSelect() {
-    document.getElementById('importStep1').style.display = 'block';
-    document.getElementById('importStep2').style.display = 'none';
-    document.getElementById('importSubmitBtn').style.display = 'none';
+function applyImportRoleDefaults(role) {
+    const defaults = importRoleDefaults[role] || ['settings'];
+    document.querySelectorAll('#importModal input[name="import_permissions[]"]').forEach(cb => {
+        cb.checked = defaults.includes(cb.value);
+    });
+    // Show/hide sub-permission sections
+    toggleSubPerms('import', 'users', defaults.includes('users'));
 }
 
-// Reset modal to step 1 when closed
+function importGoTo(step) {
+    // Validate step 2 requires a file
+    if (step === 3) {
+        const fileInput = document.getElementById('importFileInput');
+        if (!fileInput || !fileInput.files.length) {
+            fileInput.classList.add('is-invalid');
+            fileInput.focus();
+            return;
+        }
+        fileInput.classList.remove('is-invalid');
+    }
+
+    document.getElementById('importStep1').style.display = step === 1 ? 'block' : 'none';
+    document.getElementById('importStep2').style.display = step === 2 ? 'block' : 'none';
+    document.getElementById('importStep3').style.display = step === 3 ? 'block' : 'none';
+    document.getElementById('importSubmitBtn').style.display = step === 3 ? 'inline-block' : 'none';
+
+    // Update step dots
+    ['dot1','dot2','dot3'].forEach((id, i) => {
+        const dot = document.getElementById(id);
+        dot.classList.remove('active','done');
+        if (i + 1 < step) dot.classList.add('done');
+        else if (i + 1 === step) dot.classList.add('active');
+    });
+}
+
+function backToRoleSelect() { importGoTo(1); }
+
+function selectAllImportPerms(checked) {
+    document.querySelectorAll('#importModal input[name="import_permissions[]"]').forEach(cb => {
+        cb.checked = checked;
+    });
+    const sub = document.getElementById('import_sub_users');
+    if (sub) sub.classList.toggle('d-none', !checked);
+}
+
+// Reset modal when closed
 document.getElementById('importModal').addEventListener('hidden.bs.modal', function () {
-    backToRoleSelect();
-    document.querySelector('#importModal input[type=file]').value = '';
+    importGoTo(1);
+    const fi = document.querySelector('#importModal input[type=file]');
+    if (fi) { fi.value = ''; fi.classList.remove('is-invalid'); }
+    document.querySelectorAll('.import-role-card').forEach(c => c.classList.remove('selected'));
 });
 </script>
 
@@ -1246,6 +1521,93 @@ document.getElementById('deleteAllModal')?.addEventListener('hidden.bs.modal', f
 // Global variable for selected user ID
 window.selectedUserId = null;
 
+// ── Role default permissions map (mirrors User::defaultPermissions) ──
+const roleDefaults = {
+    mis:                  ['concerns','reports','events','users','users_archive','users_lock','users_unlock','users_edit','users_delete','module_access','categories','logs','analytics','archive','mis_tasks','settings'],
+    school_admin:         ['concerns','reports','events','analytics','settings'],
+    building_admin:       ['concerns','reports','events','analytics','settings'],
+    academic_head:        ['events','settings'],
+    program_head:         ['events','settings'],
+    principal_assistant:  ['events','settings'],
+    maintenance:          ['reports','concerns','settings'],
+    faculty:              ['events','concerns','settings'],
+    student:              ['concerns','settings'],
+};
+
+function onRoleChange(role) {
+    // Show/hide department field
+    document.getElementById('departmentField').style.display =
+        role === 'program_head' ? 'block' : 'none';
+
+    // Auto-apply role defaults to the checkboxes
+    applyRoleDefaults(role);
+}
+
+function applyRoleDefaults(role) {
+    const defaults = roleDefaults[role] || ['settings'];
+    document.querySelectorAll('#addUserModal input[name="permissions[]"]').forEach(cb => {
+        cb.checked = defaults.includes(cb.value);
+    });
+    // Show/hide sub-permission sections based on defaults
+    const subParents = ['users'];
+    subParents.forEach(parent => {
+        const checked = defaults.includes(parent);
+        const sub = document.getElementById('add_sub_' + parent);
+        if (sub) sub.classList.toggle('d-none', !checked);
+    });
+}
+
+function toggleSubPerms(prefix, parent, checked) {
+    const sub = document.getElementById(prefix + '_sub_' + parent);
+    if (!sub) return;
+    sub.classList.toggle('d-none', !checked);
+    // When unchecking parent, also uncheck all sub-permissions
+    if (!checked) {
+        sub.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = false);
+    }
+}
+
+function selectAllPerms(checked) {
+    document.querySelectorAll('#addUserModal input[name="permissions[]"]').forEach(cb => {
+        cb.checked = checked;
+    });
+    // Show/hide sub-permission sections
+    const sub = document.getElementById('add_sub_users');
+    if (sub) sub.classList.toggle('d-none', !checked);
+}
+
+function selectAllEditPerms(uid, checked) {
+    document.querySelectorAll('#editUserModal' + uid + ' input[name="permissions[]"]').forEach(cb => {
+        cb.checked = checked;
+    });
+    // Show/hide sub-permission sections
+    const sub = document.getElementById('edit' + uid + '_sub_users');
+    if (sub) sub.classList.toggle('d-none', !checked);
+}
+
+// Wire up edit-modal role selects for department field
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.edit-role-select').forEach(function (sel) {
+        sel.addEventListener('change', function () {
+            const uid = this.dataset.userid;
+            const deptField = document.getElementById('editDeptField' + uid);
+            if (deptField) deptField.style.display = this.value === 'program_head' ? 'block' : 'none';
+        });
+    });
+});
+
+
+// Wire up edit-modal role selects for department field
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.edit-role-select').forEach(function (sel) {
+        sel.addEventListener('change', function () {
+            const uid = this.dataset.userid;
+            const deptField = document.getElementById('editDeptField' + uid);
+            if (deptField) deptField.style.display = this.value === 'program_head' ? 'block' : 'none';
+        });
+    });
+});
+
 function submitAddUserForm() {
     const form = document.getElementById('addUserForm');
     let valid = true;
@@ -1253,12 +1615,14 @@ function submitAddUserForm() {
     // Clear previous errors
     form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
 
-    const name     = form.querySelector('[name="name"]');
+    const firstName = form.querySelector('[name="first_name"]');
+    const lastName  = form.querySelector('[name="last_name"]');
     const email    = form.querySelector('[name="email"]');
     const password = form.querySelector('[name="password"]');
     const phone    = form.querySelector('[name="phone"]');
 
-    if (!name.value.trim()) { name.classList.add('is-invalid'); valid = false; }
+    if (!firstName.value.trim()) { firstName.classList.add('is-invalid'); valid = false; }
+    if (!lastName.value.trim())  { lastName.classList.add('is-invalid');  valid = false; }
 
     if (!email.value.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
         email.classList.add('is-invalid'); valid = false;
@@ -1825,6 +2189,7 @@ document.addEventListener('input', function(e) {
     const okLength  = val.length >= 8 && val.length <= 20;
     const okUpper   = /[A-Z]/.test(val);
     const okNumber  = /[0-9]/.test(val);
+    const okSpecial = /[@$!%*?&]/.test(val);
     const okNoSpace = val.length > 0 && !/\s/.test(val);
 
     function setReq(cls, pass) {
@@ -1836,13 +2201,15 @@ document.addEventListener('input', function(e) {
     setReq('edit-req-length',  okLength);
     setReq('edit-req-upper',   okUpper);
     setReq('edit-req-number',  okNumber);
+    setReq('edit-req-special', okSpecial);
     setReq('edit-req-nospace', okNoSpace);
 
-    const score  = [okLength, okUpper, okNumber, okNoSpace].filter(Boolean).length;
+    const score  = [okLength, okUpper, okNumber, okSpecial, okNoSpace].filter(Boolean).length;
     const levels = [
-        { pct: 25,  color: '#dc3545', text: 'Weak'   },
-        { pct: 50,  color: '#fd7e14', text: 'Fair'   },
-        { pct: 75,  color: '#ffc107', text: 'Medium' },
+        { pct: 20,  color: '#dc3545', text: 'Weak'   },
+        { pct: 40,  color: '#fd7e14', text: 'Weak'   },
+        { pct: 60,  color: '#ffc107', text: 'Fair'   },
+        { pct: 80,  color: '#0dcaf0', text: 'Medium' },
         { pct: 100, color: '#198754', text: 'Strong' },
     ];
     const lvl = levels[score - 1] || { pct: 0, color: '#dee2e6', text: '' };

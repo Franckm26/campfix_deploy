@@ -569,7 +569,10 @@
 <?php $__env->stopSection(); ?>
 
 <?php $__env->startSection('page_title'); ?>
-<h2>Home</h2>
+<div style="display:flex;align-items:center;gap:12px">
+    <img src="<?php echo e(asset('Campfix/Images/images.png')); ?>" alt="STI Logo" style="height:40px">
+    <h2 style="margin:0">Home</h2>
+</div>
 <?php $__env->stopSection(); ?>
 
 <?php $__env->startSection('content'); ?>
@@ -701,8 +704,16 @@
                             ->orderBy('event_date', 'asc')
                             ->limit(20)
                             ->get();
+                        $maintenanceNews = \App\Models\Report::with('category')
+                            ->where('is_deleted', false)
+                            ->where('maintenance_archived', false)
+                            ->whereIn('status', ['Pending', 'Assigned', 'In Progress'])
+                            ->orderBy('created_at', 'desc')
+                            ->limit(10)
+                            ->get();
+                        $allNewsEmpty = $newsItems->isEmpty() && $maintenanceNews->isEmpty();
                     ?>
-                    <?php if($newsItems->isEmpty()): ?>
+                    <?php if($allNewsEmpty): ?>
                         <div style="text-align:center; padding:40px 20px; color:#6b7280;">
                             <i class="fas fa-bell-slash" style="font-size:32px; margin-bottom:10px; opacity:.4; display:block;"></i>
                             <p style="font-size:14px; margin:0;">No announcements at this time.</p>
@@ -714,7 +725,7 @@
                                 $nColors = ['#1a237e','#1b5e20','#4a148c','#1565c0','#004d40','#e65100','#880e4f','#006064','#33691e','#bf360c'];
                                 $nColor = $nColors[$loop->index % count($nColors)];
                             ?>
-                            <div style="display:flex; gap:12px; align-items:center; padding:11px 16px; border-bottom:1px solid var(--cal-border,#e2e8f0); <?php echo e($loop->last ? 'border-bottom:none;' : ''); ?>">
+                            <div style="display:flex; gap:12px; align-items:center; padding:11px 16px; border-bottom:1px solid var(--cal-border,#e2e8f0);">
                                 <div style="width:38px; height:38px; border-radius:8px; background:<?php echo e($nColor); ?>; flex-shrink:0; display:flex; align-items:center; justify-content:center;">
                                     <i class="fas fa-calendar-check" style="color:#fff; font-size:15px;"></i>
                                 </div>
@@ -731,6 +742,33 @@
                                 </a>
                             </div>
                             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                            <?php $__currentLoopData = $maintenanceNews; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $report): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <?php
+                                $mColors = ['#b71c1c','#e65100','#4e342e','#37474f','#6a1b9a','#880e4f'];
+                                $mColor = $mColors[$loop->index % count($mColors)];
+                                $statusBadge = match($report->status) {
+                                    'In Progress' => ['bg'=>'#fff3e0','color'=>'#e65100'],
+                                    'Assigned'    => ['bg'=>'#e3f2fd','color'=>'#1565c0'],
+                                    default       => ['bg'=>'#fce4ec','color'=>'#c62828'],
+                                };
+                            ?>
+                            <div style="display:flex; gap:12px; align-items:center; padding:11px 16px; border-bottom:1px solid var(--cal-border,#e2e8f0); <?php echo e($loop->last && $newsItems->isEmpty() ? 'border-bottom:none;' : ''); ?>">
+                                <div style="width:38px; height:38px; border-radius:8px; background:<?php echo e($mColor); ?>; flex-shrink:0; display:flex; align-items:center; justify-content:center;">
+                                    <i class="fas fa-wrench" style="color:#fff; font-size:15px;"></i>
+                                </div>
+                                <div style="flex:1; min-width:0;">
+                                    <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                                        <div style="font-weight:700; font-size:13px; color:var(--cal-text,#1e293b); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><?php echo e($report->title); ?></div>
+                                        <span style="font-size:10px; font-weight:600; padding:1px 7px; border-radius:20px; background:<?php echo e($statusBadge['bg']); ?>; color:<?php echo e($statusBadge['color']); ?>;"><?php echo e($report->status); ?></span>
+                                    </div>
+                                    <div style="display:flex; flex-wrap:wrap; gap:8px; font-size:11px; color:#6b7280; margin-top:2px;">
+                                        <?php if($report->category): ?><span><i class="fas fa-tag me-1"></i><?php echo e($report->category->name); ?></span><?php endif; ?>
+                                        <?php if($report->location): ?><span><i class="fas fa-map-marker-alt me-1"></i><?php echo e($report->location); ?></span><?php endif; ?>
+                                        <span><i class="fas fa-clock me-1"></i><?php echo e($report->created_at->format('M d, Y')); ?></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -740,7 +778,7 @@
                 <div class="calendar-header">
                     <div class="card-title-modern">
                         <i class="fas fa-calendar"></i>
-                        Campus Events
+                        Calendar
                     </div>
                     <button onclick="window.location.href='/events-calendar'" style="border: none; background: none; color: #5e5ce6; font-size: 13px; cursor: pointer; font-weight: 500;">View Calendar</button>
                 </div>
@@ -782,27 +820,7 @@
                         ->orderBy('start_time', 'asc')
                         ->first();
                 ?>
-                
-                <?php if($upcomingEvent): ?>
-                <div class="calendar-event">
-                    <div class="event-title"><?php echo e($upcomingEvent->title); ?></div>
-                    <div class="event-time">
-                        <?php echo e(\Carbon\Carbon::parse($upcomingEvent->event_date)->format('M d, Y')); ?> • 
-                        <?php echo e(\Carbon\Carbon::parse($upcomingEvent->start_time)->format('g:i A')); ?> - 
-                        <?php echo e(\Carbon\Carbon::parse($upcomingEvent->end_time)->format('g:i A')); ?>
 
-                    </div>
-                    <div class="event-badge">
-                        <i class="fas fa-map-marker-alt"></i>
-                        <?php echo e($upcomingEvent->location); ?>
-
-                    </div>
-                </div>
-                <?php else: ?>
-                <div style="padding: 16px; text-align: center; color: #999; font-size: 13px;">
-                    No upcoming events
-                </div>
-                <?php endif; ?>
             </div>
         </div>
         
@@ -998,6 +1016,35 @@
     </div>
 </div>
 
+<!-- Duplicate Concern Warning Modal -->
+<?php if(session('warning')): ?>
+<div class="modal fade" id="duplicateConcernWarningModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Concern Already Reported</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <div class="mb-3">
+                    <i class="fas fa-tools fa-3x text-warning"></i>
+                </div>
+                <p class="mb-0"><?php echo e(session('warning')); ?></p>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-warning" data-bs-dismiss="modal">Got it</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var warningModal = new bootstrap.Modal(document.getElementById('duplicateConcernWarningModal'));
+        warningModal.show();
+    });
+</script>
+<?php endif; ?>
+
 <!-- New Concern Modal -->
 <div class="modal fade" id="newConcernModal" tabindex="-1" aria-labelledby="newConcernModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -1018,11 +1065,14 @@
                     <div class="mb-3">
                         <label for="new_category_id" class="form-label">Category *</label>
                         <select class="form-select" id="new_category_id" name="category_id" required>
-                            <option value="">Select a category</option>
+                            <option value="" disabled selected>Select a category</option>
                             <?php
                                 $categories = \App\Models\Category::all();
                             ?>
                             <?php $__currentLoopData = $categories; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $category): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <?php if(auth()->user()->role === 'student' && strtolower($category->name) === 'rooms'): ?>
+                                    <?php continue; ?>
+                                <?php endif; ?>
                                 <option value="<?php echo e($category->id); ?>"><?php echo e($category->name); ?></option>
                             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                         </select>

@@ -21,35 +21,29 @@
 @section('content')
 <div class="container-fluid px-3">
 
-    <div class="row mb-3 align-items-center">
-        <div class="col">
-        </div>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <ul class="nav nav-pills mb-0">
+            <li class="nav-item">
+                <a class="nav-link {{ !$isArchived ? 'active' : '' }}" href="{{ route('admin.logs') }}">
+                    <i class="fas fa-list me-1"></i> Active Logs
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ $isArchived ? 'active' : '' }}" href="{{ route('admin.logs', ['view' => 'archived']) }}">
+                    <i class="fas fa-archive me-1"></i> Archived Folders
+                </a>
+            </li>
+        </ul>
         @if(!$isArchived)
-        <div class="col-auto">
-            <button class="btn btn-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#archiveAllModal">
-                <i class="fas fa-archive me-1"></i> Archive All Logs
-            </button>
-        </div>
+        <button class="btn btn-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#archiveAllModal">
+            <i class="fas fa-archive me-1"></i> Archive All Logs
+        </button>
         @endif
     </div>
 
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show py-2">{{ session('success') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
     @endif
-
-    {{-- Tabs --}}
-    <ul class="nav nav-pills mb-3">
-        <li class="nav-item">
-            <a class="nav-link {{ !$isArchived ? 'active' : '' }}" href="{{ route('admin.logs') }}">
-                <i class="fas fa-list me-1"></i> Active Logs
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link {{ $isArchived ? 'active' : '' }}" href="{{ route('admin.logs', ['view' => 'archived']) }}">
-                <i class="fas fa-archive me-1"></i> Archived Folders
-            </a>
-        </li>
-    </ul>
 
     {{-- ── ARCHIVED TAB: show folders ── --}}
     @if($isArchived)

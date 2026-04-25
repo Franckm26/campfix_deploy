@@ -145,100 +145,89 @@
         </div>
     </div>
 
-    <div class="row mb-4">
-        <div class="col-md-6">
-        </div>
-        <div class="col-md-6 text-end">
-            <a href="{{ route('admin.export') }}" class="btn btn-success">
-                <i class="fas fa-download"></i> Export CSV
-            </a>
-        </div>
-    </div>
-
     <!-- Filters -->
     <div class="card mb-4">
         <div class="card-body py-3">
-            <div class="row align-items-center g-2">
-                <div class="col-md-5">
-                    <ul class="nav nav-pills mb-0">
-                        <li class="nav-item">
-                            <a class="nav-link {{ ($viewType ?? 'active') == 'active' ? 'active' : '' }}" href="{{ route('admin.reports', ['view' => 'active']) }}">
-                                <i class="fas fa-clipboard-list"></i> Active Reports
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {{ ($viewType ?? '') == 'resolved' ? 'active' : '' }}" href="{{ route('admin.reports', ['view' => 'resolved']) }}" style="color: #28a745;">
-                                <i class="fas fa-check-circle"></i> Resolved Reports
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {{ ($viewType ?? '') == 'archives' ? 'active' : '' }}" href="{{ route('admin.reports', ['view' => 'archives']) }}">
-                                <i class="fas fa-archive"></i> Archived Reports
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {{ ($viewType ?? '') == 'deleted' ? 'active' : '' }}" href="{{ route('admin.reports', ['view' => 'deleted']) }}" style="color: #dc3545;">
-                                <i class="fas fa-trash-alt"></i> Deleted Reports
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {{ ($viewType ?? '') == 'analytics' ? 'active' : '' }}" href="{{ route('admin.reports', ['view' => 'analytics']) }}" style="color: #17a2b8;">
-                                <i class="fas fa-chart-line"></i> Analytics
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-                <div class="col-md-7">
-                    <form method="GET" action="{{ route('admin.reports') }}" class="row g-2 align-items-center">
-                        <input type="hidden" name="view" value="{{ $viewType ?? 'active' }}">
-                        <div class="col-md-2">
-                            <select name="archived" class="form-select form-select-sm">
-                                <option value="">Active Concerns</option>
-                                <option value="1" {{ request('archived') == '1' ? 'selected' : '' }}>Archived</option>
-                                <option value="all" {{ request('archived') == 'all' ? 'selected' : '' }}>All Concerns</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <select name="status" class="form-select form-select-sm">
-                                <option value="">All Status</option>
-                                <option value="Pending" {{ request('status') == 'Pending' ? 'selected' : '' }}>Pending</option>
-                                <option value="Assigned" {{ request('status') == 'Assigned' ? 'selected' : '' }}>Assigned</option>
-                                <option value="In Progress" {{ request('status') == 'In Progress' ? 'selected' : '' }}>In Progress</option>
-                                <option value="Resolved" {{ request('status') == 'Resolved' ? 'selected' : '' }}>Resolved</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <select name="priority" class="form-select form-select-sm">
-                                <option value="">All Priority</option>
-                                <option value="low" {{ request('priority') == 'low' ? 'selected' : '' }}>Low</option>
-                                <option value="medium" {{ request('priority') == 'medium' ? 'selected' : '' }}>Medium</option>
-                                <option value="high" {{ request('priority') == 'high' ? 'selected' : '' }}>High</option>
-                                <option value="urgent" {{ request('priority') == 'urgent' ? 'selected' : '' }}>Urgent</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <select name="category" class="form-select form-select-sm">
-                                <option value="">All Categories</option>
-                                @foreach($categories as $category)
-                                    <option value="{{ $category->id }}" {{ request('category') == $category->id ? 'selected' : '' }}>
-                                        {{ $category->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <input type="text" name="search" class="form-control form-control-sm" placeholder="Search concerns..." 
-                                value="{{ request('search') }}">
-                        </div>
-                        <div class="col-auto">
-                            <button type="submit" class="btn btn-primary btn-sm">Filter</button>
-                        </div>
-                        <div class="col-auto">
-                            <a href="{{ route('admin.reports') }}" class="btn btn-secondary btn-sm"><i class="fas fa-times"></i></a>
-                        </div>
-                    </form>
-                </div>
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                <ul class="nav nav-pills mb-0 flex-wrap">
+                    <li class="nav-item">
+                        <a class="nav-link {{ ($viewType ?? 'active') == 'active' ? 'active' : '' }}" href="{{ route('admin.reports', ['view' => 'active']) }}">
+                            <i class="fas fa-clipboard-list"></i> Active Reports
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ ($viewType ?? '') == 'resolved' ? 'active' : '' }}" href="{{ route('admin.reports', ['view' => 'resolved']) }}" style="color: #28a745;">
+                            <i class="fas fa-check-circle"></i> Resolved Reports
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ ($viewType ?? '') == 'archives' ? 'active' : '' }}" href="{{ route('admin.reports', ['view' => 'archives']) }}">
+                            <i class="fas fa-archive"></i> Archived Reports
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ ($viewType ?? '') == 'deleted' ? 'active' : '' }}" href="{{ route('admin.reports', ['view' => 'deleted']) }}" style="color: #dc3545;">
+                            <i class="fas fa-trash-alt"></i> Deleted Reports
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ ($viewType ?? '') == 'analytics' ? 'active' : '' }}" href="{{ route('admin.reports', ['view' => 'analytics']) }}" style="color: #17a2b8;">
+                            <i class="fas fa-chart-line"></i> Analytics
+                        </a>
+                    </li>
+                </ul>
+                <a href="{{ route('admin.export') }}" class="btn btn-success btn-sm">
+                    <i class="fas fa-download"></i> Export CSV
+                </a>
             </div>
+            <form method="GET" action="{{ route('admin.reports') }}">
+                <input type="hidden" name="view" value="{{ $viewType ?? 'active' }}">
+                <div class="row g-2">
+                    <div class="col-6 col-md">
+                        <select name="archived" class="form-select form-select-sm">
+                            <option value="">Active Concerns</option>
+                            <option value="1" {{ request('archived') == '1' ? 'selected' : '' }}>Archived</option>
+                            <option value="all" {{ request('archived') == 'all' ? 'selected' : '' }}>All Concerns</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md">
+                        <select name="status" class="form-select form-select-sm">
+                            <option value="">All Status</option>
+                            <option value="Pending" {{ request('status') == 'Pending' ? 'selected' : '' }}>Pending</option>
+                            <option value="Assigned" {{ request('status') == 'Assigned' ? 'selected' : '' }}>Assigned</option>
+                            <option value="In Progress" {{ request('status') == 'In Progress' ? 'selected' : '' }}>In Progress</option>
+                            <option value="Resolved" {{ request('status') == 'Resolved' ? 'selected' : '' }}>Resolved</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md">
+                        <select name="priority" class="form-select form-select-sm">
+                            <option value="">All Priority</option>
+                            <option value="low" {{ request('priority') == 'low' ? 'selected' : '' }}>Low</option>
+                            <option value="medium" {{ request('priority') == 'medium' ? 'selected' : '' }}>Medium</option>
+                            <option value="high" {{ request('priority') == 'high' ? 'selected' : '' }}>High</option>
+                            <option value="urgent" {{ request('priority') == 'urgent' ? 'selected' : '' }}>Urgent</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md">
+                        <select name="category" class="form-select form-select-sm">
+                            <option value="">All Categories</option>
+                            @foreach($categories as $category)
+                                <option value="{{ $category->id }}" {{ request('category') == $category->id ? 'selected' : '' }}>
+                                    {{ $category->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-12 col-md">
+                        <input type="text" name="search" class="form-control form-control-sm" placeholder="Search concerns..."
+                            value="{{ request('search') }}">
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+                        <a href="{{ route('admin.reports') }}" class="btn btn-secondary btn-sm ms-1"><i class="fas fa-times"></i></a>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -571,36 +560,22 @@
         <div class="alert alert-danger">{{ session('error') }}</div>
     @endif
 
-    <!-- Auto-delete Settings -->
-    <div class="card mb-4 border-info">
-        <div class="card-body">
-            <div class="row align-items-center">
-                <div class="col-md-8">
-                    <h5 class="mb-1"><i class="fas fa-clock"></i> Auto-filter Settings</h5>
-                    <p class="mb-0 text-muted">Show reports that have been deleted for the selected period or less.</p>
+    <!-- Info + Auto-filter Card -->
+    <div class="card mb-4 border-warning">
+        <div class="card-body bg-warning bg-opacity-10 py-2">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <strong><i class="fas fa-info-circle"></i> About Deleted Reports</strong>
+                    <p class="mb-0 text-muted small">Reports deleted are moved here. Restore or permanently delete them.</p>
                 </div>
-                <div class="col-md-4">
-                    <select id="retentionDays" class="form-select">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="badge bg-warning fs-6">{{ $deletedReports->count() ?? 0 }} reports</span>
+                    <select id="retentionDays" class="form-select form-select-sm" style="width:120px;">
                         <option value="3" {{ ($days ?? 15) == 3 ? 'selected' : '' }}>3 days</option>
                         <option value="7" {{ ($days ?? 15) == 7 ? 'selected' : '' }}>7 days</option>
                         <option value="15" {{ ($days ?? 15) == 15 ? 'selected' : '' }}>15 days</option>
                         <option value="30" {{ ($days ?? 15) == 30 ? 'selected' : '' }}>30 days</option>
                     </select>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Info Card -->
-    <div class="card mb-4 border-warning">
-        <div class="card-body bg-warning bg-opacity-10">
-            <div class="row align-items-center">
-                <div class="col-12">
-                    <h5 class="mb-1"><i class="fas fa-info-circle"></i> About Deleted Reports</h5>
-                    <p class="mb-0 text-muted">Reports that have been deleted are moved here. You can restore them to their original state or permanently delete them. Once permanently deleted, reports cannot be recovered.</p>
-                </div>
-                <div class="col-md-4 text-end">
-                    <span class="badge bg-warning fs-5">{{ $deletedReports->count() ?? 0 }} reports</span>
                 </div>
             </div>
         </div>

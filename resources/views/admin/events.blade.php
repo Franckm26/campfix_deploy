@@ -11,18 +11,7 @@
 
 @section('content')
 <div class="container-fluid px-3">
-    <div class="row mb-4">
-        <div class="col-md-6">
-        </div>
-        <div class="col-md-6 text-end">
-            <a href="{{ route('events.calendar') }}" class="btn btn-info">
-                <i class="fas fa-calendar"></i> Calendar View
-            </a>
-            <a href="{{ route('events.pending') }}" class="btn btn-secondary">
-                <i class="fas fa-hourglass-half"></i> Pending Only
-            </a>
-        </div>
-    </div>
+
 
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -112,66 +101,69 @@
     <!-- Filters -->
     <div class="card mb-4">
         <div class="card-body py-3">
-            <div class="row align-items-center g-2">
-                <div class="col-md-5">
-                    <ul class="nav nav-pills mb-0">
-                        <li class="nav-item">
-                            <a class="nav-link {{ ($viewType ?? 'active') == 'active' ? 'active' : '' }}" href="{{ route('admin.events', ['view' => 'active']) }}">
-                                <i class="fas fa-calendar-check"></i> Active Events
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {{ ($viewType ?? '') == 'archives' ? 'active' : '' }}" href="{{ route('admin.events', ['view' => 'archives']) }}">
-                                <i class="fas fa-archive"></i> Archived Events
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {{ ($viewType ?? '') == 'deleted' ? 'active' : '' }}" href="{{ route('admin.events', ['view' => 'deleted']) }}" style="color: #dc3545;">
-                                <i class="fas fa-trash-alt"></i> Deleted Events
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-                <div class="col-md-7">
-                    <form method="GET" action="{{ route('admin.events') }}" class="row g-2 align-items-center">
-                        <input type="hidden" name="view" value="{{ $viewType ?? 'active' }}">
-                        <div class="col-md-3">
-                            <input type="text" name="search" class="form-control form-control-sm" placeholder="Search by title..." 
-                                value="{{ request('search') }}">
-                        </div>
-                        <div class="col-md-2">
-                            <select name="status" class="form-select form-select-sm">
-                                <option value="">All Status</option>
-                                <option value="Pending" {{ request('status') == 'Pending' ? 'selected' : '' }}>Pending</option>
-                                <option value="Approved" {{ request('status') == 'Approved' ? 'selected' : '' }}>Approved</option>
-                                <option value="Rejected" {{ request('status') == 'Rejected' ? 'selected' : '' }}>Rejected</option>
-                                <option value="Cancelled" {{ request('status') == 'Cancelled' ? 'selected' : '' }}>Cancelled</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <select name="category" class="form-select form-select-sm">
-                                <option value="">All Categories</option>
-                                <option value="Area Use" {{ request('category') == 'Area Use' ? 'selected' : '' }}>Area Use</option>
-
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <input type="date" name="date_from" class="form-control form-control-sm" placeholder="From Date" 
-                                value="{{ request('date_from') }}">
-                        </div>
-                        <div class="col-md-2">
-                            <input type="date" name="date_to" class="form-control form-control-sm" placeholder="To Date" 
-                                value="{{ request('date_to') }}">
-                        </div>
-                        <div class="col-auto">
-                            <button type="submit" class="btn btn-primary btn-sm">Filter</button>
-                        </div>
-                        <div class="col-auto">
-                            <a href="{{ route('admin.events') }}" class="btn btn-secondary btn-sm"><i class="fas fa-times"></i></a>
-                        </div>
-                    </form>
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                <ul class="nav nav-pills mb-0 flex-wrap">
+                    <li class="nav-item">
+                        <a class="nav-link {{ ($viewType ?? 'active') == 'active' ? 'active' : '' }}" href="{{ route('admin.events', ['view' => 'active']) }}">
+                            <i class="fas fa-calendar-check"></i> Active Events
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ ($viewType ?? '') == 'archives' ? 'active' : '' }}" href="{{ route('admin.events', ['view' => 'archives']) }}">
+                            <i class="fas fa-archive"></i> Archived Events
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ ($viewType ?? '') == 'deleted' ? 'active' : '' }}" href="{{ route('admin.events', ['view' => 'deleted']) }}" style="color: #dc3545;">
+                            <i class="fas fa-trash-alt"></i> Deleted Events
+                        </a>
+                    </li>
+                </ul>
+                <div>
+                    <a href="{{ route('events.calendar') }}" class="btn btn-info btn-sm">
+                        <i class="fas fa-calendar"></i> Calendar View
+                    </a>
+                    <a href="{{ route('events.pending') }}" class="btn btn-secondary btn-sm ms-1">
+                        <i class="fas fa-hourglass-half"></i> Pending Only
+                    </a>
                 </div>
             </div>
+            <form method="GET" action="{{ route('admin.events') }}">
+                <input type="hidden" name="view" value="{{ $viewType ?? 'active' }}">
+                <div class="row g-2">
+                    <div class="col-12 col-md">
+                        <input type="text" name="search" class="form-control form-control-sm" placeholder="Search by title..."
+                            value="{{ request('search') }}">
+                    </div>
+                    <div class="col-6 col-md">
+                        <select name="status" class="form-select form-select-sm">
+                            <option value="">All Status</option>
+                            <option value="Pending" {{ request('status') == 'Pending' ? 'selected' : '' }}>Pending</option>
+                            <option value="Approved" {{ request('status') == 'Approved' ? 'selected' : '' }}>Approved</option>
+                            <option value="Rejected" {{ request('status') == 'Rejected' ? 'selected' : '' }}>Rejected</option>
+                            <option value="Cancelled" {{ request('status') == 'Cancelled' ? 'selected' : '' }}>Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md">
+                        <select name="category" class="form-select form-select-sm">
+                            <option value="">All Categories</option>
+                            <option value="Area Use" {{ request('category') == 'Area Use' ? 'selected' : '' }}>Area Use</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md">
+                        <input type="date" name="date_from" class="form-control form-control-sm"
+                            value="{{ request('date_from') }}">
+                    </div>
+                    <div class="col-6 col-md">
+                        <input type="date" name="date_to" class="form-control form-control-sm"
+                            value="{{ request('date_to') }}">
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+                        <a href="{{ route('admin.events') }}" class="btn btn-secondary btn-sm ms-1"><i class="fas fa-times"></i></a>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -535,31 +527,17 @@
         <div class="alert alert-danger">{{ session('error') }}</div>
     @endif
 
-    <!-- Info Card -->
+    <!-- Info + Auto-filter Card -->
     <div class="card mb-4 border-warning">
-        <div class="card-body bg-warning bg-opacity-10">
-            <div class="row align-items-center">
-                <div class="col-12">
-                    <h5 class="mb-1"><i class="fas fa-info-circle"></i> About Deleted Events</h5>
-                    <p class="mb-0 text-muted">Events that have been deleted are moved here. You can restore them to their original state or permanently delete them. Once permanently deleted, events cannot be recovered.</p>
+        <div class="card-body bg-warning bg-opacity-10 py-2">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <strong><i class="fas fa-info-circle"></i> About Deleted Events</strong>
+                    <p class="mb-0 text-muted small">Events deleted are moved here. Restore or permanently delete them.</p>
                 </div>
-                <div class="col-md-4 text-end">
-                    <span class="badge bg-warning fs-5">{{ $deletedEvents->count() }} events</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Auto-filter Settings -->
-    <div class="card mb-4 border-info">
-        <div class="card-body">
-            <div class="row align-items-center">
-                <div class="col-md-8">
-                    <h5 class="mb-1"><i class="fas fa-clock"></i> Auto-filter Settings</h5>
-                    <p class="mb-0 text-muted">Show events that have been deleted for the selected period or less.</p>
-                </div>
-                <div class="col-md-4">
-                    <select id="retentionDays" class="form-select">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="badge bg-warning fs-6">{{ $deletedEvents->count() }} events</span>
+                    <select id="retentionDays" class="form-select form-select-sm" style="width:120px;">
                         <option value="3" {{ ($days ?? 15) == 3 ? 'selected' : '' }}>3 days</option>
                         <option value="7" {{ ($days ?? 15) == 7 ? 'selected' : '' }}>7 days</option>
                         <option value="15" {{ ($days ?? 15) == 15 ? 'selected' : '' }}>15 days</option>
@@ -1083,3 +1061,4 @@ function executeEventAction(type, id) {
 @endif
 
 @endsection
+

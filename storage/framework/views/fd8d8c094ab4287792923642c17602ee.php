@@ -17,10 +17,11 @@
     
     .settings-card {
         background: var(--card-bg);
-        border-radius: 10px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        margin-bottom: 20px;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        margin-bottom: 16px;
         overflow: hidden;
+        border: 1px solid #e5e7eb;
     }
     
     .settings-header {
@@ -49,7 +50,7 @@
     }
     
     .settings-section {
-        margin-bottom: 25px;
+        margin-bottom: 20px;
     }
     
     .settings-section:last-child {
@@ -77,8 +78,8 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 12px 0;
-        border-bottom: 1px solid var(--border-color);
+        padding: 10px 0;
+        border-bottom: 1px solid #e5e7eb;
     }
     
     .setting-item:last-child {
@@ -231,11 +232,13 @@
     }
     
     .alert-success {
-        background: #d4edda;
-        color: #155724;
-        padding: 12px;
-        border-radius: 5px;
-        margin-bottom: 20px;
+        background: #d1fae5;
+        color: #065f46;
+        padding: 12px 16px;
+        border-radius: 6px;
+        margin-bottom: 16px;
+        border-left: 4px solid #10b981;
+        font-size: 14px;
     }
     
     .settings-tabs {
@@ -311,10 +314,6 @@
             <i class="fas fa-sliders-h"></i> <?php echo e($isTagalog ? 'Mga Kagustuhan' : 'Preferences'); ?>
 
         </a>
-        <a href="#" class="settings-tab" onclick="showTab(event, 'privacy')">
-            <i class="fas fa-shield-alt"></i> <?php echo e($isTagalog ? 'Pagkapribado' : 'Privacy'); ?>
-
-        </a>
         <a href="#" class="settings-tab" onclick="showTab(event, 'security')">
             <i class="fas fa-lock"></i> <?php echo e($isTagalog ? 'Seguridad' : 'Security'); ?>
 
@@ -339,7 +338,7 @@
                         <div class="setting-item">
                             <div class="setting-info">
                                 <div class="setting-label"><?php echo e($isTagalog ? 'Mga Abiso sa Email' : 'Email Notifications'); ?></div>
-                                <div class="setting-description"><?php echo e($isTagalog ? 'Tumanggap ng mga update at alerto sa pamamagitan ng email' : 'Receive updates and alerts via email'); ?></div>
+                                <div class="setting-description"><?php echo e($isTagalog ? 'Tumanggap ng mga update sa pamamagitan ng email' : 'Receive updates via email'); ?></div>
                             </div>
                             <label class="toggle-switch">
                                 <input type="checkbox" name="email_notifications" value="1" <?php echo e($user->email_notifications ? 'checked' : ''); ?>>
@@ -350,7 +349,7 @@
                         <div class="setting-item">
                             <div class="setting-info">
                                 <div class="setting-label"><?php echo e($isTagalog ? 'Mga Abiso sa SMS' : 'SMS Notifications'); ?></div>
-                                <div class="setting-description"><?php echo e($isTagalog ? 'Tumanggap ng mahahalagang alerto sa pamamagitan ng SMS' : 'Receive important alerts via SMS'); ?></div>
+                                <div class="setting-description"><?php echo e($isTagalog ? 'Tumanggap ng mga update sa pamamagitan ng SMS' : 'Receive updates via SMS'); ?></div>
                             </div>
                             <label class="toggle-switch">
                                 <input type="checkbox" name="sms_notifications" value="1" <?php echo e($user->sms_notifications ? 'checked' : ''); ?>>
@@ -361,7 +360,7 @@
                         <div class="setting-item">
                             <div class="setting-info">
                                 <div class="setting-label"><?php echo e($isTagalog ? 'Push Notifications' : 'Push Notifications'); ?></div>
-                                <div class="setting-description"><?php echo e($isTagalog ? 'Tumanggap ng real-time na mga abiso sa app' : 'Receive real-time notifications in the app'); ?></div>
+                                <div class="setting-description"><?php echo e($isTagalog ? 'Tumanggap ng mga update sa app' : 'Receive updates in the app'); ?></div>
                             </div>
                             <label class="toggle-switch">
                                 <input type="checkbox" name="push_notifications" value="1" <?php echo e($user->push_notifications ? 'checked' : ''); ?>>
@@ -451,61 +450,6 @@
         <!-- REMOVED: Category management has been moved to admin panel -->
     </div>
     
-    <!-- Privacy Tab -->
-    <div id="privacy" class="tab-content">
-        <div class="settings-card">
-            <div class="settings-header">
-                <i class="fas fa-shield-alt"></i>
-                <h6>Privacy Settings</h6>
-            </div>
-            <div class="settings-body">
-                <form action="<?php echo e(route('settings.privacy')); ?>" method="POST">
-                    <?php echo csrf_field(); ?>
-                    <?php echo method_field('PUT'); ?>
-                    
-                    <div class="settings-section">
-                        <h5>Profile Visibility</h5>
-                        
-                        <div class="setting-item">
-                            <div class="setting-info">
-                                <div class="setting-label">Show Online Status</div>
-                                <div class="setting-description">Allow others to see when you're online</div>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" name="show_online_status" value="1" <?php echo e($user->show_online_status ? 'checked' : ''); ?>>
-                                <span class="toggle-slider"></span>
-                            </label>
-                        </div>
-                        
-                        <div class="setting-item">
-                            <div class="setting-info">
-                                <div class="setting-label">Show Activity</div>
-                                <div class="setting-description">Allow others to see your recent activity</div>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" name="show_activity" value="1" <?php echo e($user->show_activity ? 'checked' : ''); ?>>
-                                <span class="toggle-slider"></span>
-                            </label>
-                        </div>
-                        
-                        <div class="setting-item">
-                            <div class="setting-info">
-                                <div class="setting-label">Allow Messages</div>
-                                <div class="setting-description">Allow other users to send you messages</div>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" name="allow_messages" value="1" <?php echo e($user->allow_messages ? 'checked' : ''); ?>>
-                                <span class="toggle-slider"></span>
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <button type="submit" class="btn-save">Save Privacy Settings</button>
-                </form>
-            </div>
-        </div>
-    </div>
-    
     <!-- Security Tab -->
     <div id="security" class="tab-content">
 
@@ -573,10 +517,10 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Current Password (required to save settings)</label>
-                        <input type="password" name="current_password" class="form-control" required>
+                        <label class="form-label fw-semibold" style="font-size:13px">Current Password (required to save settings)</label>
+                        <input type="password" name="current_password" class="form-control" required style="font-size:14px">
                         <?php if($errors->has('current_password')): ?>
-                            <span class="text-danger"><?php echo e($errors->first('current_password')); ?></span>
+                            <span class="text-danger" style="font-size:12px"><?php echo e($errors->first('current_password')); ?></span>
                         <?php endif; ?>
                     </div>
 
@@ -624,7 +568,7 @@
                     </div>
                 </div>
                 
-                <a href="/profile" class="btn-save" style="display: inline-block; text-decoration: none;">
+                <a href="/profile" class="btn-save" style="display: inline-block; text-decoration: none; text-align: center;">
                     <i class="fas fa-edit"></i> Manage Account
                 </a>
             </div>
@@ -653,7 +597,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        const validTabs = ['notifications', 'preferences', 'privacy', 'security'];
+        const validTabs = ['notifications', 'preferences', 'security'];
         const hashTab = window.location.hash ? window.location.hash.substring(1) : '';
         const activeTab = validTabs.includes(hashTab) ? hashTab : 'notifications';
 

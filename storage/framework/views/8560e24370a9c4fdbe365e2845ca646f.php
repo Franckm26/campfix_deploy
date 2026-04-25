@@ -122,7 +122,7 @@
                                         </span>
                                     </td>
                                     <td><?php echo e($concern->created_at->format('M d, Y')); ?></td>
-                                    <td><?php echo e($concern->updated_at->format('M d, Y H:i')); ?></td>
+                                    <td><?php echo e($concern->updated_at->format('M d, Y g:i A')); ?></td>
                                     <td>
                                         <div class="btn-group" role="group">
                                             <button type="button" class="btn btn-sm btn-info bg-transparent border-0" onclick="viewConcern(<?php echo e($concern->id); ?>)" title="View">
@@ -186,9 +186,9 @@
                                 </td>
                                 <td><?php echo e($concern->created_at->format('M d, Y')); ?></td>
                                 <?php if($viewType === 'archives'): ?>
-                                    <td><?php echo e($concern->archivedByUsers->first()?->pivot->archived_at ? \Carbon\Carbon::parse($concern->archivedByUsers->first()->pivot->archived_at)->format('M d, Y H:i') : $concern->updated_at->format('M d, Y')); ?></td>
+                                    <td><?php echo e($concern->archivedByUsers->first()?->pivot->archived_at ? \Carbon\Carbon::parse($concern->archivedByUsers->first()->pivot->archived_at)->format('M d, Y g:i A') : $concern->updated_at->format('M d, Y')); ?></td>
                                 <?php elseif($viewType === 'deleted'): ?>
-                                    <td><?php echo e($concern->deleted_at ? \Carbon\Carbon::parse($concern->deleted_at)->format('M d, Y H:i') : $concern->updated_at->format('M d, Y')); ?></td>
+                                    <td><?php echo e($concern->deleted_at ? \Carbon\Carbon::parse($concern->deleted_at)->format('M d, Y g:i A') : $concern->updated_at->format('M d, Y')); ?></td>
                                 <?php endif; ?>
                                 <td>
                                     <div class="btn-group" role="group">

@@ -26,7 +26,7 @@
                 <div class="modal-header">
                     <h5 class="modal-title" id="viewConcernModalLabel">Concern Details</h5>
                     <?php if(in_array(auth()->user()->role, ['building_admin', 'school_admin', 'academic_head'])): ?>
-                        <button type="button" class="btn btn-primary btn-sm ms-2" onclick="showAssignModal()">
+                        <button type="button" class="btn btn-primary btn-sm ms-2" onclick="assignReport(window.currentReportId)">
                             <i class="fas fa-user-plus"></i> Assign
                         </button>
                     <?php endif; ?>
@@ -143,101 +143,90 @@
         </div>
     </div>
 
-    <div class="row mb-4">
-        <div class="col-md-6">
-        </div>
-        <div class="col-md-6 text-end">
-            <a href="<?php echo e(route('admin.export')); ?>" class="btn btn-success">
-                <i class="fas fa-download"></i> Export CSV
-            </a>
-        </div>
-    </div>
-
     <!-- Filters -->
     <div class="card mb-4">
         <div class="card-body py-3">
-            <div class="row align-items-center g-2">
-                <div class="col-md-5">
-                    <ul class="nav nav-pills mb-0">
-                        <li class="nav-item">
-                            <a class="nav-link <?php echo e(($viewType ?? 'active') == 'active' ? 'active' : ''); ?>" href="<?php echo e(route('admin.reports', ['view' => 'active'])); ?>">
-                                <i class="fas fa-clipboard-list"></i> Active Reports
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link <?php echo e(($viewType ?? '') == 'resolved' ? 'active' : ''); ?>" href="<?php echo e(route('admin.reports', ['view' => 'resolved'])); ?>" style="color: #28a745;">
-                                <i class="fas fa-check-circle"></i> Resolved Reports
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link <?php echo e(($viewType ?? '') == 'archives' ? 'active' : ''); ?>" href="<?php echo e(route('admin.reports', ['view' => 'archives'])); ?>">
-                                <i class="fas fa-archive"></i> Archived Reports
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link <?php echo e(($viewType ?? '') == 'deleted' ? 'active' : ''); ?>" href="<?php echo e(route('admin.reports', ['view' => 'deleted'])); ?>" style="color: #dc3545;">
-                                <i class="fas fa-trash-alt"></i> Deleted Reports
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link <?php echo e(($viewType ?? '') == 'analytics' ? 'active' : ''); ?>" href="<?php echo e(route('admin.reports', ['view' => 'analytics'])); ?>" style="color: #17a2b8;">
-                                <i class="fas fa-chart-line"></i> Analytics
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-                <div class="col-md-7">
-                    <form method="GET" action="<?php echo e(route('admin.reports')); ?>" class="row g-2 align-items-center">
-                        <input type="hidden" name="view" value="<?php echo e($viewType ?? 'active'); ?>">
-                        <div class="col-md-2">
-                            <select name="archived" class="form-select form-select-sm">
-                                <option value="">Active Concerns</option>
-                                <option value="1" <?php echo e(request('archived') == '1' ? 'selected' : ''); ?>>Archived</option>
-                                <option value="all" <?php echo e(request('archived') == 'all' ? 'selected' : ''); ?>>All Concerns</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <select name="status" class="form-select form-select-sm">
-                                <option value="">All Status</option>
-                                <option value="Pending" <?php echo e(request('status') == 'Pending' ? 'selected' : ''); ?>>Pending</option>
-                                <option value="Assigned" <?php echo e(request('status') == 'Assigned' ? 'selected' : ''); ?>>Assigned</option>
-                                <option value="In Progress" <?php echo e(request('status') == 'In Progress' ? 'selected' : ''); ?>>In Progress</option>
-                                <option value="Resolved" <?php echo e(request('status') == 'Resolved' ? 'selected' : ''); ?>>Resolved</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <select name="priority" class="form-select form-select-sm">
-                                <option value="">All Priority</option>
-                                <option value="low" <?php echo e(request('priority') == 'low' ? 'selected' : ''); ?>>Low</option>
-                                <option value="medium" <?php echo e(request('priority') == 'medium' ? 'selected' : ''); ?>>Medium</option>
-                                <option value="high" <?php echo e(request('priority') == 'high' ? 'selected' : ''); ?>>High</option>
-                                <option value="urgent" <?php echo e(request('priority') == 'urgent' ? 'selected' : ''); ?>>Urgent</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <select name="category" class="form-select form-select-sm">
-                                <option value="">All Categories</option>
-                                <?php $__currentLoopData = $categories; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $category): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                    <option value="<?php echo e($category->id); ?>" <?php echo e(request('category') == $category->id ? 'selected' : ''); ?>>
-                                        <?php echo e($category->name); ?>
-
-                                    </option>
-                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <input type="text" name="search" class="form-control form-control-sm" placeholder="Search concerns..." 
-                                value="<?php echo e(request('search')); ?>">
-                        </div>
-                        <div class="col-auto">
-                            <button type="submit" class="btn btn-primary btn-sm">Filter</button>
-                        </div>
-                        <div class="col-auto">
-                            <a href="<?php echo e(route('admin.reports')); ?>" class="btn btn-secondary btn-sm"><i class="fas fa-times"></i></a>
-                        </div>
-                    </form>
-                </div>
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                <ul class="nav nav-pills mb-0 flex-wrap">
+                    <li class="nav-item">
+                        <a class="nav-link <?php echo e(($viewType ?? 'active') == 'active' ? 'active' : ''); ?>" href="<?php echo e(route('admin.reports', ['view' => 'active'])); ?>">
+                            <i class="fas fa-clipboard-list"></i> Active Reports
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?php echo e(($viewType ?? '') == 'resolved' ? 'active' : ''); ?>" href="<?php echo e(route('admin.reports', ['view' => 'resolved'])); ?>" style="color: #28a745;">
+                            <i class="fas fa-check-circle"></i> Resolved Reports
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?php echo e(($viewType ?? '') == 'archives' ? 'active' : ''); ?>" href="<?php echo e(route('admin.reports', ['view' => 'archives'])); ?>">
+                            <i class="fas fa-archive"></i> Archived Reports
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?php echo e(($viewType ?? '') == 'deleted' ? 'active' : ''); ?>" href="<?php echo e(route('admin.reports', ['view' => 'deleted'])); ?>" style="color: #dc3545;">
+                            <i class="fas fa-trash-alt"></i> Deleted Reports
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?php echo e(($viewType ?? '') == 'analytics' ? 'active' : ''); ?>" href="<?php echo e(route('admin.reports', ['view' => 'analytics'])); ?>" style="color: #17a2b8;">
+                            <i class="fas fa-chart-line"></i> Analytics
+                        </a>
+                    </li>
+                </ul>
+                <a href="<?php echo e(route('admin.export')); ?>" class="btn btn-success btn-sm">
+                    <i class="fas fa-download"></i> Export CSV
+                </a>
             </div>
+            <form method="GET" action="<?php echo e(route('admin.reports')); ?>">
+                <input type="hidden" name="view" value="<?php echo e($viewType ?? 'active'); ?>">
+                <div class="row g-2">
+                    <div class="col-6 col-md">
+                        <select name="archived" class="form-select form-select-sm">
+                            <option value="">Active Concerns</option>
+                            <option value="1" <?php echo e(request('archived') == '1' ? 'selected' : ''); ?>>Archived</option>
+                            <option value="all" <?php echo e(request('archived') == 'all' ? 'selected' : ''); ?>>All Concerns</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md">
+                        <select name="status" class="form-select form-select-sm">
+                            <option value="">All Status</option>
+                            <option value="Pending" <?php echo e(request('status') == 'Pending' ? 'selected' : ''); ?>>Pending</option>
+                            <option value="Assigned" <?php echo e(request('status') == 'Assigned' ? 'selected' : ''); ?>>Assigned</option>
+                            <option value="In Progress" <?php echo e(request('status') == 'In Progress' ? 'selected' : ''); ?>>In Progress</option>
+                            <option value="Resolved" <?php echo e(request('status') == 'Resolved' ? 'selected' : ''); ?>>Resolved</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md">
+                        <select name="priority" class="form-select form-select-sm">
+                            <option value="">All Priority</option>
+                            <option value="low" <?php echo e(request('priority') == 'low' ? 'selected' : ''); ?>>Low</option>
+                            <option value="medium" <?php echo e(request('priority') == 'medium' ? 'selected' : ''); ?>>Medium</option>
+                            <option value="high" <?php echo e(request('priority') == 'high' ? 'selected' : ''); ?>>High</option>
+                            <option value="urgent" <?php echo e(request('priority') == 'urgent' ? 'selected' : ''); ?>>Urgent</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md">
+                        <select name="category" class="form-select form-select-sm">
+                            <option value="">All Categories</option>
+                            <?php $__currentLoopData = $categories; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $category): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <option value="<?php echo e($category->id); ?>" <?php echo e(request('category') == $category->id ? 'selected' : ''); ?>>
+                                    <?php echo e($category->name); ?>
+
+                                </option>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md">
+                        <input type="text" name="search" class="form-control form-control-sm" placeholder="Search concerns..."
+                            value="<?php echo e(request('search')); ?>">
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+                        <a href="<?php echo e(route('admin.reports')); ?>" class="btn btn-secondary btn-sm ms-1"><i class="fas fa-times"></i></a>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -325,14 +314,14 @@
 
                                         </td>
                                         <td><?php echo e($report->created_at->format('M d, Y')); ?></td>
-                                        <td><?php echo e($report->resolved_at ? $report->resolved_at->format('M d, Y H:i') : '-'); ?></td>
+                                        <td><?php echo e($report->resolved_at ? $report->resolved_at->format('M d, Y g:i A') : '-'); ?></td>
                                         <td>
                                             <div class="btn-group" role="group">
                                                 <button type="button" class="btn btn-sm btn-info" onclick="viewReport(<?php echo e($report->id); ?>)" title="View">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
-                                                <button type="button" class="btn btn-sm btn-warning" onclick="editReport(<?php echo e($report->id); ?>)" title="Edit">
-                                                    <i class="fas fa-edit"></i>
+                                                <button type="button" class="btn btn-sm btn-primary" onclick="assignReport(<?php echo e($report->id); ?>)" title="Assign">
+                                                    <i class="fas fa-user-plus"></i>
                                                 </button>
                                                 <?php if(!$report->isArchivedByUser(auth()->id())): ?>
                                                     <button type="button" class="btn btn-sm btn-secondary" onclick="showReportArchiveModal(<?php echo e($report->id); ?>)" title="Archive">
@@ -413,7 +402,7 @@
                                     </td>
                                     <td><?php echo e($report->user->name ?? 'Unknown'); ?></td>
                                     <td><?php echo e($report->created_at->format('M d, Y')); ?></td>
-                                    <td><?php echo e($report->resolved_at ? $report->resolved_at->format('M d, Y H:i') : '-'); ?></td>
+                                    <td><?php echo e($report->resolved_at ? $report->resolved_at->format('M d, Y g:i A') : '-'); ?></td>
                                     <td>₱<?php echo e(number_format($report->cost ?? 0, 2)); ?></td>
                                     <td>
                                         <div class="btn-group" role="group">
@@ -567,36 +556,22 @@
         <div class="alert alert-danger"><?php echo e(session('error')); ?></div>
     <?php endif; ?>
 
-    <!-- Auto-delete Settings -->
-    <div class="card mb-4 border-info">
-        <div class="card-body">
-            <div class="row align-items-center">
-                <div class="col-md-8">
-                    <h5 class="mb-1"><i class="fas fa-clock"></i> Auto-filter Settings</h5>
-                    <p class="mb-0 text-muted">Show reports that have been deleted for the selected period or less.</p>
+    <!-- Info + Auto-filter Card -->
+    <div class="card mb-4 border-warning">
+        <div class="card-body bg-warning bg-opacity-10 py-2">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <strong><i class="fas fa-info-circle"></i> About Deleted Reports</strong>
+                    <p class="mb-0 text-muted small">Reports deleted are moved here. Restore or permanently delete them.</p>
                 </div>
-                <div class="col-md-4">
-                    <select id="retentionDays" class="form-select">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="badge bg-warning fs-6"><?php echo e($deletedReports->count() ?? 0); ?> reports</span>
+                    <select id="retentionDays" class="form-select form-select-sm" style="width:120px;">
                         <option value="3" <?php echo e(($days ?? 15) == 3 ? 'selected' : ''); ?>>3 days</option>
                         <option value="7" <?php echo e(($days ?? 15) == 7 ? 'selected' : ''); ?>>7 days</option>
                         <option value="15" <?php echo e(($days ?? 15) == 15 ? 'selected' : ''); ?>>15 days</option>
                         <option value="30" <?php echo e(($days ?? 15) == 30 ? 'selected' : ''); ?>>30 days</option>
                     </select>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Info Card -->
-    <div class="card mb-4 border-warning">
-        <div class="card-body bg-warning bg-opacity-10">
-            <div class="row align-items-center">
-                <div class="col-12">
-                    <h5 class="mb-1"><i class="fas fa-info-circle"></i> About Deleted Reports</h5>
-                    <p class="mb-0 text-muted">Reports that have been deleted are moved here. You can restore them to their original state or permanently delete them. Once permanently deleted, reports cannot be recovered.</p>
-                </div>
-                <div class="col-md-4 text-end">
-                    <span class="badge bg-warning fs-5"><?php echo e($deletedReports->count() ?? 0); ?> reports</span>
                 </div>
             </div>
         </div>
@@ -981,7 +956,7 @@
                         <tr>
                             <td><?php echo e($report->location); ?></td>
                             <td><?php echo e($report->damaged_part ?? 'N/A'); ?></td>
-                            <td><?php echo e($report->resolved_at ? \Carbon\Carbon::parse($report->resolved_at)->format('M d, Y H:i') : 'Not Fixed'); ?></td>
+                            <td><?php echo e($report->resolved_at ? \Carbon\Carbon::parse($report->resolved_at)->format('M d, Y g:i A') : 'Not Fixed'); ?></td>
                             <td><span class="cost-badge">₱<?php echo e(number_format($report->cost ?? 0, 2)); ?></span></td>
                         </tr>
                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
@@ -1062,7 +1037,7 @@
             </div>
             <div class="modal-body">
                 <?php $__currentLoopData = $locationStats; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $stat): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                <div class="room-item" onclick="showRoomDetails('<?php echo e($stat['location']); ?>')" style="cursor: pointer; padding: 10px; border-bottom: 1px solid #eee;">
+                <div class="room-item" onclick="showRoomDetails(<?php echo e(json_encode($stat['location'])); ?>)" style="cursor: pointer; padding: 10px; border-bottom: 1px solid #eee;">
                     <strong><?php echo e($stat['location']); ?></strong> - <?php echo e($stat['count']); ?> repairs, Total Cost: ₱<?php echo e(number_format($stat['total_cost'], 2)); ?>
 
                 </div>
@@ -1400,9 +1375,10 @@
 }
 </style>
 
+<?php $__env->startSection('scripts'); ?>
 <script>
 <?php if(isset($groupedReports)): ?>
-window.groupedReports = <?php echo json_encode($groupedReports, 15, 512) ?>;
+window.groupedReports = <?php echo json_encode($groupedReports, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
 <?php else: ?>
 window.groupedReports = {};
 <?php endif; ?>
@@ -1448,13 +1424,14 @@ document.addEventListener('touchstart', function(e) {
 // Initialize charts when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     <?php if(($viewType ?? '') == 'analytics'): ?>
-    window.chartLocations = <?php echo json_encode($chartLocations ?? []); ?>;
-    window.chartCounts    = <?php echo json_encode($chartCounts ?? []); ?>;
-    window.chartCosts     = <?php echo json_encode($chartCosts ?? []); ?>;
-    window.chartStatuses  = <?php echo json_encode($chartStatuses ?? []); ?>;
-    window.chartStatusCounts = <?php echo json_encode($chartStatusCounts ?? []); ?>;
+    window.chartLocations = <?php echo json_encode($chartLocations ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+    window.chartCounts    = <?php echo json_encode($chartCounts ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+    window.chartCosts     = <?php echo json_encode($chartCosts ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+    window.chartStatuses  = <?php echo json_encode($chartStatuses ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+    window.chartStatusCounts = <?php echo json_encode($chartStatusCounts ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
     window.monthlyData    = <?php echo json_encode(
-        isset($monthlyStats) ? $monthlyStats->map(fn($s) => ['month' => \Carbon\Carbon::parse($s->month)->format('M Y'), 'count' => $s->total_count, 'cost' => $s->total_cost])->values() : []
+        isset($monthlyStats) ? $monthlyStats->map(fn($s) => ['month' => \Carbon\Carbon::parse($s->month)->format('M Y'), 'count' => $s->total_count, 'cost' => $s->total_cost])->values() : [],
+        JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
     ); ?>;
     initializeCharts();
     <?php endif; ?>
@@ -1731,15 +1708,18 @@ function editReport(id) {
 
         form.action = '/reports/' + id;
 
+        const categories = data.categories || [];
+        const categoryOptions = categories.map(cat =>
+            '<option value="' + cat.id + '" ' + (data.report.category_id == cat.id ? 'selected' : '') + '>' + cat.name + '</option>'
+        ).join('');
+
         contentDiv.innerHTML = '<div class="mb-3">' +
             '<label class="form-label">Title</label>' +
             '<input type="text" name="title" class="form-control" value="' + (data.report.title || '') + '" required>' +
             '</div><div class="mb-3">' +
             '<label class="form-label">Category</label>' +
             '<select name="category_id" class="form-control" required>' +
-            '<?php $__currentLoopData = $categories; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $category): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>' +
-            '<option value="<?php echo e($category->id); ?>" ' + (data.report.category_id == <?php echo e($category->id); ?> ? 'selected' : '') + '><?php echo e($category->name); ?></option>' +
-            '<?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>' +
+            categoryOptions +
             '</select>' +
             '</div><div class="mb-3">' +
             '<label class="form-label">Location</label>' +
@@ -2187,8 +2167,15 @@ function confirmReportDelete() {
 // Store current concern ID for assignment
 let currentConcernId = null;
 
+// Assign Report directly from table button
+window.assignReport = function(id) {
+    window.currentReportId = id;
+    window.currentConcernId = null;
+    window.showAssignModal();
+}
+
 // Show Assign Modal
-function showAssignModal() {
+window.showAssignModal = function showAssignModal() {
     const concernId = window.currentConcernId;
     const reportId = window.currentReportId;
 
@@ -2320,10 +2307,16 @@ function viewReport(id) {
     fetch('/api/reports/' + id, {
         headers: {
             'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>',
+            'Accept': 'application/json',
             'Content-Type': 'application/json'
         }
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => { throw new Error(err.error || 'HTTP ' + response.status); });
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.error) {
             bodyDiv.innerHTML = '<div class="alert alert-danger">' + data.error + '</div>';
@@ -2365,7 +2358,8 @@ function viewReport(id) {
         '</div>';
     })
     .catch(error => {
-        bodyDiv.innerHTML = '<div class="alert alert-danger">Error loading report details</div>';
+        console.error('viewReport error:', error);
+        bodyDiv.innerHTML = '<div class="alert alert-danger">Error loading report details. Check console for details.</div>';
     });
 }
 
@@ -2423,7 +2417,7 @@ function acknowledgeConcern(concernId) {
                     .then(data => {
                         if (data.success) {
                             // Reload the page to show filtered results
-                            window.location.href = '<?php echo e(route("admin.reports", ["view" => "deleted"])); ?>&days=' + days;
+                            window.location.href = '<?php echo e(route("admin.reports")); ?>?view=deleted&days=' + days;
                         } else {
                             alert('Error saving preference.');
                         }
@@ -2456,6 +2450,119 @@ function getSelectedReports() {
     const checkboxes = document.querySelectorAll('.report-checkbox:checked');
     return Array.from(checkboxes).map(cb => cb.value);
 }
+
+// Assign Report from table button
+function assignReport(id) {
+    window.currentReportId = id;
+    window.currentConcernId = null;
+
+    const modal = new bootstrap.Modal(document.getElementById('assignConcernModal'));
+    const select = document.getElementById('assigned_to');
+    const form = document.getElementById('assignConcernForm');
+
+    document.getElementById('assignConcernId').value = id;
+    form.setAttribute('data-type', 'report');
+    form.action = '/admin/report/' + id + '/assign';
+
+    select.innerHTML = '<option value="">Loading...</option>';
+
+    fetch('/admin/maintenance-users', {
+        method: 'GET',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'Content-Type': 'application/json'
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            select.innerHTML = '<option value="">Error loading users</option>';
+            return;
+        }
+        select.innerHTML = '<option value="">Select maintenance staff</option>';
+        data.users.forEach(function(user) {
+            select.innerHTML += '<option value="' + user.id + '">' + user.name + '</option>';
+        });
+    })
+    .catch(function() {
+        select.innerHTML = '<option value="">Error loading users</option>';
+    });
+
+    modal.show();
+}
+
+// View Report from table button
+function viewReport(id) {
+    window.currentReportId = id;
+    const modal = new bootstrap.Modal(document.getElementById('viewConcernModal'));
+    const contentDiv = document.getElementById('viewConcernModalLabel');
+    const bodyDiv = document.getElementById('viewConcernContent');
+
+    contentDiv.textContent = 'Report Details';
+    bodyDiv.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+    modal.show();
+
+    fetch('/api/reports/' + id, {
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => { throw new Error(err.error || 'HTTP ' + response.status); });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.error) {
+            bodyDiv.innerHTML = '<div class="alert alert-danger">' + data.error + '</div>';
+            return;
+        }
+        const report = data.report;
+        const severityClass = report.severity === 'critical' ? 'danger' :
+            (report.severity === 'high' ? 'warning' :
+            (report.severity === 'medium' ? 'info' : 'secondary'));
+        const statusClass = report.status === 'Resolved' ? 'success' :
+            (report.status === 'In Progress' ? 'warning' :
+            (report.status === 'Assigned' ? 'primary' : 'secondary'));
+        let imageHtml = '';
+        if (report.photo_path) {
+            imageHtml = '<div class="mb-3"><p><strong>Photo:</strong></p><img src="' + report.photo_path + '" alt="Report photo" class="img-fluid rounded" style="max-width:400px;"></div>';
+        }
+        bodyDiv.innerHTML = '<div class="card">' +
+            '<div class="card-header d-flex justify-content-between align-items-center">' +
+                '<h4>Report #' + report.id + '</h4>' +
+                '<div><span class="badge bg-' + severityClass + ' me-2">' + report.severity.charAt(0).toUpperCase() + report.severity.slice(1) + ' Severity</span>' +
+                '<span class="badge bg-' + statusClass + '">' + report.status + '</span></div>' +
+            '</div>' +
+            '<div class="card-body">' +
+                '<h5 class="card-title">' + (report.title || 'No Title') + '</h5>' +
+                '<div class="row mb-3">' +
+                    '<div class="col-md-6"><p><strong>Category:</strong> ' + (report.category ? report.category.name : 'N/A') + '</p>' +
+                    '<p><strong>Location:</strong> ' + report.location + '</p></div>' +
+                    '<div class="col-md-6"><p><strong>Reported by:</strong> ' + (report.user ? report.user.name : 'Unknown') + '</p>' +
+                    '<p><strong>Date:</strong> ' + report.created_at + '</p></div>' +
+                '</div>' +
+                (report.assigned_to ? '<div class="mb-3"><p><strong>Assigned to:</strong> ' + (report.assigned_user_name || 'Unknown') + '</p></div>' : '') +
+                (report.damaged_part ? '<div class="mb-3"><p><strong>Damaged Part:</strong> ' + report.damaged_part + '</p></div>' : '') +
+                '<div class="mb-3"><p><strong>Description:</strong></p><p>' + (report.description || '') + '</p></div>' +
+                imageHtml +
+                (report.resolution_notes ? '<div class="mb-3"><p><strong>Resolution Notes:</strong></p><p>' + report.resolution_notes + '</p></div>' : '') +
+                ((report.cost || report.replaced_part) ? '<div class="mb-3"><p><strong>Maintenance Details:</strong></p><div class="row">' +
+                    '<div class="col-md-6">' + (report.cost ? '<p><strong>Cost:</strong> ₱' + parseFloat(report.cost).toFixed(2) + '</p>' : '') + '</div>' +
+                    '<div class="col-md-6">' + (report.replaced_part ? '<p><strong>Replaced With:</strong> ' + report.replaced_part + '</p>' : '') + '</div>' +
+                '</div></div>' : '') +
+            '</div></div>';
+    })
+    .catch(function(error) {
+        console.error('viewReport error:', error);
+        bodyDiv.innerHTML = '<div class="alert alert-danger">Error loading report details.</div>';
+    });
+}
 </script>
+<?php $__env->stopSection(); ?>
 
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\Campfix\resources\views/admin/reports.blade.php ENDPATH**/ ?>

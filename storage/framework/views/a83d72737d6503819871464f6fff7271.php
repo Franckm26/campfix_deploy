@@ -61,6 +61,66 @@
     text-align: center;
 }
 
+/* Reduce main content padding */
+.content > *:not(.top-header) {
+    padding: 20px !important;
+}
+
+/* Narrow sidebar to fit nav text */
+.sidebar {
+    width: 200px !important;
+}
+.content {
+    margin-left: 200px !important;
+    width: calc(100% - 200px) !important;
+}
+.sidebar a.active {
+    border-radius: 20px !important;
+    margin-left: 10px !important;
+    margin-right: 10px !important;
+}
+.sidebar a.active::after,
+.sidebar a.active::before {
+    display: none !important;
+}
+
+/* Fix modal scrolling - override app.css max-height */
+#modalMaterialsTable {
+    min-width: 0 !important;
+}
+.modal-dialog-scrollable .modal-content {
+    max-height: 90vh !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+.modal-dialog-scrollable form {
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+}
+.modal-dialog-scrollable .modal-body {
+    overflow-y: auto !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+}
+
+@media (max-width: 991px) {
+    .sidebar {
+        transform: translateX(-100%) !important;
+        width: 200px !important;
+    }
+    .sidebar.show {
+        transform: translateX(0) !important;
+    }
+    .content {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+}
+
 /* ── Global Dark Theme ── */
 [data-theme="dark"],
 [data-theme="dark"] html,
@@ -160,34 +220,34 @@ html[data-theme="dark"] body {
     <div class="sidebar-content">
         <?php if(auth()->guard()->check()): ?>
 
-        <a href="/dashboard" class="<?php echo e(Request::is('dashboard') ? 'active' : ''); ?>">
+        <a href="/dashboard" class="<?php echo e(Request::is('dashboard') ? 'active' : ''); ?>" style="padding-top:8px;padding-bottom:8px;">
             <i class="fas fa-home"></i> <?php echo e(app()->getLocale() === 'tl' ? 'Home' : 'Home'); ?>
 
         </a>
 
         
         <?php if(auth()->user()->role !== 'mis' && auth()->user()->role !== 'maintenance'): ?>
-            <a href="<?php echo e(route('concerns.my')); ?>" class="<?php echo e(Request::is('my-concerns') ? 'active' : ''); ?>">
+            <a href="<?php echo e(route('concerns.my')); ?>" class="<?php echo e(Request::is('my-concerns') ? 'active' : ''); ?>" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-clipboard-list"></i> <?php echo e(app()->getLocale() === 'tl' ? 'Aking Mga Concern' : 'My Concerns'); ?>
 
             </a>
 
             
             <?php if(auth()->user()->role === 'faculty'): ?>
-                <a href="<?php echo e(route('events.my')); ?>" class="<?php echo e(Request::is('my-events') ? 'active' : ''); ?>">
+                <a href="<?php echo e(route('events.my')); ?>" class="<?php echo e(Request::is('my-events') ? 'active' : ''); ?>" style="padding-top:8px;padding-bottom:8px;">
                     <i class="fas fa-calendar"></i> <?php echo e(app()->getLocale() === 'tl' ? 'Aking Mga Event' : 'My Events'); ?>
 
                 </a>
             <?php endif; ?>
         <?php elseif(auth()->user()->role === 'mis'): ?>
-            <a href="<?php echo e(route('concerns.my')); ?>" class="<?php echo e(Request::is('my-concerns') ? 'active' : ''); ?>">
+            <a href="<?php echo e(route('concerns.my')); ?>" class="<?php echo e(Request::is('my-concerns') ? 'active' : ''); ?>" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-clipboard-list"></i> My Concerns
             </a>
         <?php endif; ?>
 
         
         <?php if(auth()->user()->role === 'maintenance'): ?>
-            <a href="<?php echo e(route('reports.assigned')); ?>" class="<?php echo e(Request::is('reports/assigned*') ? 'active' : ''); ?>">
+            <a href="<?php echo e(route('reports.assigned')); ?>" class="<?php echo e(Request::is('reports/assigned*') ? 'active' : ''); ?>" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-tasks"></i> <?php echo e(app()->getLocale() === 'tl' ? 'Mga Nakatalagang Gawain' : 'Assigned Tasks'); ?>
 
             </a>
@@ -196,22 +256,22 @@ html[data-theme="dark"] body {
         
         <?php if(auth()->user()->role === 'mis'): ?>
 
-            <a href="/admin/mis-tasks" class="<?php echo e(Request::is('admin/mis-tasks') ? 'active' : ''); ?>">
+            <a href="/admin/mis-tasks" class="<?php echo e(Request::is('admin/mis-tasks') ? 'active' : ''); ?>" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-tasks"></i> <?php echo e(app()->getLocale() === 'tl' ? 'Gawain' : 'Task'); ?>
 
             </a>
 
-            <a href="#" onclick="requirePasswordToAccess('/admin/users', event)" class="<?php echo e(Request::is('admin/users') ? 'active' : ''); ?>">
+            <a href="/admin/users" class="<?php echo e(Request::is('admin/users') ? 'active' : ''); ?>" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-users"></i> <?php echo e(app()->getLocale() === 'tl' ? 'Mga Gumagamit' : 'Users'); ?>
 
             </a>
 
-            <a href="/admin/logs" class="<?php echo e(Request::is('admin/logs') ? 'active' : ''); ?>">
+            <a href="/admin/logs" class="<?php echo e(Request::is('admin/logs') ? 'active' : ''); ?>" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-history"></i> <?php echo e(app()->getLocale() === 'tl' ? 'Audit Logs' : 'Audit Logs'); ?>
 
             </a>
 
-            <a href="/settings" class="<?php echo e(Request::is('settings') ? 'active' : ''); ?>">
+            <a href="/settings" class="<?php echo e(Request::is('settings') ? 'active' : ''); ?>" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-cog"></i> <?php echo e(app()->getLocale() === 'tl' ? 'Mga Setting' : 'Settings'); ?>
 
             </a>
@@ -220,30 +280,38 @@ html[data-theme="dark"] body {
 
         
         <?php if(auth()->user()->role === 'building_admin'): ?>
-            <a href="/admin/reports" class="<?php echo e(Request::is('admin/reports') ? 'active' : ''); ?>">
+            <a href="/admin/reports" class="<?php echo e(Request::is('admin/reports') ? 'active' : ''); ?>" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-chart-bar"></i> <?php echo e(app()->getLocale() === 'tl' ? 'Mga Ulat' : 'Reports'); ?>
 
             </a>
 
-            <a href="/admin/events" class="<?php echo e(Request::is('admin/events') ? 'active' : ''); ?>">
+            <a href="/admin/events" class="<?php echo e(Request::is('admin/events') ? 'active' : ''); ?>" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-calendar-alt"></i> <?php echo e(app()->getLocale() === 'tl' ? 'Mga Event' : 'Events'); ?>
 
             </a>
 
-            <a href="<?php echo e(route('events.my')); ?>" class="<?php echo e(Request::is('my-events') ? 'active' : ''); ?>">
+            <a href="<?php echo e(route('events.my')); ?>" class="<?php echo e(Request::is('my-events') ? 'active' : ''); ?>" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-calendar"></i> <?php echo e(app()->getLocale() === 'tl' ? 'Aking Mga Event' : 'My Events'); ?>
 
             </a>
 
-            <a href="/admin/logs" class="<?php echo e(Request::is('admin/logs') ? 'active' : ''); ?>">
+            <a href="/admin/logs" class="<?php echo e(Request::is('admin/logs') ? 'active' : ''); ?>" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-history"></i> Audit Logs
             </a>
         <?php endif; ?>
 
         
         <?php if(in_array(auth()->user()->role, ['school_admin', 'academic_head', 'program_head', 'principal_assistant'])): ?>
-            <a href="<?php echo e(route('events.my')); ?>" class="<?php echo e(Request::is('my-events') ? 'active' : ''); ?>">
+            <a href="<?php echo e(route('events.my')); ?>" class="<?php echo e(Request::is('my-events') ? 'active' : ''); ?>" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-calendar"></i> <?php echo e(app()->getLocale() === 'tl' ? 'Aking Mga Event' : 'My Events'); ?>
+
+            </a>
+        <?php endif; ?>
+
+        
+        <?php if(auth()->user()->role !== 'mis'): ?>
+            <a href="/settings" class="<?php echo e(Request::is('settings') ? 'active' : ''); ?>" style="padding-top:8px;padding-bottom:8px;">
+                <i class="fas fa-cog"></i> <?php echo e(app()->getLocale() === 'tl' ? 'Mga Setting' : 'Settings'); ?>
 
             </a>
         <?php endif; ?>
@@ -368,7 +436,7 @@ html[data-theme="dark"] body {
 <?php if(auth()->guard()->check()): ?>
 <!-- Event Request Modal for Faculty -->
 <div class="modal fade" id="eventRequestModal" tabindex="-1" aria-labelledby="eventRequestModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="eventRequestModalLabel"><i class="fas fa-calendar-plus"></i> <?php echo e(app()->getLocale() === 'tl' ? 'Magsumite ng Facility Request' : 'Submit Facility Request'); ?></h5>
@@ -709,24 +777,26 @@ unset($__errorArgs, $__bag); ?>
                     <!-- Materials/Equipment Needed (Optional) -->
                     <div class="mb-3">
                         <label class="form-label">Materials/Equipment Needed (Optional)</label>
-                        <table class="table table-bordered" id="modalMaterialsTable">
+                        <div class="table-responsive">
+                        <table class="table table-bordered table-sm" id="modalMaterialsTable" style="min-width:0;">
                             <thead>
                                 <tr>
-                                    <th style="width: 80px;">Qty</th>
+                                    <th style="width: 70px;">Qty</th>
                                     <th>Item</th>
                                     <th>Purpose</th>
-                                    <th style="width: 50px;"></th>
+                                    <th style="width: 40px;"></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td><input type="number" class="form-control" name="materials[0][qty]" min="1" placeholder="1"></td>
-                                    <td><input type="text" class="form-control" name="materials[0][item]" placeholder="e.g., Projector, Chair, etc."></td>
-                                    <td><input type="text" class="form-control" name="materials[0][purpose]" placeholder="e.g., For presentation"></td>
+                                    <td><input type="number" class="form-control form-control-sm" name="materials[0][qty]" min="1" placeholder="1"></td>
+                                    <td><input type="text" class="form-control form-control-sm" name="materials[0][item]" placeholder="e.g., Projector"></td>
+                                    <td><input type="text" class="form-control form-control-sm" name="materials[0][purpose]" placeholder="e.g., For presentation"></td>
                                     <td><button type="button" class="btn btn-danger btn-sm" onclick="removeModalMaterialRow(this)"><i class="fas fa-times"></i></button></td>
                                 </tr>
                             </tbody>
                         </table>
+                        </div>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="addModalMaterialRow()">
                             <i class="fas fa-plus"></i> Add Item
                         </button>
@@ -1914,9 +1984,9 @@ document.addEventListener('DOMContentLoaded', function() {
             var tbody = table.getElementsByTagName('tbody')[0];
             var newRow = tbody.insertRow();
             newRow.innerHTML = `
-                <td><input type="number" class="form-control" name="materials[${modalMaterialRowCount}][qty]" min="1" placeholder="1"></td>
-                <td><input type="text" class="form-control" name="materials[${modalMaterialRowCount}][item]" placeholder="e.g., Projector, Chair, etc."></td>
-                <td><input type="text" class="form-control" name="materials[${modalMaterialRowCount}][purpose]" placeholder="e.g., For presentation"></td>
+                <td><input type="number" class="form-control form-control-sm" name="materials[${modalMaterialRowCount}][qty]" min="1" placeholder="1"></td>
+                <td><input type="text" class="form-control form-control-sm" name="materials[${modalMaterialRowCount}][item]" placeholder="e.g., Projector"></td>
+                <td><input type="text" class="form-control form-control-sm" name="materials[${modalMaterialRowCount}][purpose]" placeholder="e.g., For presentation"></td>
                 <td><button type="button" class="btn btn-danger btn-sm" onclick="removeModalMaterialRow(this)"><i class="fas fa-times"></i></button></td>
             `;
             modalMaterialRowCount++;
@@ -2041,118 +2111,6 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 <?php echo $__env->yieldContent('scripts'); ?>
 
-<!-- Security Password Modal for User Management -->
-<div class="modal fade" id="securityPasswordModal" tabindex="-1" aria-labelledby="securityPasswordModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
-    <div class="modal-dialog modal-sm modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title" id="securityPasswordModalLabel">
-                    <i class="fas fa-lock text-warning me-2"></i>Security Check
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body pt-2">
-                <p class="text-muted small mb-3">Enter your password to access User Management.</p>
-                <div id="securityPasswordError" class="alert alert-danger py-2 small d-none"></div>
-                <div class="input-group">
-                    <input type="password" id="securityPasswordInput" class="form-control" placeholder="Your password" autocomplete="current-password">
-                    <button class="btn btn-outline-secondary" type="button" id="toggleSecurityPassword">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="modal-footer border-0 pt-0">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary btn-sm" id="securityPasswordSubmit">
-                    <i class="fas fa-unlock me-1"></i>Verify
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-let _securityRedirectUrl = '';
-
-function requirePasswordToAccess(url, event) {
-    event.preventDefault();
-    _securityRedirectUrl = url;
-    const input = document.getElementById('securityPasswordInput');
-    const error = document.getElementById('securityPasswordError');
-    input.value = '';
-    error.classList.add('d-none');
-    error.textContent = '';
-    const modal = new bootstrap.Modal(document.getElementById('securityPasswordModal'));
-    modal.show();
-    setTimeout(() => input.focus(), 400);
-}
-
-document.addEventListener('DOMContentLoaded', function () {
-    // Submit on Enter key
-    document.getElementById('securityPasswordInput').addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') document.getElementById('securityPasswordSubmit').click();
-    });
-
-    // Toggle password visibility
-    document.getElementById('toggleSecurityPassword').addEventListener('click', function () {
-        const input = document.getElementById('securityPasswordInput');
-        const icon = this.querySelector('i');
-        if (input.type === 'password') {
-            input.type = 'text';
-            icon.classList.replace('fa-eye', 'fa-eye-slash');
-        } else {
-            input.type = 'password';
-            icon.classList.replace('fa-eye-slash', 'fa-eye');
-        }
-    });
-
-    // Verify button
-    document.getElementById('securityPasswordSubmit').addEventListener('click', function () {
-        const password = document.getElementById('securityPasswordInput').value;
-        const error = document.getElementById('securityPasswordError');
-        const btn = this;
-
-        if (!password) {
-            error.textContent = 'Please enter your password.';
-            error.classList.remove('d-none');
-            return;
-        }
-
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Verifying...';
-
-        fetch('/verify-access-password', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                'Accept': 'application/json',
-            },
-            body: JSON.stringify({ password })
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                bootstrap.Modal.getInstance(document.getElementById('securityPasswordModal')).hide();
-                window.location.href = _securityRedirectUrl;
-            } else {
-                error.textContent = data.message || 'Incorrect password.';
-                error.classList.remove('d-none');
-                document.getElementById('securityPasswordInput').value = '';
-                document.getElementById('securityPasswordInput').focus();
-            }
-        })
-        .catch(() => {
-            error.textContent = 'An error occurred. Please try again.';
-            error.classList.remove('d-none');
-        })
-        .finally(() => {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-unlock me-1"></i>Verify';
-        });
-    });
-});
-</script>
 </body>
 </html>
 <?php /**PATH C:\xampp\htdocs\Campfix\resources\views/layouts/app.blade.php ENDPATH**/ ?>

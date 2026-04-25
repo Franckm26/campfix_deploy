@@ -61,6 +61,66 @@
     text-align: center;
 }
 
+/* Reduce main content padding */
+.content > *:not(.top-header) {
+    padding: 20px !important;
+}
+
+/* Narrow sidebar to fit nav text */
+.sidebar {
+    width: 200px !important;
+}
+.content {
+    margin-left: 200px !important;
+    width: calc(100% - 200px) !important;
+}
+.sidebar a.active {
+    border-radius: 20px !important;
+    margin-left: 10px !important;
+    margin-right: 10px !important;
+}
+.sidebar a.active::after,
+.sidebar a.active::before {
+    display: none !important;
+}
+
+/* Fix modal scrolling - override app.css max-height */
+#modalMaterialsTable {
+    min-width: 0 !important;
+}
+.modal-dialog-scrollable .modal-content {
+    max-height: 90vh !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+.modal-dialog-scrollable form {
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+}
+.modal-dialog-scrollable .modal-body {
+    overflow-y: auto !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+}
+
+@media (max-width: 991px) {
+    .sidebar {
+        transform: translateX(-100%) !important;
+        width: 200px !important;
+    }
+    .sidebar.show {
+        transform: translateX(0) !important;
+    }
+    .content {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+}
+
 /* ── Global Dark Theme ── */
 [data-theme="dark"],
 [data-theme="dark"] html,
@@ -160,31 +220,31 @@ html[data-theme="dark"] body {
     <div class="sidebar-content">
         @auth
 
-        <a href="/dashboard" class="{{ Request::is('dashboard') ? 'active' : '' }}">
+        <a href="/dashboard" class="{{ Request::is('dashboard') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
             <i class="fas fa-home"></i> {{ app()->getLocale() === 'tl' ? 'Home' : 'Home' }}
         </a>
 
         {{-- Only show My Concerns for non-admin and non-maintenance users --}}
         @if(auth()->user()->role !== 'mis' && auth()->user()->role !== 'maintenance')
-            <a href="{{ route('concerns.my') }}" class="{{ Request::is('my-concerns') ? 'active' : '' }}">
+            <a href="{{ route('concerns.my') }}" class="{{ Request::is('my-concerns') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-clipboard-list"></i> {{ app()->getLocale() === 'tl' ? 'Aking Mga Concern' : 'My Concerns' }}
             </a>
 
             {{-- Only show My Events for faculty users --}}
             @if(auth()->user()->role === 'faculty')
-                <a href="{{ route('events.my') }}" class="{{ Request::is('my-events') ? 'active' : '' }}">
+                <a href="{{ route('events.my') }}" class="{{ Request::is('my-events') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
                     <i class="fas fa-calendar"></i> {{ app()->getLocale() === 'tl' ? 'Aking Mga Event' : 'My Events' }}
                 </a>
             @endif
         @elseif(auth()->user()->role === 'mis')
-            <a href="{{ route('concerns.my') }}" class="{{ Request::is('my-concerns') ? 'active' : '' }}">
+            <a href="{{ route('concerns.my') }}" class="{{ Request::is('my-concerns') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-clipboard-list"></i> My Concerns
             </a>
         @endif
 
         {{-- Only show Assigned Tasks for maintenance role --}}
         @if(auth()->user()->role === 'maintenance')
-            <a href="{{ route('reports.assigned') }}" class="{{ Request::is('reports/assigned*') ? 'active' : '' }}">
+            <a href="{{ route('reports.assigned') }}" class="{{ Request::is('reports/assigned*') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-tasks"></i> {{ app()->getLocale() === 'tl' ? 'Mga Nakatalagang Gawain' : 'Assigned Tasks' }}
             </a>
         @endif
@@ -192,19 +252,19 @@ html[data-theme="dark"] body {
         {{-- MIS navigation --}}
         @if(auth()->user()->role === 'mis')
 
-            <a href="/admin/mis-tasks" class="{{ Request::is('admin/mis-tasks') ? 'active' : '' }}">
+            <a href="/admin/mis-tasks" class="{{ Request::is('admin/mis-tasks') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-tasks"></i> {{ app()->getLocale() === 'tl' ? 'Gawain' : 'Task' }}
             </a>
 
-            <a href="/admin/users" class="{{ Request::is('admin/users') ? 'active' : '' }}">
+            <a href="/admin/users" class="{{ Request::is('admin/users') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-users"></i> {{ app()->getLocale() === 'tl' ? 'Mga Gumagamit' : 'Users' }}
             </a>
 
-            <a href="/admin/logs" class="{{ Request::is('admin/logs') ? 'active' : '' }}">
+            <a href="/admin/logs" class="{{ Request::is('admin/logs') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-history"></i> {{ app()->getLocale() === 'tl' ? 'Audit Logs' : 'Audit Logs' }}
             </a>
 
-            <a href="/settings" class="{{ Request::is('settings') ? 'active' : '' }}">
+            <a href="/settings" class="{{ Request::is('settings') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-cog"></i> {{ app()->getLocale() === 'tl' ? 'Mga Setting' : 'Settings' }}
             </a>
 
@@ -212,33 +272,33 @@ html[data-theme="dark"] body {
 
         {{-- Building Admin navigation --}}
         @if(auth()->user()->role === 'building_admin')
-            <a href="/admin/reports" class="{{ Request::is('admin/reports') ? 'active' : '' }}">
+            <a href="/admin/reports" class="{{ Request::is('admin/reports') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-chart-bar"></i> {{ app()->getLocale() === 'tl' ? 'Mga Ulat' : 'Reports' }}
             </a>
 
-            <a href="/admin/events" class="{{ Request::is('admin/events') ? 'active' : '' }}">
+            <a href="/admin/events" class="{{ Request::is('admin/events') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-calendar-alt"></i> {{ app()->getLocale() === 'tl' ? 'Mga Event' : 'Events' }}
             </a>
 
-            <a href="{{ route('events.my') }}" class="{{ Request::is('my-events') ? 'active' : '' }}">
+            <a href="{{ route('events.my') }}" class="{{ Request::is('my-events') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-calendar"></i> {{ app()->getLocale() === 'tl' ? 'Aking Mga Event' : 'My Events' }}
             </a>
 
-            <a href="/admin/logs" class="{{ Request::is('admin/logs') ? 'active' : '' }}">
+            <a href="/admin/logs" class="{{ Request::is('admin/logs') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-history"></i> Audit Logs
             </a>
         @endif
 
         {{-- School Admin, Academic Head, Program Head, Principal Assistant navigation --}}
         @if(in_array(auth()->user()->role, ['school_admin', 'academic_head', 'program_head', 'principal_assistant']))
-            <a href="{{ route('events.my') }}" class="{{ Request::is('my-events') ? 'active' : '' }}">
+            <a href="{{ route('events.my') }}" class="{{ Request::is('my-events') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-calendar"></i> {{ app()->getLocale() === 'tl' ? 'Aking Mga Event' : 'My Events' }}
             </a>
         @endif
 
         {{-- Settings — visible to all roles --}}
         @if(auth()->user()->role !== 'mis')
-            <a href="/settings" class="{{ Request::is('settings') ? 'active' : '' }}">
+            <a href="/settings" class="{{ Request::is('settings') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-cog"></i> {{ app()->getLocale() === 'tl' ? 'Mga Setting' : 'Settings' }}
             </a>
         @endif
@@ -361,7 +421,7 @@ html[data-theme="dark"] body {
 @auth
 <!-- Event Request Modal for Faculty -->
 <div class="modal fade" id="eventRequestModal" tabindex="-1" aria-labelledby="eventRequestModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="eventRequestModalLabel"><i class="fas fa-calendar-plus"></i> {{ app()->getLocale() === 'tl' ? 'Magsumite ng Facility Request' : 'Submit Facility Request' }}</h5>
@@ -522,7 +582,10 @@ html[data-theme="dark"] body {
                     <div class="mb-3">
                         <label for="modal_description" class="form-label">Description *</label>
                         <textarea class="form-control @error('description') is-invalid @enderror" id="modal_description" name="description" 
-                            rows="4" placeholder="Describe the event purpose and details..." required>{{ old('description') }}</textarea>
+                            rows="4" placeholder="Describe the event purpose and details..." required maxlength="500" oninput="updateDescCount()">{{ old('description') }}</textarea>
+                        <div class="d-flex justify-content-end">
+                            <small id="desc_char_count" class="text-muted">0 / 500</small>
+                        </div>
                         @error('description')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -541,24 +604,26 @@ html[data-theme="dark"] body {
                     <!-- Materials/Equipment Needed (Optional) -->
                     <div class="mb-3">
                         <label class="form-label">Materials/Equipment Needed (Optional)</label>
-                        <table class="table table-bordered" id="modalMaterialsTable">
+                        <div class="table-responsive">
+                        <table class="table table-bordered table-sm" id="modalMaterialsTable" style="min-width:0;">
                             <thead>
                                 <tr>
-                                    <th style="width: 80px;">Qty</th>
+                                    <th style="width: 70px;">Qty</th>
                                     <th>Item</th>
                                     <th>Purpose</th>
-                                    <th style="width: 50px;"></th>
+                                    <th style="width: 40px;"></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td><input type="number" class="form-control" name="materials[0][qty]" min="1" placeholder="1"></td>
-                                    <td><input type="text" class="form-control" name="materials[0][item]" placeholder="e.g., Projector, Chair, etc."></td>
-                                    <td><input type="text" class="form-control" name="materials[0][purpose]" placeholder="e.g., For presentation"></td>
+                                    <td><input type="number" class="form-control form-control-sm" name="materials[0][qty]" min="1" placeholder="1"></td>
+                                    <td><input type="text" class="form-control form-control-sm" name="materials[0][item]" placeholder="e.g., Projector"></td>
+                                    <td><input type="text" class="form-control form-control-sm" name="materials[0][purpose]" placeholder="e.g., For presentation"></td>
                                     <td><button type="button" class="btn btn-danger btn-sm" onclick="removeModalMaterialRow(this)"><i class="fas fa-times"></i></button></td>
                                 </tr>
                             </tbody>
                         </table>
+                        </div>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="addModalMaterialRow()">
                             <i class="fas fa-plus"></i> Add Item
                         </button>
@@ -1738,15 +1803,25 @@ document.addEventListener('DOMContentLoaded', function() {
     // Materials/Equipment dynamic rows for modal
     let modalMaterialRowCount = 1;
 
+    window.updateDescCount = function() {
+        var ta = document.getElementById('modal_description');
+        var counter = document.getElementById('desc_char_count');
+        if (ta && counter) {
+            var len = ta.value.length;
+            counter.textContent = len + ' / 500';
+            counter.style.color = len >= 480 ? '#dc3545' : '';
+        }
+    };
+
     window.addModalMaterialRow = function() {
         var table = document.getElementById('modalMaterialsTable');
         if (table) {
             var tbody = table.getElementsByTagName('tbody')[0];
             var newRow = tbody.insertRow();
             newRow.innerHTML = `
-                <td><input type="number" class="form-control" name="materials[${modalMaterialRowCount}][qty]" min="1" placeholder="1"></td>
-                <td><input type="text" class="form-control" name="materials[${modalMaterialRowCount}][item]" placeholder="e.g., Projector, Chair, etc."></td>
-                <td><input type="text" class="form-control" name="materials[${modalMaterialRowCount}][purpose]" placeholder="e.g., For presentation"></td>
+                <td><input type="number" class="form-control form-control-sm" name="materials[${modalMaterialRowCount}][qty]" min="1" placeholder="1"></td>
+                <td><input type="text" class="form-control form-control-sm" name="materials[${modalMaterialRowCount}][item]" placeholder="e.g., Projector"></td>
+                <td><input type="text" class="form-control form-control-sm" name="materials[${modalMaterialRowCount}][purpose]" placeholder="e.g., For presentation"></td>
                 <td><button type="button" class="btn btn-danger btn-sm" onclick="removeModalMaterialRow(this)"><i class="fas fa-times"></i></button></td>
             `;
             modalMaterialRowCount++;

@@ -5,8 +5,10 @@
 <?php $__env->stopSection(); ?>
 
 <?php $__env->startSection('page_title'); ?>
-<h2><i class="fas fa-user-tie"></i> Building Administrator Dashboard</h2>
-<p>Welcome, <?php echo e(auth()->user()->name); ?>!</p>
+<div style="display:flex;align-items:center;gap:12px">
+    <img src="<?php echo e(asset('Campfix/Images/images.png')); ?>" alt="STI Logo" style="height:40px">
+    <h2 style="margin:0">Home</h2>
+</div>
 <?php $__env->stopSection(); ?>
 
 <?php $__env->startSection('content'); ?>

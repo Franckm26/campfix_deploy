@@ -253,10 +253,8 @@
         <!-- Request Details Table -->
         <table class="details-table">
             <tr>
-                <th>Request No.:</th>
-                <td>{{ $eventRequest->id }}</td>
                 <th>Date Requested:</th>
-                <td>{{ $eventRequest->created_at->format('m/d/Y') }}</td>
+                <td colspan="3">{{ $eventRequest->created_at->format('m/d/Y') }}</td>
             </tr>
             <tr>
                 <th>Department:</th>
@@ -274,10 +272,7 @@
                 <th>Time Needed:</th>
                 <td>{{ \Carbon\Carbon::parse($eventRequest->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($eventRequest->end_time)->format('g:i A') }}</td>
             </tr>
-            <tr>
-                <th>Category:</th>
-                <td colspan="3">{{ ucfirst($eventRequest->category) }}</td>
-            </tr>
+            
         </table>
 
         <!-- Description -->

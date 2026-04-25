@@ -21,35 +21,29 @@
 <?php $__env->startSection('content'); ?>
 <div class="container-fluid px-3">
 
-    <div class="row mb-3 align-items-center">
-        <div class="col">
-        </div>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <ul class="nav nav-pills mb-0">
+            <li class="nav-item">
+                <a class="nav-link <?php echo e(!$isArchived ? 'active' : ''); ?>" href="<?php echo e(route('admin.logs')); ?>">
+                    <i class="fas fa-list me-1"></i> Active Logs
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link <?php echo e($isArchived ? 'active' : ''); ?>" href="<?php echo e(route('admin.logs', ['view' => 'archived'])); ?>">
+                    <i class="fas fa-archive me-1"></i> Archived Folders
+                </a>
+            </li>
+        </ul>
         <?php if(!$isArchived): ?>
-        <div class="col-auto">
-            <button class="btn btn-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#archiveAllModal">
-                <i class="fas fa-archive me-1"></i> Archive All Logs
-            </button>
-        </div>
+        <button class="btn btn-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#archiveAllModal">
+            <i class="fas fa-archive me-1"></i> Archive All Logs
+        </button>
         <?php endif; ?>
     </div>
 
     <?php if(session('success')): ?>
         <div class="alert alert-success alert-dismissible fade show py-2"><?php echo e(session('success')); ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
     <?php endif; ?>
-
-    
-    <ul class="nav nav-pills mb-3">
-        <li class="nav-item">
-            <a class="nav-link <?php echo e(!$isArchived ? 'active' : ''); ?>" href="<?php echo e(route('admin.logs')); ?>">
-                <i class="fas fa-list me-1"></i> Active Logs
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link <?php echo e($isArchived ? 'active' : ''); ?>" href="<?php echo e(route('admin.logs', ['view' => 'archived'])); ?>">
-                <i class="fas fa-archive me-1"></i> Archived Folders
-            </a>
-        </li>
-    </ul>
 
     
     <?php if($isArchived): ?>
@@ -119,7 +113,7 @@
                     <div class="modal-dialog modal-dialog-centered">
                         <div class="modal-content">
                             <div class="modal-header bg-success text-white">
-                                <h5 class="modal-title"><i class="fas fa-undo me-1"></i> Restore Folder</h5>
+                            <h5 class="modal-title"><i class="fas fa-undo"></i></h5>
                                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                             </div>
                             <div class="modal-body">
@@ -148,7 +142,7 @@
     <!-- Filters -->
     <div class="card mb-3">
         <div class="card-body py-2">
-            <form method="GET" action="<?php echo e(route('admin.logs')); ?>" class="row g-2 align-items-center">
+            <form method="GET" action="<?php echo e(route('admin.logs')); ?>" class="row g-2 align-items-end">
                 <div class="col-md-3">
                     <select name="action" class="form-select form-select-sm">
                         <option value="">All Actions</option>
@@ -188,7 +182,7 @@
                     <input type="date" name="date_to" class="form-control form-control-sm" value="<?php echo e(request('date_to')); ?>">
                 </div>
                 <div class="col-auto">
-                    <select name="per_page" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <select name="per_page" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width:110px;padding-right:2rem">
                         <option value="20"  <?php echo e((!request('per_page') || request('per_page') == '20') ? 'selected' : ''); ?>>20 / page</option>
                         <option value="50"  <?php echo e(request('per_page') == '50' ? 'selected' : ''); ?>>50 / page</option>
                         <option value="100" <?php echo e(request('per_page') == '100' ? 'selected' : ''); ?>>100 / page</option>
@@ -233,33 +227,55 @@
 
                                         // ── User updated (has changes diff) ──────────────────────
                                         if (!empty($changes)) {
-                                            $targetName = $log->properties['target_user_name']
+                                            $targetName = $log->metadata['target_user_name']
                                                 ?? (preg_match('/Updated user:\s*(.+)/i', $desc, $m) ? trim($m[1]) : null);
                                             if ($targetName) {
-                                                $friendlyLines[] = 'User: <strong>' . e($targetName) . '</strong> has been updated.';
+                                                $friendlyLines[] = 'Updated account of <strong>' . e($targetName) . '</strong>.';
                                             }
                                             foreach ($changes as $field => $diff) {
-                                                if (in_array($field, ['is_admin', 'department'])) continue;
-                                                $label = ucfirst(str_replace('_', ' ', $field));
-                                                $old   = $diff['old'] ?? '—';
-                                                $new   = $diff['new'] ?? '—';
+                                                $label = match($field) {
+                                                    'name'        => 'name',
+                                                    'email'       => 'email address',
+                                                    'role'        => 'role',
+                                                    'phone'       => 'phone number',
+                                                    'department'  => 'department',
+                                                    'student_id'  => 'student/employee ID',
+                                                    'permissions' => 'module access',
+                                                    'password'    => 'password',
+                                                    default       => strtolower(str_replace('_', ' ', $field)),
+                                                };
+                                                $oldVal = $diff['old'] ?? '';
+                                                $newVal = $diff['new'] ?? '';
                                                 if ($field === 'password') {
-                                                    $friendlyLines[] = 'Password has been changed.';
+                                                    $friendlyLines[] = 'The ' . $label . ' was changed.';
                                                 } else {
-                                                    $friendlyLines[] = e($label) . ' changed from <strong>' . e($old) . '</strong> to <strong>' . e($new) . '</strong>.';
+                                                    $friendlyLines[] = 'The ' . $label . ' was changed from <strong>' . e($oldVal ?: '(empty)') . '</strong> to <strong>' . e($newVal ?: '(empty)') . '</strong>.';
                                                 }
                                             }
 
+                                        // ── User updated but nothing changed ─────────────────────
+                                        } elseif ($action === 'user_updated') {
+                                            $targetName = $log->metadata['target_user_name']
+                                                ?? (preg_match('/Updated user:\s*(.+)/i', $desc, $m) ? trim($m[1]) : null);
+                                            $friendlyLines[] = 'Account of <strong>' . e($targetName ?? 'user') . '</strong> was saved — no field changes were detected.';
+
                                         // ── User created (new_values only) ───────────────────────
                                         } elseif ($log->new_values && !$log->old_values) {
-                                            $targetName = $log->properties['target_user_name'] ?? null;
+                                            $targetName = $log->metadata['target_user_name'] ?? null;
                                             if ($targetName) {
-                                                $friendlyLines[] = 'User: <strong>' . e($targetName) . '</strong> has been created.';
+                                                $friendlyLines[] = 'Created a new account for <strong>' . e($targetName) . '</strong>.';
                                             }
                                             foreach ($log->new_values as $field => $value) {
                                                 if (in_array($field, ['is_admin', 'department'])) continue;
-                                                $label = ucfirst(str_replace('_', ' ', $field));
-                                                $friendlyLines[] = e($label) . ': <strong>' . e($value ?? '—') . '</strong>.';
+                                                $label = match($field) {
+                                                    'name'       => 'name',
+                                                    'email'      => 'email address',
+                                                    'role'       => 'role',
+                                                    'phone'      => 'phone number',
+                                                    'student_id' => 'student/employee ID',
+                                                    default      => strtolower(str_replace('_', ' ', $field)),
+                                                };
+                                                $friendlyLines[] = 'The ' . $label . ' was set to <strong>' . e($value ?? '—') . '</strong>.';
                                             }
 
                                         // ── Notification sent — event approval chain ─────────────

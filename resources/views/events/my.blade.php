@@ -39,22 +39,14 @@
         </ul>
     </div>
 
-    <div class="row mb-4">
-        <div class="col-md-6">
-        </div>
-        <div class="col-md-6 text-end">
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#eventRequestModal">
-                <i class="fas fa-plus"></i> New Request
-            </button>
-        </div>
-    </div>
 
     @if(session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif
 
     <!-- Tabs Navigation -->
-    <ul class="nav nav-tabs mb-3" id="eventTabs" role="tablist">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <ul class="nav nav-tabs border-0 mb-0 flex-wrap" id="eventTabs" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link {{ ($viewType ?? 'active') === 'active' ? 'active' : '' }}"
                     id="active-tab" data-bs-toggle="tab" data-bs-target="#active-events"
@@ -89,6 +81,10 @@
             </button>
         </li>
     </ul>
+        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#eventRequestModal">
+            <i class="fas fa-plus"></i> New Request
+        </button>
+    </div>
 
     <!-- Tab Content -->
     <div class="tab-content show" id="eventTabContent">
@@ -103,11 +99,11 @@
                 <div class="card-body">
                     <form method="GET" action="{{ route('events.my') }}" class="row g-2 align-items-center" id="filterForm">
                         <input type="hidden" name="view" value="active">
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <input type="text" name="search" class="form-control form-control-sm" placeholder="Search by title..."
                                 value="{{ request('search') }}">
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <select name="status" class="form-select form-select-sm">
                                 <option value="">All Status</option>
                                 <option value="Pending" {{ request('status') == 'Pending' ? 'selected' : '' }}>Pending</option>
@@ -116,7 +112,7 @@
                                 <option value="Cancelled" {{ request('status') == 'Cancelled' ? 'selected' : '' }}>Cancelled</option>
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <select name="category" class="form-select form-select-sm">
                                 <option value="">All Categories</option>
                                 <option value="event" {{ request('category') == 'event' ? 'selected' : '' }}>Event</option>
@@ -126,11 +122,11 @@
                                 <option value="other" {{ request('category') == 'other' ? 'selected' : '' }}>Other</option>
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <input type="date" name="date_from" class="form-control form-control-sm" placeholder="From Date"
                                 value="{{ request('date_from') }}">
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <input type="date" name="date_to" class="form-control form-control-sm" placeholder="To Date"
                                 value="{{ request('date_to') }}">
                         </div>
@@ -251,11 +247,11 @@
                 <div class="card-body">
                     <form method="GET" action="{{ route('events.my') }}" class="row g-2 align-items-center">
                         <input type="hidden" name="view" value="archives">
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <input type="text" name="search" class="form-control form-control-sm" placeholder="Search by title..."
                                 value="{{ request('search') }}">
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <select name="status" class="form-select form-select-sm">
                                 <option value="">All Status</option>
                                 <option value="Pending" {{ request('status') == 'Pending' ? 'selected' : '' }}>Pending</option>
@@ -264,17 +260,17 @@
                                 <option value="Cancelled" {{ request('status') == 'Cancelled' ? 'selected' : '' }}>Cancelled</option>
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <select name="category" class="form-select form-select-sm">
                                 <option value="">All Categories</option>
                                 <option value="Area Use" {{ request('category') == 'Area Use' ? 'selected' : '' }}>Area Use</option>
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <input type="date" name="date_from" class="form-control form-control-sm" placeholder="From Date"
                                 value="{{ request('date_from') }}">
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <input type="date" name="date_to" class="form-control form-control-sm" placeholder="To Date"
                                 value="{{ request('date_to') }}">
                         </div>
@@ -382,11 +378,11 @@
                 <div class="card-body">
                     <form method="GET" action="{{ route('events.my') }}" class="row g-2 align-items-center">
                         <input type="hidden" name="view" value="deleted">
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <input type="text" name="search" class="form-control form-control-sm" placeholder="Search by title..."
                                 value="{{ request('search') }}">
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <select name="status" class="form-select form-select-sm">
                                 <option value="">All Status</option>
                                 <option value="Pending" {{ request('status') == 'Pending' ? 'selected' : '' }}>Pending</option>
@@ -395,18 +391,18 @@
                                 <option value="Cancelled" {{ request('status') == 'Cancelled' ? 'selected' : '' }}>Cancelled</option>
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <select name="category" class="form-select form-select-sm">
                                 <option value="">All Categories</option>
                                 <option value="Area Use" {{ request('category') == 'Area Use' ? 'selected' : '' }}>Area Use</option>
                             
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <input type="date" name="date_from" class="form-control form-control-sm" placeholder="From Date"
                                 value="{{ request('date_from') }}">
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <input type="date" name="date_to" class="form-control form-control-sm" placeholder="To Date"
                                 value="{{ request('date_to') }}">
                         </div>
@@ -698,9 +694,24 @@ function viewEvent(id) {
             materialsHtml = `
                 <div class="mt-3">
                     <p><strong>Materials Needed:</strong></p>
-                    <ul class="list-group list-group-flush">
-                        ${event.materials_needed.map(material => `<li class="list-group-item">${material}</li>`).join('')}
-                    </ul>
+                    <table class="table table-bordered table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Qty</th>
+                                <th>Item</th>
+                                <th>Purpose</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${event.materials_needed.map(m => `
+                                <tr>
+                                    <td>${m.qty ?? 1}</td>
+                                    <td>${m.item ?? 'N/A'}</td>
+                                    <td>${m.purpose ?? 'N/A'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
                 </div>
             `;
         }
@@ -1058,3 +1069,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 @endsection
+

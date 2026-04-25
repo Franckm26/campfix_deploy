@@ -38,20 +38,9 @@
     </div>
 
 
-    <div class="row mb-4">
-        <div class="col-md-6">
-        </div>
-        <div class="col-md-6 text-end">
-            <?php if(auth()->user()->role !== 'maintenance'): ?>
-                <button type="button" class="btn btn-primary" onclick="openNewConcernModal()">
-                    <i class="fas fa-plus"></i> New Concern
-                </button>
-            <?php endif; ?>
-        </div>
-    </div>
-
     <!-- Tabs Navigation -->
-    <ul class="nav nav-tabs mb-3" id="concernTabs" role="tablist">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <ul class="nav nav-tabs border-0 mb-0" id="concernTabs" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link <?php echo e(($viewType ?? 'active') === 'active' ? 'active' : ''); ?>" 
                     id="active-tab" data-bs-toggle="tab" data-bs-target="#active-concerns" 
@@ -96,7 +85,13 @@
                 <?php endif; ?>
             </button>
         </li>
-    </ul>
+        </ul>
+        <?php if(auth()->user()->role !== 'maintenance'): ?>
+            <button type="button" class="btn btn-primary btn-sm" onclick="openNewConcernModal()">
+                <i class="fas fa-plus"></i> New Concern
+            </button>
+        <?php endif; ?>
+    </div>
 
     <!-- Tab Content -->
     <div class="tab-content show" id="concernTabContent">
@@ -110,11 +105,11 @@
                 <div class="card-body">
                     <form method="GET" action="<?php echo e(route('concerns.my')); ?>" class="row g-2 align-items-center" id="filterForm">
                         <input type="hidden" name="view" value="active">
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <input type="text" name="search" class="form-control form-control-sm" placeholder="Search..." 
                                 value="<?php echo e(request('search')); ?>">
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <select name="category" class="form-select form-select-sm">
                                 <option value="">All Categories</option>
                                 <?php $__currentLoopData = $categories; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $category): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
@@ -125,7 +120,7 @@
                                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <select name="status" class="form-select form-select-sm">
                                 <option value="">All Status</option>
                                 <option value="Pending" <?php echo e(request('status') == 'Pending' ? 'selected' : ''); ?>>Pending</option>
@@ -134,7 +129,7 @@
                                 <option value="Resolved" <?php echo e(request('status') == 'Resolved' ? 'selected' : ''); ?>>Resolved</option>
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <select name="priority" class="form-select form-select-sm">
                                 <option value="">All Priority</option>
                                 <option value="low" <?php echo e(request('priority') == 'low' ? 'selected' : ''); ?>>Low</option>
@@ -293,11 +288,11 @@
                 <div class="card-body">
                     <form method="GET" action="<?php echo e(route('concerns.my')); ?>" class="row g-2 align-items-center" id="resolvedFilterForm">
                         <input type="hidden" name="view" value="resolved">
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <input type="text" name="search" class="form-control form-control-sm" placeholder="Search..." 
                                 value="<?php echo e(request('search')); ?>">
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <select name="category" class="form-select form-select-sm">
                                 <option value="">All Categories</option>
                                 <?php $__currentLoopData = $categories ?? []; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $category): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
@@ -308,7 +303,7 @@
                                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <select name="priority" class="form-select form-select-sm">
                                 <option value="">All Priority</option>
                                 <option value="low" <?php echo e(request('priority') == 'low' ? 'selected' : ''); ?>>Low</option>
@@ -441,11 +436,11 @@
                 <div class="card-body">
                     <form method="GET" action="<?php echo e(route('concerns.my')); ?>" class="row g-2 align-items-center" id="archiveFilterForm">
                         <input type="hidden" name="view" value="archives">
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <input type="text" name="search" class="form-control form-control-sm" placeholder="Search..." 
                                 value="<?php echo e(request('search')); ?>">
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <select name="category" class="form-select form-select-sm">
                                 <option value="">All Categories</option>
                                 <?php $__currentLoopData = $categories ?? []; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $category): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
@@ -456,7 +451,7 @@
                                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <select name="status" class="form-select form-select-sm">
                                 <option value="">All Status</option>
                                 <option value="Pending" <?php echo e(request('status') == 'Pending' ? 'selected' : ''); ?>>Pending</option>
@@ -536,7 +531,7 @@
                                                 </span>
                                             </td>
                                             <td><?php echo e($concern->archivedByUsers->first()?->name ?? 'Self'); ?></td>
-                                            <td><?php echo e($concern->archivedByUsers->first()?->pivot->archived_at ? \Carbon\Carbon::parse($concern->archivedByUsers->first()->pivot->archived_at)->format('M d, Y H:i') : $concern->updated_at->format('M d, Y')); ?></td>
+                                            <td><?php echo e($concern->archivedByUsers->first()?->pivot->archived_at ? \Carbon\Carbon::parse($concern->archivedByUsers->first()->pivot->archived_at)->format('M d, Y g:i A') : $concern->updated_at->format('M d, Y')); ?></td>
                                             <td>
                                                 <div class="btn-group" role="group">
                                                     <button type="button" class="btn btn-sm btn-info bg-transparent border-0" onclick="viewConcern(<?php echo e($concern->id); ?>)" title="View">
@@ -621,11 +616,11 @@
                 <div class="card-body">
                     <form method="GET" action="<?php echo e(route('concerns.my')); ?>" class="row g-2 align-items-center" id="deletedFilterForm">
                         <input type="hidden" name="view" value="deleted">
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <input type="text" name="search" class="form-control form-control-sm" placeholder="Search..." 
                                 value="<?php echo e(request('search')); ?>">
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <select name="category" class="form-select form-select-sm">
                                 <option value="">All Categories</option>
                                 <?php $__currentLoopData = $categories ?? []; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $category): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
@@ -636,7 +631,7 @@
                                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <select name="status" class="form-select form-select-sm">
                                 <option value="">All Status</option>
                                 <option value="Pending" <?php echo e(request('status') == 'Pending' ? 'selected' : ''); ?>>Pending</option>
@@ -716,7 +711,7 @@
                                                 </span>
                                             </td>
                                             <td><?php echo e($concern->deletedBy ? $concern->deletedBy->name : 'System'); ?></td>
-                                            <td><?php echo e($concern->deleted_at ? $concern->deleted_at->format('M d, Y H:i') : 'N/A'); ?></td>
+                                            <td><?php echo e($concern->deleted_at ? $concern->deleted_at->format('M d, Y g:i A') : 'N/A'); ?></td>
                                             <td>
                                                 <div class="btn-group" role="group">
                                                     <button type="button" class="btn btn-sm btn-info bg-transparent border-0" onclick="viewConcern(<?php echo e($concern->id); ?>)" title="View">
@@ -886,24 +881,49 @@
                 <h5 class="modal-title" id="permanentDeleteModalLabel"><i class="fas fa-exclamation-triangle"></i> Permanently Delete Concern</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="permanentDeleteConcernForm" method="POST">
-                <?php echo csrf_field(); ?>
-                <?php echo method_field('DELETE'); ?>
-                <div class="modal-body">
-                    <input type="hidden" id="permanentDeleteConcernId" name="concern_id" value="">
-                    <div class="alert alert-danger">
-                        <i class="fas fa-ban"></i> <strong>Warning:</strong> This action cannot be undone! The concern will be permanently removed from the database.
-                    </div>
-                    <p class="mb-0">Are you sure you want to permanently delete this concern?</p>
+            <div class="modal-body">
+                <input type="hidden" id="permanentDeleteConcernId" value="">
+                <div class="alert alert-danger">
+                    <i class="fas fa-ban"></i> <strong>Warning:</strong> This action cannot be undone! The concern will be permanently removed.
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-danger"><i class="fas fa-ban"></i> Permanent Delete</button>
-                </div>
-            </form>
+                <p class="mb-0">Are you sure you want to permanently delete this concern?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmPermanentDeleteBtn"><i class="fas fa-ban"></i> Permanent Delete</button>
+            </div>
         </div>
     </div>
 </div>
+
+<!-- Duplicate Concern Warning Modal -->
+<?php if(session('warning')): ?>
+<div class="modal fade" id="duplicateConcernWarningModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Concern Already Reported</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <div class="mb-3">
+                    <i class="fas fa-tools fa-3x text-warning"></i>
+                </div>
+                <p class="mb-0"><?php echo e(session('warning')); ?></p>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-warning" data-bs-dismiss="modal">Got it</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var warningModal = new bootstrap.Modal(document.getElementById('duplicateConcernWarningModal'));
+        warningModal.show();
+    });
+</script>
+<?php endif; ?>
 
 <!-- New Concern Modal -->
 <div class="modal fade" id="newConcernModal" tabindex="-1" aria-labelledby="newConcernModalLabel" aria-hidden="true">
@@ -925,7 +945,7 @@
                     <div class="mb-3">
                         <label for="new_category_id" class="form-label">Category *</label>
                         <select class="form-select" id="new_category_id" name="category_id" required>
-                            <option value="">Select a category</option>
+                            <option value="" disabled selected>Select a category</option>
                             <?php $__currentLoopData = $categories; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $category): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                 <option value="<?php echo e($category->id); ?>"><?php echo e($category->name); ?></option>
                             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
@@ -1442,12 +1462,45 @@ function softDeleteArchivedConcern(id) {
 
 // Permanent Delete Function
 function permanentDeleteConcern(id) {
-    document.getElementById('permanentDeleteConcernForm').action = '/concerns/' + id + '/permanent-delete';
     document.getElementById('permanentDeleteConcernId').value = id;
-    
     var modal = new bootstrap.Modal(document.getElementById('permanentDeleteModal'));
     modal.show();
 }
+
+document.addEventListener('DOMContentLoaded', function () {
+    document.getElementById('confirmPermanentDeleteBtn').addEventListener('click', function () {
+        var id = document.getElementById('permanentDeleteConcernId').value;
+        var btn = this;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+
+        fetch('/concerns/' + id + '/permanent-delete', {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>',
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(function (response) { return response.json(); })
+        .then(function (data) {
+            if (data.success) {
+                var modalEl = bootstrap.Modal.getInstance(document.getElementById('permanentDeleteModal'));
+                if (modalEl) modalEl.hide();
+                location.reload();
+            } else {
+                alert(data.error || 'Failed to delete concern.');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-ban"></i> Permanent Delete';
+            }
+        })
+        .catch(function () {
+            alert('An error occurred. Please try again.');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-ban"></i> Permanent Delete';
+        });
+    });
+});
 
 // Send Follow-up Function
 function sendFollowUp(id) {
@@ -2253,5 +2306,6 @@ if (assignConcernForm) {
         </div>
     </div>
 </div>
+
 
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\Campfix\resources\views/concerns/my.blade.php ENDPATH**/ ?>

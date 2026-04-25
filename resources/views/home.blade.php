@@ -280,18 +280,32 @@
                 </div>
                 <div style="margin-bottom: 18px;">
                     <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1e293b;">Password</label>
-                    <input type="password" name="password" id="login-password" required style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px;" placeholder="Enter your password">
+                    <div style="position: relative;">
+                        <input type="password" name="password" id="login-password" required style="width: 100%; padding: 12px 42px 12px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; box-sizing: border-box;" placeholder="Enter your password">
+                        <button type="button" onclick="toggleLoginPassword()" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #64748b; padding: 0;">
+                            <i id="login-eye-icon" class="fas fa-eye"></i>
+                        </button>
+                    </div>
                     <small id="login-password-error" style="color: #dc2626; font-size: 12px; display: none;"></small>
                 </div>
                 <button type="submit" id="login-submit" style="width: 100%; padding: 14px; background: #1e293b; color: white; border: none; border-radius: 8px; font-weight: 600; font-size: 16px; cursor: pointer;">Login</button>
             </form>
-            <p style="text-align: center; margin-top: 18px; color: #64748b; font-size: 14px;">
-                Forgot your password? <a href="#" style="color: #f59e0b; text-decoration: none;">Reset here</a>
-            </p>
         </div>
     </div>
 
     <script>
+        function toggleLoginPassword() {
+            const input = document.getElementById('login-password');
+            const icon = document.getElementById('login-eye-icon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        }
+
         function toggleMenu() {
             const navLinks = document.getElementById('navLinks');
             navLinks.classList.toggle('show');

@@ -12,9 +12,7 @@
 @section('content')
 <div class="container-fluid px-3">
     <div class="row mb-4">
-        <div class="col-md-6">
-        </div>
-        <div class="col-md-6 text-end">
+        <div class="col-12 text-end">
             <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#restoreAllModal">
                 <i class="fas fa-trash-restore"></i> Restore All
             </button>

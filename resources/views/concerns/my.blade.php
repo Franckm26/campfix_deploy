@@ -40,20 +40,9 @@
     </div>
 
 
-    <div class="row mb-4">
-        <div class="col-md-6">
-        </div>
-        <div class="col-md-6 text-end">
-            @if(auth()->user()->role !== 'maintenance')
-                <button type="button" class="btn btn-primary" onclick="openNewConcernModal()">
-                    <i class="fas fa-plus"></i> New Concern
-                </button>
-            @endif
-        </div>
-    </div>
-
     <!-- Tabs Navigation -->
-    <ul class="nav nav-tabs mb-3" id="concernTabs" role="tablist">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <ul class="nav nav-tabs border-0 mb-0" id="concernTabs" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link {{ ($viewType ?? 'active') === 'active' ? 'active' : '' }}" 
                     id="active-tab" data-bs-toggle="tab" data-bs-target="#active-concerns" 
@@ -98,7 +87,13 @@
                 @endif
             </button>
         </li>
-    </ul>
+        </ul>
+        @if(auth()->user()->role !== 'maintenance')
+            <button type="button" class="btn btn-primary btn-sm" onclick="openNewConcernModal()">
+                <i class="fas fa-plus"></i> New Concern
+            </button>
+        @endif
+    </div>
 
     <!-- Tab Content -->
     <div class="tab-content show" id="concernTabContent">
@@ -112,11 +107,11 @@
                 <div class="card-body">
                     <form method="GET" action="{{ route('concerns.my') }}" class="row g-2 align-items-center" id="filterForm">
                         <input type="hidden" name="view" value="active">
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <input type="text" name="search" class="form-control form-control-sm" placeholder="Search..." 
                                 value="{{ request('search') }}">
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <select name="category" class="form-select form-select-sm">
                                 <option value="">All Categories</option>
                                 @foreach($categories as $category)
@@ -126,7 +121,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <select name="status" class="form-select form-select-sm">
                                 <option value="">All Status</option>
                                 <option value="Pending" {{ request('status') == 'Pending' ? 'selected' : '' }}>Pending</option>
@@ -135,7 +130,7 @@
                                 <option value="Resolved" {{ request('status') == 'Resolved' ? 'selected' : '' }}>Resolved</option>
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <select name="priority" class="form-select form-select-sm">
                                 <option value="">All Priority</option>
                                 <option value="low" {{ request('priority') == 'low' ? 'selected' : '' }}>Low</option>
@@ -293,11 +288,11 @@
                 <div class="card-body">
                     <form method="GET" action="{{ route('concerns.my') }}" class="row g-2 align-items-center" id="resolvedFilterForm">
                         <input type="hidden" name="view" value="resolved">
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <input type="text" name="search" class="form-control form-control-sm" placeholder="Search..." 
                                 value="{{ request('search') }}">
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <select name="category" class="form-select form-select-sm">
                                 <option value="">All Categories</option>
                                 @foreach($categories ?? [] as $category)
@@ -307,7 +302,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <select name="priority" class="form-select form-select-sm">
                                 <option value="">All Priority</option>
                                 <option value="low" {{ request('priority') == 'low' ? 'selected' : '' }}>Low</option>
@@ -439,11 +434,11 @@
                 <div class="card-body">
                     <form method="GET" action="{{ route('concerns.my') }}" class="row g-2 align-items-center" id="archiveFilterForm">
                         <input type="hidden" name="view" value="archives">
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <input type="text" name="search" class="form-control form-control-sm" placeholder="Search..." 
                                 value="{{ request('search') }}">
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <select name="category" class="form-select form-select-sm">
                                 <option value="">All Categories</option>
                                 @foreach($categories ?? [] as $category)
@@ -453,7 +448,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <select name="status" class="form-select form-select-sm">
                                 <option value="">All Status</option>
                                 <option value="Pending" {{ request('status') == 'Pending' ? 'selected' : '' }}>Pending</option>
@@ -619,11 +614,11 @@
                 <div class="card-body">
                     <form method="GET" action="{{ route('concerns.my') }}" class="row g-2 align-items-center" id="deletedFilterForm">
                         <input type="hidden" name="view" value="deleted">
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <input type="text" name="search" class="form-control form-control-sm" placeholder="Search..." 
                                 value="{{ request('search') }}">
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <select name="category" class="form-select form-select-sm">
                                 <option value="">All Categories</option>
                                 @foreach($categories ?? [] as $category)
@@ -633,7 +628,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <select name="status" class="form-select form-select-sm">
                                 <option value="">All Status</option>
                                 <option value="Pending" {{ request('status') == 'Pending' ? 'selected' : '' }}>Pending</option>
@@ -2309,3 +2304,4 @@ if (assignConcernForm) {
         </div>
     </div>
 </div>
+

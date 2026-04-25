@@ -9,18 +9,7 @@
 
 <?php $__env->startSection('content'); ?>
 <div class="container-fluid px-3">
-    <div class="row mb-4">
-        <div class="col-md-6">
-        </div>
-        <div class="col-md-6 text-end">
-            <a href="<?php echo e(route('events.calendar')); ?>" class="btn btn-info">
-                <i class="fas fa-calendar"></i> Calendar View
-            </a>
-            <a href="<?php echo e(route('events.pending')); ?>" class="btn btn-secondary">
-                <i class="fas fa-hourglass-half"></i> Pending Only
-            </a>
-        </div>
-    </div>
+
 
     <?php if(session('success')): ?>
         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -112,66 +101,69 @@
     <!-- Filters -->
     <div class="card mb-4">
         <div class="card-body py-3">
-            <div class="row align-items-center g-2">
-                <div class="col-md-5">
-                    <ul class="nav nav-pills mb-0">
-                        <li class="nav-item">
-                            <a class="nav-link <?php echo e(($viewType ?? 'active') == 'active' ? 'active' : ''); ?>" href="<?php echo e(route('admin.events', ['view' => 'active'])); ?>">
-                                <i class="fas fa-calendar-check"></i> Active Events
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link <?php echo e(($viewType ?? '') == 'archives' ? 'active' : ''); ?>" href="<?php echo e(route('admin.events', ['view' => 'archives'])); ?>">
-                                <i class="fas fa-archive"></i> Archived Events
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link <?php echo e(($viewType ?? '') == 'deleted' ? 'active' : ''); ?>" href="<?php echo e(route('admin.events', ['view' => 'deleted'])); ?>" style="color: #dc3545;">
-                                <i class="fas fa-trash-alt"></i> Deleted Events
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-                <div class="col-md-7">
-                    <form method="GET" action="<?php echo e(route('admin.events')); ?>" class="row g-2 align-items-center">
-                        <input type="hidden" name="view" value="<?php echo e($viewType ?? 'active'); ?>">
-                        <div class="col-md-3">
-                            <input type="text" name="search" class="form-control form-control-sm" placeholder="Search by title..." 
-                                value="<?php echo e(request('search')); ?>">
-                        </div>
-                        <div class="col-md-2">
-                            <select name="status" class="form-select form-select-sm">
-                                <option value="">All Status</option>
-                                <option value="Pending" <?php echo e(request('status') == 'Pending' ? 'selected' : ''); ?>>Pending</option>
-                                <option value="Approved" <?php echo e(request('status') == 'Approved' ? 'selected' : ''); ?>>Approved</option>
-                                <option value="Rejected" <?php echo e(request('status') == 'Rejected' ? 'selected' : ''); ?>>Rejected</option>
-                                <option value="Cancelled" <?php echo e(request('status') == 'Cancelled' ? 'selected' : ''); ?>>Cancelled</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <select name="category" class="form-select form-select-sm">
-                                <option value="">All Categories</option>
-                                <option value="Area Use" <?php echo e(request('category') == 'Area Use' ? 'selected' : ''); ?>>Area Use</option>
-
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <input type="date" name="date_from" class="form-control form-control-sm" placeholder="From Date" 
-                                value="<?php echo e(request('date_from')); ?>">
-                        </div>
-                        <div class="col-md-2">
-                            <input type="date" name="date_to" class="form-control form-control-sm" placeholder="To Date" 
-                                value="<?php echo e(request('date_to')); ?>">
-                        </div>
-                        <div class="col-auto">
-                            <button type="submit" class="btn btn-primary btn-sm">Filter</button>
-                        </div>
-                        <div class="col-auto">
-                            <a href="<?php echo e(route('admin.events')); ?>" class="btn btn-secondary btn-sm"><i class="fas fa-times"></i></a>
-                        </div>
-                    </form>
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                <ul class="nav nav-pills mb-0 flex-wrap">
+                    <li class="nav-item">
+                        <a class="nav-link <?php echo e(($viewType ?? 'active') == 'active' ? 'active' : ''); ?>" href="<?php echo e(route('admin.events', ['view' => 'active'])); ?>">
+                            <i class="fas fa-calendar-check"></i> Active Events
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?php echo e(($viewType ?? '') == 'archives' ? 'active' : ''); ?>" href="<?php echo e(route('admin.events', ['view' => 'archives'])); ?>">
+                            <i class="fas fa-archive"></i> Archived Events
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?php echo e(($viewType ?? '') == 'deleted' ? 'active' : ''); ?>" href="<?php echo e(route('admin.events', ['view' => 'deleted'])); ?>" style="color: #dc3545;">
+                            <i class="fas fa-trash-alt"></i> Deleted Events
+                        </a>
+                    </li>
+                </ul>
+                <div>
+                    <a href="<?php echo e(route('events.calendar')); ?>" class="btn btn-info btn-sm">
+                        <i class="fas fa-calendar"></i> Calendar View
+                    </a>
+                    <a href="<?php echo e(route('events.pending')); ?>" class="btn btn-secondary btn-sm ms-1">
+                        <i class="fas fa-hourglass-half"></i> Pending Only
+                    </a>
                 </div>
             </div>
+            <form method="GET" action="<?php echo e(route('admin.events')); ?>">
+                <input type="hidden" name="view" value="<?php echo e($viewType ?? 'active'); ?>">
+                <div class="row g-2">
+                    <div class="col-12 col-md">
+                        <input type="text" name="search" class="form-control form-control-sm" placeholder="Search by title..."
+                            value="<?php echo e(request('search')); ?>">
+                    </div>
+                    <div class="col-6 col-md">
+                        <select name="status" class="form-select form-select-sm">
+                            <option value="">All Status</option>
+                            <option value="Pending" <?php echo e(request('status') == 'Pending' ? 'selected' : ''); ?>>Pending</option>
+                            <option value="Approved" <?php echo e(request('status') == 'Approved' ? 'selected' : ''); ?>>Approved</option>
+                            <option value="Rejected" <?php echo e(request('status') == 'Rejected' ? 'selected' : ''); ?>>Rejected</option>
+                            <option value="Cancelled" <?php echo e(request('status') == 'Cancelled' ? 'selected' : ''); ?>>Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md">
+                        <select name="category" class="form-select form-select-sm">
+                            <option value="">All Categories</option>
+                            <option value="Area Use" <?php echo e(request('category') == 'Area Use' ? 'selected' : ''); ?>>Area Use</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md">
+                        <input type="date" name="date_from" class="form-control form-control-sm"
+                            value="<?php echo e(request('date_from')); ?>">
+                    </div>
+                    <div class="col-6 col-md">
+                        <input type="date" name="date_to" class="form-control form-control-sm"
+                            value="<?php echo e(request('date_to')); ?>">
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+                        <a href="<?php echo e(route('admin.events')); ?>" class="btn btn-secondary btn-sm ms-1"><i class="fas fa-times"></i></a>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -236,7 +228,7 @@
                                 <span class="badge bg-info"><?php echo e(ucfirst($request->category)); ?></span>
                             </td>
                             <td><?php echo e(\Carbon\Carbon::parse($request->event_date)->format('M d, Y')); ?></td>
-                            <td><?php echo e($request->start_time); ?> - <?php echo e($request->end_time); ?></td>
+                            <td><?php echo e(\Carbon\Carbon::parse($request->start_time)->format('g:i A')); ?> - <?php echo e(\Carbon\Carbon::parse($request->end_time)->format('g:i A')); ?></td>
                             <td><?php echo e($request->location); ?></td>
                             <td>
                                 <span class="badge bg-<?php echo e($request->status == 'Approved' ? 'success' : 
@@ -309,7 +301,7 @@
                                             <div class="col-md-6">
                                                 <p><strong>Requestor:</strong> <?php echo e($request->user->name ?? 'N/A'); ?></p>
                                                 <p><strong>Event Date:</strong> <?php echo e(\Carbon\Carbon::parse($request->event_date)->format('M d, Y')); ?></p>
-                                                <p><strong>Time:</strong> <?php echo e($request->start_time); ?> - <?php echo e($request->end_time); ?></p>
+                                                <p><strong>Time:</strong> <?php echo e(\Carbon\Carbon::parse($request->start_time)->format('g:i A')); ?> - <?php echo e(\Carbon\Carbon::parse($request->end_time)->format('g:i A')); ?></p>
                                                 <p><strong>Location:</strong> <?php echo e($request->location); ?></p>
                                             </div>
                                         </div>
@@ -436,7 +428,7 @@
                                                 <span class="badge bg-info"><?php echo e(ucfirst($event->category)); ?></span>
                                             </td>
                                             <td><?php echo e(\Carbon\Carbon::parse($event->event_date)->format('M d, Y')); ?></td>
-                                            <td><?php echo e($event->start_time); ?> - <?php echo e($event->end_time); ?></td>
+                                            <td><?php echo e(\Carbon\Carbon::parse($event->start_time)->format('g:i A')); ?> - <?php echo e(\Carbon\Carbon::parse($event->end_time)->format('g:i A')); ?></td>
                                             <td><?php echo e($event->location); ?></td>
                                             <td>
                                                 <span class="badge bg-<?php echo e($event->status == 'Approved' ? 'success' :
@@ -490,7 +482,7 @@
                                                             <div class="col-md-6">
                                                                 <p><strong>Requestor:</strong> <?php echo e($event->user->name ?? 'N/A'); ?></p>
                                                                 <p><strong>Event Date:</strong> <?php echo e(\Carbon\Carbon::parse($event->event_date)->format('M d, Y')); ?></p>
-                                                                <p><strong>Time:</strong> <?php echo e($event->start_time); ?> - <?php echo e($event->end_time); ?></p>
+                                                                <p><strong>Time:</strong> <?php echo e(\Carbon\Carbon::parse($event->start_time)->format('g:i A')); ?> - <?php echo e(\Carbon\Carbon::parse($event->end_time)->format('g:i A')); ?></p>
                                                                 <p><strong>Location:</strong> <?php echo e($event->location); ?></p>
                                                             </div>
                                                         </div>
@@ -550,31 +542,17 @@
         <div class="alert alert-danger"><?php echo e(session('error')); ?></div>
     <?php endif; ?>
 
-    <!-- Info Card -->
+    <!-- Info + Auto-filter Card -->
     <div class="card mb-4 border-warning">
-        <div class="card-body bg-warning bg-opacity-10">
-            <div class="row align-items-center">
-                <div class="col-12">
-                    <h5 class="mb-1"><i class="fas fa-info-circle"></i> About Deleted Events</h5>
-                    <p class="mb-0 text-muted">Events that have been deleted are moved here. You can restore them to their original state or permanently delete them. Once permanently deleted, events cannot be recovered.</p>
+        <div class="card-body bg-warning bg-opacity-10 py-2">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <strong><i class="fas fa-info-circle"></i> About Deleted Events</strong>
+                    <p class="mb-0 text-muted small">Events deleted are moved here. Restore or permanently delete them.</p>
                 </div>
-                <div class="col-md-4 text-end">
-                    <span class="badge bg-warning fs-5"><?php echo e($deletedEvents->count()); ?> events</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Auto-filter Settings -->
-    <div class="card mb-4 border-info">
-        <div class="card-body">
-            <div class="row align-items-center">
-                <div class="col-md-8">
-                    <h5 class="mb-1"><i class="fas fa-clock"></i> Auto-filter Settings</h5>
-                    <p class="mb-0 text-muted">Show events that have been deleted for the selected period or less.</p>
-                </div>
-                <div class="col-md-4">
-                    <select id="retentionDays" class="form-select">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="badge bg-warning fs-6"><?php echo e($deletedEvents->count()); ?> events</span>
+                    <select id="retentionDays" class="form-select form-select-sm" style="width:120px;">
                         <option value="3" <?php echo e(($days ?? 15) == 3 ? 'selected' : ''); ?>>3 days</option>
                         <option value="7" <?php echo e(($days ?? 15) == 7 ? 'selected' : ''); ?>>7 days</option>
                         <option value="15" <?php echo e(($days ?? 15) == 15 ? 'selected' : ''); ?>>15 days</option>
@@ -752,7 +730,7 @@
                                                     <div class="col-md-6">
                                                         <p><strong>Requestor:</strong> <?php echo e($event->user->name ?? 'N/A'); ?></p>
                                                         <p><strong>Event Date:</strong> <?php echo e(\Carbon\Carbon::parse($event->event_date)->format('M d, Y')); ?></p>
-                                                        <p><strong>Time:</strong> <?php echo e($event->start_time); ?> - <?php echo e($event->end_time); ?></p>
+                                                        <p><strong>Time:</strong> <?php echo e(\Carbon\Carbon::parse($event->start_time)->format('g:i A')); ?> - <?php echo e(\Carbon\Carbon::parse($event->end_time)->format('g:i A')); ?></p>
                                                         <p><strong>Location:</strong> <?php echo e($event->location); ?></p>
                                                     </div>
                                                 </div>
@@ -1100,5 +1078,6 @@ function executeEventAction(type, id) {
 <?php endif; ?>
 
 <?php $__env->stopSection(); ?>
+
 
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\Campfix\resources\views/admin/events.blade.php ENDPATH**/ ?>

@@ -39,22 +39,14 @@
         </ul>
     </div>
 
-    <div class="row mb-4">
-        <div class="col-md-6">
-        </div>
-        <div class="col-md-6 text-end">
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#eventRequestModal">
-                <i class="fas fa-plus"></i> New Request
-            </button>
-        </div>
-    </div>
 
     <?php if(session('success')): ?>
         <div class="alert alert-success"><?php echo e(session('success')); ?></div>
     <?php endif; ?>
 
     <!-- Tabs Navigation -->
-    <ul class="nav nav-tabs mb-3" id="eventTabs" role="tablist">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <ul class="nav nav-tabs border-0 mb-0 flex-wrap" id="eventTabs" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link <?php echo e(($viewType ?? 'active') === 'active' ? 'active' : ''); ?>"
                     id="active-tab" data-bs-toggle="tab" data-bs-target="#active-events"
@@ -89,6 +81,10 @@
             </button>
         </li>
     </ul>
+        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#eventRequestModal">
+            <i class="fas fa-plus"></i> New Request
+        </button>
+    </div>
 
     <!-- Tab Content -->
     <div class="tab-content show" id="eventTabContent">
@@ -103,11 +99,11 @@
                 <div class="card-body">
                     <form method="GET" action="<?php echo e(route('events.my')); ?>" class="row g-2 align-items-center" id="filterForm">
                         <input type="hidden" name="view" value="active">
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <input type="text" name="search" class="form-control form-control-sm" placeholder="Search by title..."
                                 value="<?php echo e(request('search')); ?>">
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <select name="status" class="form-select form-select-sm">
                                 <option value="">All Status</option>
                                 <option value="Pending" <?php echo e(request('status') == 'Pending' ? 'selected' : ''); ?>>Pending</option>
@@ -116,7 +112,7 @@
                                 <option value="Cancelled" <?php echo e(request('status') == 'Cancelled' ? 'selected' : ''); ?>>Cancelled</option>
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <select name="category" class="form-select form-select-sm">
                                 <option value="">All Categories</option>
                                 <option value="event" <?php echo e(request('category') == 'event' ? 'selected' : ''); ?>>Event</option>
@@ -126,11 +122,11 @@
                                 <option value="other" <?php echo e(request('category') == 'other' ? 'selected' : ''); ?>>Other</option>
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <input type="date" name="date_from" class="form-control form-control-sm" placeholder="From Date"
                                 value="<?php echo e(request('date_from')); ?>">
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <input type="date" name="date_to" class="form-control form-control-sm" placeholder="To Date"
                                 value="<?php echo e(request('date_to')); ?>">
                         </div>
@@ -186,7 +182,7 @@
                                                 </span>
                                             </td>
                                             <td><?php echo e(\Carbon\Carbon::parse($request->event_date)->format('M d, Y')); ?></td>
-                                            <td><?php echo e($request->start_time); ?> - <?php echo e($request->end_time); ?></td>
+                                            <td><?php echo e(\Carbon\Carbon::parse($request->start_time)->format('g:i A')); ?> - <?php echo e(\Carbon\Carbon::parse($request->end_time)->format('g:i A')); ?></td>
                                             <td><?php echo e($request->location); ?></td>
                                             <td>
                                                 <span class="badge bg-<?php echo e($request->status == 'Approved' ? 'success' :
@@ -251,11 +247,11 @@
                 <div class="card-body">
                     <form method="GET" action="<?php echo e(route('events.my')); ?>" class="row g-2 align-items-center">
                         <input type="hidden" name="view" value="archives">
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <input type="text" name="search" class="form-control form-control-sm" placeholder="Search by title..."
                                 value="<?php echo e(request('search')); ?>">
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <select name="status" class="form-select form-select-sm">
                                 <option value="">All Status</option>
                                 <option value="Pending" <?php echo e(request('status') == 'Pending' ? 'selected' : ''); ?>>Pending</option>
@@ -264,17 +260,17 @@
                                 <option value="Cancelled" <?php echo e(request('status') == 'Cancelled' ? 'selected' : ''); ?>>Cancelled</option>
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <select name="category" class="form-select form-select-sm">
                                 <option value="">All Categories</option>
                                 <option value="Area Use" <?php echo e(request('category') == 'Area Use' ? 'selected' : ''); ?>>Area Use</option>
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <input type="date" name="date_from" class="form-control form-control-sm" placeholder="From Date"
                                 value="<?php echo e(request('date_from')); ?>">
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <input type="date" name="date_to" class="form-control form-control-sm" placeholder="To Date"
                                 value="<?php echo e(request('date_to')); ?>">
                         </div>
@@ -330,7 +326,7 @@
                                                 </span>
                                             </td>
                                             <td><?php echo e(\Carbon\Carbon::parse($request->event_date)->format('M d, Y')); ?></td>
-                                            <td><?php echo e($request->start_time); ?> - <?php echo e($request->end_time); ?></td>
+                                            <td><?php echo e(\Carbon\Carbon::parse($request->start_time)->format('g:i A')); ?> - <?php echo e(\Carbon\Carbon::parse($request->end_time)->format('g:i A')); ?></td>
                                             <td><?php echo e($request->location); ?></td>
                                             <td>
                                                 <span class="badge bg-<?php echo e($request->status == 'Approved' ? 'success' : ($request->status == 'Rejected' ? 'danger' : ($request->status == 'Cancelled' ? 'secondary' : 'warning'))); ?>">
@@ -384,11 +380,11 @@
                 <div class="card-body">
                     <form method="GET" action="<?php echo e(route('events.my')); ?>" class="row g-2 align-items-center">
                         <input type="hidden" name="view" value="deleted">
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <input type="text" name="search" class="form-control form-control-sm" placeholder="Search by title..."
                                 value="<?php echo e(request('search')); ?>">
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <select name="status" class="form-select form-select-sm">
                                 <option value="">All Status</option>
                                 <option value="Pending" <?php echo e(request('status') == 'Pending' ? 'selected' : ''); ?>>Pending</option>
@@ -397,18 +393,18 @@
                                 <option value="Cancelled" <?php echo e(request('status') == 'Cancelled' ? 'selected' : ''); ?>>Cancelled</option>
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <select name="category" class="form-select form-select-sm">
                                 <option value="">All Categories</option>
                                 <option value="Area Use" <?php echo e(request('category') == 'Area Use' ? 'selected' : ''); ?>>Area Use</option>
                             
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <input type="date" name="date_from" class="form-control form-control-sm" placeholder="From Date"
                                 value="<?php echo e(request('date_from')); ?>">
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-6 col-md">
                             <input type="date" name="date_to" class="form-control form-control-sm" placeholder="To Date"
                                 value="<?php echo e(request('date_to')); ?>">
                         </div>
@@ -464,7 +460,7 @@
                                                 </span>
                                             </td>
                                             <td><?php echo e(\Carbon\Carbon::parse($request->event_date)->format('M d, Y')); ?></td>
-                                            <td><?php echo e($request->start_time); ?> - <?php echo e($request->end_time); ?></td>
+                                            <td><?php echo e(\Carbon\Carbon::parse($request->start_time)->format('g:i A')); ?> - <?php echo e(\Carbon\Carbon::parse($request->end_time)->format('g:i A')); ?></td>
                                             <td><?php echo e($request->location); ?></td>
                                             <td>
                                                 <span class="badge bg-<?php echo e($request->status == 'Approved' ? 'success' : ($request->status == 'Rejected' ? 'danger' : ($request->status == 'Cancelled' ? 'secondary' : 'warning'))); ?>">
@@ -648,6 +644,13 @@
 
 <script>
 // View Event Modal
+function formatTime12(t) {
+    if (!t) return '';
+    const [h, m] = t.split(':');
+    const hour = parseInt(h, 10);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    return (hour % 12 || 12) + ':' + m + ' ' + ampm;
+}
 function viewEvent(id) {
     const modal = new bootstrap.Modal(document.getElementById('viewEventModal'));
     const contentDiv = document.getElementById('viewEventContent');
@@ -695,9 +698,24 @@ function viewEvent(id) {
             materialsHtml = `
                 <div class="mt-3">
                     <p><strong>Materials Needed:</strong></p>
-                    <ul class="list-group list-group-flush">
-                        ${event.materials_needed.map(material => `<li class="list-group-item">${material}</li>`).join('')}
-                    </ul>
+                    <table class="table table-bordered table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Qty</th>
+                                <th>Item</th>
+                                <th>Purpose</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${event.materials_needed.map(m => `
+                                <tr>
+                                    <td>${m.qty ?? 1}</td>
+                                    <td>${m.item ?? 'N/A'}</td>
+                                    <td>${m.purpose ?? 'N/A'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
                 </div>
             `;
         }
@@ -794,7 +812,7 @@ function viewEvent(id) {
                 <div class="col-md-6">
                     <p><strong>Category:</strong> ${categoryBadge}</p>
                     <p><strong>Date:</strong> ${new Date(event.event_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                    <p><strong>Time:</strong> ${event.start_time} - ${event.end_time}</p>
+                    <p><strong>Time:</strong> ${formatTime12(event.start_time)} - ${formatTime12(event.end_time)}</p>
                 </div>
                 <div class="col-md-6">
                     <p><strong>Location:</strong> ${event.location}</p>
@@ -1055,5 +1073,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <?php $__env->stopSection(); ?>
+
 
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\Campfix\resources\views/events/my.blade.php ENDPATH**/ ?>

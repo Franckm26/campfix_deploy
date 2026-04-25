@@ -1532,6 +1532,7 @@ class EventRequestController extends Controller
         $data['room_number'] = $event->room_number;
         $data['area_of_use'] = $event->area_of_use;
         $data['other_category'] = $event->other_category;
+        $data['materials_needed'] = $event->materials_needed ?? [];
 
         if ($event->user_id === $user->id || $this->eventUserCanApprove($user)) {
             $data['notes'] = $event->notes;
