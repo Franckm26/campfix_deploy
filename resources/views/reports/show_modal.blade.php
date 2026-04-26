@@ -9,7 +9,7 @@
                 Report Details
                 <div>
                     <span class="badge bg-{{ $report->severity === 'Critical' ? 'danger' : ($report->severity === 'High' ? 'warning' : 'secondary') }} me-2">
-                        {{ ucfirst($report->severity) }} Severity
+                        {{ ucfirst($report->severity) }} Priority
                     </span>
                     <span class="badge bg-{{ $report->status === 'Resolved' ? 'success' : ($report->status === 'In Progress' ? 'warning' : 'primary') }}">
                         {{ $report->status }}

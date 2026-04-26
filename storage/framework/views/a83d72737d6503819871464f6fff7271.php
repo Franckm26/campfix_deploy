@@ -121,6 +121,19 @@
     }
 }
 
+/* Make asterisks red for required fields */
+.required-asterisk {
+    color: #dc3545 !important;
+    font-weight: bold;
+}
+
+/* Fallback styling */
+.text-danger {
+    color: #dc3545 !important;
+}
+</style>
+
+<style>
 /* ── Global Dark Theme ── */
 [data-theme="dark"],
 [data-theme="dark"] html,
@@ -205,6 +218,67 @@ html[data-theme="dark"] body {
 [data-theme="dark"] .avatar-sm { border-color: #2a2a45 !important; }
 [data-theme="dark"] .role-badge { opacity: 0.9; }
 </style>
+
+<script>
+// Make all asterisks in labels red
+document.addEventListener('DOMContentLoaded', function() {
+    function makeAsterisksRed() {
+        // Find all labels and form-labels
+        const labels = document.querySelectorAll('label, .form-label');
+        
+        labels.forEach(function(label) {
+            // Check if the label contains an asterisk
+            if (label.textContent.includes('*')) {
+                // Replace asterisk with red-colored span
+                label.innerHTML = label.innerHTML.replace(/\*/g, '<span class="required-asterisk">*</span>');
+            }
+        });
+    }
+    
+    // Run initially
+    makeAsterisksRed();
+    
+    // Run again after any dynamic content is loaded (for modals, AJAX, etc.)
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                // Check if any new labels were added
+                mutation.addedNodes.forEach(function(node) {
+                    if (node.nodeType === 1) { // Element node
+                        const newLabels = node.querySelectorAll ? node.querySelectorAll('label, .form-label') : [];
+                        newLabels.forEach(function(label) {
+                            if (label.textContent.includes('*')) {
+                                label.innerHTML = label.innerHTML.replace(/\*/g, '<span class="required-asterisk">*</span>');
+                            }
+                        });
+                    }
+                });
+            }
+        });
+    });
+    
+    // Start observing
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+});
+                                label.innerHTML = label.innerHTML.replace(/\*/g, '<span class="required-asterisk">*</span>');
+                            }
+                        });
+                    }
+                });
+            }
+        });
+    });
+    
+    // Start observing
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+});
+</script>
 </head>
 <body data-user-timezone="<?php echo e(auth()->check() ? auth()->user()->timezone : config('app.timezone')); ?>" data-user-locale="<?php echo e(app()->getLocale()); ?>" data-user-date-format="<?php echo e($userDateFormat ?? 'Y-m-d'); ?>">
 
@@ -248,7 +322,7 @@ html[data-theme="dark"] body {
         
         <?php if(auth()->user()->role === 'maintenance'): ?>
             <a href="<?php echo e(route('reports.assigned')); ?>" class="<?php echo e(Request::is('reports/assigned*') ? 'active' : ''); ?>" style="padding-top:8px;padding-bottom:8px;">
-                <i class="fas fa-tasks"></i> <?php echo e(app()->getLocale() === 'tl' ? 'Mga Nakatalagang Gawain' : 'Assigned Tasks'); ?>
+                <i class="fas fa-tasks"></i> <?php echo e(app()->getLocale() === 'tl' ? 'Mga Gawain' : 'Tasks'); ?>
 
             </a>
         <?php endif; ?>
@@ -439,7 +513,7 @@ html[data-theme="dark"] body {
     <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="eventRequestModalLabel"><i class="fas fa-calendar-plus"></i> <?php echo e(app()->getLocale() === 'tl' ? 'Magsumite ng Facility Request' : 'Submit Facility Request'); ?></h5>
+                <h5 class="modal-title" id="eventRequestModalLabel"><i class="fas fa-calendar-plus"></i> <?php echo e(app()->getLocale() === 'tl' ? 'Magsumite ng Event Request' : 'Submit Event Request'); ?></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="eventRequestForm" action="<?php echo e(route('events.store')); ?>" method="POST" enctype="multipart/form-data">
@@ -751,7 +825,10 @@ $message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
 if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>" id="modal_description" name="description" 
-                            rows="4" placeholder="Describe the event purpose and details..." required><?php echo e(old('description')); ?></textarea>
+                            rows="4" placeholder="Describe the event purpose and details..." required maxlength="500" oninput="updateDescCount()"><?php echo e(old('description')); ?></textarea>
+                        <div class="d-flex justify-content-end">
+                            <small id="desc_char_count" class="text-muted">0 / 500</small>
+                        </div>
                         <?php $__errorArgs = ['description'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
 if ($__bag->has($__errorArgs[0])) :
@@ -1977,6 +2054,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Materials/Equipment dynamic rows for modal
     let modalMaterialRowCount = 1;
+
+    window.updateDescCount = function() {
+        var ta = document.getElementById('modal_description');
+        var counter = document.getElementById('desc_char_count');
+        if (ta && counter) {
+            var len = ta.value.length;
+            counter.textContent = len + ' / 500';
+            counter.style.color = len >= 480 ? '#dc3545' : '';
+        }
+    };
 
     window.addModalMaterialRow = function() {
         var table = document.getElementById('modalMaterialsTable');

@@ -50,9 +50,9 @@
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label">Severity</label>
+                    <label class="form-label">Priority</label>
                     <select name="severity" class="form-select form-select-sm">
-                        <option value="">All Severity</option>
+                        <option value="">All Priority</option>
                         <option value="low" {{ request('severity') == 'low' ? 'selected' : '' }}>Low</option>
                         <option value="medium" {{ request('severity') == 'medium' ? 'selected' : '' }}>Medium</option>
                         <option value="high" {{ request('severity') == 'high' ? 'selected' : '' }}>High</option>
@@ -94,7 +94,7 @@
                                 <th>Title</th>
                                 <th>Category</th>
                                 <th>Location</th>
-                                <th>Severity</th>
+                                <th>Priority</th>
                                 <th>Status</th>
                                 <th>Deleted By</th>
                                 <th>Deleted At</th>

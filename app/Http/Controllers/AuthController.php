@@ -179,7 +179,13 @@ class AuthController extends Controller
         // Manual UTC timestamp comparison to avoid casting issues
         $expiresAt = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $user->otp_expires_at->format('Y-m-d H:i:s'), 'UTC');
         $currentTime = now()->utc();
-        if (\Illuminate\Support\Facades\Hash::check($request->otp, $user->otp) && $expiresAt->gt($currentTime)) {
+        
+        // Check if OTP is expired
+        if ($expiresAt->lte($currentTime)) {
+            return back()->with('error', 'OTP has expired. Please request a new code.');
+        }
+        
+        if (\Illuminate\Support\Facades\Hash::check($request->otp, $user->otp)) {
             Auth::login($user);
 
             // ── Single-session enforcement ──────────────────────────────
@@ -223,7 +229,7 @@ class AuthController extends Controller
         }
 
         $user->increment('otp_attempts');
-        return back()->with('error', 'Invalid or expired OTP');
+        return back()->with('error', 'Invalid OTP code');
     }
 
     // Handle OTP delivery choice and send OTP
@@ -319,7 +325,7 @@ class AuthController extends Controller
         }
 
         // Store delivery info for the verify page
-        session(['otp_delivery' => $deliveryMethod, 'otp_destination' => $destination]);
+        session(['otp_delivery' => $deliveryMethod, 'otp_destination' => $destination, 'reset_timer' => true]);
 
         return redirect('/verify-otp')->with('success', "OTP sent to your {$deliveryMethod}.");
     }
@@ -338,8 +344,11 @@ class AuthController extends Controller
             return redirect('/')->with('error', 'User not found.');
         }
 
-        // Instead of auto-resending, redirect to choice page
-        return redirect('/otp-choice')->with('info', 'Choose how to receive your OTP.');
+        // Clear the old timer from session storage by redirecting with a flag
+        return redirect('/otp-choice')->with([
+            'info' => 'Choose how to receive your new OTP.',
+            'reset_timer' => true
+        ]);
     }
 
     /**

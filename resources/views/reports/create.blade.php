@@ -35,7 +35,7 @@
                         </div>
 
                         <div class="mb-3">
-                            <label for="severity" class="form-label">Severity *</label>
+                            <label for="severity" class="form-label">Priority *</label>
                             <select class="form-select" id="severity" name="severity" required>
                                 <option value="low">Low - Minor issue</option>
                                 <option value="medium" selected>Medium - Moderate issue</option>

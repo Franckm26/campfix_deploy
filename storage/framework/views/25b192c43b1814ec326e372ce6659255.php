@@ -26,9 +26,7 @@
     </div>
 
     <div class="row mb-4">
-        <div class="col-md-6">
-        </div>
-        <div class="col-md-6 text-end">
+        <div class="col-12 text-end">
             <?php if(auth()->user()->canAccess('users_create')): ?>
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
                 <i class="fas fa-plus"></i> Add User

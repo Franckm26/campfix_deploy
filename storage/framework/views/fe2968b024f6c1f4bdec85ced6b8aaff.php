@@ -230,13 +230,8 @@
                         <a href="#how-it-works">How It Works</a>
                     </div>
                 </div>
-                <div class="col-md-2 mb-4">
-                    <div class="footer-links">
-                        <h5>System</h5>
-                        <a href="/">Login</a>
-                        <a href="/dashboard">Dashboard</a>
-                    </div>
-                </div>
+                
+               
                 <div class="col-md-2 mb-4">
                     <div class="footer-links">
                         <h5>Contact</h5>
@@ -246,7 +241,7 @@
                 </div>
             </div>
             <div class="footer-bottom">
-                <p>&copy; 2024 CampFix - STI College Novaliches. All rights reserved.</p>
+                <p>&copy; 2026 CampFix - STI College Novaliches. All rights reserved.</p>
             </div>
         </div>
     </footer>

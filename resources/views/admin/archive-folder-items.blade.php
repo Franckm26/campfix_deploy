@@ -155,7 +155,7 @@
                             <th style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" id="selectAllReports" onchange="toggleSelectAll('reports')"></th>
                             <th>Title</th>
                             <th>Category</th>
-                            <th>Severity</th>
+                            <th>Priority</th>
                             <th>Status</th>
                             <th>Reported By</th>
                             <th>Archived Date</th>

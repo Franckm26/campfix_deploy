@@ -305,44 +305,73 @@
     ═══════════════════════════════════════════════════════════ -->
     @if(isset($trendAlerts) && $trendAlerts->count() > 0)
     <div class="analytics-card">
-        <div class="analytics-header">
-            <div class="analytics-title">
-                <i class="fas fa-bell text-danger"></i> Predictive Trend Alerts
-                <span class="badge bg-danger ms-2">{{ $trendAlerts->count() }} Location(s) Flagged</span>
+
+        {{-- ALERTS & NOTIFICATIONS --}}
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="analytics-title" style="font-size:1rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">
+                <i class="fas fa-bell text-danger me-2"></i> Alerts &amp; Notifications
+                <span class="badge bg-danger ms-2">{{ $trendAlerts->count() }}</span>
             </div>
         </div>
-        <p class="text-muted mb-3" style="font-size:.88rem;">
-            Locations where repair frequency has <strong>increased</strong> in the last 3 months compared to the prior 3 months.
-            Early action can prevent costly failures.
-        </p>
-        @foreach($trendAlerts as $alert)
-        <div class="alert-item {{ $alert['severity'] }}">
-            <div class="alert-icon">
-                @if($alert['severity'] === 'critical') 🔴
-                @elseif($alert['severity'] === 'warning') 🟡
-                @else 🔵
-                @endif
+
+        <div class="mb-4">
+            @foreach($trendAlerts as $alert)
+            @php
+                $borderColor = $alert['severity'] === 'critical' ? '#ef4444' : ($alert['severity'] === 'warning' ? '#f97316' : '#f59e0b');
+                $bgColor     = $alert['severity'] === 'critical' ? '#fef2f2' : ($alert['severity'] === 'warning' ? '#fff7ed' : '#fffbeb');
+                $iconColor   = $alert['severity'] === 'critical' ? '#ef4444' : ($alert['severity'] === 'warning' ? '#f97316' : '#f59e0b');
+                $timeAgo     = $alert['updated_at'] ? \Carbon\Carbon::parse($alert['updated_at'])->diffForHumans(null, true, true) : 'recently';
+            @endphp
+            <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;border-left:4px solid {{ $borderColor }};background:{{ $bgColor }};border-radius:8px;margin-bottom:10px;cursor:pointer;"
+                 onclick="showCostTrendModal({{ json_encode($alert) }})">
+                <div style="width:36px;height:36px;border-radius:50%;background:{{ $iconColor }};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="fas fa-triangle-exclamation" style="color:#fff;font-size:15px;"></i>
+                </div>
+                <div style="flex:1;">
+                    <div style="font-weight:700;font-size:.95rem;color:#1e293b;">{{ $alert['alert_title'] }}</div>
+                    <div style="font-size:.82rem;color:#64748b;">
+                        @if($alert['top_issue']){{ $alert['top_issue'] }} on {{ $alert['location'] }}@else{{ $alert['location'] }}@endif
+                        &mdash; {{ $alert['severity'] === 'critical' ? 'Replacement recommended' : ($alert['severity'] === 'warning' ? 'Approaching threshold' : 'Trend detected') }}
+                    </div>
+                </div>
+                <div style="font-size:.78rem;color:#94a3b8;white-space:nowrap;">{{ $timeAgo }}</div>
             </div>
-            <div class="alert-text">
-                <strong>{{ $alert['location'] }}</strong>
-                <span>
-                    {{ $alert['recent'] }} repair(s) in last 3 months
-                    (vs {{ $alert['prior'] }} in prior 3 months) &mdash;
-                    Cost: ₱{{ number_format($alert['recent_cost'], 2) }}
-                    @if($alert['severity'] === 'critical')
-                        &mdash; <strong class="text-danger">Consider replacement</strong>
-                    @elseif($alert['severity'] === 'warning')
-                        &mdash; <strong class="text-warning">Monitor closely</strong>
-                    @else
-                        &mdash; Increasing trend detected
-                    @endif
-                </span>
-            </div>
-            <span class="badge {{ $alert['severity'] === 'critical' ? 'bg-danger' : ($alert['severity'] === 'warning' ? 'bg-warning text-dark' : 'bg-info') }}">
-                +{{ $alert['recent'] - $alert['prior'] }} more
-            </span>
+            @endforeach
         </div>
-        @endforeach
+
+        <hr style="border-color:#e2e8f0;margin:20px 0;">
+
+        {{-- RECOMMENDATION ENGINE --}}
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="analytics-title" style="font-size:1rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">
+                <i class="fas fa-lightbulb text-warning me-2"></i> Recommendation Engine
+            </div>
+        </div>
+
+        <div>
+            @foreach($trendAlerts as $alert)
+            @php
+                $recIcon  = $alert['rec_color'] === 'success' ? 'fa-check' : ($alert['rec_color'] === 'warning' ? 'fa-wrench' : 'fa-xmark');
+                $recBg    = $alert['rec_color'] === 'success' ? '#22c55e' : ($alert['rec_color'] === 'warning' ? '#f97316' : '#ef4444');
+                $recText  = $alert['rec_color'] === 'success' ? '#16a34a' : ($alert['rec_color'] === 'warning' ? '#ea580c' : '#dc2626');
+            @endphp
+            <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:10px;cursor:pointer;transition:all 0.2s ease;"
+                onclick="showCostTrendModal({{ json_encode($alert) }})"
+                onmouseover="this.style.background='#f8fafc';this.style.borderColor='#cbd5e1';"
+                onmouseout="this.style.background='#fff';this.style.borderColor='#e2e8f0';">
+                <div style="width:40px;height:40px;border-radius:50%;background:{{ $recBg }};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="fas {{ $recIcon }}" style="color:#fff;font-size:16px;"></i>
+                </div>
+                <div style="flex:1;">
+                    <div style="font-weight:700;font-size:.95rem;color:{{ $recText }};">{{ $alert['recommendation'] }}</div>
+                    <div style="font-size:.82rem;color:#64748b;">@if($alert['top_issue']){{ $alert['top_issue'] }} on {{ $alert['location'] }}@else{{ $alert['location'] }}@endif</div>
+                </div>
+                <div style="font-size:.82rem;color:#64748b;max-width:180px;text-align:right;">{{ $alert['rec_desc'] }}</div>
+                <i class="fas fa-chevron-right" style="color:#cbd5e1;font-size:13px;"></i>
+            </div>
+            @endforeach
+        </div>
+
     </div>
     @endif
 
@@ -583,6 +612,49 @@
         @endif
     </div>
 
+    <!-- Issue-based Analytics -->
+    <div class="analytics-card">
+        <div class="analytics-header">
+            <div class="analytics-title">
+                <i class="fas fa-wrench"></i> Repair/Damage by Issue Type
+            </div>
+        </div>
+
+        @if(isset($issueStats) && $issueStats->count() > 0)
+        <div class="charts-row">
+            <div class="chart-wrapper">
+                <canvas id="issueChart"></canvas>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="analytics-table">
+                <thead>
+                    <tr>
+                        <th>Issue</th>
+                        <th>Times Reported</th>
+                        <th>Total Cost</th>
+                        <th>Average Cost</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($issueStats as $stat)
+                    <tr>
+                        <td><strong>{{ $stat->title }}</strong></td>
+                        <td><span class="count-badge">{{ $stat->total_count }}</span></td>
+                        <td><span class="cost-badge">₱{{ number_format($stat->total_cost ?? 0, 2) }}</span></td>
+                        <td>₱{{ number_format($stat->total_count > 0 ? ($stat->total_cost ?? 0) / $stat->total_count : 0, 2) }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+        @else
+        <div class="alert-info">
+            <i class="fas fa-info-circle"></i> No resolved concerns with issue data found.
+        </div>
+        @endif
+    </div>
+
     <!-- Monthly Trend -->
     <div class="analytics-card">
         <div class="analytics-header">
@@ -793,6 +865,31 @@
             }
         }
     });
+
+    // Issue Horizontal Bar Chart
+    @if(isset($issueStats) && $issueStats->count() > 0)
+    const issueCtx = document.getElementById('issueChart').getContext('2d');
+    new Chart(issueCtx, {
+        type: 'bar',
+        data: {
+            labels: {!! json_encode($issueStats->pluck('title')) !!},
+            datasets: [{
+                label: 'Times Reported',
+                data: {!! json_encode($issueStats->pluck('total_count')) !!},
+                backgroundColor: 'rgba(255, 159, 64, 0.8)',
+                borderColor: 'rgba(255, 159, 64, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } }
+        }
+    });
+    @endif
 
     // Monthly Line Chart
     const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
@@ -1015,4 +1112,104 @@
     }
     @endif
 </script>
+
+<!-- Cost Trend Modal -->
+<div class="modal fade" id="costTrendModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-chart-line me-2"></i><span id="ctm_title"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <div style="font-size:.8rem;color:#888;">Location</div>
+                        <div style="font-weight:700;" id="ctm_location"></div>
+                    </div>
+                    <div class="col-3">
+                        <div style="font-size:.8rem;color:#888;">Total Repairs</div>
+                        <div style="font-weight:700;color:#3b82f6;" id="ctm_repairs"></div>
+                    </div>
+                    <div class="col-3">
+                        <div style="font-size:.8rem;color:#888;">Cumulative Cost</div>
+                        <div style="font-weight:700;color:#22c55e;" id="ctm_total_cost"></div>
+                    </div>
+                </div>
+                <div class="row mb-3" id="ctm_threshold_row">
+                    <div class="col-6">
+                        <div style="font-size:.8rem;color:#888;">Original Asset Price</div>
+                        <div style="font-weight:700;" id="ctm_threshold"></div>
+                    </div>
+                    <div class="col-6">
+                        <div style="font-size:.8rem;color:#888;">Cost vs Original Price</div>
+                        <div class="progress mt-1" style="height:10px;">
+                            <div class="progress-bar" id="ctm_progress_bar" style="width:0%"></div>
+                        </div>
+                        <div style="font-size:.78rem;color:#888;margin-top:3px;" id="ctm_progress_label"></div>
+                    </div>
+                </div>
+                <hr>
+                <h6 class="mb-3">Monthly Cost Breakdown</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Month</th>
+                                <th class="text-center">Repairs</th>
+                                <th class="text-end">Cost</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ctm_monthly_rows"></tbody>
+                        <tfoot>
+                            <tr class="table-secondary fw-bold">
+                                <td>Total</td>
+                                <td class="text-center" id="ctm_total_count"></td>
+                                <td class="text-end" id="ctm_total_cost_foot"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showCostTrendModal(alert) {
+    document.getElementById('ctm_title').textContent = (alert.top_issue || 'Issue') + ' — ' + alert.location;
+    document.getElementById('ctm_location').textContent = alert.location;
+    document.getElementById('ctm_repairs').textContent = alert.recent + ' repair(s)';
+    document.getElementById('ctm_total_cost').textContent = '₱' + parseFloat(alert.all_time_cost).toLocaleString('en-PH', {minimumFractionDigits:2});
+
+    const threshold = parseFloat(alert.replacement_threshold || 0);
+    const allTime   = parseFloat(alert.all_time_cost || 0);
+    const threshRow = document.getElementById('ctm_threshold_row');
+    if (threshold > 0) {
+        threshRow.style.display = '';
+        document.getElementById('ctm_threshold').textContent = '₱' + threshold.toLocaleString('en-PH', {minimumFractionDigits:2});
+        const pct = Math.min(100, Math.round((allTime / threshold) * 100));
+        const bar = document.getElementById('ctm_progress_bar');
+        bar.style.width = pct + '%';
+        bar.className = 'progress-bar ' + (pct >= 100 ? 'bg-danger' : pct >= 80 ? 'bg-warning' : 'bg-success');
+        document.getElementById('ctm_progress_label').textContent = pct + '% of original price used in repairs';
+    } else {
+        threshRow.style.display = 'none';
+    }
+
+    const tbody = document.getElementById('ctm_monthly_rows');
+    tbody.innerHTML = '';
+    let totalCount = 0, totalCost = 0;
+    (alert.monthly_costs || []).forEach(function(row) {
+        totalCount += parseInt(row.count || 0);
+        totalCost  += parseFloat(row.cost || 0);
+        tbody.innerHTML += '<tr><td>' + row.month + '</td><td class="text-center">' + row.count + '</td><td class="text-end">₱' + parseFloat(row.cost).toLocaleString('en-PH', {minimumFractionDigits:2}) + '</td></tr>';
+    });
+    document.getElementById('ctm_total_count').textContent = totalCount;
+    document.getElementById('ctm_total_cost_foot').textContent = '₱' + totalCost.toLocaleString('en-PH', {minimumFractionDigits:2});
+
+    new bootstrap.Modal(document.getElementById('costTrendModal')).show();
+}
+</script>
 @endsection
+

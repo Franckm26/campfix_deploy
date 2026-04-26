@@ -1,3 +1,5 @@
+
+
 <?php $__env->startSection('styles'); ?>
 <link href="<?php echo e(asset('css/admin.css')); ?>" rel="stylesheet">
 <?php $__env->stopSection(); ?>
@@ -170,7 +172,7 @@
                                 <thead>
                                     <tr>
                                         <th style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" id="selectAllActive" onchange="toggleSelectAll('active')"></th>
-                                        <th>Title</th>
+                                        <th style="width:100px;white-space:nowrap;">Issue</th>
                                         <th>Category</th>
                                         <th>Location</th>
                                         <th>Priority</th>
@@ -186,7 +188,7 @@
                                     <?php $__currentLoopData = $concerns; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $concern): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                         <tr data-id="<?php echo e($concern->id); ?>" data-view="active">
                                             <td style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" class="active-checkbox" value="<?php echo e($concern->id); ?>" onchange="updateActiveBulkActions()"></td>
-                                            <td>
+                                            <td style="width:100px;max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                                                 <a href="#" onclick="event.preventDefault(); viewConcern(<?php echo e($concern->id); ?>);">
                                                     <?php echo e($concern->title ?? 'No Title'); ?>
 
@@ -344,7 +346,7 @@
                                 <thead>
                                     <tr>
                                         <th style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" id="selectAllResolved" onchange="toggleSelectAll('resolved')"></th>
-                                        <th>Title</th>
+                                        <th style="width:100px;white-space:nowrap;">Issue</th>
                                         <th>Category</th>
                                         <th>Location</th>
                                         <th>Priority</th>
@@ -359,7 +361,7 @@
                                     <?php $__currentLoopData = $resolvedConcerns; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $concern): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                         <tr data-id="<?php echo e($concern->id); ?>" data-view="resolved">
                                             <td style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" class="resolved-checkbox" value="<?php echo e($concern->id); ?>" onchange="updateResolvedBulkActions()"></td>
-                                            <td>
+                                            <td style="width:100px;max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                                                 <a href="#" onclick="event.preventDefault(); viewConcern(<?php echo e($concern->id); ?>);">
                                                     <?php echo e($concern->title ?? 'No Title'); ?>
 
@@ -492,7 +494,7 @@
                                 <thead>
                                     <tr>
                                         <th style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" id="selectAllArchive" onchange="toggleSelectAll('archive')"></th>
-                                        <th>Title</th>
+                                        <th style="width:100px;white-space:nowrap;">Issue</th>
                                         <th>Category</th>
                                         <th>Location</th>
                                         <th>Priority</th>
@@ -506,7 +508,7 @@
                                     <?php $__currentLoopData = $archivedConcerns; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $concern): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                         <tr data-id="<?php echo e($concern->id); ?>" data-view="archive">
                                             <td style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" class="archive-checkbox" value="<?php echo e($concern->id); ?>" onchange="updateArchiveBulkActions()"></td>
-                                            <td>
+                                            <td style="width:100px;max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                                                 <a href="#" onclick="event.preventDefault(); viewConcern(<?php echo e($concern->id); ?>);">
                                                     <?php echo e($concern->title ?? 'No Title'); ?>
 
@@ -672,7 +674,7 @@
                                 <thead>
                                     <tr>
                                         <th style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" id="selectAllDeleted" onchange="toggleSelectAll('deleted')"></th>
-                                        <th>Title</th>
+                                        <th style="width:100px;white-space:nowrap;">Issue</th>
                                         <th>Category</th>
                                         <th>Location</th>
                                         <th>Priority</th>
@@ -686,7 +688,7 @@
                                     <?php $__currentLoopData = $deletedConcerns; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $concern): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                         <tr data-id="<?php echo e($concern->id); ?>" data-view="deleted">
                                             <td style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" class="deleted-checkbox" value="<?php echo e($concern->id); ?>" onchange="updateDeletedBulkActions()"></td>
-                                            <td>
+                                            <td style="width:100px;max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                                                 <a href="#" onclick="event.preventDefault(); viewConcern(<?php echo e($concern->id); ?>);">
                                                     <?php echo e($concern->title ?? 'No Title'); ?>
 
@@ -935,46 +937,88 @@
             </div>
             <form action="<?php echo e(route('concerns.store')); ?>" method="POST" enctype="multipart/form-data">
                 <?php echo csrf_field(); ?>
+                
+                <input type="hidden" id="new_title" name="title">
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="new_title" class="form-label">Title (Optional)</label>
-                        <input type="text" class="form-control" id="new_title" name="title" 
-                            placeholder="Brief title for your concern">
-                    </div>
 
                     <div class="mb-3">
                         <label for="new_category_id" class="form-label">Category *</label>
                         <select class="form-select" id="new_category_id" name="category_id" required>
                             <option value="" disabled selected>Select a category</option>
                             <?php $__currentLoopData = $categories; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $category): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                <option value="<?php echo e($category->id); ?>"><?php echo e($category->name); ?></option>
+                                <option value="<?php echo e($category->id); ?>" data-name="<?php echo e(strtolower(trim($category->name))); ?>"><?php echo e($category->name); ?></option>
                             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                         </select>
                     </div>
 
-                    <!-- Location field (shown for non-Rooms categories) -->
-                    <div class="mb-3" id="new_location_container">
-                        <label for="new_location" class="form-label">Location *</label>
-                        <input type="text" class="form-control" id="new_location" name="location"
-                            placeholder="e.g., Room 201, Building A, Cafeteria" required>
-                    </div>
-
-                    <!-- Location Type (shown only for Rooms category) -->
-                    <div class="mb-3" id="new_location_type_container" style="display: none;">
-                        <label for="new_location_type" class="form-label">Location *</label>
-                        <select class="form-select" id="new_location_type" name="location_type">
-                            <option value="">Select location type</option>
-                            <option value="Room">Room</option>
-                            <option value="AVR">AVR</option>
-                            <option value="Computer Laboratory">Computer Laboratory</option>
+                    <!-- Issue dropdown -->
+                    <div class="mb-3" id="new_issue_container">
+                        <label for="new_issue" class="form-label">Issue *</label>
+                        <select class="form-select" id="new_issue" name="_issue" required>
+                            <option value="" disabled selected>Select an issue</option>
                         </select>
                     </div>
 
-                    <!-- Room Number (shown only when location type is selected) -->
-                    <div class="mb-3" id="new_room_number_container" style="display: none;">
-                        <label for="new_room_number" class="form-label">Room Number *</label>
-                        <select class="form-select" id="new_room_number" name="room_number">
-                            <option value="">Select room number</option>
+                    <!-- Location (single flat dropdown for all categories) -->
+                    <div class="mb-3" id="new_location_container" style="display: none;">
+                        <label for="new_location" class="form-label">Location *</label>
+                        <select class="form-select" id="new_location" name="location">
+                            <option value="" disabled selected>Select a location</option>
+                            <optgroup label="Rooms">
+                                <option value="Room M01">Room M01</option>
+                                <option value="Room M02">Room M02</option>
+                                <option value="Room 202">Room 202</option>
+                                <option value="Room 203">Room 203</option>
+                                <option value="Room 204">Room 204</option>
+                                <option value="Room 205">Room 205</option>
+                                <option value="Room 206">Room 206</option>
+                                <option value="Room 207">Room 207</option>
+                                <option value="Room 301">Room 301</option>
+                                <option value="Room 302">Room 302</option>
+                                <option value="Room 303">Room 303</option>
+                                <option value="Room 304">Room 304</option>
+                                <option value="Room 305">Room 305</option>
+                                <option value="Room 306">Room 306</option>
+                                <option value="Room 307">Room 307</option>
+                                <option value="Room 308">Room 308</option>
+                                <option value="Room 309">Room 309</option>
+                                <option value="Room 310">Room 310</option>
+                                <option value="Room 311">Room 311</option>
+                                <option value="Room 401">Room 401</option>
+                                <option value="Room 402">Room 402</option>
+                                <option value="Room 403">Room 403</option>
+                                <option value="Room 404">Room 404</option>
+                                <option value="Room 405">Room 405</option>
+                                <option value="Room 406">Room 406</option>
+                                <option value="Room 407">Room 407</option>
+                                <option value="Room 408">Room 408</option>
+                                <option value="Room 409">Room 409</option>
+                                <option value="Room 410">Room 410</option>
+                                <option value="Room 411">Room 411</option>
+                                <option value="Room 501">Room 501</option>
+                                <option value="Room 502">Room 502</option>
+                                <option value="Room 503">Room 503</option>
+                                <option value="Room 504">Room 504</option>
+                                <option value="Room 505">Room 505</option>
+                                <option value="Room 506">Room 506</option>
+                                <option value="Room 507">Room 507</option>
+                                <option value="Room 508">Room 508</option>
+                                <option value="Room 509">Room 509</option>
+                                <option value="Room 510">Room 510</option>
+                                <option value="Room 511">Room 511</option>
+                            </optgroup>
+                            <optgroup label="Computer Laboratory">
+                                <option value="Computer Laboratory 101">Computer Laboratory 101</option>
+                                <option value="Computer Laboratory 208">Computer Laboratory 208</option>
+                                <option value="Computer Laboratory 209">Computer Laboratory 209</option>
+                                <option value="Computer Laboratory 210">Computer Laboratory 210</option>
+                                <option value="Computer Laboratory 211">Computer Laboratory 211</option>
+                                <option value="Computer Laboratory 212">Computer Laboratory 212</option>
+                            </optgroup>
+                            <optgroup label="AVR">
+                                <option value="AVR 1">AVR 1</option>
+                                <option value="AVR 2">AVR 2</option>
+                            </optgroup>
                         </select>
                     </div>
 
@@ -991,7 +1035,6 @@
                             accept="image/*">
                         <small class="text-muted d-block" style="font-size: 12px;">Supported formats: JPEG, PNG, JPG (Max 2MB)</small>
                     </div>
-
 
                 </div>
                 <div class="modal-footer">
@@ -1110,47 +1153,33 @@ function openNewConcernModal() {
         }
     });
 
+    // Reset form fields
+    const catSel = document.getElementById('new_category_id');
+    if (catSel) catSel.value = '';
+    const issueCont = document.getElementById('new_issue_container');
+    const issueEl = document.getElementById('new_issue');
+    if (issueEl) { issueEl.value = ''; }
+    const titleEl = document.getElementById('new_title');
+    if (titleEl) titleEl.value = '';
+    const locCont = document.getElementById('new_location_container');
+    const locEl = document.getElementById('new_location');
+    if (locCont) locCont.style.display = 'none';
+    if (locEl) { locEl.value = ''; locEl.removeAttribute('required'); }
+    const locTypeCont = document.getElementById('new_location_type_container');
+    const locTypeEl = document.getElementById('new_location_type');
+    if (locTypeCont) locTypeCont.style.display = 'none';
+    if (locTypeEl) { locTypeEl.value = ''; locTypeEl.removeAttribute('required'); }
+    const roomCont = document.getElementById('new_room_number_container');
+    const roomEl = document.getElementById('new_room_number');
+    if (roomCont) roomCont.style.display = 'none';
+    if (roomEl) { roomEl.value = ''; roomEl.removeAttribute('required'); }
+    const descEl = document.getElementById('new_description');
+    if (descEl) descEl.value = '';
+    const descCount = document.getElementById('new_description_count');
+    if (descCount) descCount.textContent = '0 / 500';
+
     const modal = new bootstrap.Modal(document.getElementById('newConcernModal'));
     modal.show();
-}
-
-// Function to populate room numbers based on location type
-function populateRoomNumbers(locationType) {
-    const roomNumberSelect = document.getElementById('new_room_number');
-    roomNumberSelect.innerHTML = '<option value="">Select room number</option>';
-
-    let roomNumbers = [];
-
-    if (locationType === 'Computer Laboratory') {
-        roomNumbers = ['101', '208', '209', '210', '211', '212'];
-    } else if (locationType === 'AVR') {
-        roomNumbers = ['AVR 1', 'AVR 2'];
-    } else if (locationType === 'Room') {
-        // M01, M02, and rooms by floor excluding computer lab rooms
-        roomNumbers = ['M01', 'M02'];
-
-        // Floor 2: 202-211 (10 rooms, excluding computer lab rooms)
-        for (let room = 202; room <= 211; room++) {
-            if (![202, 208, 209, 210, 211].includes(room)) {
-                roomNumbers.push(room.toString());
-            }
-        }
-
-        // Floors 3-5: 11 rooms per floor
-        for (let floor = 3; floor <= 5; floor++) {
-            for (let room = 1; room <= 11; room++) {
-                const roomNumber = floor * 100 + room;
-                roomNumbers.push(roomNumber.toString());
-            }
-        }
-    }
-
-    roomNumbers.forEach(room => {
-        const option = document.createElement('option');
-        option.value = room;
-        option.textContent = room;
-        roomNumberSelect.appendChild(option);
-    });
 }
 
 // Handle category change for concerns modal
@@ -1164,61 +1193,67 @@ document.addEventListener('DOMContentLoaded', function() {
             descCount.textContent = this.value.length + ' / 500';
         });
     }
+
     const categorySelect = document.getElementById('new_category_id');
+    const issueSelect = document.getElementById('new_issue');
+    const titleHidden = document.getElementById('new_title');
     const locationContainer = document.getElementById('new_location_container');
-    const locationTypeContainer = document.getElementById('new_location_type_container');
-    const roomNumberContainer = document.getElementById('new_room_number_container');
-    const locationInput = document.getElementById('new_location');
-    const locationTypeSelect = document.getElementById('new_location_type');
-    const roomNumberSelect = document.getElementById('new_room_number');
+    const locationSelect = document.getElementById('new_location');
+
+    // Per-category issue options
+    const categoryIssues = {
+        'maintenance': [
+            'Aircon',
+            'Door',
+            'Window',
+            'Chair',
+            'Table',
+            'Electrical outlet',
+            'Light',
+        ],
+        'technology/internet': [
+            'No Internet',
+            'Printer',
+            'Monitor',
+            'PC Monitor',
+            'Mouse',
+            'Keyboard',
+        ],
+    };
+
+    function populateIssues(categoryName) {
+        const key = categoryName.toLowerCase().trim();
+        const issues = categoryIssues[key] || [];
+        issueSelect.innerHTML = '<option value="" disabled selected>Select an issue</option>';
+        issues.forEach(function(issue) {
+            const opt = document.createElement('option');
+            opt.value = issue;
+            opt.textContent = issue;
+            issueSelect.appendChild(opt);
+        });
+        issueSelect.value = '';
+        if (titleHidden) titleHidden.value = '';
+    }
+
+    if (issueSelect) {
+        issueSelect.addEventListener('change', function() {
+            if (titleHidden) titleHidden.value = this.value;
+        });
+    }
 
     if (categorySelect) {
         categorySelect.addEventListener('change', function() {
             const selectedOption = categorySelect.options[categorySelect.selectedIndex];
-            const categoryName = selectedOption ? selectedOption.textContent : '';
+            const categoryName = selectedOption ? selectedOption.getAttribute('data-name') : '';
 
-            if (categoryName === 'Rooms') {
-                // Show location type and room number, hide location input
-                locationContainer.style.display = 'none';
-                locationTypeContainer.style.display = 'block';
-                locationInput.removeAttribute('required');
-                locationTypeSelect.setAttribute('required', 'required');
+            populateIssues(categoryName);
 
-                // Reset and hide room number initially
-                roomNumberContainer.style.display = 'none';
-                locationTypeSelect.value = '';
-                roomNumberSelect.value = '';
-                roomNumberSelect.removeAttribute('required');
-            } else {
-                // Show location input, hide location type and room number
-                locationContainer.style.display = 'block';
-                locationTypeContainer.style.display = 'none';
-                roomNumberContainer.style.display = 'none';
-                locationInput.setAttribute('required', 'required');
-                locationTypeSelect.removeAttribute('required');
-                locationTypeSelect.value = '';
-                roomNumberSelect.value = '';
-                roomNumberSelect.removeAttribute('required');
-            }
+            // Show location dropdown for all categories
+            locationContainer.style.display = 'block';
+            if (locationSelect) locationSelect.setAttribute('required', 'required');
         });
     }
 
-    // Handle location type change
-    if (locationTypeSelect) {
-        locationTypeSelect.addEventListener('change', function() {
-            const locationType = this.value;
-
-            if (locationType) {
-                populateRoomNumbers(locationType);
-                roomNumberContainer.style.display = 'block';
-                roomNumberSelect.setAttribute('required', 'required');
-            } else {
-                roomNumberContainer.style.display = 'none';
-                roomNumberSelect.removeAttribute('required');
-                roomNumberSelect.value = '';
-            }
-        });
-    }
 });
 
 // Auto-submit filter form on change
@@ -2306,6 +2341,7 @@ if (assignConcernForm) {
         </div>
     </div>
 </div>
+
 
 
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\Campfix\resources\views/concerns/my.blade.php ENDPATH**/ ?>

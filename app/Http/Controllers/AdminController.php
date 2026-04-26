@@ -803,7 +803,7 @@ class AdminController extends Controller
             }
 
             // Get the reports list
-            $reports = $analyticsQuery->select('location', 'damaged_part', 'resolved_at', 'cost')
+            $reports = $analyticsQuery->select('location', 'damaged_part', 'resolved_at', 'cost', 'status')
                 ->orderBy('resolved_at', 'desc')
                 ->get();
 
@@ -839,16 +839,33 @@ class AdminController extends Controller
             $chartCounts = $locationStats->pluck('count')->toArray();
             $chartCosts = $locationStats->pluck('total_cost')->toArray();
 
-            // Status distribution for additional chart
-            $statusStats = $reports->groupBy('status')->map(function ($group) {
-                return [
-                    'status' => $group->first()->status,
-                    'count' => $group->count(),
-                ];
-            })->sortByDesc('count')->values();
+            // Status distribution from concerns (has proper status values)
+            $statusStats = Concern::whereNotNull('location')
+                ->where('location', '!=', '')
+                ->when($request->filled('date_from'), fn($q) => $q->whereDate('created_at', '>=', $request->input('date_from')))
+                ->when($request->filled('date_to'),   fn($q) => $q->whereDate('created_at', '<=', $request->input('date_to')))
+                ->select('status')
+                ->selectRaw('COUNT(*) as cnt')
+                ->groupBy('status')
+                ->orderByDesc('cnt')
+                ->get()
+                ->map(fn($r) => ['status' => $r->status, 'count' => $r->cnt]);
 
             $chartStatuses = $statusStats->pluck('status')->toArray();
             $chartStatusCounts = $statusStats->pluck('count')->toArray();
+
+            // Monthly trend from concerns (source of truth)
+            $monthlyStats = Concern::where('status', 'Resolved')
+                ->whereNotNull('location')
+                ->where('created_at', '>=', now()->subMonths(12))
+                ->when($request->filled('date_from'), fn($q) => $q->whereDate('created_at', '>=', $request->input('date_from')))
+                ->when($request->filled('date_to'),   fn($q) => $q->whereDate('created_at', '<=', $request->input('date_to')))
+                ->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month")
+                ->selectRaw('COUNT(*) as total_count')
+                ->selectRaw('SUM(COALESCE(cost, 0)) as total_cost')
+                ->groupBy('month')
+                ->orderBy('month')
+                ->get();
 
             // Combined cost tracking across all tickets
             $concernsQueryCombined = Concern::whereNotNull('location')
@@ -869,9 +886,10 @@ class AdminController extends Controller
             }
 
             $concernsCombined = $concernsQueryCombined->get();
-            $reportsCombined = $reportsQueryCombined->get();
 
-            $combinedLocationStats = $concernsCombined->concat($reportsCombined)->groupBy('location')->map(function ($group) {
+            // Use only concerns for combined stats to avoid double-counting
+            // (resolving a report copies cost to the linked concern, so summing both would double-count)
+            $combinedLocationStats = $concernsCombined->groupBy('location')->map(function ($group) {
                 return [
                     'location' => $group->first()->location,
                     'total_count' => $group->count(),
@@ -879,8 +897,8 @@ class AdminController extends Controller
                 ];
             })->sortByDesc('total_cost')->values();
 
-            $totalTickets = $concernsCombined->count() + $reportsCombined->count();
-            $totalCombinedCost = $concernsCombined->sum('cost') + $reportsCombined->sum('cost');
+            $totalTickets = $concernsCombined->count();
+            $totalCombinedCost = $concernsCombined->sum('cost');
             $uniqueLocationsCombined = $combinedLocationStats->count();
 
             // ── PERIOD COMPARISON (this month vs last month) ──────────────────
@@ -888,21 +906,17 @@ class AdminController extends Controller
             $lastMonthStart = now()->subMonth()->startOfMonth();
             $lastMonthEnd   = now()->subMonth()->endOfMonth();
 
-            $thisMonthCount = Report::where('is_deleted', false)->whereNotNull('resolved_at')
-                ->where('resolved_at', '>=', $thisMonthStart)->count()
-                + Concern::where('status', 'Resolved')->where('resolved_at', '>=', $thisMonthStart)->count();
+            $thisMonthCount = Concern::where('status', 'Resolved')
+                ->where('resolved_at', '>=', $thisMonthStart)->count();
 
-            $lastMonthCount = Report::where('is_deleted', false)->whereNotNull('resolved_at')
-                ->whereBetween('resolved_at', [$lastMonthStart, $lastMonthEnd])->count()
-                + Concern::where('status', 'Resolved')->whereBetween('resolved_at', [$lastMonthStart, $lastMonthEnd])->count();
+            $lastMonthCount = Concern::where('status', 'Resolved')
+                ->whereBetween('resolved_at', [$lastMonthStart, $lastMonthEnd])->count();
 
-            $thisMonthCost = (Report::where('is_deleted', false)->whereNotNull('resolved_at')
-                ->where('resolved_at', '>=', $thisMonthStart)->sum('cost') ?? 0)
-                + (Concern::where('status', 'Resolved')->where('resolved_at', '>=', $thisMonthStart)->sum('cost') ?? 0);
+            $thisMonthCost = Concern::where('status', 'Resolved')
+                ->where('resolved_at', '>=', $thisMonthStart)->sum('cost') ?? 0;
 
-            $lastMonthCost = (Report::where('is_deleted', false)->whereNotNull('resolved_at')
-                ->whereBetween('resolved_at', [$lastMonthStart, $lastMonthEnd])->sum('cost') ?? 0)
-                + (Concern::where('status', 'Resolved')->whereBetween('resolved_at', [$lastMonthStart, $lastMonthEnd])->sum('cost') ?? 0);
+            $lastMonthCost = Concern::where('status', 'Resolved')
+                ->whereBetween('resolved_at', [$lastMonthStart, $lastMonthEnd])->sum('cost') ?? 0;
 
             $countChange = $lastMonthCount > 0
                 ? round((($thisMonthCount - $lastMonthCount) / $lastMonthCount) * 100, 1)
@@ -952,32 +966,119 @@ class AdminController extends Controller
             $replacementSuggestions = $replacementSuggestions->sortByDesc('total_cost')->values();
 
             // ── PREDICTIVE TREND ALERTS ───────────────────────────────────────
+            // Original asset prices per issue type
+            $assetOriginalPrices = [
+                'aircon' => 33498,
+                'door'  => 500,
+                'window'  => 8000,
+                'chair'  => 2500,
+                'table'  => 4000,
+                'electrical outlet' => 1500,
+                'light' => 1200,
+                'no internet' => 200,
+                'printer' => 12000,
+                'Smart tv' => 22000,
+                'monitor' => 9000,
+                'mouse' => 100,
+                'keyboard' => 150,
+                'projector'=> 25000,
+                'whiteboard' => 1700,
+            ];
+            $getReplacementThreshold = function (?string $issue) use ($assetOriginalPrices): float {
+                if (!$issue) return 10000;
+                $key = strtolower(trim($issue));
+                return $assetOriginalPrices[$key] ?? 10000;
+            };
+
             $trendAlerts  = collect();
-            $allLocations = Report::where('is_deleted', false)->whereNotNull('location')
-                ->where('location', '!=', '')->distinct()->pluck('location')
-                ->merge(Concern::whereNotNull('location')->where('location', '!=', '')->distinct()->pluck('location'))
-                ->unique();
+            
+            // Get all unique combinations of location and title (issue type)
+            $locationIssues = Concern::whereNotNull('location')
+                ->where('location', '!=', '')
+                ->whereNotNull('title')
+                ->where('title', '!=', '')
+                ->select('location', 'title')
+                ->distinct()
+                ->get();
 
-            foreach ($allLocations as $loc) {
-                $recent = Report::where('location', $loc)->where('is_deleted', false)
-                    ->where('created_at', '>=', now()->subMonths(3))->count()
-                    + Concern::where('location', $loc)->where('created_at', '>=', now()->subMonths(3))->count();
+            foreach ($locationIssues as $locationIssue) {
+                $loc = $locationIssue->location;
+                $issue = $locationIssue->title;
+                
+                $recent = Concern::where('location', $loc)
+                    ->where('title', $issue)
+                    ->where('created_at', '>=', now()->subMonths(3))->count();
 
-                $prior = Report::where('location', $loc)->where('is_deleted', false)
-                    ->whereBetween('created_at', [now()->subMonths(6), now()->subMonths(3)])->count()
-                    + Concern::where('location', $loc)->whereBetween('created_at', [now()->subMonths(6), now()->subMonths(3)])->count();
+                $prior = Concern::where('location', $loc)
+                    ->where('title', $issue)
+                    ->whereBetween('created_at', [now()->subMonths(6), now()->subMonths(3)])->count();
 
-                if ($recent >= 2 && $recent > $prior) {
-                    $recentCost = (Report::where('location', $loc)->where('is_deleted', false)
-                        ->where('created_at', '>=', now()->subMonths(3))->sum('cost') ?? 0)
-                        + (Concern::where('location', $loc)->where('created_at', '>=', now()->subMonths(3))->sum('cost') ?? 0);
+                if ($recent >= 1) {
+                    $recentCost = Concern::where('location', $loc)
+                        ->where('title', $issue)
+                        ->where('created_at', '>=', now()->subMonths(3))->sum('cost') ?? 0;
+
+                    $allTimeCost = Concern::where('location', $loc)
+                        ->where('title', $issue)
+                        ->sum('cost') ?? 0;
+
+                    $replacementThreshold = $getReplacementThreshold($issue);
+                    $budgetThreshold = $replacementThreshold > 0 && $allTimeCost >= ($replacementThreshold * 0.8);
+                    $exceeded        = $replacementThreshold > 0 && $allTimeCost >= $replacementThreshold;
+
+                    if ($exceeded) {
+                        $alertTitle = 'Exceeded original cost';
+                        $severity   = 'critical';
+                        $recommendation = 'Replace Asset';
+                        $recDesc        = 'Repair cost exceeded original price.';
+                        $recColor       = 'danger';
+                    } elseif ($budgetThreshold) {
+                        $alertTitle = 'Repair cost reached 80%';
+                        $severity   = 'warning';
+                        $recommendation = 'Schedule Maintenance';
+                        $recDesc        = 'Preventive maintenance recommended.';
+                        $recColor       = 'warning';
+                    } else {
+                        $alertTitle = 'Cost increasing this month';
+                        $severity   = 'info';
+                        $recommendation = 'Continue Repair';
+                        $recDesc        = 'Cost effective to continue. Health score is acceptable.';
+                        $recColor       = 'success';
+                    }
+
+                    // Build last 12 months cost breakdown for modal (specific to this issue type)
+                    $monthlyCosts = collect(range(11, 0))->map(function ($i) use ($loc, $issue) {
+                        $date = now()->subMonths($i);
+                        return [
+                            'month' => $date->format('M Y'),
+                            'cost'  => Concern::where('location', $loc)
+                                ->where('title', $issue)
+                                ->whereMonth('created_at', $date->month)
+                                ->whereYear('created_at', $date->year)
+                                ->sum('cost') ?? 0,
+                            'count' => Concern::where('location', $loc)
+                                ->where('title', $issue)
+                                ->whereMonth('created_at', $date->month)
+                                ->whereYear('created_at', $date->year)
+                                ->count(),
+                        ];
+                    })->filter(fn($m) => $m['cost'] > 0 || $m['count'] > 0)->values();
 
                     $trendAlerts->push([
-                        'location'    => $loc,
-                        'recent'      => $recent,
-                        'prior'       => $prior,
-                        'recent_cost' => $recentCost,
-                        'severity'    => $recent >= 4 ? 'critical' : ($recent >= 3 ? 'warning' : 'info'),
+                        'location'             => $loc,
+                        'recent'               => $recent,
+                        'prior'                => $prior,
+                        'recent_cost'          => $recentCost,
+                        'all_time_cost'        => $allTimeCost,
+                        'top_issue'            => $issue,
+                        'severity'             => $severity,
+                        'alert_title'          => $alertTitle,
+                        'recommendation'       => $recommendation,
+                        'rec_desc'             => $recDesc,
+                        'rec_color'            => $recColor,
+                        'updated_at'           => Concern::where('location', $loc)->where('title', $issue)->latest()->value('updated_at'),
+                        'monthly_costs'        => $monthlyCosts,
+                        'replacement_threshold'=> $replacementThreshold,
                     ]);
                 }
             }
@@ -998,6 +1099,7 @@ class AdminController extends Controller
                 'chartCosts' => $chartCosts,
                 'chartStatuses' => $chartStatuses,
                 'chartStatusCounts' => $chartStatusCounts,
+                'monthlyStats' => $monthlyStats,
                 'combinedLocationStats' => $combinedLocationStats,
                 'totalTickets' => $totalTickets,
                 'totalCombinedCost' => $totalCombinedCost,
@@ -1109,7 +1211,7 @@ class AdminController extends Controller
             $monthlyStats = Concern::where('status', 'Resolved')
                 ->whereNotNull('location')
                 ->where('created_at', '>=', now()->subMonths(12))
-                ->selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month')
+                ->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month")
                 ->selectRaw('COUNT(*) as total_count')
                 ->selectRaw('SUM(COALESCE(cost, 0)) as total_cost')
                 ->groupBy('month')
@@ -3161,7 +3263,7 @@ class AdminController extends Controller
 
         if (! empty($usersToCreate)) {
             foreach (array_chunk($usersToCreate, 500) as $chunk) {
-                User::insert($chunk);
+                User::insertOrIgnore($chunk);
             }
             $archiveFolder->user_count = User::where('archive_folder_id', $archiveFolder->id)->count();
             $archiveFolder->save();
@@ -3757,7 +3859,18 @@ class AdminController extends Controller
             ->selectRaw('SUM(COALESCE(cost, 0)) as total_cost')
             ->groupBy('location')
             ->orderByDesc('total_count')
-            ->get();
+            ->get()
+            ->map(function ($stat) use ($request) {
+                $stat->top_issue = Concern::where('location', $stat->location)
+                    ->where('status', 'Resolved')
+                    ->whereNotNull('title')->where('title', '!=', '')
+                    ->when($request->filled('date_from'), fn($q) => $q->whereDate('created_at', '>=', $request->input('date_from')))
+                    ->when($request->filled('date_to'),   fn($q) => $q->whereDate('created_at', '<=', $request->input('date_to')))
+                    ->select('title')->selectRaw('COUNT(*) as cnt')
+                    ->groupBy('title')->orderByDesc('cnt')
+                    ->value('title');
+                return $stat;
+            });
 
         // Category stats
         $categoryStats = Concern::with('categoryRelation')
@@ -3778,7 +3891,7 @@ class AdminController extends Controller
             ->where('created_at', '>=', now()->subMonths(12))
             ->when($request->filled('date_from'), fn($q) => $q->whereDate('created_at', '>=', $request->input('date_from')))
             ->when($request->filled('date_to'),   fn($q) => $q->whereDate('created_at', '<=', $request->input('date_to')))
-            ->selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month')
+            ->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month")
             ->selectRaw('COUNT(*) as total_count')
             ->selectRaw('SUM(COALESCE(cost, 0)) as total_cost')
             ->groupBy('month')
@@ -3846,29 +3959,169 @@ class AdminController extends Controller
         ];
 
         // ── PREDICTIVE / TREND ALERTS ─────────────────────────────────────────
-        // Flag locations where repairs are accelerating (more repairs in last 3 months vs prior 3)
-        $trendAlerts = collect();
-        $allLocations = Concern::whereNotNull('location')->where('location', '!=', '')->distinct()->pluck('location');
+        // Original asset prices per issue type (used to determine replacement threshold)
+        $assetOriginalPrices = [
+            'aircon'              => 33498,
+            'door'                => 5000,
+            'window'              => 8000,
+            'chair'               => 2500,
+            'table'               => 4000,
+            'electrical outlet'   => 1500,
+            'light'               => 1200,
+            'no internet'         => 0,
+            'printer'             => 12000,
+            'monitor'             => 9000,
+            'pc monitor'          => 9000,
+            'mouse'               => 800,
+            'keyboard'            => 1500,
+            'projector'           => 25000,
+            'whiteboard'          => 6000,
+        ];
 
-        foreach ($allLocations as $loc) {
+        $getReplacementThreshold = function (?string $issue) use ($assetOriginalPrices): float {
+            if (!$issue) return 10000;
+            $key = strtolower(trim($issue));
+            return $assetOriginalPrices[$key] ?? 10000;
+        };
+
+        $trendAlerts = collect();
+        
+        // Get all unique combinations of location and title (issue type)
+        $locationIssues = Concern::whereNotNull('location')
+            ->where('location', '!=', '')
+            ->whereNotNull('title')
+            ->where('title', '!=', '')
+            ->select('location', 'title')
+            ->distinct()
+            ->get();
+
+        foreach ($locationIssues as $locationIssue) {
+            $loc = $locationIssue->location;
+            $issue = $locationIssue->title;
+            
             $recent = Concern::where('location', $loc)
+                ->where('title', $issue)
                 ->where('created_at', '>=', now()->subMonths(3))->count();
             $prior  = Concern::where('location', $loc)
+                ->where('title', $issue)
                 ->whereBetween('created_at', [now()->subMonths(6), now()->subMonths(3)])->count();
 
-            if ($recent >= 2 && $recent > $prior) {
-                $recentCost = Concern::where('location', $loc)
-                    ->where('created_at', '>=', now()->subMonths(3))->sum('cost') ?? 0;
+            $allTimeCost = Concern::where('location', $loc)
+                ->where('title', $issue)
+                ->sum('cost') ?? 0;
+            $recentCost  = Concern::where('location', $loc)
+                ->where('title', $issue)
+                ->where('created_at', '>=', now()->subMonths(3))->sum('cost') ?? 0;
+
+            // Cost trend: is cost higher this month vs last month?
+            $thisMonthlyCost = Concern::where('location', $loc)
+                ->where('title', $issue)
+                ->whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
+                ->sum('cost') ?? 0;
+            $lastMonthlyCost = Concern::where('location', $loc)
+                ->where('title', $issue)
+                ->whereMonth('created_at', now()->subMonth()->month)
+                ->whereYear('created_at', now()->subMonth()->year)
+                ->sum('cost') ?? 0;
+            $costIncreasingThisMonth = $thisMonthlyCost > $lastMonthlyCost;
+
+            // Use original asset price as replacement threshold
+            $replacementThreshold = $getReplacementThreshold($issue);
+
+            // Budget threshold: cumulative repair cost >= 80% of original asset price
+            $budgetThreshold = $replacementThreshold > 0 && $allTimeCost >= ($replacementThreshold * 0.8);
+
+            // Exceeded: cumulative repair cost >= original asset price
+            $exceeded = $replacementThreshold > 0 && $allTimeCost >= $replacementThreshold;
+
+            if ($recent >= 1) {
+                // Determine alert type
+                if ($exceeded) {
+                    $alertType = 'exceeded';
+                    $alertTitle = 'Exceeded original cost';
+                    $alertDesc  = $issue . ' in ' . $loc . ' — Replacement recommended';
+                    $severity   = 'critical';
+                } elseif ($budgetThreshold) {
+                    $alertType = 'threshold';
+                    $alertTitle = 'Repair cost reached 80%';
+                    $alertDesc  = $issue . ' in ' . $loc . ' — Approaching threshold';
+                    $severity   = 'warning';
+                } else {
+                    $alertType = 'trend';
+                    $alertTitle = 'Cost increasing this month';
+                    $alertDesc  = $issue . ' in ' . $loc . ' — Trend detected';
+                    $severity   = 'info';
+                }
+
+                // Recommendation
+                if ($exceeded) {
+                    $recommendation = 'Replace Asset';
+                    $recDesc        = 'Repair cost exceeded original price.';
+                    $recColor       = 'danger';
+                } elseif ($budgetThreshold || $recent >= 3) {
+                    $recommendation = 'Schedule Maintenance';
+                    $recDesc        = 'Preventive maintenance recommended.';
+                    $recColor       = 'warning';
+                } else {
+                    $recommendation = 'Continue Repair';
+                    $recDesc        = 'Cost effective to continue. Health score is acceptable.';
+                    $recColor       = 'success';
+                }
+
+                // Build last 12 months cost breakdown for modal (specific to this issue type)
+                $monthlyCosts = collect(range(11, 0))->map(function ($i) use ($loc, $issue) {
+                    $date = now()->subMonths($i);
+                    return [
+                        'month' => $date->format('M Y'),
+                        'cost'  => Concern::where('location', $loc)
+                            ->where('title', $issue)
+                            ->whereMonth('created_at', $date->month)
+                            ->whereYear('created_at', $date->year)
+                            ->sum('cost') ?? 0,
+                        'count' => Concern::where('location', $loc)
+                            ->where('title', $issue)
+                            ->whereMonth('created_at', $date->month)
+                            ->whereYear('created_at', $date->year)
+                            ->count(),
+                    ];
+                })->filter(fn($m) => $m['cost'] > 0 || $m['count'] > 0)->values();
+
                 $trendAlerts->push([
-                    'location'    => $loc,
-                    'recent'      => $recent,
-                    'prior'       => $prior,
-                    'recent_cost' => $recentCost,
-                    'severity'    => $recent >= 4 ? 'critical' : ($recent >= 3 ? 'warning' : 'info'),
+                    'location'             => $loc,
+                    'recent'               => $recent,
+                    'prior'                => $prior,
+                    'recent_cost'          => $recentCost,
+                    'all_time_cost'        => $allTimeCost,
+                    'top_issue'            => $issue,
+                    'severity'             => $severity,
+                    'alert_type'           => $alertType,
+                    'alert_title'          => $alertTitle,
+                    'alert_desc'           => $alertDesc,
+                    'recommendation'       => $recommendation,
+                    'rec_desc'             => $recDesc,
+                    'rec_color'            => $recColor,
+                    'updated_at'           => Concern::where('location', $loc)->where('title', $issue)->latest()->value('updated_at'),
+                    'monthly_costs'        => $monthlyCosts,
+                    'replacement_threshold'=> $replacementThreshold,
                 ]);
             }
         }
         $trendAlerts = $trendAlerts->sortByDesc('recent')->values();
+
+        // Issue stats (grouped by title — populated from Issue dropdown)
+        $issueStats = Concern::whereNotNull('title')
+            ->where('title', '!=', '')
+            ->where('status', 'Resolved')
+            ->when($request->filled('date_from'), fn($q) => $q->whereDate('created_at', '>=', $request->input('date_from')))
+            ->when($request->filled('date_to'),   fn($q) => $q->whereDate('created_at', '<=', $request->input('date_to')))
+            ->select('title')
+            ->selectRaw('COUNT(*) as total_count')
+            ->selectRaw('SUM(COALESCE(cost, 0)) as total_cost')
+            ->groupBy('title')
+            ->orderByDesc('total_count')
+            ->limit(15)
+            ->get();
 
         return view('admin.analytics', compact(
             'totalConcerns',
@@ -3876,6 +4129,7 @@ class AdminController extends Controller
             'uniqueLocations',
             'locationStats',
             'categoryStats',
+            'issueStats',
             'monthlyStats',
             'repeatedDamageStats',
             'damagedPartsStats',
@@ -4085,5 +4339,8 @@ class AdminController extends Controller
         return back()->with('success', 'Facility request moved to deleted successfully!');
     }
 }
+
+
+
 
 

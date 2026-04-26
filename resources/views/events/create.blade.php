@@ -10,7 +10,7 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h4><i class="fas fa-calendar-plus"></i> Submit Facility Request</h4>
+                    <h4><i class="fas fa-calendar-plus"></i> My Event Request</h4>
                 </div>
                 <div class="card-body">
                     <form action="{{ route('events.store') }}" method="POST">

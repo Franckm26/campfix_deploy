@@ -121,6 +121,19 @@
     }
 }
 
+/* Make asterisks red for required fields */
+.required-asterisk {
+    color: #dc3545 !important;
+    font-weight: bold;
+}
+
+/* Fallback styling */
+.text-danger {
+    color: #dc3545 !important;
+}
+</style>
+
+<style>
 /* ── Global Dark Theme ── */
 [data-theme="dark"],
 [data-theme="dark"] html,
@@ -205,6 +218,67 @@ html[data-theme="dark"] body {
 [data-theme="dark"] .avatar-sm { border-color: #2a2a45 !important; }
 [data-theme="dark"] .role-badge { opacity: 0.9; }
 </style>
+
+<script>
+// Make all asterisks in labels red
+document.addEventListener('DOMContentLoaded', function() {
+    function makeAsterisksRed() {
+        // Find all labels and form-labels
+        const labels = document.querySelectorAll('label, .form-label');
+        
+        labels.forEach(function(label) {
+            // Check if the label contains an asterisk
+            if (label.textContent.includes('*')) {
+                // Replace asterisk with red-colored span
+                label.innerHTML = label.innerHTML.replace(/\*/g, '<span class="required-asterisk">*</span>');
+            }
+        });
+    }
+    
+    // Run initially
+    makeAsterisksRed();
+    
+    // Run again after any dynamic content is loaded (for modals, AJAX, etc.)
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                // Check if any new labels were added
+                mutation.addedNodes.forEach(function(node) {
+                    if (node.nodeType === 1) { // Element node
+                        const newLabels = node.querySelectorAll ? node.querySelectorAll('label, .form-label') : [];
+                        newLabels.forEach(function(label) {
+                            if (label.textContent.includes('*')) {
+                                label.innerHTML = label.innerHTML.replace(/\*/g, '<span class="required-asterisk">*</span>');
+                            }
+                        });
+                    }
+                });
+            }
+        });
+    });
+    
+    // Start observing
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+});
+                                label.innerHTML = label.innerHTML.replace(/\*/g, '<span class="required-asterisk">*</span>');
+                            }
+                        });
+                    }
+                });
+            }
+        });
+    });
+    
+    // Start observing
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+});
+</script>
 </head>
 <body data-user-timezone="{{ auth()->check() ? auth()->user()->timezone : config('app.timezone') }}" data-user-locale="{{ app()->getLocale() }}" data-user-date-format="{{ $userDateFormat ?? 'Y-m-d' }}">
 
@@ -245,7 +319,7 @@ html[data-theme="dark"] body {
         {{-- Only show Assigned Tasks for maintenance role --}}
         @if(auth()->user()->role === 'maintenance')
             <a href="{{ route('reports.assigned') }}" class="{{ Request::is('reports/assigned*') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
-                <i class="fas fa-tasks"></i> {{ app()->getLocale() === 'tl' ? 'Mga Nakatalagang Gawain' : 'Assigned Tasks' }}
+                <i class="fas fa-tasks"></i> {{ app()->getLocale() === 'tl' ? 'Mga Gawain' : 'Tasks' }}
             </a>
         @endif
 
@@ -424,7 +498,7 @@ html[data-theme="dark"] body {
     <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="eventRequestModalLabel"><i class="fas fa-calendar-plus"></i> {{ app()->getLocale() === 'tl' ? 'Magsumite ng Facility Request' : 'Submit Facility Request' }}</h5>
+                <h5 class="modal-title" id="eventRequestModalLabel"><i class="fas fa-calendar-plus"></i> {{ app()->getLocale() === 'tl' ? 'Magsumite ng Event Request' : 'Submit Event Request' }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="eventRequestForm" action="{{ route('events.store') }}" method="POST" enctype="multipart/form-data">

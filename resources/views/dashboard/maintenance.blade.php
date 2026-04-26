@@ -572,10 +572,72 @@
 </div>
 
 <!-- Report Details Modal -->
-<div class="modal fade" id="reportModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content" id="reportModalContent">
-            <!-- Content will be loaded here -->
+<div class="modal fade" id="reportModal" tabindex="-1" aria-labelledby="reportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="reportModalLabel">Report Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="reportModalContent">
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" id="reportModalFooter">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Update Status Modal -->
+<div class="modal fade" id="updateStatusModal" tabindex="-1" aria-labelledby="updateStatusModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="updateStatusModalLabel">Update Report Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="updateStatusForm" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <input type="hidden" id="statusReportId" name="id" value="">
+                    <div class="mb-3">
+                        <label for="taskStatus" class="form-label">Status</label>
+                        <select class="form-select" id="taskStatus" name="status" required>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Resolved">Resolved</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="resolutionNotesGroup" style="display: none;">
+                        <label for="resolution_notes" class="form-label">Resolution Notes</label>
+                        <textarea class="form-control" id="resolution_notes" name="resolution_notes" rows="3" placeholder="Describe how the issue was resolved..."></textarea>
+                    </div>
+                    <div id="maintenanceFields">
+                        <div class="row">
+                            <div class="col-md-6 mb-3" id="costField" style="display: none;">
+                                <label for="cost" class="form-label">Cost (PHP)</label>
+                                <input type="number" class="form-control" id="cost" name="cost" step="0.01" min="0" placeholder="0.00">
+                            </div>
+                            <div class="col-md-6 mb-3" id="damagedPartField" style="display: none;">
+                                <label for="damaged_part" class="form-label">Damaged Part</label>
+                                <input type="text" class="form-control" id="damaged_part" name="damaged_part" placeholder="What part was damaged?">
+                            </div>
+                        </div>
+                        <div class="mb-3" id="replacedPartField" style="display: none;">
+                            <label for="replaced_part" class="form-label">Replaced With</label>
+                            <input type="text" class="form-control" id="replaced_part" name="replaced_part" placeholder="What was it replaced with?">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Status</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -602,10 +664,12 @@
 let currentDate = new Date();
 let events = [];
 let reportModal = null;
+let updateStatusModal = null;
 let eventModal = null;
 
 document.addEventListener('DOMContentLoaded', function() {
     reportModal = new bootstrap.Modal(document.getElementById('reportModal'));
+    updateStatusModal = new bootstrap.Modal(document.getElementById('updateStatusModal'));
     eventModal = new bootstrap.Modal(document.getElementById('eventModal'));
     
     // Fetch events
@@ -618,6 +682,33 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     
     renderCalendar();
+
+    document.getElementById('taskStatus').addEventListener('change', updateFieldVisibility);
+
+    document.getElementById('updateStatusForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        const reportId = formData.get('id');
+
+        fetch('/update-report-status/' + reportId, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateStatusModal.hide();
+                location.reload();
+            } else {
+                alert(data.error || 'Failed to update status');
+            }
+        })
+        .catch(() => alert('Error updating status'));
+    });
 });
 
 // Toggle section collapse/expand
@@ -651,12 +742,10 @@ function renderCalendar() {
     
     let html = dayNames.map(d => '<div class="calendar-day-header">' + d + '</div>').join('');
     
-    // Empty cells before first day
     for (let i = 0; i < firstDay; i++) {
         html += '<div class="calendar-day empty"></div>';
     }
     
-    // Days of month
     for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
         const dayEvents = events.filter(e => e.start && e.start.startsWith(dateStr));
@@ -715,37 +804,141 @@ function showDayEvents(dateStr) {
 }
 
 function viewReport(id) {
-    fetch('{{ route("reports.show", ":id") }}'.replace(':id', id), {
-        method: 'GET',
+    const bodyDiv = document.getElementById('reportModalContent');
+    const footerDiv = document.getElementById('reportModalFooter');
+
+    bodyDiv.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+    footerDiv.innerHTML = '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>';
+    reportModal.show();
+
+    fetch('/api/reports/' + id, {
         headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'Accept': 'text/html'
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Content-Type': 'application/json'
         }
     })
-    .then(response => response.text())
+    .then(response => response.json())
     .then(data => {
-        document.getElementById('reportModalContent').innerHTML = data;
-        reportModal.show();
+        if (data.error) {
+            bodyDiv.innerHTML = '<div class="alert alert-danger">' + data.error + '</div>';
+            return;
+        }
 
-        // Attach form handler
-        setTimeout(() => {
-            const form = document.getElementById('updateStatusForm');
-            if (form) {
-                form.addEventListener('submit', handleStatusUpdate);
-            }
-        }, 100);
+        const report = data.report;
+        const severityClass = report.severity === 'critical' ? 'danger' :
+            (report.severity === 'high' ? 'warning' :
+            (report.severity === 'medium' ? 'info' : 'secondary'));
+
+        const statusClass = report.status === 'Resolved' ? 'success' :
+            (report.status === 'In Progress' ? 'warning' :
+            (report.status === 'Assigned' ? 'primary' : 'secondary'));
+
+        let imageHtml = '';
+        if (report.photo_path) {
+            imageHtml = '<div class="mb-3"><p><strong>Photo:</strong></p><img src="' + report.photo_path + '" alt="Report photo" class="img-fluid rounded" style="max-width: 400px;"></div>';
+        }
+
+        bodyDiv.innerHTML =
+            '<div class="d-flex justify-content-between align-items-center mb-3">' +
+                '<span class="badge bg-' + severityClass + ' me-2">' + report.severity.charAt(0).toUpperCase() + report.severity.slice(1) + ' Priority</span>' +
+                '<span class="badge bg-' + statusClass + '">' + report.status + '</span>' +
+            '</div>' +
+            '<h5 class="fw-bold mb-3">' + (report.title || 'No Title') + '</h5>' +
+            '<div class="row mb-3">' +
+                '<div class="col-md-6">' +
+                    '<p><strong>Category:</strong> ' + (report.category ? report.category.name : 'N/A') + '</p>' +
+                    '<p><strong>Location:</strong> ' + report.location + '</p>' +
+                '</div>' +
+                '<div class="col-md-6">' +
+                    '<p><strong>Reported:</strong> ' + formatDate(report.created_at) + '</p>' +
+                    '<p><strong>Reported by:</strong> ' + (report.user ? report.user.name : 'Unknown') + '</p>' +
+                '</div>' +
+            '</div>' +
+            (report.assigned_to ? '<p><strong>Assigned to:</strong> ' + (report.assigned_user_name || 'Unknown') + '</p>' : '') +
+            '<hr>' +
+            '<p><strong>Description:</strong></p><p>' + report.description + '</p>' +
+            imageHtml +
+            (report.resolution_notes ? '<p><strong>Resolution Notes:</strong></p><p>' + report.resolution_notes + '</p>' : '') +
+            ((report.cost || report.damaged_part || report.replaced_part) ?
+                '<hr><p><strong>Maintenance Details:</strong></p>' +
+                '<div class="row">' +
+                    (report.cost ? '<div class="col-md-4"><p><strong>Cost:</strong> ₱' + parseFloat(report.cost).toFixed(2) + '</p></div>' : '') +
+                    (report.damaged_part ? '<div class="col-md-4"><p><strong>Damaged Part:</strong> ' + report.damaged_part + '</p></div>' : '') +
+                    (report.replaced_part ? '<div class="col-md-4"><p><strong>Replaced With:</strong> ' + report.replaced_part + '</p></div>' : '') +
+                '</div>' : '') +
+            (report.status !== 'Resolved' ?
+                '<hr><div id="updateStatusSection"><h6>Update Status</h6>' +
+                '<form id="inlineStatusForm">' +
+                    '<div class="mb-3"><label class="form-label">Status</label>' +
+                    '<select class="form-select" id="inlineStatus" name="status" onchange="toggleInlineFields()">' +
+                        '<option value="In Progress"' + (report.status === 'In Progress' ? ' selected' : '') + '>In Progress</option>' +
+                        '<option value="Resolved">Resolved</option>' +
+                    '</select></div>' +
+                    '<div id="inlineResolutionGroup" style="display:none;">' +
+                        '<div class="mb-3"><label class="form-label">Resolution Notes</label>' +
+                        '<textarea class="form-control" id="inlineResolutionNotes" name="resolution_notes" rows="3" placeholder="Describe how the issue was resolved..."></textarea></div>' +
+                        '<div class="row">' +
+                            '<div class="col-md-6 mb-3"><label class="form-label">Cost (PHP)</label>' +
+                            '<input type="number" class="form-control" id="inlineCost" name="cost" step="0.01" min="0" placeholder="0.00"></div>' +
+                            '<div class="col-md-6 mb-3"><label class="form-label">Replaced With</label>' +
+                            '<input type="text" class="form-control" id="inlineReplacedPart" name="replaced_part" placeholder="What was it replaced with?"></div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="mb-3" id="inlineDamagedPartGroup" style="display:none;"><label class="form-label">Damaged Part</label>' +
+                    '<input type="text" class="form-control" id="inlineDamagedPart" name="damaged_part" placeholder="What part was damaged?"></div>' +
+                '</form></div>' : '');
+
+        // Footer buttons
+        if (report.status === 'Assigned') {
+            footerDiv.innerHTML =
+                '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>' +
+                '<form action="/reports/' + report.id + '/acknowledge" method="POST" class="d-inline ms-2">' +
+                    '<input type="hidden" name="_token" value="{{ csrf_token() }}">' +
+                    '<button type="submit" class="btn btn-success"><i class="fas fa-check"></i> Acknowledge</button>' +
+                '</form>';
+        } else if (report.status !== 'Resolved') {
+            footerDiv.innerHTML =
+                '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>' +
+                '<button type="button" class="btn btn-primary ms-2" onclick="submitInlineStatus(' + report.id + ')">Update Status</button>';
+
+            // Wire up inline status select
+            setTimeout(() => {
+                const sel = document.getElementById('inlineStatus');
+                if (sel) toggleInlineFields();
+            }, 50);
+        } else {
+            footerDiv.innerHTML = '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>';
+        }
     })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error loading report details');
+    .catch(() => {
+        bodyDiv.innerHTML = '<div class="alert alert-danger">Error loading report details</div>';
     });
 }
 
-function handleStatusUpdate(e) {
-    e.preventDefault();
+function toggleInlineFields() {
+    const status = document.getElementById('inlineStatus').value;
+    document.getElementById('inlineResolutionGroup').style.display = status === 'Resolved' ? 'block' : 'none';
+    document.getElementById('inlineDamagedPartGroup').style.display = status === 'In Progress' ? 'block' : 'none';
+}
 
-    const formData = new FormData(this);
-    const reportId = formData.get('id');
+function submitInlineStatus(reportId) {
+    const status = document.getElementById('inlineStatus').value;
+
+    const formData = new FormData();
+    formData.append('id', reportId);
+    formData.append('status', status);
+
+    const resolutionNotes = document.getElementById('inlineResolutionNotes');
+    if (resolutionNotes && resolutionNotes.value) formData.append('resolution_notes', resolutionNotes.value);
+
+    const cost = document.getElementById('inlineCost');
+    if (cost && cost.value) formData.append('cost', cost.value);
+
+    const replacedPart = document.getElementById('inlineReplacedPart');
+    if (replacedPart && replacedPart.value) formData.append('replaced_part', replacedPart.value);
+
+    const damagedPart = document.getElementById('inlineDamagedPart');
+    if (damagedPart && damagedPart.value) formData.append('damaged_part', damagedPart.value);
 
     fetch('/update-report-status/' + reportId, {
         method: 'POST',
@@ -764,10 +957,25 @@ function handleStatusUpdate(e) {
             alert(data.error || 'Failed to update status');
         }
     })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error updating status');
-    });
+    .catch(() => alert('Error updating status'));
+}
+
+function updateFieldVisibility() {
+    const status = document.getElementById('taskStatus').value;
+    document.getElementById('resolutionNotesGroup').style.display = status === 'Resolved' ? 'block' : 'none';
+    document.getElementById('costField').style.display = status === 'Resolved' ? 'block' : 'none';
+    document.getElementById('damagedPartField').style.display = status === 'In Progress' ? 'block' : 'none';
+    document.getElementById('replacedPartField').style.display = status === 'Resolved' ? 'block' : 'none';
+}
+
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    let hours = date.getHours();
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12;
+    return months[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear() + ' ' + hours + ':' + minutes + ' ' + ampm;
 }
 </script>
 @endsection

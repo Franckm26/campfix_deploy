@@ -59,7 +59,7 @@
                                          <th class="text-nowrap" style="min-width: 150px;">Title</th>
                                          <th class="text-nowrap" style="min-width: 120px;">Category</th>
                                          <th class="text-nowrap" style="min-width: 120px;">Location</th>
-                                         <th class="text-nowrap" style="min-width: 100px;">Severity</th>
+                                         <th class="text-nowrap" style="min-width: 100px;">Priority</th>
                                          <th class="text-nowrap" style="min-width: 100px;">Status</th>
                                          <th class="text-nowrap" style="min-width: 100px;">Created</th>
                                          <th class="text-nowrap" style="min-width: 200px;">Actions</th>

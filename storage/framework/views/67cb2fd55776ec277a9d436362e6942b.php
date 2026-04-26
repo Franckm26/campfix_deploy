@@ -278,7 +278,7 @@
                             <th>Title</th>
                             <th>Category</th>
                             <th>Location</th>
-                            <th>Severity</th>
+                            <th>Priority</th>
                             <th>Status</th>
                             <th>Reported By</th>
                             <th>Created</th>
@@ -378,7 +378,7 @@
                                 <th>Title</th>
                                 <th>Category</th>
                                 <th>Location</th>
-                                <th>Severity</th>
+                                <th>Priority</th>
                                 <th>Reported By</th>
                                 <th>Created</th>
                                 <th>Resolved</th>
@@ -612,7 +612,7 @@
                                 <th>Title</th>
                                 <th>Category</th>
                                 <th>Location</th>
-                                <th>Severity</th>
+                                <th>Priority</th>
                                 <th>Status</th>
                                 <th>Reported By</th>
                                 <th>Deleted Date</th>
@@ -796,105 +796,75 @@
         <!-- ── TREND ALERTS ─────────────────────────────────────────────── -->
         <?php if(isset($trendAlerts) && $trendAlerts->count() > 0): ?>
         <div class="analytics-card">
-            <div class="analytics-header">
-                <div class="analytics-title">
-                    <i class="fas fa-bell text-danger"></i> Predictive Trend Alerts
-                    <span class="badge bg-danger ms-2"><?php echo e($trendAlerts->count()); ?> Location(s) Flagged</span>
+
+            
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="analytics-title" style="font-size:1rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">
+                    <i class="fas fa-bell text-danger me-2"></i> Alerts &amp; Notifications
+                    <span class="badge bg-danger ms-2"><?php echo e($trendAlerts->count()); ?></span>
                 </div>
             </div>
-            <p class="text-muted mb-3" style="font-size:.88rem;">
-                Locations where repair frequency <strong>increased</strong> in the last 3 months vs the prior 3 months.
-            </p>
-            <?php $__currentLoopData = $trendAlerts; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $alert): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-            <div class="trend-alert-item <?php echo e($alert['severity']); ?>">
-                <div class="trend-alert-icon">
-                    <?php if($alert['severity'] === 'critical'): ?> 🔴
-                    <?php elseif($alert['severity'] === 'warning'): ?> 🟡
-                    <?php else: ?> 🔵
-                    <?php endif; ?>
-                </div>
-                <div class="trend-alert-text">
-                    <strong><?php echo e($alert['location']); ?></strong>
-                    <span>
-                        <?php echo e($alert['recent']); ?> repair(s) in last 3 months
-                        (vs <?php echo e($alert['prior']); ?> prior) &mdash;
-                        Cost: ₱<?php echo e(number_format($alert['recent_cost'], 2)); ?>
 
-                        <?php if($alert['severity'] === 'critical'): ?>
-                            &mdash; <strong class="text-danger">Consider replacement</strong>
-                        <?php elseif($alert['severity'] === 'warning'): ?>
-                            &mdash; <strong class="text-warning">Monitor closely</strong>
-                        <?php else: ?>
-                            &mdash; Increasing trend detected
-                        <?php endif; ?>
-                    </span>
-                </div>
-                <span class="badge <?php echo e($alert['severity'] === 'critical' ? 'bg-danger' : ($alert['severity'] === 'warning' ? 'bg-warning text-dark' : 'bg-info')); ?>">
-                    +<?php echo e($alert['recent'] - $alert['prior']); ?> more
-                </span>
-            </div>
-            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-        </div>
-        <?php endif; ?>
-
-        <!-- ── PERIOD COMPARISON ─────────────────────────────────────────── -->
-        <?php if(isset($periodComparison)): ?>
-        <div class="analytics-card">
-            <div class="analytics-header">
-                <div class="analytics-title">
-                    <i class="fas fa-exchange-alt"></i> Period Comparison
-                </div>
-            </div>
-            <p class="text-muted mb-3" style="font-size:.88rem;">
-                <?php echo e($periodComparison['this_month_label']); ?> vs <?php echo e($periodComparison['last_month_label']); ?>
-
-            </p>
-            <div class="period-grid">
-                <div class="period-card <?php echo e($periodComparison['count_change'] > 0 ? 'up' : ($periodComparison['count_change'] < 0 ? 'down' : 'neutral')); ?>">
-                    <div class="period-label">Repairs — <?php echo e($periodComparison['this_month_label']); ?></div>
-                    <div class="period-value"><?php echo e($periodComparison['this_month_count']); ?></div>
-                    <div class="period-sub">
-                        Last month: <?php echo e($periodComparison['last_month_count']); ?>
-
-                        <span class="chg-badge <?php echo e($periodComparison['count_change'] > 0 ? 'up' : ($periodComparison['count_change'] < 0 ? 'down' : 'neutral')); ?>">
-                            <?php echo e($periodComparison['count_change'] > 0 ? '▲' : ($periodComparison['count_change'] < 0 ? '▼' : '—')); ?>
-
-                            <?php echo e(abs($periodComparison['count_change'])); ?>%
-                        </span>
-                    </div>
-                </div>
-                <div class="period-card <?php echo e($periodComparison['cost_change'] > 0 ? 'up' : ($periodComparison['cost_change'] < 0 ? 'down' : 'neutral')); ?>">
-                    <div class="period-label">Cost — <?php echo e($periodComparison['this_month_label']); ?></div>
-                    <div class="period-value">₱<?php echo e(number_format($periodComparison['this_month_cost'], 2)); ?></div>
-                    <div class="period-sub">
-                        Last month: ₱<?php echo e(number_format($periodComparison['last_month_cost'], 2)); ?>
-
-                        <span class="chg-badge <?php echo e($periodComparison['cost_change'] > 0 ? 'up' : ($periodComparison['cost_change'] < 0 ? 'down' : 'neutral')); ?>">
-                            <?php echo e($periodComparison['cost_change'] > 0 ? '▲' : ($periodComparison['cost_change'] < 0 ? '▼' : '—')); ?>
-
-                            <?php echo e(abs($periodComparison['cost_change'])); ?>%
-                        </span>
-                    </div>
-                </div>
+            <div class="mb-4">
+                <?php $__currentLoopData = $trendAlerts; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $alert): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                 <?php
-                    $avgThis   = $periodComparison['this_month_count'] > 0 ? $periodComparison['this_month_cost'] / $periodComparison['this_month_count'] : 0;
-                    $avgLast   = $periodComparison['last_month_count'] > 0 ? $periodComparison['last_month_cost'] / $periodComparison['last_month_count'] : 0;
-                    $avgChange = $avgLast > 0 ? round((($avgThis - $avgLast) / $avgLast) * 100, 1) : ($avgThis > 0 ? 100 : 0);
+                    $borderColor = $alert['severity'] === 'critical' ? '#ef4444' : ($alert['severity'] === 'warning' ? '#f97316' : '#f59e0b');
+                    $bgColor     = $alert['severity'] === 'critical' ? '#fef2f2' : ($alert['severity'] === 'warning' ? '#fff7ed' : '#fffbeb');
+                    $iconColor   = $alert['severity'] === 'critical' ? '#ef4444' : ($alert['severity'] === 'warning' ? '#f97316' : '#f59e0b');
+                    $timeAgo     = isset($alert['updated_at']) && $alert['updated_at'] ? \Carbon\Carbon::parse($alert['updated_at'])->diffForHumans(null, true, true) : 'recently';
                 ?>
-                <div class="period-card <?php echo e($avgChange > 0 ? 'up' : ($avgChange < 0 ? 'down' : 'neutral')); ?>">
-                    <div class="period-label">Avg Cost / Repair</div>
-                    <div class="period-value">₱<?php echo e(number_format($avgThis, 2)); ?></div>
-                    <div class="period-sub">
-                        Last month: ₱<?php echo e(number_format($avgLast, 2)); ?>
-
-                        <span class="chg-badge <?php echo e($avgChange > 0 ? 'up' : ($avgChange < 0 ? 'down' : 'neutral')); ?>">
-                            <?php echo e($avgChange > 0 ? '▲' : ($avgChange < 0 ? '▼' : '—')); ?>
-
-                            <?php echo e(abs($avgChange)); ?>%
-                        </span>
+                <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;border-left:4px solid <?php echo e($borderColor); ?>;background:<?php echo e($bgColor); ?>;border-radius:8px;margin-bottom:10px;cursor:pointer;"
+                    onclick="showCostTrendModal(<?php echo e(json_encode($alert)); ?>)">
+                    <div style="width:36px;height:36px;border-radius:50%;background:<?php echo e($iconColor); ?>;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <i class="fas fa-triangle-exclamation" style="color:#fff;font-size:15px;"></i>
                     </div>
+                    <div style="flex:1;">
+                        <div style="font-weight:700;font-size:.95rem;color:#1e293b;"><?php echo e($alert['alert_title'] ?? 'Trend Detected'); ?></div>
+                        <div style="font-size:.82rem;color:#64748b;">
+                            <?php if(!empty($alert['top_issue'])): ?><?php echo e($alert['top_issue']); ?> on <?php echo e($alert['location']); ?><?php else: ?><?php echo e($alert['location']); ?><?php endif; ?>
+                            &mdash; <?php echo e($alert['severity'] === 'critical' ? 'Replacement recommended' : ($alert['severity'] === 'warning' ? 'Approaching threshold' : 'Trend detected')); ?>
+
+                        </div>
+                    </div>
+                    <div style="font-size:.78rem;color:#94a3b8;white-space:nowrap;"><?php echo e($timeAgo); ?></div>
+                </div>
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+            </div>
+
+            <hr style="border-color:#e2e8f0;margin:20px 0;">
+
+            
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="analytics-title" style="font-size:1rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">
+                    <i class="fas fa-lightbulb text-warning me-2"></i> Recommendation Engine
                 </div>
             </div>
+
+            <div>
+                <?php $__currentLoopData = $trendAlerts; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $alert): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <?php
+                    $recColor = $alert['rec_color'] ?? 'info';
+                    $recIcon  = $recColor === 'success' ? 'fa-check' : ($recColor === 'warning' ? 'fa-wrench' : 'fa-xmark');
+                    $recBg    = $recColor === 'success' ? '#22c55e' : ($recColor === 'warning' ? '#f97316' : '#ef4444');
+                    $recText  = $recColor === 'success' ? '#16a34a' : ($recColor === 'warning' ? '#ea580c' : '#dc2626');
+                ?>
+                <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:10px;cursor:pointer;transition:all 0.2s ease;"
+                    onclick="showCostTrendModal(<?php echo e(json_encode($alert)); ?>)"
+                    onmouseover="this.style.background='#f8fafc';this.style.borderColor='#cbd5e1';"
+                    onmouseout="this.style.background='#fff';this.style.borderColor='#e2e8f0';">
+                    <div style="width:40px;height:40px;border-radius:50%;background:<?php echo e($recBg); ?>;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <i class="fas <?php echo e($recIcon); ?>" style="color:#fff;font-size:16px;"></i>
+                    </div>
+                    <div style="flex:1;">
+                        <div style="font-weight:700;font-size:.95rem;color:<?php echo e($recText); ?>;"><?php echo e($alert['recommendation'] ?? 'Monitor'); ?></div>
+                        <div style="font-size:.82rem;color:#64748b;"><?php if(!empty($alert['top_issue'])): ?><?php echo e($alert['top_issue']); ?> on <?php echo e($alert['location']); ?><?php else: ?><?php echo e($alert['location']); ?><?php endif; ?></div>
+                    </div>
+                    <div style="font-size:.82rem;color:#64748b;max-width:180px;text-align:right;"><?php echo e($alert['rec_desc'] ?? ''); ?></div>
+                    <i class="fas fa-chevron-right" style="color:#cbd5e1;font-size:13px;"></i>
+                </div>
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+            </div>
+
         </div>
         <?php endif; ?>
 
@@ -1025,6 +995,72 @@
                 </div>
             </div>
         </div>
+
+        <script>
+        (function() {
+            var locations = <?php echo json_encode($chartLocations ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP); ?>;
+            var counts    = <?php echo json_encode($chartCounts ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP); ?>;
+            var costs     = <?php echo json_encode($chartCosts ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP); ?>;
+            var statuses  = <?php echo json_encode($chartStatuses ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP); ?>;
+            var statusCounts = <?php echo json_encode($chartStatusCounts ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP); ?>;
+            var monthly   = <?php echo json_encode(isset($monthlyStats) ? $monthlyStats->map(fn($s) => ['month' => \Carbon\Carbon::parse($s->month)->format('M Y'), 'count' => $s->total_count, 'cost' => $s->total_cost])->values() : [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP); ?>;
+
+            var colors = ['#FF6384','#36A2EB','#FFCE56','#4BC0C0','#9966FF','#FF9F40','#C9CBCF','#4BC0C0'];
+
+            function buildCharts() {
+                if (typeof Chart === 'undefined') { setTimeout(buildCharts, 100); return; }
+
+                // Pie — Repairs by Location
+                var pieEl = document.getElementById('locationPieChart');
+                if (pieEl && locations.length > 0) {
+                    new Chart(pieEl, { type: 'pie', data: { labels: locations, datasets: [{ data: counts, backgroundColor: colors, borderWidth: 2 }] }, options: { responsive: true, plugins: { legend: { position: 'bottom' } } } });
+                }
+
+                // Bar — Cost by Location
+                var barEl = document.getElementById('locationBarChart');
+                if (barEl && locations.length > 0) {
+                    new Chart(barEl, { type: 'bar', data: { labels: locations, datasets: [{ label: 'Total Cost (₱)', data: costs, backgroundColor: '#36A2EB', borderWidth: 1 }] }, options: { responsive: true, scales: { y: { beginAtZero: true, ticks: { callback: function(v){ return '₱'+v.toLocaleString(); } } } } } });
+                }
+
+                // Doughnut — Status Distribution
+                var doughEl = document.getElementById('statusDoughnutChart');
+                if (doughEl && statuses.length > 0) {
+                    new Chart(doughEl, { type: 'doughnut', data: { labels: statuses, datasets: [{ data: statusCounts, backgroundColor: colors, borderWidth: 2 }] }, options: { responsive: true, plugins: { legend: { position: 'bottom' } } } });
+                }
+
+                // Line — Monthly Trend
+                var lineEl = document.getElementById('monthlyTrendChart');
+                if (lineEl && monthly.length > 0) {
+                    var months = monthly.map(function(i){ return i.month; });
+                    var mCounts = monthly.map(function(i){ return i.count; });
+                    var mCosts  = monthly.map(function(i){ return i.cost; });
+                    new Chart(lineEl, { type: 'line', data: { labels: months, datasets: [
+                        { label: 'Repairs', data: mCounts, borderColor: '#36A2EB', backgroundColor: 'rgba(54,162,235,0.1)', tension: 0.4, yAxisID: 'y' },
+                        { label: 'Cost (₱)', data: mCosts, borderColor: '#FF6384', backgroundColor: 'rgba(255,99,132,0.1)', tension: 0.4, yAxisID: 'y1' }
+                    ]}, options: { responsive: true, scales: {
+                        y: {
+                            type: 'linear', position: 'left',
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1,
+                                precision: 0,
+                                callback: function(v) {
+                                    return Number.isInteger(v) ? v + (v === 1 ? ' repair' : ' repairs') : null;
+                                }
+                            }
+                        },
+                        y1: {
+                            type: 'linear', position: 'right',
+                            beginAtZero: true,
+                            grid: { drawOnChartArea: false },
+                            ticks: { callback: function(v){ return '₱' + v.toLocaleString(); } }
+                        }
+                    }}});
+                }
+            }
+            buildCharts();
+        })();
+        </script>
     </div>
 
 <!-- Rooms Modal -->
@@ -1433,8 +1469,8 @@ document.addEventListener('DOMContentLoaded', function() {
         isset($monthlyStats) ? $monthlyStats->map(fn($s) => ['month' => \Carbon\Carbon::parse($s->month)->format('M Y'), 'count' => $s->total_count, 'cost' => $s->total_cost])->values() : [],
         JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
     ); ?>;
-    initializeCharts();
     <?php endif; ?>
+    function initializeCharts() {
     // Pie Chart for Repairs by Location
     const locationPieCtx = document.getElementById('locationPieChart');
     if (locationPieCtx && window.chartLocations.length > 0) {
@@ -1620,6 +1656,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
 }
 
+<?php if(($viewType ?? '') == 'analytics'): ?>
+    initializeCharts();
+<?php endif; ?>
+
 document.addEventListener('touchend', function() {
     clearTimeout(longPressTimer);
 });
@@ -1725,7 +1765,7 @@ function editReport(id) {
             '<label class="form-label">Location</label>' +
             '<input type="text" name="location" class="form-control" value="' + (data.report.location || '') + '" required>' +
             '</div><div class="mb-3">' +
-            '<label class="form-label">Severity</label>' +
+            '<label class="form-label">Priority</label>' +
             '<select name="severity" class="form-control" required>' +
             '<option value="low" ' + (data.report.severity == 'low' ? 'selected' : '') + '>Low</option>' +
             '<option value="medium" ' + (data.report.severity == 'medium' ? 'selected' : '') + '>Medium</option>' +
@@ -2340,7 +2380,7 @@ function viewReport(id) {
         bodyDiv.innerHTML = '<div class="card">' +
             '<div class="card-header d-flex justify-content-between align-items-center">' +
                 '<h4>Report #' + report.id + '</h4>' +
-                '<div><span class="badge bg-' + severityClass + ' me-2">' + report.severity.charAt(0).toUpperCase() + report.severity.slice(1) + ' Severity</span><span class="badge bg-' + statusClass + '">' + report.status + '</span></div>' +
+                '<div><span class="badge bg-' + severityClass + ' me-2">' + report.severity.charAt(0).toUpperCase() + report.severity.slice(1) + ' Priority</span><span class="badge bg-' + statusClass + '">' + report.status + '</span></div>' +
             '</div>' +
             '<div class="card-body">' +
                 '<h5 class="card-title">' + (report.title || 'No Title') + '</h5>' +
@@ -2535,7 +2575,7 @@ function viewReport(id) {
         bodyDiv.innerHTML = '<div class="card">' +
             '<div class="card-header d-flex justify-content-between align-items-center">' +
                 '<h4>Report #' + report.id + '</h4>' +
-                '<div><span class="badge bg-' + severityClass + ' me-2">' + report.severity.charAt(0).toUpperCase() + report.severity.slice(1) + ' Severity</span>' +
+                '<div><span class="badge bg-' + severityClass + ' me-2">' + report.severity.charAt(0).toUpperCase() + report.severity.slice(1) + ' Priority</span>' +
                 '<span class="badge bg-' + statusClass + '">' + report.status + '</span></div>' +
             '</div>' +
             '<div class="card-body">' +
@@ -2563,6 +2603,106 @@ function viewReport(id) {
     });
 }
 </script>
+
+<!-- Cost Trend Modal -->
+<div class="modal fade" id="costTrendModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-chart-line me-2"></i><span id="ctm_title"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <div style="font-size:.8rem;color:#888;">Location</div>
+                        <div style="font-weight:700;" id="ctm_location"></div>
+                    </div>
+                    <div class="col-3">
+                        <div style="font-size:.8rem;color:#888;">Total Repairs</div>
+                        <div style="font-weight:700;color:#3b82f6;" id="ctm_repairs"></div>
+                    </div>
+                    <div class="col-3">
+                        <div style="font-size:.8rem;color:#888;">Cumulative Cost</div>
+                        <div style="font-weight:700;color:#22c55e;" id="ctm_total_cost"></div>
+                    </div>
+                </div>
+                <div class="row mb-3" id="ctm_threshold_row">
+                    <div class="col-6">
+                        <div style="font-size:.8rem;color:#888;">Original Asset Price</div>
+                        <div style="font-weight:700;" id="ctm_threshold"></div>
+                    </div>
+                    <div class="col-6">
+                        <div style="font-size:.8rem;color:#888;">Cost vs Original Price</div>
+                        <div class="progress mt-1" style="height:10px;">
+                            <div class="progress-bar" id="ctm_progress_bar" style="width:0%"></div>
+                        </div>
+                        <div style="font-size:.78rem;color:#888;margin-top:3px;" id="ctm_progress_label"></div>
+                    </div>
+                </div>
+                <hr>
+                <h6 class="mb-3">Monthly Cost Breakdown</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Month</th>
+                                <th class="text-center">Repairs</th>
+                                <th class="text-end">Cost</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ctm_monthly_rows"></tbody>
+                        <tfoot>
+                            <tr class="table-secondary fw-bold">
+                                <td>Total</td>
+                                <td class="text-center" id="ctm_total_count"></td>
+                                <td class="text-end" id="ctm_total_cost_foot"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showCostTrendModal(alert) {
+    document.getElementById('ctm_title').textContent = (alert.top_issue || 'Issue') + ' — ' + alert.location;
+    document.getElementById('ctm_location').textContent = alert.location;
+    document.getElementById('ctm_repairs').textContent = alert.recent + ' repair(s)';
+    document.getElementById('ctm_total_cost').textContent = '₱' + parseFloat(alert.all_time_cost).toLocaleString('en-PH', {minimumFractionDigits:2});
+
+    const threshold = parseFloat(alert.replacement_threshold || 0);
+    const allTime   = parseFloat(alert.all_time_cost || 0);
+    const threshRow = document.getElementById('ctm_threshold_row');
+    if (threshold > 0) {
+        threshRow.style.display = '';
+        document.getElementById('ctm_threshold').textContent = '₱' + threshold.toLocaleString('en-PH', {minimumFractionDigits:2});
+        const pct = Math.min(100, Math.round((allTime / threshold) * 100));
+        const bar = document.getElementById('ctm_progress_bar');
+        bar.style.width = pct + '%';
+        bar.className = 'progress-bar ' + (pct >= 100 ? 'bg-danger' : pct >= 80 ? 'bg-warning' : 'bg-success');
+        document.getElementById('ctm_progress_label').textContent = pct + '% of original price used in repairs';
+    } else {
+        threshRow.style.display = 'none';
+    }
+
+    const tbody = document.getElementById('ctm_monthly_rows');
+    tbody.innerHTML = '';
+    let totalCount = 0, totalCost = 0;
+    (alert.monthly_costs || []).forEach(function(row) {
+        totalCount += parseInt(row.count || 0);
+        totalCost  += parseFloat(row.cost || 0);
+        tbody.innerHTML += '<tr><td>' + row.month + '</td><td class="text-center">' + row.count + '</td><td class="text-end">₱' + parseFloat(row.cost).toLocaleString('en-PH', {minimumFractionDigits:2}) + '</td></tr>';
+    });
+    document.getElementById('ctm_total_count').textContent = totalCount;
+    document.getElementById('ctm_total_cost_foot').textContent = '₱' + totalCost.toLocaleString('en-PH', {minimumFractionDigits:2});
+
+    new bootstrap.Modal(document.getElementById('costTrendModal')).show();
+}
+</script>
 <?php $__env->stopSection(); ?>
+
 
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\Campfix\resources\views/admin/reports.blade.php ENDPATH**/ ?>

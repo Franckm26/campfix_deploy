@@ -54,9 +54,9 @@
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label">Severity</label>
+                    <label class="form-label">Priority</label>
                     <select name="severity" class="form-select">
-                        <option value="">All Severity</option>
+                        <option value="">All Priority</option>
                         <option value="low" <?php echo e(request('severity') == 'low' ? 'selected' : ''); ?>>Low</option>
                         <option value="medium" <?php echo e(request('severity') == 'medium' ? 'selected' : ''); ?>>Medium</option>
                         <option value="high" <?php echo e(request('severity') == 'high' ? 'selected' : ''); ?>>High</option>
@@ -94,67 +94,67 @@
         <div class="card-body">
             <?php if($reports->count() > 0): ?>
                 <div class="table-responsive">
-                    <table class="table table-hover">
+                    <table class="table table-hover table-sm" style="table-layout: fixed; width: 100%;">
                         <thead>
                             <tr>
-                                <th class="text-nowrap" style="min-width: 150px;">Title</th>
-                                <th class="text-nowrap" style="min-width: 120px;">Category</th>
-                                <th class="text-nowrap" style="min-width: 120px;">Location</th>
-                                <th class="text-nowrap" style="min-width: 100px;">Severity</th>
-                                <th class="text-nowrap" style="min-width: 100px;">Status</th>
-                                <th class="text-nowrap" style="min-width: 120px;">Reported By</th>
-                                <th class="text-nowrap" style="min-width: 120px;">Assigned At</th>
-                                <th class="text-nowrap" style="min-width: 200px;">Actions</th>
+                                <th style="width: 50px; padding: 0.3rem;">Issue</th>
+                                <th style="width: 65px; padding: 0.3rem;">Category</th>
+                                <th style="width: 70px; padding: 0.3rem;">Location</th>
+                                <th style="width: 65px; padding: 0.3rem;">Priority</th>
+                                <th style="width: 70px; padding: 0.3rem;">Status</th>
+                                <th style="width: 80px; padding: 0.3rem;">Reported By</th>
+                                <th style="width: 110px; padding: 0.3rem;">Assigned At</th>
+                                <th style="width: 80px; padding: 0.3rem;">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php $__currentLoopData = $reports; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $report): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                 <tr>
-                                    <td><?php echo e($report->title ?? 'No Title'); ?></td>
-                                    <td><?php echo e($report->category->name ?? 'N/A'); ?></td>
-                                    <td><?php echo e($report->location); ?></td>
-                                    <td>
+                                    <td class="text-truncate" style="max-width: 50px; padding: 0.3rem;" title="<?php echo e($report->title ?? 'No Issue'); ?>"><?php echo e($report->title ?? 'No Issue'); ?></td>
+                                    <td class="text-truncate" style="max-width: 65px; padding: 0.3rem;" title="<?php echo e($report->category->name ?? 'N/A'); ?>"><?php echo e($report->category->name ?? 'N/A'); ?></td>
+                                    <td class="text-truncate" style="max-width: 70px; padding: 0.3rem;" title="<?php echo e($report->location); ?>"><?php echo e($report->location); ?></td>
+                                    <td style="padding: 0.3rem;">
                                         <span class="badge bg-<?php echo e($report->severity == 'critical' ? 'danger' :
                                             ($report->severity == 'high' ? 'warning' :
-                                            ($report->severity == 'medium' ? 'info' : 'secondary'))); ?>">
+                                            ($report->severity == 'medium' ? 'info' : 'secondary'))); ?>" style="font-size: 0.65rem; padding: 0.2rem 0.3rem;">
                                             <?php echo e(ucfirst($report->severity)); ?>
 
                                         </span>
                                     </td>
-                                    <td>
+                                    <td style="padding: 0.3rem;">
                                         <span class="badge bg-<?php echo e($report->status == 'Resolved' ? 'success' :
                                             ($report->status == 'In Progress' ? 'warning' :
-                                            ($report->status == 'Assigned' ? 'primary' : 'secondary'))); ?>">
+                                            ($report->status == 'Assigned' ? 'primary' : 'secondary'))); ?>" style="font-size: 0.65rem; padding: 0.2rem 0.3rem;">
                                             <?php echo e($report->status); ?>
 
                                         </span>
                                     </td>
-                                    <td><?php echo e($report->user->name ?? 'Unknown'); ?></td>
-                                    <td><?php echo e($report->assigned_at ? $report->assigned_at->format('M d, Y h:i A') : 'N/A'); ?></td>
-                                    <td>
-                                        <div class="btn-group" role="group">
-                                            <button type="button" class="btn btn-sm btn-info" onclick="viewReport(<?php echo e($report->id); ?>)" title="View">
-                                                <i class="fas fa-eye"></i>
+                                    <td class="text-truncate" style="max-width: 80px; padding: 0.3rem;" title="<?php echo e($report->user->name ?? 'Unknown'); ?>"><?php echo e($report->user->name ?? 'Unknown'); ?></td>
+                                    <td style="font-size: 0.75rem; padding: 0.3rem;"><?php echo e($report->assigned_at ? $report->assigned_at->format('M d, Y h:i A') : 'N/A'); ?></td>
+                                    <td style="padding: 0.3rem;">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button type="button" class="btn btn-info btn-sm" style="padding: 0.2rem 0.4rem;" onclick="viewReport(<?php echo e($report->id); ?>)" title="View">
+                                                <i class="fas fa-eye" style="font-size: 0.7rem;"></i>
                                             </button>
                                             <?php if($viewType === 'active'): ?>
                                                 <?php if($report->status === 'In Progress'): ?>
-                                                    <button type="button" class="btn btn-sm btn-warning" onclick="updateStatus(<?php echo e($report->id); ?>)" title="Update Status">
-                                                        <i class="fas fa-edit"></i>
+                                                    <button type="button" class="btn btn-warning btn-sm" style="padding: 0.2rem 0.4rem;" onclick="updateStatus(<?php echo e($report->id); ?>)" title="Update Status">
+                                                        <i class="fas fa-edit" style="font-size: 0.7rem;"></i>
                                                     </button>
                                                 <?php endif; ?>
                                                 <form action="<?php echo e(route('reports.archive', $report)); ?>" method="POST" class="d-inline"
                                                       onsubmit="return confirm('Are you sure you want to archive this report?')">
                                                     <?php echo csrf_field(); ?>
-                                                    <button type="submit" class="btn btn-sm btn-secondary" title="Archive">
-                                                        <i class="fas fa-archive"></i>
+                                                    <button type="submit" class="btn btn-secondary btn-sm" style="padding: 0.2rem 0.4rem;" title="Archive">
+                                                        <i class="fas fa-archive" style="font-size: 0.7rem;"></i>
                                                     </button>
                                                 </form>
                                             <?php elseif($viewType === 'archives'): ?>
                                                 <form action="<?php echo e(route('reports.restore', $report)); ?>" method="POST" class="d-inline"
                                                       onsubmit="return confirm('Are you sure you want to restore this report?')">
                                                     <?php echo csrf_field(); ?>
-                                                    <button type="submit" class="btn btn-sm btn-primary">
-                                                        <i class="fas fa-undo"></i> Restore
+                                                    <button type="submit" class="btn btn-primary btn-sm" style="padding: 0.2rem 0.4rem;" title="Restore">
+                                                        <i class="fas fa-undo" style="font-size: 0.7rem;"></i>
                                                     </button>
                                                 </form>
                                             <?php endif; ?>
@@ -296,7 +296,7 @@ function viewReport(id) {
         bodyDiv.innerHTML = '<div class="card">' +
             '<div class="card-header d-flex justify-content-between align-items-center">' +
                 '<h4>Report #' + report.id + '</h4>' +
-                '<div><span class="badge bg-' + severityClass + ' me-2">' + report.severity.charAt(0).toUpperCase() + report.severity.slice(1) + ' Severity</span><span class="badge bg-' + statusClass + '">' + report.status + '</span></div>' +
+                '<div><span class="badge bg-' + severityClass + ' me-2">' + report.severity.charAt(0).toUpperCase() + report.severity.slice(1) + ' Priority</span><span class="badge bg-' + statusClass + '">' + report.status + '</span></div>' +
             '</div>' +
             '<div class="card-body">' +
                 '<h5 class="card-title">' + (report.title || 'No Title') + '</h5>' +

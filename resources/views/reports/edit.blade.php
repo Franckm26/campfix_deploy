@@ -38,7 +38,7 @@
                         </div>
 
                         <div class="mb-3">
-                            <label for="severity" class="form-label">Severity *</label>
+                            <label for="severity" class="form-label">Priority *</label>
                             <select class="form-select" id="severity" name="severity" required>
                                 <option value="low" {{ old('severity', $report->severity) == 'low' ? 'selected' : '' }}>Low - Minor issue</option>
                                 <option value="medium" {{ old('severity', $report->severity) == 'medium' ? 'selected' : '' }}>Medium - Moderate issue</option>
