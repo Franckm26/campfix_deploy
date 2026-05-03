@@ -7,6 +7,7 @@
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
 <link href="{{ asset('css/app.css') }}" rel="stylesheet">
 
 @yield('styles')
@@ -82,6 +83,43 @@
 .sidebar a.active::after,
 .sidebar a.active::before {
     display: none !important;
+}
+
+/* Nav dropdown */
+.nav-dropdown-toggle {
+    display: flex !important;
+    align-items: center;
+    cursor: pointer;
+}
+.nav-dropdown-arrow {
+    font-size: 11px;
+    transition: transform 0.2s;
+    margin-left: auto;
+    margin-right: 10px;
+}
+.nav-dropdown.open .nav-dropdown-arrow {
+    transform: rotate(180deg);
+}
+.nav-dropdown-menu {
+    display: none;
+    flex-direction: column;
+    background: rgba(0,0,0,0.15);
+    border-radius: 8px;
+    margin: 2px 8px 4px 8px;
+    overflow: hidden;
+}
+.nav-dropdown.open .nav-dropdown-menu {
+    display: flex;
+}
+.nav-dropdown-menu a {
+    color: rgba(255,255,255,0.85) !important;
+    border-radius: 6px !important;
+    margin: 1px 4px !important;
+}
+.nav-dropdown-menu a:hover,
+.nav-dropdown-menu a.active {
+    background: rgba(255,255,255,0.15) !important;
+    color: #fff !important;
 }
 
 /* Fix modal scrolling - override app.css max-height */
@@ -263,21 +301,6 @@ document.addEventListener('DOMContentLoaded', function() {
         subtree: true
     });
 });
-                                label.innerHTML = label.innerHTML.replace(/\*/g, '<span class="required-asterisk">*</span>');
-                            }
-                        });
-                    }
-                });
-            }
-        });
-    });
-    
-    // Start observing
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true
-    });
-});
 </script>
 </head>
 <body data-user-timezone="{{ auth()->check() ? auth()->user()->timezone : config('app.timezone') }}" data-user-locale="{{ app()->getLocale() }}" data-user-date-format="{{ $userDateFormat ?? 'Y-m-d' }}">
@@ -306,9 +329,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
             {{-- Only show My Events for faculty users --}}
             @if(auth()->user()->role === 'faculty')
-                <a href="{{ route('events.my') }}" class="{{ Request::is('my-events') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
-                    <i class="fas fa-calendar"></i> {{ app()->getLocale() === 'tl' ? 'Aking Mga Event' : 'My Events' }}
-                </a>
+                {{-- Events dropdown --}}
+                <div class="nav-dropdown {{ Request::is('my-events') || Request::is('events-calendar') ? 'open' : '' }}">
+                    <a href="#" class="nav-dropdown-toggle {{ Request::is('my-events') || Request::is('events-calendar') ? 'active' : '' }}"
+                       data-nav-toggle style="padding-top:8px;padding-bottom:8px;">
+                        <i class="fas fa-calendar-alt"></i> {{ app()->getLocale() === 'tl' ? 'Mga Event' : 'Events' }}
+                        <i class="fas fa-chevron-down nav-dropdown-arrow ms-auto"></i>
+                    </a>
+                    <div class="nav-dropdown-menu">
+                        <a href="{{ route('events.my') }}" class="{{ Request::is('my-events') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
+                            <i class="fas fa-calendar me-1"></i> My Events
+                        </a>
+                        <a href="{{ route('events.calendar') }}" class="{{ Request::is('events-calendar') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
+                            <i class="fas fa-calendar-check me-1"></i> Upcoming Events
+                        </a>
+                    </div>
+                </div>
             @endif
         @elseif(auth()->user()->role === 'mis')
             <a href="{{ route('concerns.my') }}" class="{{ Request::is('my-concerns') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
@@ -317,11 +353,6 @@ document.addEventListener('DOMContentLoaded', function() {
         @endif
 
         {{-- Only show Assigned Tasks for maintenance role --}}
-        @if(auth()->user()->role === 'maintenance')
-            <a href="{{ route('reports.assigned') }}" class="{{ Request::is('reports/assigned*') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
-                <i class="fas fa-tasks"></i> {{ app()->getLocale() === 'tl' ? 'Mga Gawain' : 'Tasks' }}
-            </a>
-        @endif
 
         {{-- MIS navigation --}}
         @if(auth()->user()->role === 'mis')
@@ -346,16 +377,45 @@ document.addEventListener('DOMContentLoaded', function() {
 
         {{-- Building Admin navigation --}}
         @if(auth()->user()->role === 'building_admin')
-            <a href="/admin/reports" class="{{ Request::is('admin/reports') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
-                <i class="fas fa-chart-bar"></i> {{ app()->getLocale() === 'tl' ? 'Mga Ulat' : 'Reports' }}
-            </a>
+            {{-- Reports dropdown for building admin --}}
+            <div class="nav-dropdown {{ Request::is('admin/reports*') || Request::is('admin/analytics*') ? 'open' : '' }}">
+                <a href="#" class="nav-dropdown-toggle {{ Request::is('admin/reports*') || Request::is('admin/analytics*') ? 'active' : '' }}"
+                   data-nav-toggle style="padding-top:8px;padding-bottom:8px;">
+                    <i class="fas fa-chart-bar"></i> {{ app()->getLocale() === 'tl' ? 'Mga Ulat' : 'Reports' }}
+                    <i class="fas fa-chevron-down nav-dropdown-arrow ms-auto"></i>
+                </a>
+                <div class="nav-dropdown-menu">
+                    <a href="/admin/reports" class="{{ Request::is('admin/reports') && !Request::is('admin/reports*view=analytics*') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
+                        <i class="fas fa-file-alt me-1"></i> Reports
+                    </a>
+                    <a href="{{ route('admin.analytics') }}" class="{{ Request::is('admin/analytics*') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
+                        <i class="fas fa-chart-line me-1"></i> Analytics
+                    </a>
+                </div>
+            </div>
 
-            <a href="/admin/events" class="{{ Request::is('admin/events') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
-                <i class="fas fa-calendar-alt"></i> {{ app()->getLocale() === 'tl' ? 'Mga Event' : 'Events' }}
-            </a>
+            {{-- Events dropdown for building admin --}}
+            <div class="nav-dropdown {{ Request::is('my-events') || Request::is('events-calendar') || Request::is('admin/events') ? 'open' : '' }}">
+                <a href="#" class="nav-dropdown-toggle {{ Request::is('my-events') || Request::is('events-calendar') || Request::is('admin/events') ? 'active' : '' }}"
+                   data-nav-toggle style="padding-top:8px;padding-bottom:8px;">
+                    <i class="fas fa-calendar-alt"></i> {{ app()->getLocale() === 'tl' ? 'Mga Event' : 'Events' }}
+                    <i class="fas fa-chevron-down nav-dropdown-arrow ms-auto"></i>
+                </a>
+                <div class="nav-dropdown-menu">
+                    <a href="/admin/events" class="{{ Request::is('admin/events') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
+                        <i class="fas fa-calendar-alt me-1"></i> Pending Approval
+                    </a>
+                    <a href="{{ route('events.my') }}" class="{{ Request::is('my-events') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
+                        <i class="fas fa-calendar me-1"></i> My Events
+                    </a>
+                    <a href="{{ route('events.calendar') }}" class="{{ Request::is('events-calendar') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
+                        <i class="fas fa-calendar-check me-1"></i> Upcoming Events
+                    </a>
+                </div>
+            </div>
 
-            <a href="{{ route('events.my') }}" class="{{ Request::is('my-events') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
-                <i class="fas fa-calendar"></i> {{ app()->getLocale() === 'tl' ? 'Aking Mga Event' : 'My Events' }}
+            <a href="{{ route('admin.management') }}" class="{{ Request::is('admin/management*') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
+                <i class="fas fa-tools"></i> Management
             </a>
 
             <a href="/admin/logs" class="{{ Request::is('admin/logs') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
@@ -365,9 +425,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
         {{-- School Admin, Academic Head, Program Head, Principal Assistant navigation --}}
         @if(in_array(auth()->user()->role, ['school_admin', 'academic_head', 'program_head', 'principal_assistant']))
-            <a href="{{ route('events.my') }}" class="{{ Request::is('my-events') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
-                <i class="fas fa-calendar"></i> {{ app()->getLocale() === 'tl' ? 'Aking Mga Event' : 'My Events' }}
-            </a>
+            <div class="nav-dropdown {{ Request::is('my-events') || Request::is('events-calendar') ? 'open' : '' }}">
+                <a href="#" class="nav-dropdown-toggle {{ Request::is('my-events') || Request::is('events-calendar') ? 'active' : '' }}"
+                   data-nav-toggle style="padding-top:8px;padding-bottom:8px;">
+                    <i class="fas fa-calendar-alt"></i> {{ app()->getLocale() === 'tl' ? 'Mga Event' : 'Events' }}
+                    <i class="fas fa-chevron-down nav-dropdown-arrow ms-auto"></i>
+                </a>
+                <div class="nav-dropdown-menu">
+                    <a href="{{ route('events.my') }}" class="{{ Request::is('my-events') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
+                        <i class="fas fa-calendar me-1"></i> My Events
+                    </a>
+                    <a href="{{ route('events.calendar') }}" class="{{ Request::is('events-calendar') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
+                        <i class="fas fa-calendar-check me-1"></i> Upcoming Events
+                    </a>
+                </div>
+            </div>
         @endif
 
         {{-- Settings — visible to all roles --}}
@@ -531,21 +603,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="modal_title" class="form-label">Event Title *</label>
-                        <input type="text" class="form-control @error('title') is-invalid @enderror" id="modal_title" name="title"
-                            placeholder="e.g., Science Fair 2026, Faculty Meeting" required value="{{ old('title') }}">
-                        @error('title')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-
                     <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label for="modal_category" class="form-label">Request Type *</label>
-                        <select class="form-select @error('category') is-invalid @enderror" id="modal_category" name="category" required>
-                                <option value="">Select category</option>
-                                <option value="Area Use">Area Use</option>
+                        <label for="modal_request_type" class="form-label">Request Type *</label>
+                        <select class="form-select @error('request_type') is-invalid @enderror" id="modal_request_type" name="request_type" required>
+                                <option value="">Select type</option>
+                                <option value="Academic">Academic</option>
+                                <option value="Non-Academic">Non-Academic</option>
                             </select>
                         </div>
                         <div class="col-md-6 mb-3">
@@ -558,6 +622,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <option value="maintenance">Maintenance</option>
                             </select>
                         </div>
+                        <!-- Hidden field for category - automatically set to Area Use -->
+                        <input type="hidden" name="category" value="Area Use">
                         </div>
 
                         <div class="row">
@@ -597,17 +663,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
-                        <div class="col-md-6 mb-3" id="modal_court_type_container" style="display: none;">
-                            <label for="modal_court_type" class="form-label">Request Category *</label>
-                            <select class="form-select @error('court_type') is-invalid @enderror" id="modal_court_type" name="court_type">
-                                <option value="">Select type</option>
-                                <option value="Non-academic">Non-academic</option>
-                                <option value="Academic">Academic</option>
-                            </select>
-                            @error('court_type')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
                         <div class="col-md-6 mb-3" id="modal_court_purpose_container" style="display: none;">
                             <label for="modal_court_purpose" class="form-label">Purpose *</label>
                             <input type="text" class="form-control @error('court_purpose') is-invalid @enderror" id="modal_court_purpose" name="court_purpose"
@@ -624,17 +679,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <option value="AVR 2">AVR 2</option>
                             </select>
                             @error('avr_selection')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        <div class="col-md-6 mb-3" id="modal_avr_request_category_container" style="display: none;">
-                            <label for="modal_avr_request_category" class="form-label">Request Category *</label>
-                            <select class="form-select @error('avr_request_category') is-invalid @enderror" id="modal_avr_request_category" name="avr_request_category">
-                                <option value="">Select category</option>
-                                <option value="Non-academic">Non-academic</option>
-                                <option value="Academic">Academic</option>
-                            </select>
-                            @error('avr_request_category')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
@@ -723,12 +767,12 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="modal-body">
                 <h6 class="border-bottom pb-2 mb-3">Event Details</h6>
                 <div class="row mb-2">
-                    <div class="col-md-4 fw-bold">Event Title:</div>
-                    <div class="col-md-8" id="preview_title"></div>
-                </div>
-                <div class="row mb-2">
                     <div class="col-md-4 fw-bold">Category:</div>
                     <div class="col-md-8" id="preview_category"></div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-4 fw-bold">Request Type:</div>
+                    <div class="col-md-8" id="preview_request_type"></div>
                 </div>
                 <div class="row mb-2">
                     <div class="col-md-4 fw-bold">Intended User:</div>
@@ -746,10 +790,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="col-md-4 fw-bold">Department:</div>
                     <div class="col-md-8" id="preview_department"></div>
                 </div>
-                <div class="row mb-2" id="preview_court_type_row" style="display: none;">
-                    <div class="col-md-4 fw-bold">Court Type:</div>
-                    <div class="col-md-8" id="preview_court_type"></div>
-                </div>
                 <div class="row mb-2" id="preview_court_purpose_row" style="display: none;">
                     <div class="col-md-4 fw-bold">Court Purpose:</div>
                     <div class="col-md-8" id="preview_court_purpose"></div>
@@ -757,10 +797,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="row mb-2" id="preview_avr_selection_row" style="display: none;">
                     <div class="col-md-4 fw-bold">AVR Selection:</div>
                     <div class="col-md-8" id="preview_avr_selection"></div>
-                </div>
-                <div class="row mb-2" id="preview_avr_request_category_row" style="display: none;">
-                    <div class="col-md-4 fw-bold">AVR Request Category:</div>
-                    <div class="col-md-8" id="preview_avr_request_category"></div>
                 </div>
                 <div class="row mb-2">
                     <div class="col-md-4 fw-bold">Date:</div>
@@ -799,28 +835,28 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    var modalCategory = document.getElementById('modal_category');
-    if (modalCategory) {
-        modalCategory.addEventListener('change', function() {
+    var modalRequestType = document.getElementById('modal_request_type');
+    if (modalRequestType) {
+        modalRequestType.addEventListener('change', function() {
             var areaOfUseContainer = document.getElementById('modal_area_of_use_container');
-            var roomNumberContainer = document.getElementById('modal_room_number_container');
-            var departmentContainer = document.getElementById('modal_department_container');
             var areaOfUseSelect = document.getElementById('modal_area_of_use');
-            var roomNumberSelect = document.getElementById('modal_room_number');
 
-            if (this.value === 'Area Use') {
+            // Always show area of use when request type is selected (category is always "Area Use")
+            if (this.value) {
                 areaOfUseContainer.style.display = 'block';
-                areaOfUseSelect.setAttribute('required', 'required');
+                areaOfUseSelect.required = true;
             } else {
                 areaOfUseContainer.style.display = 'none';
-                roomNumberContainer.style.display = 'none';
-                departmentContainer.style.display = 'none';
-                areaOfUseSelect.removeAttribute('required');
+                areaOfUseSelect.required = false;
                 areaOfUseSelect.value = '';
-                roomNumberSelect.removeAttribute('required');
-                roomNumberSelect.value = '';
+                // Reset all dependent fields
+                document.getElementById('modal_room_number_container').style.display = 'none';
+                document.getElementById('modal_department_container').style.display = 'none';
+                document.getElementById('modal_court_type_container').style.display = 'none';
+                document.getElementById('modal_court_purpose_container').style.display = 'none';
+                document.getElementById('modal_avr_selection_container').style.display = 'none';
+                document.getElementById('modal_avr_request_category_container').style.display = 'none';
             }
-            updatePreviewButtonState();
         });
     }
 
@@ -835,10 +871,8 @@ document.addEventListener('DOMContentLoaded', function() {
             var avrRequestCategoryContainer = document.getElementById('modal_avr_request_category_container');
             var roomNumberSelect = document.getElementById('modal_room_number');
             var departmentSelect = document.getElementById('modal_department');
-            var courtTypeSelect = document.getElementById('modal_court_type');
             var courtPurposeInput = document.getElementById('modal_court_purpose');
             var avrSelectionSelect = document.getElementById('modal_avr_selection');
-            var avrRequestCategorySelect = document.getElementById('modal_avr_request_category');
 
             // Clear court availability message
             var existingCourtMsg = document.getElementById('modal_court_availability_message');
@@ -852,80 +886,74 @@ document.addEventListener('DOMContentLoaded', function() {
                 existingAvrMsg.remove();
             }
 
+            // Get request type to determine if Academic (for department requirement)
+            var requestType = document.getElementById('modal_request_type').value;
+
             if (this.value === 'Room') {
                 var isShs = document.getElementById('modal_education_level').value === 'shs';
                 roomNumberContainer.style.display = 'block';
-                departmentContainer.style.display = isShs ? 'none' : 'block';
-                courtTypeContainer.style.display = 'none';
+                // Show department for Academic requests and non-SHS
+                departmentContainer.style.display = (requestType === 'Academic' && !isShs) ? 'block' : 'none';
                 courtPurposeContainer.style.display = 'none';
                 avrSelectionContainer.style.display = 'none';
-                avrRequestCategoryContainer.style.display = 'none';
                 roomNumberSelect.setAttribute('required', 'required');
-                if (isShs) { departmentSelect.removeAttribute('required'); departmentSelect.value = ''; }
-                else { departmentSelect.setAttribute('required', 'required'); }
-                courtTypeSelect.removeAttribute('required');
+                if (requestType === 'Academic' && !isShs) { 
+                    departmentSelect.setAttribute('required', 'required'); 
+                } else { 
+                    departmentSelect.removeAttribute('required'); 
+                    departmentSelect.value = ''; 
+                }
                 courtPurposeInput.removeAttribute('required');
                 avrSelectionSelect.removeAttribute('required');
-                avrRequestCategorySelect.removeAttribute('required');
-                courtTypeSelect.value = '';
                 courtPurposeInput.value = '';
                 avrSelectionSelect.value = '';
-                avrRequestCategorySelect.value = '';
             } else if (this.value === 'Court') {
                 roomNumberContainer.style.display = 'none';
-                departmentContainer.style.display = 'none';
-                courtTypeContainer.style.display = 'block';
-                courtPurposeContainer.style.display = 'none';
+                courtPurposeContainer.style.display = 'block';
                 avrSelectionContainer.style.display = 'none';
-                avrRequestCategoryContainer.style.display = 'none';
+                // Show department for Academic requests
+                departmentContainer.style.display = (requestType === 'Academic') ? 'block' : 'none';
                 roomNumberSelect.removeAttribute('required');
-                departmentSelect.removeAttribute('required');
-                courtTypeSelect.setAttribute('required', 'required');
-                courtPurposeInput.removeAttribute('required');
+                courtPurposeInput.setAttribute('required', 'required');
                 avrSelectionSelect.removeAttribute('required');
-                avrRequestCategorySelect.removeAttribute('required');
+                if (requestType === 'Academic') { 
+                    departmentSelect.setAttribute('required', 'required'); 
+                } else { 
+                    departmentSelect.removeAttribute('required'); 
+                    departmentSelect.value = ''; 
+                }
                 roomNumberSelect.value = '';
-                departmentSelect.value = '';
-                courtPurposeInput.value = '';
                 avrSelectionSelect.value = '';
-                avrRequestCategorySelect.value = '';
             } else if (this.value === 'AVR') {
                 roomNumberContainer.style.display = 'none';
-                departmentContainer.style.display = 'none';
-                courtTypeContainer.style.display = 'none';
                 courtPurposeContainer.style.display = 'none';
                 avrSelectionContainer.style.display = 'block';
-                avrRequestCategoryContainer.style.display = 'none';
+                // Show department for Academic requests
+                departmentContainer.style.display = (requestType === 'Academic') ? 'block' : 'none';
                 roomNumberSelect.removeAttribute('required');
-                departmentSelect.removeAttribute('required');
-                courtTypeSelect.removeAttribute('required');
                 courtPurposeInput.removeAttribute('required');
                 avrSelectionSelect.setAttribute('required', 'required');
-                avrRequestCategorySelect.removeAttribute('required');
+                if (requestType === 'Academic') { 
+                    departmentSelect.setAttribute('required', 'required'); 
+                } else { 
+                    departmentSelect.removeAttribute('required'); 
+                    departmentSelect.value = ''; 
+                }
                 roomNumberSelect.value = '';
-                departmentSelect.value = '';
-                courtTypeSelect.value = '';
                 courtPurposeInput.value = '';
-                avrRequestCategorySelect.value = '';
             } else {
                 roomNumberContainer.style.display = 'none';
                 departmentContainer.style.display = 'none';
-                courtTypeContainer.style.display = 'none';
                 courtPurposeContainer.style.display = 'none';
                 avrSelectionContainer.style.display = 'none';
-                avrRequestCategoryContainer.style.display = 'none';
                 roomNumberSelect.removeAttribute('required');
                 departmentSelect.removeAttribute('required');
-                courtTypeSelect.removeAttribute('required');
                 courtPurposeInput.removeAttribute('required');
                 avrSelectionSelect.removeAttribute('required');
-                avrRequestCategorySelect.removeAttribute('required');
                 roomNumberSelect.value = '';
                 departmentSelect.value = '';
-                courtTypeSelect.value = '';
                 courtPurposeInput.value = '';
                 avrSelectionSelect.value = '';
-                avrRequestCategorySelect.value = '';
             }
             updatePreviewButtonState();
         });
@@ -933,37 +961,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Court Type change handler for modal
     var modalCourtType = document.getElementById('modal_court_type');
-    if (modalCourtType) {
-        modalCourtType.addEventListener('change', function() {
-            var courtPurposeContainer = document.getElementById('modal_court_purpose_container');
-            var courtPurposeInput = document.getElementById('modal_court_purpose');
-            var departmentContainer = document.getElementById('modal_department_container');
-            var departmentSelect = document.getElementById('modal_department');
-
-            if (this.value) {
-                courtPurposeContainer.style.display = 'block';
-                courtPurposeInput.setAttribute('required', 'required');
-
-                // Show department for academic court requests
-                if (this.value === 'Academic') {
-                    departmentContainer.style.display = 'block';
-                    departmentSelect.setAttribute('required', 'required');
-                } else {
-                    departmentContainer.style.display = 'none';
-                    departmentSelect.removeAttribute('required');
-                    departmentSelect.value = '';
-                }
-            } else {
-                courtPurposeContainer.style.display = 'none';
-                courtPurposeInput.removeAttribute('required');
-                courtPurposeInput.value = '';
-                departmentContainer.style.display = 'none';
-                departmentSelect.removeAttribute('required');
-                departmentSelect.value = '';
-            }
-            updatePreviewButtonState();
-        });
-    }
 
     // Court availability check
     function checkCourtAvailabilityModal() {
@@ -1183,8 +1180,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Function to check if required fields are filled and enable/disable Preview button
     function updatePreviewButtonState() {
-        var title = document.getElementById('modal_title');
-        var category = document.getElementById('modal_category');
+        var requestType = document.getElementById('modal_request_type');
         var areaOfUse = document.getElementById('modal_area_of_use');
         var roomNumber = document.getElementById('modal_room_number');
         var courtType = document.getElementById('modal_court_type');
@@ -1200,37 +1196,33 @@ document.addEventListener('DOMContentLoaded', function() {
         var previewBtn = document.getElementById('previewBtn');
 
         var isValid = true;
-        var categoryValue = category ? category.value : '';
+        var requestTypeValue = requestType ? requestType.value : '';
         var areaValue = areaOfUse ? areaOfUse.value : '';
         var courtTypeValue = courtType ? courtType.value : '';
         var avrSelectionValue = avrSelection ? avrSelection.value : '';
         var educationLevelValue = educationLevel ? educationLevel.value : 'faculty';
 
-        if (!title || !title.value.trim() || title.value.trim().length < 3) isValid = false;
-        if (!categoryValue) isValid = false;
+        // Request type is required
+        if (!requestTypeValue) isValid = false;
 
-        if (categoryValue === 'Area Use') {
-            if (!areaValue) isValid = false;
+        // Area of use is always required (category is always "Area Use")
+        if (!areaValue) isValid = false;
 
-            if (areaValue === 'Room') {
-                if (!roomNumber || !roomNumber.value) isValid = false;
-                // Only require department for tertiary level
-                if (educationLevelValue !== 'shs' && (!department || !department.value)) isValid = false;
-            }
+        if (areaValue === 'Room') {
+            if (!roomNumber || !roomNumber.value) isValid = false;
+            // Only require department for tertiary level
+            if (educationLevelValue !== 'shs' && (!department || !department.value)) isValid = false;
+        }
 
-            if (areaValue === 'Court') {
-                if (!courtTypeValue) isValid = false;
-                if (courtTypeValue && (!courtPurpose || !courtPurpose.value.trim())) isValid = false;
-                if (courtTypeValue === 'Academic' && (!department || !department.value)) isValid = false;
-            }
+        if (areaValue === 'Court') {
+            if (!courtPurpose || !courtPurpose.value.trim()) isValid = false;
+            if (requestTypeValue === 'Academic' && (!department || !department.value)) isValid = false;
+        }
 
-            if (areaValue === 'AVR') {
-                if (!avrSelectionValue) isValid = false;
-                if (avrSelectionValue && (!avrRequestCategory || !avrRequestCategory.value)) isValid = false;
-                // Require department for Academic AVR (same as Academic Court)
-                var avrRequestCategoryValue = avrRequestCategory ? avrRequestCategory.value : '';
-                if (avrRequestCategoryValue === 'Academic' && (!department || !department.value)) isValid = false;
-            }
+        if (areaValue === 'AVR') {
+            if (!avrSelectionValue) isValid = false;
+            // Require department for Academic AVR
+            if (requestTypeValue === 'Academic' && (!department || !department.value)) isValid = false;
         }
 
         if (!eventDate || !eventDate.value) isValid = false;
@@ -1267,7 +1259,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Add event listeners to all required fields to update Preview button state
-    var requiredFieldIds = ['modal_title', 'modal_category', 'modal_area_of_use', 'modal_room_number', 'modal_court_type', 'modal_court_purpose', 'modal_department', 'modal_education_level', 'modal_avr_selection', 'modal_avr_request_category', 'modal_event_date', 'modal_start_time', 'modal_end_time', 'modal_description'];
+    var requiredFieldIds = ['modal_request_type', 'modal_area_of_use', 'modal_room_number', 'modal_court_type', 'modal_court_purpose', 'modal_department', 'modal_education_level', 'modal_avr_selection', 'modal_avr_request_category', 'modal_event_date', 'modal_start_time', 'modal_end_time', 'modal_description'];
     requiredFieldIds.forEach(function(fieldId) {
         var field = document.getElementById(fieldId);
         if (field) {
@@ -1305,13 +1297,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (previewModal) {
         previewModal.addEventListener('show.bs.modal', function() {
             // Get form values
-            var title = document.getElementById('modal_title').value;
-            var category = document.getElementById('modal_category').value;
+            var requestType = document.getElementById('modal_request_type').value;
             var areaOfUse = document.getElementById('modal_area_of_use').value;
             var roomNumber = document.getElementById('modal_room_number').value;
             var department = document.getElementById('modal_department').value;
-            var courtType = document.getElementById('modal_court_type').value;
             var courtPurpose = document.getElementById('modal_court_purpose').value;
+            var avrSelection = document.getElementById('modal_avr_selection').value;
             var eventDate = document.getElementById('modal_event_date').value;
             var startTime = document.getElementById('modal_start_time').value;
             var endTime = document.getElementById('modal_end_time').value;
@@ -1319,23 +1310,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Build location from selected options
             var location = '';
-            if (category === 'Area Use' && areaOfUse) {
+            if (areaOfUse) {
                 location = areaOfUse;
                 if (areaOfUse === 'Room' && roomNumber) {
                     location += ' ' + roomNumber;
-                } else if (areaOfUse === 'Court' && courtType) {
-                    location += ' (' + courtType + ')';
+                } else if (areaOfUse === 'Court') {
+                    location += ' (' + requestType + ')';
+                } else if (areaOfUse === 'AVR' && avrSelection) {
+                    location += ' ' + avrSelection;
                 }
             }
 
             // Populate preview fields
-            document.getElementById('preview_title').textContent = title || 'Not specified';
-            document.getElementById('preview_category').textContent = category || 'Not specified';
+            document.getElementById('preview_category').textContent = 'Area Use';
+            document.getElementById('preview_request_type').textContent = requestType || 'Not specified';
             document.getElementById('preview_area_of_use').textContent = areaOfUse || 'Not specified';
             document.getElementById('preview_room_number').textContent = roomNumber || 'Not specified';
             document.getElementById('preview_department').textContent = department || 'Not specified';
-            document.getElementById('preview_court_type').textContent = courtType || 'Not specified';
             document.getElementById('preview_court_purpose').textContent = courtPurpose || 'Not specified';
+            document.getElementById('preview_avr_selection').textContent = avrSelection || 'Not specified';
             document.getElementById('preview_event_date').textContent = eventDate ? new Date(eventDate).toLocaleDateString() : 'Not specified';
             document.getElementById('preview_start_time').textContent = startTime || 'Not specified';
             document.getElementById('preview_end_time').textContent = endTime || 'Not specified';
@@ -1344,7 +1337,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Show/hide area of use row
             var areaOfUseRow = document.getElementById('preview_area_of_use_row');
-            if (category === 'Area Use' && areaOfUse) {
+            if (areaOfUse) {
                 areaOfUseRow.style.display = 'block';
             } else {
                 areaOfUseRow.style.display = 'none';
@@ -1352,7 +1345,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Show/hide room number row
             var roomNumberRow = document.getElementById('preview_room_number_row');
-            if (category === 'Area Use' && areaOfUse === 'Room' && roomNumber) {
+            if (areaOfUse === 'Room' && roomNumber) {
                 roomNumberRow.style.display = 'block';
             } else {
                 roomNumberRow.style.display = 'none';
@@ -1366,20 +1359,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 departmentRow.style.display = 'none';
             }
 
-            // Show/hide court type row
-            var courtTypeRow = document.getElementById('preview_court_type_row');
-            if (category === 'Area Use' && areaOfUse === 'Court' && courtType) {
-                courtTypeRow.style.display = 'block';
-            } else {
-                courtTypeRow.style.display = 'none';
-            }
-
             // Show/hide court purpose row
             var courtPurposeRow = document.getElementById('preview_court_purpose_row');
-            if (category === 'Area Use' && areaOfUse === 'Court' && courtType && courtPurpose) {
+            if (areaOfUse === 'Court' && courtPurpose) {
                 courtPurposeRow.style.display = 'block';
             } else {
                 courtPurposeRow.style.display = 'none';
+            }
+
+            // Show/hide AVR selection row
+            var avrSelectionRow = document.getElementById('preview_avr_selection_row');
+            if (areaOfUse === 'AVR' && avrSelection) {
+                avrSelectionRow.style.display = 'block';
+            } else {
+                avrSelectionRow.style.display = 'none';
             }
         });
     }
@@ -1394,39 +1387,23 @@ document.addEventListener('DOMContentLoaded', function() {
         var firstErrorField = null;
         
         // Get form elements
-        var title = document.getElementById('modal_title');
-        var category = document.getElementById('modal_category');
+        var requestType = document.getElementById('modal_request_type');
         var eventDate = document.getElementById('modal_event_date');
         var startTime = document.getElementById('modal_start_time');
         var endTime = document.getElementById('modal_end_time');
         var description = document.getElementById('modal_description');
         
-        // Validate Title
-        if (!title.value.trim()) {
-            showFieldError(title, 'Event title is required');
-            errors.push('Title is required');
-            isValid = false;
-        } else if (title.value.trim().length < 3) {
-            showFieldError(title, 'Event title must be at least 3 characters');
-            errors.push('Title too short');
-            isValid = false;
-        } else if (title.value.trim().length > 255) {
-            showFieldError(title, 'Event title cannot exceed 255 characters');
-            errors.push('Title too long');
-            isValid = false;
-        }
-        
-        // Validate Category
-        if (!category.value) {
-            showFieldError(category, 'Please select a category');
-            errors.push('Category is required');
+        // Validate Request Type
+        if (!requestType.value) {
+            showFieldError(requestType, 'Please select a request type');
+            errors.push('Request type is required');
             isValid = false;
         }
 
         var areaOfUse = document.getElementById('modal_area_of_use');
 
-        // Validate Area of Use (if 'Area Use' is selected)
-        if (category.value === 'Area Use' && (!areaOfUse || !areaOfUse.value)) {
+        // Validate Area of Use (always required since category is always "Area Use")
+        if (!areaOfUse || !areaOfUse.value) {
             showFieldError(areaOfUse, 'Please select an area of use');
             errors.push('Area of use is required');
             isValid = false;
@@ -1434,7 +1411,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Validate Room Number (if 'Room' is selected in Area of Use)
         var roomNumber = document.getElementById('modal_room_number');
-        if (category.value === 'Area Use' && areaOfUse.value === 'Room' && !roomNumber.value) {
+        if (areaOfUse.value === 'Room' && !roomNumber.value) {
             showFieldError(roomNumber, 'Please select a room number');
             errors.push('Room number is required');
             isValid = false;
@@ -1444,56 +1421,32 @@ document.addEventListener('DOMContentLoaded', function() {
         var department = document.getElementById('modal_department');
         var educationLevel = document.getElementById('modal_education_level');
         var educationLevelValue = educationLevel ? educationLevel.value : 'faculty';
-        if (category.value === 'Area Use' && areaOfUse.value === 'Room' && educationLevelValue !== 'shs' && !department.value) {
+        if (areaOfUse.value === 'Room' && educationLevelValue !== 'shs' && !department.value) {
             showFieldError(department, 'Please select a department');
             errors.push('Department is required');
             isValid = false;
         }
 
-        // Validate Court Type (if 'Court' is selected in Area of Use)
-        var courtType = document.getElementById('modal_court_type');
-        if (category.value === 'Area Use' && areaOfUse.value === 'Court' && !courtType.value) {
-            showFieldError(courtType, 'Please select a court type');
-            errors.push('Court type is required');
-            isValid = false;
-        }
-
-        // Validate Court Purpose (if Court Type is selected)
+        // Validate Court Purpose (if Court is selected)
         var courtPurpose = document.getElementById('modal_court_purpose');
-        if (category.value === 'Area Use' && areaOfUse.value === 'Court' && courtType.value && !courtPurpose.value.trim()) {
+        if (areaOfUse.value === 'Court' && !courtPurpose.value.trim()) {
             showFieldError(courtPurpose, 'Please enter the purpose for court use');
             errors.push('Court purpose is required');
             isValid = false;
         }
 
-        // Validate Department (if Academic Court is selected)
-        var department = document.getElementById('modal_department');
-        if (category.value === 'Area Use' && areaOfUse.value === 'Court' && courtType.value === 'Academic' && !department.value) {
-            showFieldError(department, 'Please select a department for academic court use');
-            errors.push('Department is required for academic court requests');
+        // Validate Department (if Academic request type and Court/AVR selected)
+        if (requestType.value === 'Academic' && (areaOfUse.value === 'Court' || areaOfUse.value === 'AVR') && !department.value) {
+            showFieldError(department, 'Please select a department for academic requests');
+            errors.push('Department is required for academic requests');
             isValid = false;
         }
 
         // Validate AVR Selection (if AVR is selected in Area of Use)
         var avrSelection = document.getElementById('modal_avr_selection');
-        if (category.value === 'Area Use' && areaOfUse.value === 'AVR' && !avrSelection.value) {
+        if (areaOfUse.value === 'AVR' && !avrSelection.value) {
             showFieldError(avrSelection, 'Please select an AVR');
             errors.push('AVR selection is required');
-            isValid = false;
-        }
-
-        // Validate AVR Request Category (if AVR Selection is selected)
-        var avrRequestCategory = document.getElementById('modal_avr_request_category');
-        if (category.value === 'Area Use' && areaOfUse.value === 'AVR' && avrSelection.value && !avrRequestCategory.value) {
-            showFieldError(avrRequestCategory, 'Please select a request category');
-            errors.push('AVR request category is required');
-            isValid = false;
-        }
-
-        // Validate Department (if Academic AVR is selected)
-        if (category.value === 'Area Use' && areaOfUse.value === 'AVR' && avrRequestCategory.value === 'Academic' && !department.value) {
-            showFieldError(department, 'Please select a department for academic AVR use');
-            errors.push('Department is required for academic AVR requests');
             isValid = false;
         }
         
@@ -1640,28 +1593,25 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Get form values
-            var title = document.getElementById('modal_title').value;
-            var category = document.getElementById('modal_category').value;
+            var requestType = document.getElementById('modal_request_type').value;
             var areaOfUse = document.getElementById('modal_area_of_use').value;
             var roomNumber = document.getElementById('modal_room_number').value;
-            var courtType = document.getElementById('modal_court_type').value;
             var courtPurpose = document.getElementById('modal_court_purpose').value;
             var department = document.getElementById('modal_department').value;
             var educationLevel = document.getElementById('modal_education_level').value;
             var avrSelectionValue = document.getElementById('modal_avr_selection').value;
-            var avrRequestCategoryValue = document.getElementById('modal_avr_request_category').value;
             var eventDate = document.getElementById('modal_event_date').value;
             var startTime = document.getElementById('modal_start_time').value;
             var endTime = document.getElementById('modal_end_time').value;
             var description = document.getElementById('modal_description').value;
+            
             var location = '';
-
-            if (category === 'Area Use' && areaOfUse) {
+            if (areaOfUse) {
                 location = areaOfUse;
                 if (areaOfUse === 'Room' && roomNumber) {
                     location += ' ' + roomNumber;
-                } else if (areaOfUse === 'Court' && courtType) {
-                    location += ' (' + courtType + ')';
+                } else if (areaOfUse === 'Court') {
+                    location += ' (' + requestType + ')';
                 } else if (areaOfUse === 'AVR' && avrSelectionValue) {
                     location += ' (' + avrSelectionValue + ')';
                 }
@@ -1682,44 +1632,37 @@ document.addEventListener('DOMContentLoaded', function() {
             // Set the hidden location field
             document.getElementById('modal_location').value = location;
 
-            document.getElementById('preview_title').textContent = title || '-';
-            document.getElementById('preview_category').textContent = category || '-';
+            document.getElementById('preview_category').textContent = 'Area Use';
+            document.getElementById('preview_request_type').textContent = requestType || 'Not specified';
             document.getElementById('preview_education_level').textContent = educationLevel === 'shs' ? 'Senior High School' : educationLevel === 'faculty' ? 'Faculty' : educationLevel === 'staff' ? 'Staff' : educationLevel === 'maintenance' ? 'Maintenance' : 'Tertiary';
             document.getElementById('preview_area_of_use').textContent = areaOfUse || 'Not specified';
             document.getElementById('preview_room_number').textContent = roomNumber || 'Not specified';
             document.getElementById('preview_department').textContent = department || 'Not specified';
-            document.getElementById('preview_court_type').textContent = courtType || 'Not specified';
             document.getElementById('preview_court_purpose').textContent = courtPurpose || 'Not specified';
             document.getElementById('preview_avr_selection').textContent = avrSelectionValue || 'Not specified';
-            document.getElementById('preview_avr_request_category').textContent = avrRequestCategoryValue || 'Not specified';
             document.getElementById('preview_event_date').textContent = dateDisplay || '-';
             document.getElementById('preview_start_time').textContent = formatTime(startTime);
             document.getElementById('preview_end_time').textContent = formatTime(endTime);
             document.getElementById('preview_location').textContent = location || 'Not specified';
             document.getElementById('preview_description').textContent = description || '-';
 
-            document.getElementById('preview_area_of_use_row').style.display = (category === 'Area Use' && areaOfUse) ? 'flex' : 'none';
-            document.getElementById('preview_room_number_row').style.display = (category === 'Area Use' && areaOfUse === 'Room' && roomNumber) ? 'flex' : 'none';
+            document.getElementById('preview_area_of_use_row').style.display = areaOfUse ? 'flex' : 'none';
+            document.getElementById('preview_room_number_row').style.display = (areaOfUse === 'Room' && roomNumber) ? 'flex' : 'none';
             document.getElementById('preview_department_row').style.display = department ? 'flex' : 'none';
-            document.getElementById('preview_court_type_row').style.display = (category === 'Area Use' && areaOfUse === 'Court' && courtType) ? 'flex' : 'none';
-            document.getElementById('preview_court_purpose_row').style.display = (category === 'Area Use' && areaOfUse === 'Court' && courtPurpose) ? 'flex' : 'none';
-            document.getElementById('preview_avr_selection_row').style.display = (category === 'Area Use' && areaOfUse === 'AVR' && avrSelectionValue) ? 'flex' : 'none';
-            document.getElementById('preview_avr_request_category_row').style.display = (category === 'Area Use' && areaOfUse === 'AVR' && avrRequestCategoryValue) ? 'flex' : 'none';
+            document.getElementById('preview_court_purpose_row').style.display = (areaOfUse === 'Court' && courtPurpose) ? 'flex' : 'none';
+            document.getElementById('preview_avr_selection_row').style.display = (areaOfUse === 'AVR' && avrSelectionValue) ? 'flex' : 'none';
 
-            // Set approval recipients based on education level, department, court type, and AVR category
+            // Set approval recipients based on education level, department, and request type
             var approvalRecipients = 'Chosen Department on the selection, Academic Head, Building Admin, and School Administrator';
 
             // SHS approval flow: Principal Assistant → Academic Head → School Administrator
             if (educationLevel === 'shs') {
                 approvalRecipients = 'Principal Assistant, Academic Head, and School Administrator';
-            } else if (category === 'Area Use' && areaOfUse === 'Court' && courtType === 'Non-academic') {
-                // Tertiary non-academic court requests
+            } else if (requestType === 'Non-Academic') {
+                // Non-academic requests (Court or AVR)
                 approvalRecipients = 'Building Admin and School Administrator';
-            } else if (category === 'Area Use' && areaOfUse === 'AVR' && avrRequestCategoryValue === 'Non-academic') {
-                // Tertiary non-academic AVR requests (same as non-academic court)
-                approvalRecipients = 'Building Admin and School Administrator';
-            } else if (department) {
-                // Tertiary with department (Room, Academic Court, or Academic AVR)
+            } else if (department && requestType === 'Academic') {
+                // Academic requests with department (Room, Court, or AVR)
                 var deptHead = '';
                 switch(department) {
                     case 'GE':
@@ -1774,50 +1717,19 @@ document.addEventListener('DOMContentLoaded', function() {
     var modalAvrSelection = document.getElementById('modal_avr_selection');
     if (modalAvrSelection) {
         modalAvrSelection.addEventListener('change', function() {
-            var avrRequestCategoryContainer = document.getElementById('modal_avr_request_category_container');
-            var avrRequestCategorySelect = document.getElementById('modal_avr_request_category');
-
-            if (this.value) {
-                avrRequestCategoryContainer.style.display = 'block';
-                avrRequestCategorySelect.setAttribute('required', 'required');
-            } else {
-                avrRequestCategoryContainer.style.display = 'none';
-                avrRequestCategorySelect.removeAttribute('required');
-                avrRequestCategorySelect.value = '';
-            }
+            // AVR selection doesn't need to show additional fields anymore
+            // Department visibility is controlled by request_type in area_of_use handler
             updatePreviewButtonState();
         });
     }
 
-    // AVR Request Category change handler - show department for Academic
-    var modalAvrRequestCategory = document.getElementById('modal_avr_request_category');
-    if (modalAvrRequestCategory) {
-        modalAvrRequestCategory.addEventListener('change', function() {
-            var departmentContainer = document.getElementById('modal_department_container');
-            var departmentSelect = document.getElementById('modal_department');
-
-            if (this.value === 'Academic') {
-                departmentContainer.style.display = 'block';
-                departmentSelect.setAttribute('required', 'required');
-            } else {
-                departmentContainer.style.display = 'none';
-                departmentSelect.removeAttribute('required');
-                departmentSelect.value = '';
-            }
-            updatePreviewButtonState();
-            updateApprovalRecipients();
-        });
-    }
-
-    // Update approval recipients on department or court type change
+    // Update approval recipients on department or request type change
     var departmentSelect = document.getElementById('modal_department');
-    var courtTypeSelect = document.getElementById('modal_court_type');
+    var requestTypeSelect = document.getElementById('modal_request_type');
 
     function updateApprovalRecipients() {
-        var category = document.getElementById('modal_category').value;
         var areaOfUse = document.getElementById('modal_area_of_use').value;
-        var courtType = courtTypeSelect ? courtTypeSelect.value : '';
-        var avrRequestCategory = document.getElementById('modal_avr_request_category') ? document.getElementById('modal_avr_request_category').value : '';
+        var requestType = requestTypeSelect ? requestTypeSelect.value : '';
         var department = departmentSelect ? departmentSelect.value : '';
         var educationLevel = document.getElementById('modal_education_level').value;
         var approvalRecipients = 'Chosen Department on the selection, Academic Head, Building Admin, and School Administrator';
@@ -1825,14 +1737,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // SHS approval flow: Principal Assistant → Academic Head → School Administrator
         if (educationLevel === 'shs') {
             approvalRecipients = 'Principal Assistant, Academic Head, and School Administrator';
-        } else if (category === 'Area Use' && areaOfUse === 'Court' && courtType === 'Non-academic') {
-            // Tertiary non-academic court requests
+        } else if (requestType === 'Non-Academic') {
+            // Non-academic requests (Court or AVR)
             approvalRecipients = 'Building Admin and School Administrator';
-        } else if (category === 'Area Use' && areaOfUse === 'AVR' && avrRequestCategory === 'Non-academic') {
-            // Tertiary non-academic AVR requests (same as non-academic court)
-            approvalRecipients = 'Building Admin and School Administrator';
-        } else if (department) {
-            // Tertiary with department (Room, Academic Court, or Academic AVR)
+        } else if (department && requestType === 'Academic') {
+            // Academic requests with department (Room, Court, or AVR)
             var deptHead = '';
             switch(department) {
                 case 'GE':
@@ -1858,16 +1767,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (departmentSelect) {
         departmentSelect.addEventListener('change', updateApprovalRecipients);
     }
-    if (courtTypeSelect) {
-        courtTypeSelect.addEventListener('change', updateApprovalRecipients);
+    if (requestTypeSelect) {
+        requestTypeSelect.addEventListener('change', updateApprovalRecipients);
     }
-    
-    // Add listener for AVR request category changes
-    var avrRequestCategorySelect = document.getElementById('modal_avr_request_category');
-    if (avrRequestCategorySelect) {
-        avrRequestCategorySelect.addEventListener('change', updateApprovalRecipients);
-    }
-    
+
     // Add listener for education level changes
     var educationLevelSelect = document.getElementById('modal_education_level');
     if (educationLevelSelect) {
@@ -1928,7 +1831,269 @@ document.addEventListener('DOMContentLoaded', function() {
 @endauth
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="{{ asset('js/app.js') }}"></script>
+
+<script>
+// ── SweetAlert2 Global Helpers ────────────────────────────────────────────────
+
+// Themed Swal instance that respects dark mode
+function getSwal() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    return Swal.mixin({
+        background: isDark ? '#1a1a2e' : '#fff',
+        color: isDark ? '#e0e0e0' : '#333',
+        confirmButtonColor: '#0d6efd',
+        cancelButtonColor: '#6c757d',
+    });
+}
+
+// Drop-in replacement for confirm() — returns a Promise
+window.swalConfirm = function(options) {
+    const defaults = {
+        title: 'Are you sure?',
+        text: '',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes',
+        cancelButtonText: 'Cancel',
+    };
+    return getSwal().fire(Object.assign(defaults, options));
+};
+
+// Drop-in replacement for alert()
+window.swalAlert = function(message, icon = 'info', title = '') {
+    return getSwal().fire({ title: title || (icon === 'error' ? 'Error' : icon === 'success' ? 'Success' : 'Notice'), text: message, icon });
+};
+
+// Toast notification (top-right, auto-dismiss)
+window.swalToast = function(message, icon = 'success') {
+    getSwal().mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+    }).fire({ icon, title: message });
+};
+
+// ── Global Action Confirmations ──────────────────────────────────────────────
+
+// Delete confirmation
+window.confirmDelete = function(options = {}) {
+    return getSwal().fire({
+        title: options.title || 'Delete this item?',
+        text: options.text || 'This action cannot be undone.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: options.confirmText || '<i class="fas fa-trash me-1"></i> Delete',
+        cancelButtonText: 'Cancel',
+        ...options
+    });
+};
+
+// Archive confirmation
+window.confirmArchive = function(options = {}) {
+    return getSwal().fire({
+        title: options.title || 'Archive this item?',
+        text: options.text || 'You can restore it later from the archive.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#6c757d',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: options.confirmText || '<i class="fas fa-archive me-1"></i> Archive',
+        cancelButtonText: 'Cancel',
+        ...options
+    });
+};
+
+// Restore confirmation
+window.confirmRestore = function(options = {}) {
+    return getSwal().fire({
+        title: options.title || 'Restore this item?',
+        text: options.text || 'This will move the item back to active items.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: options.confirmText || '<i class="fas fa-trash-restore me-1"></i> Restore',
+        cancelButtonText: 'Cancel',
+        ...options
+    });
+};
+
+// Permanent delete confirmation
+window.confirmPermanentDelete = function(options = {}) {
+    return getSwal().fire({
+        title: options.title || 'Permanently Delete?',
+        html: options.html || '<p class="mb-2">This action <strong>cannot be undone</strong>!</p><p class="text-muted">The item will be permanently removed from the database.</p>',
+        icon: 'error',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: options.confirmText || '<i class="fas fa-exclamation-triangle me-1"></i> Yes, Delete Forever',
+        cancelButtonText: 'Cancel',
+        ...options
+    });
+};
+
+// Assign confirmation
+window.confirmAssign = function(options = {}) {
+    return getSwal().fire({
+        title: options.title || 'Assign this item?',
+        text: options.text || 'This will assign the item to the selected user.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#0d6efd',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: options.confirmText || '<i class="fas fa-user-check me-1"></i> Assign',
+        cancelButtonText: 'Cancel',
+        ...options
+    });
+};
+
+// Approve confirmation
+window.confirmApprove = function(options = {}) {
+    return getSwal().fire({
+        title: options.title || 'Approve this request?',
+        text: options.text || 'This will mark the request as approved.',
+        icon: 'success',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: options.confirmText || '<i class="fas fa-check me-1"></i> Approve',
+        cancelButtonText: 'Cancel',
+        ...options
+    });
+};
+
+// Reject confirmation
+window.confirmReject = function(options = {}) {
+    return getSwal().fire({
+        title: options.title || 'Reject this request?',
+        text: options.text || 'This will mark the request as rejected.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: options.confirmText || '<i class="fas fa-times me-1"></i> Reject',
+        cancelButtonText: 'Cancel',
+        ...options
+    });
+};
+
+// Cancel confirmation
+window.confirmCancel = function(options = {}) {
+    return getSwal().fire({
+        title: options.title || 'Cancel this item?',
+        text: options.text || 'This action will cancel the item.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ffc107',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: options.confirmText || '<i class="fas fa-ban me-1"></i> Cancel Item',
+        cancelButtonText: 'Go Back',
+        ...options
+    });
+};
+
+// Generic action confirmation
+window.confirmAction = function(action, options = {}) {
+    const actionConfigs = {
+        delete: { fn: confirmDelete, color: '#dc3545', icon: 'trash' },
+        archive: { fn: confirmArchive, color: '#6c757d', icon: 'archive' },
+        restore: { fn: confirmRestore, color: '#28a745', icon: 'trash-restore' },
+        permanent_delete: { fn: confirmPermanentDelete, color: '#dc3545', icon: 'exclamation-triangle' },
+        assign: { fn: confirmAssign, color: '#0d6efd', icon: 'user-check' },
+        approve: { fn: confirmApprove, color: '#28a745', icon: 'check' },
+        reject: { fn: confirmReject, color: '#dc3545', icon: 'times' },
+        cancel: { fn: confirmCancel, color: '#ffc107', icon: 'ban' },
+    };
+    
+    const config = actionConfigs[action];
+    if (config && config.fn) {
+        return config.fn(options);
+    }
+    return swalConfirm(options);
+};
+
+// Handle form submit with SweetAlert2 confirmation
+// Usage: <form data-confirm="Are you sure?"> or <button data-confirm="...">
+document.addEventListener('DOMContentLoaded', function () {
+
+    // ── Flash messages from Laravel session ──────────────────────
+    @if(session('success'))
+        swalToast(@json(session('success')), 'success');
+    @endif
+    @if(session('error'))
+        swalToast(@json(session('error')), 'error');
+    @endif
+    @if(session('warning'))
+        swalToast(@json(session('warning')), 'warning');
+    @endif
+    @if(session('info'))
+        swalToast(@json(session('info')), 'info');
+    @endif
+
+    // ── Intercept forms/buttons with data-confirm attribute ──────
+    document.body.addEventListener('click', function (e) {
+        const btn = e.target.closest('[data-confirm]');
+        if (!btn) return;
+
+        // If it's a submit button inside a form
+        const form = btn.closest('form');
+        if (form && (btn.type === 'submit' || btn.tagName === 'BUTTON')) {
+            e.preventDefault();
+            swalConfirm({
+                title: btn.dataset.confirmTitle || 'Are you sure?',
+                text: btn.dataset.confirm,
+                icon: btn.dataset.confirmIcon || 'warning',
+                confirmButtonText: btn.dataset.confirmOk || 'Yes',
+                confirmButtonColor: btn.dataset.confirmColor || '#0d6efd',
+            }).then(result => {
+                if (result.isConfirmed) form.submit();
+            });
+        }
+    });
+
+    // ── Replace native confirm() on onclick="return confirm(...)" ─
+    // Intercept all forms that have buttons with onclick confirm
+    document.querySelectorAll('form button[onclick*="confirm("], form input[onclick*="confirm("]').forEach(function(btn) {
+        const onclickAttr = btn.getAttribute('onclick') || '';
+        const match = onclickAttr.match(/confirm\(['"](.+?)['"]\)/);
+        if (!match) return;
+        const message = match[1];
+        btn.removeAttribute('onclick');
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const form = btn.closest('form');
+            swalConfirm({ text: message }).then(result => {
+                if (result.isConfirmed && form) form.submit();
+            });
+        });
+    });
+
+    // ── Notification delete confirm ───────────────────────────────
+    document.querySelectorAll('.notification-delete-form').forEach(function(form) {
+        form.removeAttribute('onsubmit');
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            swalConfirm({
+                title: 'Delete notification?',
+                text: 'This notification will be removed.',
+                icon: 'question',
+                confirmButtonText: 'Delete',
+                confirmButtonColor: '#dc3545',
+            }).then(result => {
+                if (result.isConfirmed) form.submit();
+            });
+        });
+    });
+
+});
+</script>
 <script>
     // ── Theme System ──────────────────────────────────────────────
     const THEME_KEY = 'campfix_theme';
@@ -2018,6 +2183,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 </script>
+
 @yield('scripts')
 
 </body>

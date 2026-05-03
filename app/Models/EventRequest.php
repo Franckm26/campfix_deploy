@@ -8,13 +8,13 @@ class EventRequest extends Model
 {
     protected $fillable = [
         'user_id',
-        'title',
         'description',
         'event_date',
         'location',
         'start_time',
         'end_time',
         'category',
+        'request_type',
         'other_category',
         'department',
         'level',

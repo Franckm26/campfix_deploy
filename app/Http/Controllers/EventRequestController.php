@@ -33,13 +33,13 @@ class EventRequestController extends Controller
             return redirect('/dashboard')->with('error', 'You do not have permission to create event requests.');
         }
         $request->validate([
-            'title' => 'required|string|min:3|max:255',
             'description' => 'required|string|min:10',
             'event_date' => 'required|date|after_or_equal:today',
             'location' => 'required|string|min:3|max:255',
             'start_time' => 'required',
             'end_time' => 'required|after:start_time',
             'category' => 'required|in:Area Use',
+            'request_type' => 'required|in:Academic,Non-Academic',
             'area_of_use' => 'required_if:category,Area Use|in:Room,Court,AVR,Library,Open Lobby,Computer Laboratory,Kitchen',
             'room_number' => 'nullable|string',
             'department' => 'nullable|in:GE,ICT,Business Management,THM',
@@ -47,9 +47,6 @@ class EventRequestController extends Controller
             'education_level' => 'required|in:tertiary,shs,faculty,staff,maintenance',
             'picture' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
         ], [
-            'title.required' => 'The event title is required.',
-            'title.min' => 'The event title must be at least 3 characters.',
-            'title.max' => 'The event title cannot exceed 255 characters.',
             'description.required' => 'The description is required.',
             'description.min' => 'The description must be at least 10 characters.',
             'event_date.required' => 'The event date is required.',
@@ -61,6 +58,8 @@ class EventRequestController extends Controller
             'end_time.after' => 'The end time must be after the start time.',
             'category.required' => 'Please select a category.',
             'category.in' => 'Please select a valid category.',
+            'request_type.required' => 'Please select a request type.',
+            'request_type.in' => 'Please select a valid request type (Academic or Non-Academic).',
             'other_category.required_if' => 'Please specify the category when selecting "Other".',
         ]);
 
@@ -86,13 +85,13 @@ class EventRequestController extends Controller
 
         $eventRequest = EventRequest::create([
             'user_id' => auth()->id(),
-            'title' => $request->title,
             'description' => $request->description,
             'event_date' => $request->event_date,
             'location' => $request->location,
             'start_time' => $request->start_time,
             'end_time' => $request->end_time,
             'category' => $request->category,
+            'request_type' => $request->request_type,
             'other_category' => $request->other_category,
             'department' => $request->department,
             'level' => $educationLevel,
@@ -108,7 +107,7 @@ class EventRequestController extends Controller
 
         ActivityLog::log(
             'event_request_created',
-            'Event request submitted: '.$request->title,
+            'Event request submitted',
             null
         );
 
@@ -121,10 +120,108 @@ class EventRequestController extends Controller
             return redirect('/dashboard')->with('success', 'Facility request submitted successfully! Building Admin and School Admin have been notified.');
         }
 
+        // Auto-approve for the requester if they are also an approver
+        $user = auth()->user();
+        $autoApproved = false;
+        $approvalHistory = [];
+
+        // Check if requester is a Program Head
+        if ($user->isProgramHead()) {
+            $eventRequest->approved_by_level_1 = $user->id;
+            $eventRequest->approved_at_level_1 = now();
+            $approvalHistory[] = [
+                'level' => 1,
+                'role' => 'Program Head',
+                'approver' => $user->name,
+                'approver_id' => $user->id,
+                'at' => now()->toDateTimeString(),
+                'notes' => 'Auto-approved (requester is also approver)',
+            ];
+            $autoApproved = true;
+        }
+
+        // Check if requester is an Academic Head
+        if ($user->isAcademicHead()) {
+            $eventRequest->approved_by_level_2 = $user->id;
+            $eventRequest->approved_at_level_2 = now();
+            $approvalHistory[] = [
+                'level' => 2,
+                'role' => 'Academic Head',
+                'approver' => $user->name,
+                'approver_id' => $user->id,
+                'at' => now()->toDateTimeString(),
+                'notes' => 'Auto-approved (requester is also approver)',
+            ];
+            $autoApproved = true;
+        }
+
+        // Check if requester is a Building Admin
+        if ($user->isBuildingAdmin()) {
+            $eventRequest->approved_by_level_3 = $user->id;
+            $eventRequest->approved_at_level_3 = now();
+            $approvalHistory[] = [
+                'level' => 3,
+                'role' => 'Building Admin',
+                'approver' => $user->name,
+                'approver_id' => $user->id,
+                'at' => now()->toDateTimeString(),
+                'notes' => 'Auto-approved (requester is also approver)',
+            ];
+            $autoApproved = true;
+        }
+
+        // Check if requester is a School Admin
+        if ($user->isSchoolAdmin() || $user->isAdmin()) {
+            $approvalHistory[] = [
+                'level' => 4,
+                'role' => 'School Admin',
+                'approver' => $user->name,
+                'approver_id' => $user->id,
+                'at' => now()->toDateTimeString(),
+                'notes' => 'Auto-approved (requester is also approver)',
+            ];
+            $autoApproved = true;
+        }
+
+        // Save approval history if auto-approved
+        if ($autoApproved) {
+            $eventRequest->approval_history = $approvalHistory;
+            
+            // Determine the approval level based on what was auto-approved
+            if ($eventRequest->isFullyApproved()) {
+                $eventRequest->status = 'Approved';
+                $eventRequest->approved_by = $user->id;
+                $eventRequest->approved_at = now();
+                $eventRequest->approval_level = EventRequest::LEVEL_APPROVED;
+            } else {
+                // Partially approved, determine next level
+                $nextLevel = $eventRequest->getNextApprovalLevel();
+                if ($nextLevel === 2) {
+                    $eventRequest->approval_level = EventRequest::LEVEL_1_PROGRAM_HEAD;
+                } elseif ($nextLevel === 3) {
+                    $eventRequest->approval_level = EventRequest::LEVEL_2_ACADEMIC_HEAD;
+                } elseif ($nextLevel === 4) {
+                    $eventRequest->approval_level = EventRequest::LEVEL_3_BUILDING_ADMIN;
+                }
+            }
+            
+            $eventRequest->save();
+
+            ActivityLog::log(
+                'event_auto_approved',
+                'Event request auto-approved for requester at their approval level',
+                null
+            );
+        }
+
         // Non-faculty: go through the normal multi-level approval chain
         $notificationService->notifyApproversOfNewEvent($eventRequest);
 
-        return redirect('/dashboard')->with('success', 'Event request submitted successfully! Waiting for approval.');
+        $message = $autoApproved 
+            ? 'Event request submitted successfully! Your approval has been automatically recorded. Waiting for other approvers.'
+            : 'Event request submitted successfully! Waiting for approval.';
+
+        return redirect('/dashboard')->with('success', $message);
     }
 
     // Show single event request (for web/AJAX calls)
@@ -158,10 +255,69 @@ class EventRequestController extends Controller
             return redirect('/dashboard')->with('error', 'You do not have permission to view event requests.');
         }
 
-        $viewType = $request->get('view', 'active'); // 'active', 'archives', or 'deleted'
+        $viewType = $request->get('view', 'active'); // 'active', 'approved', 'finished', 'rejected', 'archives', or 'deleted'
 
         $user = auth()->user();
         $archiveColumn = $user->role.'_archived';
+
+        // ========== APPROVED VIEW ==========
+        if ($viewType === 'approved') {
+            $query = EventRequest::where('user_id', Auth::id())
+                ->where('is_deleted', false)
+                ->where('status', 'Approved')
+                ->whereRaw("(event_date + end_time::time) > NOW()");
+
+            $approvedRequests = $query->orderBy('event_date', 'asc')->get();
+
+            return view('events.my', [
+                'approvedRequests' => $approvedRequests,
+                'viewType' => $viewType,
+                'requests' => collect(),
+                'finishedRequests' => collect(),
+                'rejectedRequests' => collect(),
+                'archivedRequests' => collect(),
+                'deletedRequests' => collect(),
+            ]);
+        }
+
+        // ========== FINISHED VIEW ==========
+        if ($viewType === 'finished') {
+            $query = EventRequest::where('user_id', Auth::id())
+                ->where('is_deleted', false)
+                ->where('status', 'Approved')
+                ->whereRaw("(event_date + end_time::time) <= NOW()");
+
+            $finishedRequests = $query->orderBy('event_date', 'desc')->get();
+
+            return view('events.my', [
+                'finishedRequests' => $finishedRequests,
+                'viewType' => $viewType,
+                'requests' => collect(),
+                'approvedRequests' => collect(),
+                'rejectedRequests' => collect(),
+                'archivedRequests' => collect(),
+                'deletedRequests' => collect(),
+            ]);
+        }
+
+        // ========== REJECTED VIEW ==========
+        if ($viewType === 'rejected') {
+            $query = EventRequest::where('user_id', Auth::id())
+                ->where('is_deleted', false)
+                ->where('status', 'Rejected');
+
+            $rejectedRequests = $query->orderBy('updated_at', 'desc')->get();
+
+            return view('events.my', [
+                'rejectedRequests' => $rejectedRequests,
+                'viewType' => $viewType,
+                'requests' => collect(),
+                'approvedRequests' => collect(),
+                'finishedRequests' => collect(),
+                'archivedRequests' => collect(),
+                'deletedRequests' => collect(),
+            ]);
+        }
 
         // ========== ARCHIVES VIEW ==========
         if ($viewType === 'archives') {
@@ -171,7 +327,7 @@ class EventRequestController extends Controller
 
             // Apply filters
             if ($request->filled('search')) {
-                $query->where('title', 'like', '%'.$request->search.'%');
+                $query->where('description', 'like', '%'.$request->search.'%');
             }
             if ($request->filled('status')) {
                 $query->where('status', $request->status);
@@ -192,6 +348,9 @@ class EventRequestController extends Controller
                 'archivedRequests' => $archivedRequests,
                 'viewType' => $viewType,
                 'requests' => collect(),
+                'approvedRequests' => collect(),
+                'finishedRequests' => collect(),
+                'rejectedRequests' => collect(),
                 'deletedRequests' => collect(),
             ]);
         }
@@ -203,7 +362,7 @@ class EventRequestController extends Controller
 
             // Apply filters
             if ($request->filled('search')) {
-                $query->where('title', 'like', '%'.$request->search.'%');
+                $query->where('description', 'like', '%'.$request->search.'%');
             }
             if ($request->filled('status')) {
                 $query->where('status', $request->status);
@@ -224,6 +383,9 @@ class EventRequestController extends Controller
                 'deletedRequests' => $deletedRequests,
                 'viewType' => $viewType,
                 'requests' => collect(),
+                'approvedRequests' => collect(),
+                'finishedRequests' => collect(),
+                'rejectedRequests' => collect(),
                 'archivedRequests' => collect(),
             ]);
         }
@@ -231,11 +393,12 @@ class EventRequestController extends Controller
         // ========== ACTIVE VIEW (DEFAULT) ==========
         $query = EventRequest::where('user_id', Auth::id())
             ->where('is_deleted', false)
-            ->where($archiveColumn, false);
+            ->where($archiveColumn, false)
+            ->whereNotIn('status', ['Approved', 'Rejected']); // Exclude approved and rejected from active
 
         // Apply filters
         if ($request->filled('search')) {
-            $query->where('title', 'like', '%'.$request->search.'%');
+            $query->where('description', 'like', '%'.$request->search.'%');
         }
         if ($request->filled('status')) {
             $query->where('status', $request->status);
@@ -252,7 +415,27 @@ class EventRequestController extends Controller
 
         $requests = $query->orderBy('created_at', 'desc')->get();
 
-        // Always fetch archived and deleted for tab counts
+        // Always fetch counts for tab badges
+        $approvedRequests = EventRequest::where('user_id', Auth::id())
+            ->where('is_deleted', false)
+            ->where('status', 'Approved')
+            ->whereRaw("(event_date + end_time::time) > NOW()")
+            ->orderBy('event_date', 'asc')
+            ->get();
+
+        $finishedRequests = EventRequest::where('user_id', Auth::id())
+            ->where('is_deleted', false)
+            ->where('status', 'Approved')
+            ->whereRaw("(event_date + end_time::time) <= NOW()")
+            ->orderBy('event_date', 'desc')
+            ->get();
+
+        $rejectedRequests = EventRequest::where('user_id', Auth::id())
+            ->where('is_deleted', false)
+            ->where('status', 'Rejected')
+            ->orderBy('updated_at', 'desc')
+            ->get();
+
         $archivedRequests = EventRequest::where('user_id', Auth::id())
             ->where('is_deleted', false)
             ->where($archiveColumn, true)
@@ -264,125 +447,7 @@ class EventRequestController extends Controller
             ->orderBy('updated_at', 'desc')
             ->get();
 
-        return view('events.my', compact('requests', 'viewType', 'archivedRequests', 'deletedRequests'));
-    }
-
-    // Show all pending requests (for principal/admin)
-    public function pendingRequests(Request $request)
-    {
-        $query = EventRequest::with('user');
-        $user = auth()->user();
-
-        if (! $user->canApproveRequests()) {
-            $query->where('user_id', $user->id)->where('status', 'Pending');
-        } else {
-            // Each approver only sees requests that are at THEIR level in the chain
-            $query->where('status', 'Pending');
-
-            if ($user->isProgramHead()) {
-                // Level 0 → waiting for Program Head
-                $query->where('approval_level', EventRequest::LEVEL_NONE)
-                      ->where(function ($q) {
-                          $q->where('education_level', 'tertiary')
-                            ->orWhereNull('education_level');
-                      });
-            } elseif ($user->isPrincipalAssistant()) {
-                // SHS level 0 → waiting for Principal Assistant
-                $query->where('approval_level', EventRequest::LEVEL_NONE)
-                      ->where('education_level', 'shs');
-            } elseif ($user->isAcademicHead()) {
-                // Level 1 → Program Head (or Principal Assistant) already approved
-                $query->where('approval_level', EventRequest::LEVEL_1_PROGRAM_HEAD);
-            } elseif ($user->isBuildingAdmin()) {
-                // Building Admin sees requests that have passed all levels before them.
-                // If Program Head and Academic Head don't exist, requests stay at LEVEL_NONE.
-                $hasProgramHead  = \App\Models\User::where('role', 'program_head')->exists();
-                $hasAcademicHead = \App\Models\User::where('role', 'academic_head')->exists();
-
-                $allowedLevels = [];
-                if (!$hasProgramHead && !$hasAcademicHead) {
-                    // No PH or AH → building admin is first approver
-                    $allowedLevels = [EventRequest::LEVEL_NONE];
-                } elseif ($hasProgramHead && !$hasAcademicHead) {
-                    // PH exists but no AH → building admin sees after PH
-                    $allowedLevels = [EventRequest::LEVEL_1_PROGRAM_HEAD];
-                } elseif (!$hasProgramHead && $hasAcademicHead) {
-                    // AH exists but no PH → building admin sees after AH
-                    $allowedLevels = [EventRequest::LEVEL_2_ACADEMIC_HEAD];
-                } else {
-                    // Both exist → normal flow
-                    $allowedLevels = [EventRequest::LEVEL_2_ACADEMIC_HEAD];
-                }
-
-                $query->whereIn('approval_level', $allowedLevels)
-                      ->where(function ($q) {
-                          $q->where('education_level', 'tertiary')
-                            ->orWhereNull('education_level');
-                      });
-            } elseif ($user->isSchoolAdmin() || $user->isAdmin()) {
-                $hasProgramHead   = \App\Models\User::where('role', 'program_head')->exists();
-                $hasAcademicHead  = \App\Models\User::where('role', 'academic_head')->exists();
-                $hasBuildingAdmin = \App\Models\User::where('role', 'building_admin')->exists();
-
-                // Determine the highest level tertiary requests can reach before school admin
-                $tertiaryLevels = [];
-                if (!$hasProgramHead && !$hasAcademicHead && !$hasBuildingAdmin) {
-                    $tertiaryLevels = [EventRequest::LEVEL_NONE];
-                } elseif ($hasProgramHead && !$hasAcademicHead && !$hasBuildingAdmin) {
-                    $tertiaryLevels = [EventRequest::LEVEL_1_PROGRAM_HEAD];
-                } elseif (!$hasProgramHead && $hasAcademicHead && !$hasBuildingAdmin) {
-                    $tertiaryLevels = [EventRequest::LEVEL_2_ACADEMIC_HEAD];
-                } elseif (!$hasProgramHead && !$hasAcademicHead && $hasBuildingAdmin) {
-                    $tertiaryLevels = [EventRequest::LEVEL_3_BUILDING_ADMIN];
-                } elseif ($hasProgramHead && $hasAcademicHead && !$hasBuildingAdmin) {
-                    $tertiaryLevels = [EventRequest::LEVEL_2_ACADEMIC_HEAD];
-                } elseif ($hasProgramHead && !$hasAcademicHead && $hasBuildingAdmin) {
-                    $tertiaryLevels = [EventRequest::LEVEL_3_BUILDING_ADMIN];
-                } elseif (!$hasProgramHead && $hasAcademicHead && $hasBuildingAdmin) {
-                    $tertiaryLevels = [EventRequest::LEVEL_3_BUILDING_ADMIN];
-                } else {
-                    // All exist → normal full chain
-                    $tertiaryLevels = [EventRequest::LEVEL_3_BUILDING_ADMIN];
-                }
-
-                $query->where(function ($q) use ($tertiaryLevels) {
-                    $q->where(function ($inner) use ($tertiaryLevels) {
-                        // Tertiary: passed all levels before school admin
-                        $inner->whereIn('approval_level', $tertiaryLevels)
-                              ->where(function ($e) {
-                                  $e->where('education_level', 'tertiary')
-                                    ->orWhereNull('education_level');
-                              });
-                    })->orWhere(function ($inner) {
-                        // SHS: Academic Head approved
-                        $inner->where('approval_level', EventRequest::LEVEL_2_ACADEMIC_HEAD)
-                              ->where('education_level', 'shs');
-                    });
-                });
-            }
-        }
-
-        // Additional filters
-        if ($request->status && $user->canApproveRequests()) {
-            // Allow overriding status filter for admins (e.g. to view Approved/Rejected history)
-            $query->where('status', $request->status);
-        }
-        if ($request->category) {
-            $query->where('category', $request->category);
-        }
-        if ($request->date_from) {
-            $query->whereDate('event_date', '>=', $request->date_from);
-        }
-        if ($request->date_to) {
-            $query->whereDate('event_date', '<=', $request->date_to);
-        }
-        if ($request->search) {
-            $query->where('title', 'like', '%'.$request->search.'%');
-        }
-
-        $requests = $query->orderBy('event_date', 'asc')->get();
-
-        return view('events.pending', compact('requests'));
+        return view('events.my', compact('requests', 'viewType', 'approvedRequests', 'finishedRequests', 'rejectedRequests', 'archivedRequests', 'deletedRequests'));
     }
 
     // Approve request - handles multi-level approval (ALL approvers must approve at each level)
@@ -415,7 +480,7 @@ class EventRequestController extends Controller
             $eventRequest->status = 'Pending';
             $eventRequest->save();
 
-            ActivityLog::log('event_approved_level_1', 'SHS Event approved by Principal Assistant: '.$eventRequest->title, null);
+            ActivityLog::log('event_approved_level_1', 'SHS Event approved by Principal Assistant: ', null);
             $this->sendApprovalNotification($eventRequest, 1, 'Approved');
 
             $notificationService = new NotificationService;
@@ -472,7 +537,7 @@ class EventRequestController extends Controller
 
             ActivityLog::log(
                 'event_approved_level_1',
-                'Event approved by Program Head: '.$eventRequest->title,
+                'Event approved by Program Head: ',
                 null
             );
 
@@ -530,7 +595,7 @@ class EventRequestController extends Controller
 
             ActivityLog::log(
                 'event_approved_level_2',
-                'Event approved by Academic Head: '.$eventRequest->title,
+                'Event approved by Academic Head: ',
                 null
             );
 
@@ -586,7 +651,7 @@ class EventRequestController extends Controller
 
             ActivityLog::log(
                 'event_approved_level_3',
-                'Event approved by Building Admin: '.$eventRequest->title,
+                'Event approved by Building Admin: ',
                 null
             );
 
@@ -635,7 +700,7 @@ class EventRequestController extends Controller
 
                 ActivityLog::log(
                     'event_approved',
-                    'Event fully approved by all School Admins: '.$eventRequest->title,
+                    'Event fully approved by all School Admins: ',
                     null
                 );
             } else {
@@ -645,7 +710,7 @@ class EventRequestController extends Controller
 
                 ActivityLog::log(
                     'event_approved_level_4_partial',
-                    'Event approved by School Admin (waiting for others): '.$eventRequest->title,
+                    'Event approved by School Admin (waiting for others): ',
                     null
                 );
             }
@@ -661,7 +726,7 @@ class EventRequestController extends Controller
 
             ActivityLog::log(
                 'event_approved',
-                'Event approved: '.$eventRequest->title,
+                'Event approved: ',
                 null
             );
 
@@ -690,7 +755,7 @@ class EventRequestController extends Controller
                 $notificationService = new NotificationService;
                 $notificationService->notifyEventRequestStatus(
                     $requester,
-                    $eventRequest->title,
+                    $eventRequest->location.' - '.\Carbon\Carbon::parse($eventRequest->event_date)->format('M d, Y'),
                     $level,
                     $status
                 );
@@ -745,7 +810,7 @@ class EventRequestController extends Controller
 
         ActivityLog::log(
             'event_rejected',
-            'Event rejected by '.$rejectRole.': '.$eventRequest->title,
+            'Event rejected by '.$rejectRole.': ',
             null
         );
 
@@ -953,7 +1018,7 @@ class EventRequestController extends Controller
 
                 EventRequest::create([
                     'user_id' => auth()->id(),
-                    'title' => $data['title'] ?? 'Untitled Event',
+                    
                     'description' => $data['description'] ?? '',
                     'event_date' => $data['event_date'] ?? now()->toDateString(),
                     'start_time' => $data['start_time'] ?? '09:00',
@@ -996,7 +1061,7 @@ class EventRequestController extends Controller
         $eventCalendarEvents = $events->map(function ($event) {
             return [
                 'id' => 'event_'.$event->id,
-                'title' => $event->title,
+                
                 'start' => $event->event_date->format('Y-m-d').'T'.$event->start_time,
                 'end' => $event->event_date->format('Y-m-d').'T'.$event->end_time,
                 'backgroundColor' => '#3788d8', // Blue for events
@@ -1117,7 +1182,7 @@ class EventRequestController extends Controller
 
         ActivityLog::log(
             'event_cancelled',
-            'Event cancelled: '.$eventRequest->title,
+            'Event cancelled: ',
             null
         );
 
@@ -1138,7 +1203,7 @@ class EventRequestController extends Controller
         if ($request->input('permanent') == '1') {
             ActivityLog::log(
                 'event_permanent_deleted',
-                'Event permanently deleted: '.$eventRequest->title,
+                'Event permanently deleted: ',
                 null
             );
 
@@ -1172,7 +1237,7 @@ class EventRequestController extends Controller
 
         ActivityLog::log(
             'event_deleted',
-            'Event deleted: '.$eventRequest->title,
+            'Event deleted: ',
             null
         );
 
@@ -1219,7 +1284,7 @@ class EventRequestController extends Controller
 
         ActivityLog::log(
             'event_archived',
-            'Event archived: '.$eventRequest->title,
+            'Event archived: ',
             null
         );
 
@@ -1252,7 +1317,7 @@ class EventRequestController extends Controller
 
             ActivityLog::log(
                 'event_restored_from_deleted',
-                'Event restored from deleted: '.$eventRequest->title,
+                'Event restored from deleted: ',
                 null
             );
 
@@ -1276,7 +1341,7 @@ class EventRequestController extends Controller
 
         ActivityLog::log(
             'event_restored',
-            'Event restored: '.$eventRequest->title,
+            'Event restored: ',
             null
         );
 
@@ -1287,6 +1352,52 @@ class EventRequestController extends Controller
     public function adminIndex(Request $request)
     {
         $viewType = $request->view ?? 'active';
+
+        if ($viewType === 'rejected') {
+            $rejectedEvents = EventRequest::with('user')
+                ->where('is_deleted', false)
+                ->where('status', 'Rejected')
+                ->orderBy('updated_at', 'desc')
+                ->get();
+
+            return view('admin.events', [
+                'viewType' => $viewType,
+                'rejectedEvents' => $rejectedEvents,
+                'requests' => collect(),
+            ]);
+        }
+
+        if ($viewType === 'approved') {
+            // Approved events where the end datetime (event_date + end_time) is in the future
+            $approvedEvents = EventRequest::with('user')
+                ->where('is_deleted', false)
+                ->where('status', 'Approved')
+                ->whereRaw("(event_date + end_time::time) > NOW()")
+                ->orderBy('event_date', 'asc')
+                ->get();
+
+            return view('admin.events', [
+                'viewType' => $viewType,
+                'approvedEvents' => $approvedEvents,
+                'requests' => collect(),
+            ]);
+        }
+
+        if ($viewType === 'finished') {
+            // Finished events where the end datetime (event_date + end_time) has already passed
+            $finishedEvents = EventRequest::with('user')
+                ->where('is_deleted', false)
+                ->where('status', 'Approved')
+                ->whereRaw("(event_date + end_time::time) <= NOW()")
+                ->orderBy('event_date', 'desc')
+                ->get();
+
+            return view('admin.events', [
+                'viewType' => $viewType,
+                'finishedEvents' => $finishedEvents,
+                'requests' => collect(),
+            ]);
+        }
 
         if ($viewType === 'archives') {
             // Show events archived by any role
@@ -1347,7 +1458,8 @@ class EventRequestController extends Controller
             ->where('academic_head_archived', false)
             ->where('program_head_archived', false)
             ->where('mis_archived', false)
-            ->where('maintenance_archived', false);
+            ->where('maintenance_archived', false)
+            ->whereNotIn('status', ['Approved', 'Rejected']); // Approved/Rejected events live in their own tabs
 
         // Filter by status
         if ($request->status) {
@@ -1369,10 +1481,34 @@ class EventRequestController extends Controller
 
         // Search by title
         if ($request->search) {
-            $query->where('title', 'like', '%'.$request->search.'%');
+            $query->where('description', 'like', '%'.$request->search.'%');
         }
 
-        $requests = $query->orderBy('created_at', 'desc')->get();
+        $allRequests = $query->orderBy('created_at', 'desc')->get();
+
+        // Filter out events that the current user has already approved at their level
+        $user = auth()->user();
+        $requests = $allRequests->filter(function ($eventRequest) use ($user) {
+            // Determine the user's approval level
+            $userLevel = null;
+            if ($user->isProgramHead()) {
+                $userLevel = 1;
+            } elseif ($user->isAcademicHead()) {
+                $userLevel = 2;
+            } elseif ($user->isBuildingAdmin()) {
+                $userLevel = 3;
+            } elseif ($user->isSchoolAdmin() || $user->isAdmin()) {
+                $userLevel = 4;
+            }
+
+            // If user is not an approver, show all events
+            if ($userLevel === null) {
+                return true;
+            }
+
+            // Check if user has already approved at their level
+            return !$eventRequest->hasUserApprovedAtLevel($user->id, $userLevel);
+        });
 
         return view('admin.events', compact('requests', 'viewType'));
     }
@@ -1510,7 +1646,7 @@ class EventRequestController extends Controller
     {
         return [
             'id' => $event->id,
-            'title' => $event->title,
+            
             'event_date' => optional($event->event_date)->toDateString(),
             'location' => $event->location,
             'start_time' => $event->start_time,
@@ -1639,7 +1775,7 @@ class EventRequestController extends Controller
         }
 
         $validated = $request->validate([
-            'title' => 'required|string|min:3|max:255',
+            
             'description' => 'required|string|min:10|max:5000',
             'event_date' => 'required|date|after_or_equal:today',
             'location' => 'required|string|min:3|max:255',
@@ -1652,7 +1788,7 @@ class EventRequestController extends Controller
 
         $event = EventRequest::create([
             'user_id' => $request->user()->id,
-            'title' => $validated['title'],
+            
             'description' => $validated['description'],
             'event_date' => $validated['event_date'],
             'location' => $validated['location'],
@@ -1730,7 +1866,7 @@ class EventRequestController extends Controller
             'available' => $available,
             'conflicting_events' => $conflictingEvents->map(function ($event) {
                 return [
-                    'title' => $event->title,
+                    
                     'start_time' => $event->start_time,
                     'end_time' => $event->end_time,
                     'user' => $event->user->name ?? 'Unknown',
@@ -1783,7 +1919,7 @@ class EventRequestController extends Controller
             'available' => $available,
             'conflicting_events' => $conflictingEvents->map(function ($event) {
                 return [
-                    'title' => $event->title,
+                    
                     'start_time' => $event->start_time,
                     'end_time' => $event->end_time,
                     'user' => $event->user->name ?? 'Unknown',
@@ -1839,7 +1975,7 @@ class EventRequestController extends Controller
             'available' => $available,
             'conflicting_events' => $conflictingEvents->map(function ($event) {
                 return [
-                    'title' => $event->title,
+                    
                     'start_time' => $event->start_time,
                     'end_time' => $event->end_time,
                     'user' => $event->user->name ?? 'Unknown',
@@ -1848,3 +1984,4 @@ class EventRequestController extends Controller
         ]);
     }
 }
+

@@ -59,6 +59,39 @@
             </button>
         </li>
         <li class="nav-item" role="presentation">
+            <button class="nav-link {{ ($viewType ?? '') === 'approved' ? 'active' : '' }}"
+                    id="approved-tab" data-bs-toggle="tab" data-bs-target="#approved-events"
+                    type="button" role="tab" aria-controls="approved-events"
+                    aria-selected="{{ ($viewType ?? '') === 'approved' ? 'true' : 'false' }}">
+                <i class="fas fa-check-circle"></i> Approved
+                @if(isset($approvedRequests) && $approvedRequests->count() > 0)
+                    <span class="badge bg-success ms-1">{{ $approvedRequests->count() }}</span>
+                @endif
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {{ ($viewType ?? '') === 'finished' ? 'active' : '' }}"
+                    id="finished-tab" data-bs-toggle="tab" data-bs-target="#finished-events"
+                    type="button" role="tab" aria-controls="finished-events"
+                    aria-selected="{{ ($viewType ?? '') === 'finished' ? 'true' : 'false' }}">
+                <i class="fas fa-flag-checkered"></i> Finished
+                @if(isset($finishedRequests) && $finishedRequests->count() > 0)
+                    <span class="badge bg-secondary ms-1">{{ $finishedRequests->count() }}</span>
+                @endif
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {{ ($viewType ?? '') === 'rejected' ? 'active' : '' }}"
+                    id="rejected-tab" data-bs-toggle="tab" data-bs-target="#rejected-events"
+                    type="button" role="tab" aria-controls="rejected-events"
+                    aria-selected="{{ ($viewType ?? '') === 'rejected' ? 'true' : 'false' }}">
+                <i class="fas fa-times-circle"></i> Rejected
+                @if(isset($rejectedRequests) && $rejectedRequests->count() > 0)
+                    <span class="badge bg-danger ms-1">{{ $rejectedRequests->count() }}</span>
+                @endif
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
             <button class="nav-link {{ ($viewType ?? '') === 'archives' ? 'active' : '' }}"
                     id="archives-tab" data-bs-toggle="tab" data-bs-target="#archived-events"
                     type="button" role="tab" aria-controls="archived-events"
@@ -162,9 +195,7 @@
                             <table class="table table-hover">
                                 <thead>
                                     <tr>
-                                        <th class="text-nowrap" style="min-width: 50px;"><input type="checkbox" id="selectAllActive" onchange="toggleSelectAll('active')"></th>
-                                        <th class="text-nowrap" style="min-width: 120px;">Category</th>
-                                        <th class="text-nowrap" style="min-width: 100px;">Date</th>
+                                        <th class="text-nowrap" style="min-width: 50px;"><input type="checkbox" id="selectAllActive" onchange="toggleSelectAll('active')"></th>                                        <th class="text-nowrap" style="min-width: 100px;">Date</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Time</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Location</th>
                                         <th class="text-nowrap" style="min-width: 100px;">Status</th>
@@ -201,7 +232,11 @@
                                                         <form action="{{ route('events.cancel', $request->id) }}" method="POST" class="d-inline">
                                                             @csrf
                                                             <button type="submit" class="btn btn-sm btn-danger"
-                                                                onclick="return confirm('Cancel this request?')" title="Cancel">
+                                                                data-confirm="Cancel this request?"
+                                                                data-confirm-title="Cancel Request"
+                                                                data-confirm-ok="Yes, Cancel"
+                                                                data-confirm-color="#dc3545"
+                                                                title="Cancel">
                                                                 <i class="fas fa-times"></i>
                                                             </button>
                                                         </form>
@@ -214,7 +249,11 @@
                                                     <form action="{{ route('events.delete', $request->id) }}" method="POST" class="d-inline">
                                                         @csrf
                                                         <button type="submit" class="btn btn-sm btn-danger"
-                                                            onclick="return confirm('Delete this event? It will be moved to deleted events.')" title="Delete">
+                                                            data-confirm="Delete this event? It will be moved to deleted events."
+                                                            data-confirm-title="Delete Event"
+                                                            data-confirm-ok="Yes, Delete"
+                                                            data-confirm-color="#dc3545"
+                                                            title="Delete">
                                                             <i class="fas fa-trash"></i>
                                                         </button>
                                                     </form>
@@ -231,6 +270,191 @@
                             <h4 class="text-muted">No active event requests</h4>
                             <p>Submit your first event request</p>
                             <a href="{{ route('events.create') }}" class="btn btn-primary">Create Event Request</a>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <!-- Approved Events Tab -->
+        <div class="tab-pane fade {{ ($viewType ?? '') === 'approved' ? 'show active' : '' }}"
+             id="approved-events" role="tabpanel" aria-labelledby="approved-tab">
+            <div class="card">
+                <div class="card-body">
+                    @if(isset($approvedRequests) && $approvedRequests->count() > 0)
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th class="text-nowrap" style="min-width: 100px;">Event Ticket</th>
+                                        <th class="text-nowrap" style="min-width: 100px;">Date</th>
+                                        <th class="text-nowrap" style="min-width: 120px;">Time</th>
+                                        <th class="text-nowrap" style="min-width: 120px;">Location</th>
+                                        <th class="text-nowrap" style="min-width: 100px;">Status</th>
+                                        <th class="text-nowrap" style="min-width: 200px;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($approvedRequests as $request)
+                                        <tr data-id="{{ $request->id }}">
+                                            <td>EVT-{{ str_pad($request->id, 5, '0', STR_PAD_LEFT) }}</td>
+                                            <td>{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</td>
+                                            <td>{{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</td>
+                                            <td>{{ $request->location }}</td>
+                                            <td>
+                                                <span class="badge bg-success">{{ $request->status }}</span>
+                                            </td>
+                                            <td class="text-nowrap">
+                                                <div class="btn-group" role="group">
+                                                    <button type="button" class="btn btn-sm btn-info" onclick="viewEvent({{ $request->id }})" title="View">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                    <a href="{{ route('events.pdf', $request->id) }}" class="btn btn-sm btn-primary" title="Download PDF" target="_blank">
+                                                        <i class="fas fa-file-pdf"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-sm btn-secondary"
+                                                        onclick="event.preventDefault(); showEventArchiveModal({{ $request->id }});"
+                                                        title="Archive">
+                                                        <i class="fas fa-archive"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <div class="text-center py-5">
+                            <i class="fas fa-check-circle fa-3x text-muted mb-3"></i>
+                            <h4 class="text-muted">No approved events</h4>
+                            <p>Your approved events will appear here</p>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <!-- Finished Events Tab -->
+        <div class="tab-pane fade {{ ($viewType ?? '') === 'finished' ? 'show active' : '' }}"
+             id="finished-events" role="tabpanel" aria-labelledby="finished-tab">
+            <div class="card">
+                <div class="card-body">
+                    @if(isset($finishedRequests) && $finishedRequests->count() > 0)
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th class="text-nowrap" style="min-width: 100px;">Event Ticket</th>
+                                        <th class="text-nowrap" style="min-width: 100px;">Date</th>
+                                        <th class="text-nowrap" style="min-width: 120px;">Time</th>
+                                        <th class="text-nowrap" style="min-width: 120px;">Location</th>
+                                        <th class="text-nowrap" style="min-width: 100px;">Status</th>
+                                        <th class="text-nowrap" style="min-width: 200px;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($finishedRequests as $request)
+                                        <tr data-id="{{ $request->id }}">
+                                            <td>EVT-{{ str_pad($request->id, 5, '0', STR_PAD_LEFT) }}</td>
+                                            <td>{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</td>
+                                            <td>{{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</td>
+                                            <td>{{ $request->location }}</td>
+                                            <td>
+                                                <span class="badge bg-secondary">Finished</span>
+                                            </td>
+                                            <td class="text-nowrap">
+                                                <div class="btn-group" role="group">
+                                                    <button type="button" class="btn btn-sm btn-info" onclick="viewEvent({{ $request->id }})" title="View">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                    <a href="{{ route('events.pdf', $request->id) }}" class="btn btn-sm btn-primary" title="Download PDF" target="_blank">
+                                                        <i class="fas fa-file-pdf"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-sm btn-secondary"
+                                                        onclick="event.preventDefault(); showEventArchiveModal({{ $request->id }});"
+                                                        title="Archive">
+                                                        <i class="fas fa-archive"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <div class="text-center py-5">
+                            <i class="fas fa-flag-checkered fa-3x text-muted mb-3"></i>
+                            <h4 class="text-muted">No finished events</h4>
+                            <p>Completed events will appear here</p>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <!-- Rejected Events Tab -->
+        <div class="tab-pane fade {{ ($viewType ?? '') === 'rejected' ? 'show active' : '' }}"
+             id="rejected-events" role="tabpanel" aria-labelledby="rejected-tab">
+            <div class="card">
+                <div class="card-body">
+                    @if(isset($rejectedRequests) && $rejectedRequests->count() > 0)
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th class="text-nowrap" style="min-width: 100px;">Event Ticket</th>
+                                        <th class="text-nowrap" style="min-width: 100px;">Date</th>
+                                        <th class="text-nowrap" style="min-width: 120px;">Time</th>
+                                        <th class="text-nowrap" style="min-width: 120px;">Location</th>
+                                        <th class="text-nowrap" style="min-width: 100px;">Status</th>
+                                        <th class="text-nowrap" style="min-width: 200px;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($rejectedRequests as $request)
+                                        <tr data-id="{{ $request->id }}">
+                                            <td>EVT-{{ str_pad($request->id, 5, '0', STR_PAD_LEFT) }}</td>
+                                            <td>{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</td>
+                                            <td>{{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</td>
+                                            <td>{{ $request->location }}</td>
+                                            <td>
+                                                <span class="badge bg-danger">{{ $request->status }}</span>
+                                            </td>
+                                            <td class="text-nowrap">
+                                                <div class="btn-group" role="group">
+                                                    <button type="button" class="btn btn-sm btn-info" onclick="viewEvent({{ $request->id }})" title="View">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                    <a href="#" class="btn btn-sm btn-secondary"
+                                                        onclick="event.preventDefault(); showEventArchiveModal({{ $request->id }});"
+                                                        title="Archive">
+                                                        <i class="fas fa-archive"></i>
+                                                    </a>
+                                                    <form action="{{ route('events.delete', $request->id) }}" method="POST" class="d-inline">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-sm btn-danger"
+                                                            data-confirm="Delete this event? It will be moved to deleted events."
+                                                            data-confirm-title="Delete Event"
+                                                            data-confirm-ok="Yes, Delete"
+                                                            data-confirm-color="#dc3545"
+                                                            title="Delete">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <div class="text-center py-5">
+                            <i class="fas fa-times-circle fa-3x text-muted mb-3"></i>
+                            <h4 class="text-muted">No rejected events</h4>
+                            <p>Rejected events will appear here</p>
                         </div>
                     @endif
                 </div>
@@ -306,9 +530,7 @@
                             <table class="table table-hover">
                                 <thead>
                                     <tr>
-                                        <th class="text-nowrap" style="min-width: 50px;"><input type="checkbox" id="selectAllArchive" onchange="toggleSelectAll('archive')"></th>
-                                        <th class="text-nowrap" style="min-width: 120px;">Category</th>
-                                        <th class="text-nowrap" style="min-width: 100px;">Date</th>
+                                        <th class="text-nowrap" style="min-width: 50px;"><input type="checkbox" id="selectAllArchive" onchange="toggleSelectAll('archive')"></th>                                        <th class="text-nowrap" style="min-width: 100px;">Date</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Time</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Location</th>
                                         <th class="text-nowrap" style="min-width: 100px;">Status</th>
@@ -340,14 +562,22 @@
                                                     <form action="{{ route('events.restore', $request->id) }}" method="POST" class="d-inline">
                                                         @csrf
                                                         <button type="submit" class="btn btn-sm btn-success"
-                                                            onclick="return confirm('Restore this request?')" title="Restore">
+                                                            data-confirm="Restore this request?"
+                                                            data-confirm-title="Restore Event"
+                                                            data-confirm-ok="Yes, Restore"
+                                                            data-confirm-color="#198754"
+                                                            title="Restore">
                                                             <i class="fas fa-trash-restore"></i>
                                                         </button>
                                                     </form>
                                                     <form action="{{ route('events.delete', $request->id) }}" method="POST" class="d-inline">
                                                         @csrf
                                                         <button type="submit" class="btn btn-sm btn-danger"
-                                                            onclick="return confirm('Permanently delete this event?')" title="Delete">
+                                                            data-confirm="Permanently delete this event?"
+                                                            data-confirm-title="Permanent Delete"
+                                                            data-confirm-ok="Yes, Delete"
+                                                            data-confirm-color="#dc3545"
+                                                            title="Delete">
                                                             <i class="fas fa-trash"></i>
                                                         </button>
                                                     </form>
@@ -438,9 +668,7 @@
                             <table class="table table-hover">
                                 <thead>
                                     <tr>
-                                        <th class="text-nowrap" style="min-width: 50px;"><input type="checkbox" id="selectAllDeleted" onchange="toggleSelectAll('deleted')"></th>
-                                        <th class="text-nowrap" style="min-width: 120px;">Category</th>
-                                        <th class="text-nowrap" style="min-width: 100px;">Date</th>
+                                        <th class="text-nowrap" style="min-width: 50px;"><input type="checkbox" id="selectAllDeleted" onchange="toggleSelectAll('deleted')"></th>                                        <th class="text-nowrap" style="min-width: 100px;">Date</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Time</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Location</th>
                                         <th class="text-nowrap" style="min-width: 100px;">Status</th>
@@ -472,7 +700,11 @@
                                                     <form action="{{ route('events.restore', $request->id) }}" method="POST" class="d-inline">
                                                         @csrf
                                                         <button type="submit" class="btn btn-sm btn-success"
-                                                            onclick="return confirm('Restore this event?')" title="Restore">
+                                                            data-confirm="Restore this event?"
+                                                            data-confirm-title="Restore Event"
+                                                            data-confirm-ok="Yes, Restore"
+                                                            data-confirm-color="#198754"
+                                                            title="Restore">
                                                             <i class="fas fa-trash-restore"></i>
                                                         </button>
                                                     </form>
@@ -480,7 +712,11 @@
                                                         @csrf
                                                         <input type="hidden" name="permanent" value="1">
                                                         <button type="submit" class="btn btn-sm btn-danger"
-                                                            onclick="return confirm('Permanently delete this event? This action cannot be undone.')" title="Permanent Delete">
+                                                            data-confirm="Permanently delete this event? This action cannot be undone."
+                                                            data-confirm-title="Permanent Delete"
+                                                            data-confirm-ok="Yes, Delete Forever"
+                                                            data-confirm-color="#dc3545"
+                                                            title="Permanent Delete">
                                                             <i class="fas fa-ban"></i>
                                                         </button>
                                                     </form>
@@ -968,11 +1204,34 @@ function deleteDiscussion(discussionId, eventId) {
 }
 
 function showEventArchiveModal(eventId) {
-    document.getElementById('eventArchiveForm').action = '/events/' + eventId + '/archive';
-    document.getElementById('archiveEventId').value = eventId;
-
-    var modal = new bootstrap.Modal(document.getElementById('eventArchiveModal'));
-    modal.show();
+    confirmArchive({
+        title: 'Archive Event?',
+        text: 'This event will be archived and hidden from your active list.',
+        confirmButtonText: '<i class="fas fa-archive me-1"></i> Archive'
+    }).then(result => {
+        if (result.isConfirmed) {
+            // Show loading
+            getSwal().fire({
+                title: 'Archiving...',
+                html: '<div class="spinner-border text-primary"></div>',
+                showConfirmButton: false,
+                allowOutsideClick: false
+            });
+            
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/events/' + eventId + '/archive';
+            
+            const csrfToken = document.createElement('input');
+            csrfToken.type = 'hidden';
+            csrfToken.name = '_token';
+            csrfToken.value = '{{ csrf_token() }}';
+            form.appendChild(csrfToken);
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
 }
 
 // Bulk actions functions (placeholders for now)
@@ -1026,19 +1285,84 @@ function contextEdit() {
 }
 
 function contextArchive() {
-    // Implementation for context archive
+    if (window.selectedEventId && window.selectedEventView === 'active') {
+        showEventArchiveModal(window.selectedEventId);
+    }
 }
 
 function contextDelete() {
-    // Implementation for context delete
+    if (window.selectedEventId && window.selectedEventView === 'active') {
+        confirmDelete({
+            title: 'Delete Event?',
+            text: 'This event will be moved to deleted. You can restore it later.',
+            confirmButtonText: '<i class="fas fa-trash me-1"></i> Delete'
+        }).then(result => {
+            if (result.isConfirmed) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/events/' + window.selectedEventId + '/soft-delete';
+                
+                const csrfToken = document.createElement('input');
+                csrfToken.type = 'hidden';
+                csrfToken.name = '_token';
+                csrfToken.value = '{{ csrf_token() }}';
+                form.appendChild(csrfToken);
+                
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
+    }
 }
 
 function contextRestore() {
-    // Implementation for context restore
+    if (window.selectedEventId && (window.selectedEventView === 'archived' || window.selectedEventView === 'deleted')) {
+        confirmRestore({
+            title: 'Restore Event?',
+            text: 'This will move the event back to active events.',
+            confirmButtonText: '<i class="fas fa-trash-restore me-1"></i> Restore'
+        }).then(result => {
+            if (result.isConfirmed) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/events/' + window.selectedEventId + '/restore';
+                
+                const csrfToken = document.createElement('input');
+                csrfToken.type = 'hidden';
+                csrfToken.name = '_token';
+                csrfToken.value = '{{ csrf_token() }}';
+                form.appendChild(csrfToken);
+                
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
+    }
 }
 
 function contextDeleteFromArchive() {
-    // Implementation for context delete from archive
+    if (window.selectedEventId && window.selectedEventView === 'archived') {
+        confirmDelete({
+            title: 'Delete Archived Event?',
+            text: 'This archived event will be moved to deleted.',
+            confirmButtonText: '<i class="fas fa-trash me-1"></i> Delete'
+        }).then(result => {
+            if (result.isConfirmed) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/events/' + window.selectedEventId + '/soft-delete';
+                
+                const csrfToken = document.createElement('input');
+                csrfToken.type = 'hidden';
+                csrfToken.name = '_token';
+                csrfToken.value = '{{ csrf_token() }}';
+                form.appendChild(csrfToken);
+                
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
+    }
 }
 
 function contextRestoreDeleted() {
@@ -1069,4 +1393,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 @endsection
+
+
+
+
 
