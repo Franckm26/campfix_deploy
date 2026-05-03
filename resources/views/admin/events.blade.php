@@ -105,26 +105,38 @@
                 <ul class="nav nav-pills mb-0 flex-wrap">
                     <li class="nav-item">
                         <a class="nav-link {{ ($viewType ?? 'active') == 'active' ? 'active' : '' }}" href="{{ route('admin.events', ['view' => 'active']) }}">
-                            <i class="fas fa-calendar-check"></i> Active Events
+                            <i class="fas fa-calendar-check"></i> Active
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ ($viewType ?? '') == 'approved' ? 'active' : '' }}" href="{{ route('admin.events', ['view' => 'approved']) }}" style="{{ ($viewType ?? '') == 'approved' ? '' : 'color: #28a745;' }}">
+                            <i class="fas fa-check-circle"></i> Approved
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ ($viewType ?? '') == 'finished' ? 'active' : '' }}" href="{{ route('admin.events', ['view' => 'finished']) }}" style="{{ ($viewType ?? '') == 'finished' ? '' : 'color: #6f42c1;' }}">
+                            <i class="fas fa-flag-checkered"></i> Finished
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ ($viewType ?? '') == 'rejected' ? 'active' : '' }}" href="{{ route('admin.events', ['view' => 'rejected']) }}" style="{{ ($viewType ?? '') == 'rejected' ? '' : 'color: #dc3545;' }}">
+                            <i class="fas fa-times-circle"></i> Rejected
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {{ ($viewType ?? '') == 'archives' ? 'active' : '' }}" href="{{ route('admin.events', ['view' => 'archives']) }}">
-                            <i class="fas fa-archive"></i> Archived Events
+                            <i class="fas fa-archive"></i> Archived
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {{ ($viewType ?? '') == 'deleted' ? 'active' : '' }}" href="{{ route('admin.events', ['view' => 'deleted']) }}" style="color: #dc3545;">
-                            <i class="fas fa-trash-alt"></i> Deleted Events
+                            <i class="fas fa-trash-alt"></i> Deleted
                         </a>
                     </li>
                 </ul>
                 <div>
                     <a href="{{ route('events.calendar') }}" class="btn btn-info btn-sm">
                         <i class="fas fa-calendar"></i> Calendar View
-                    </a>
-                    <a href="{{ route('events.pending') }}" class="btn btn-secondary btn-sm ms-1">
-                        <i class="fas fa-hourglass-half"></i> Pending Only
                     </a>
                 </div>
             </div>
@@ -169,6 +181,7 @@
 
     @if(($viewType ?? 'active') == 'active')
     <!-- Summary Cards -->
+    @if(auth()->user()->role !== 'building_admin')
     <div class="row mb-4" style="display: flex !important;">
         <div class="col-md-3">
             <div class="card bg-primary text-white">
@@ -203,16 +216,15 @@
             </div>
         </div>
     </div>
+    @endif
 
     @if($requests->count() > 0)
         <div class="table-responsive" style="display: block !important; visibility: visible !important; opacity: 1 !important;">
             <table class="table table-hover" style="display: table !important;">
                 <thead>
                     <tr>
-                        <th>Title</th>
-                        <th>Requestor</th>
-                        <th>Category</th>
-                        <th>Event Date</th>
+                        <th>Event Ticket</th>
+                        <th>Requestor</th>                        <th>Event Date</th>
                         <th>Time</th>
                         <th>Location</th>
                         <th>Status</th>
@@ -222,12 +234,8 @@
                 <tbody>
                     @foreach($requests as $request)
                         <tr>
-                            <td>{{ $request->title }}</td>
-                            <td>{{ $request->user->name ?? 'N/A' }}</td>
-                            <td>
-                                <span class="badge bg-info">{{ ucfirst($request->category) }}</span>
-                            </td>
-                            <td>{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</td>
+                            <td>EVT-{{ str_pad($request->id, 5, '0', STR_PAD_LEFT) }}</td>
+                            <td>{{ $request->user->name ?? 'N/A' }}</td>                            <td>{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</td>
                             <td>{{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</td>
                             <td>{{ $request->location }}</td>
                             <td>
@@ -246,18 +254,12 @@
                                         <i class="fas fa-eye"></i>
                                     </button>
                                     @if($request->status == 'Pending' && auth()->user()->role !== 'mis')
-                                        <form method="POST" action="{{ route('events.approve', $request->id) }}" class="d-inline">
-                                            @csrf
-                                            <button type="submit" class="btn btn-sm btn-success bg-transparent border-0" title="Approve">
-                                                <i class="fas fa-check"></i>
-                                            </button>
-                                        </form>
-                                        <form method="POST" action="{{ route('events.reject', $request->id) }}" class="d-inline">
-                                            @csrf
-                                            <button type="submit" class="btn btn-sm btn-danger bg-transparent border-0" title="Reject">
-                                                <i class="fas fa-times"></i>
-                                            </button>
-                                        </form>
+                                        <button type="button" class="btn btn-sm btn-success bg-transparent border-0" title="Approve" onclick="approveEvent({{ $request->id }})">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-danger bg-transparent border-0" title="Reject" onclick="rejectEvent({{ $request->id }})">
+                                            <i class="fas fa-times"></i>
+                                        </button>
                                     @endif
                                     @php
                                         $userRole = auth()->user()->role;
@@ -287,10 +289,7 @@
                                     <div class="modal-body">
                                         <div class="row">
                                             <div class="col-md-6">
-                                                <p><strong>Reference Number:</strong> EVT-{{ str_pad($request->id, 5, '0', STR_PAD_LEFT) }}</p>
-                                                <p><strong>Title:</strong> {{ $request->title }}</p>
-                                                <p><strong>Category:</strong> {{ ucfirst($request->category) }}</p>
-                                                <p><strong>Status:</strong> 
+                                                <p><strong>Ticket Number:</strong> EVT-{{ str_pad($request->id, 5, '0', STR_PAD_LEFT) }}</p>                                                <p><strong>Status:</strong> 
                                                     <span class="badge bg-{{ 
                                                         $request->status == 'Approved' ? 'success' : 
                                                         ($request->status == 'Pending' ? 'warning' : 
@@ -378,6 +377,302 @@
     @endif
     @endif
 
+    @if(($viewType ?? '') == 'approved')
+    <!-- Approved Events Section -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-check-circle text-success"></i> Approved Events
+                @if(isset($approvedEvents))
+                    <span class="badge bg-success ms-2">{{ $approvedEvents->count() }}</span>
+                @endif
+            </h5>
+        </div>
+        <div class="card-body">
+            @if(isset($approvedEvents) && $approvedEvents->count() > 0)
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Event Ticket</th>
+                                <th>Requestor</th>                                <th>Event Date</th>
+                                <th>Time</th>
+                                <th>Location</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($approvedEvents as $event)
+                                <tr>
+                                    <td>EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</td>
+                                    <td>{{ $event->user->name ?? 'N/A' }}</td>                                    <td>{{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</td>
+                                    <td>{{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}</td>
+                                    <td>{{ $event->location }}</td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-sm btn-primary bg-transparent border-0"
+                                                data-bs-toggle="modal" data-bs-target="#approvedViewModal{{ $event->id }}" title="View">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-secondary bg-transparent border-0" title="Archive" onclick="showArchiveEventModal({{ $event->id }})">
+                                                <i class="fas fa-archive"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-danger bg-transparent border-0" title="Delete" onclick="showDeleteEventModal({{ $event->id }})">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                <!-- View Modal -->
+                                <div class="modal fade" id="approvedViewModal{{ $event->id }}" tabindex="-1">
+                                    <div class="modal-dialog modal-lg modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Event Request Details</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <p><strong>Ticket Number:</strong> EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</p>                                                        <p><strong>Status:</strong> <span class="badge bg-success">Approved</span></p>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <p><strong>Requestor:</strong> {{ $event->user->name ?? 'N/A' }}</p>
+                                                        <p><strong>Event Date:</strong> {{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</p>
+                                                        <p><strong>Time:</strong> {{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}</p>
+                                                        <p><strong>Location:</strong> {{ $event->location }}</p>
+                                                    </div>
+                                                </div>
+                                                <hr>
+                                                <p><strong>Description:</strong></p>
+                                                <p>{{ $event->description }}</p>
+                                                @if($event->notes)
+                                                    <hr>
+                                                    <p><strong>Notes:</strong></p>
+                                                    <p>{{ $event->notes }}</p>
+                                                @endif
+                                                <hr>
+                                                <x-request-progress-tracker :request="$event" title="Approval Progress" />
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @else
+                <div class="text-center py-5">
+                    <i class="fas fa-check-circle fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No approved upcoming events</h5>
+                    <p class="text-muted">Approved events with a future date will appear here.</p>
+                </div>
+            @endif
+        </div>
+    </div>
+    @endif
+
+    @if(($viewType ?? '') == 'finished')
+    <!-- Finished Events Section -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-flag-checkered" style="color:#6f42c1;"></i> Finished Events
+                @if(isset($finishedEvents))
+                    <span class="badge ms-2" style="background:#6f42c1;">{{ $finishedEvents->count() }}</span>
+                @endif
+            </h5>
+        </div>
+        <div class="card-body">
+            @if(isset($finishedEvents) && $finishedEvents->count() > 0)
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Event Ticket</th>
+                                <th>Requestor</th>                                <th>Event Date</th>
+                                <th>Time</th>
+                                <th>Location</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($finishedEvents as $event)
+                                <tr>
+                                    <td>EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</td>
+                                    <td>{{ $event->user->name ?? 'N/A' }}</td>                                    <td>{{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</td>
+                                    <td>{{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}</td>
+                                    <td>{{ $event->location }}</td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-sm btn-primary bg-transparent border-0"
+                                                data-bs-toggle="modal" data-bs-target="#finishedViewModal{{ $event->id }}" title="View">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-secondary bg-transparent border-0" title="Archive" onclick="showArchiveEventModal({{ $event->id }})">
+                                                <i class="fas fa-archive"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-danger bg-transparent border-0" title="Delete" onclick="showDeleteEventModal({{ $event->id }})">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                <!-- View Modal -->
+                                <div class="modal fade" id="finishedViewModal{{ $event->id }}" tabindex="-1">
+                                    <div class="modal-dialog modal-lg modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Event Request Details</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <p><strong>Ticket Number:</strong> EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</p>                                                        <p><strong>Status:</strong> <span class="badge" style="background:#6f42c1;">Finished</span></p>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <p><strong>Requestor:</strong> {{ $event->user->name ?? 'N/A' }}</p>
+                                                        <p><strong>Event Date:</strong> {{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</p>
+                                                        <p><strong>Time:</strong> {{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}</p>
+                                                        <p><strong>Location:</strong> {{ $event->location }}</p>
+                                                    </div>
+                                                </div>
+                                                <hr>
+                                                <p><strong>Description:</strong></p>
+                                                <p>{{ $event->description }}</p>
+                                                @if($event->notes)
+                                                    <hr>
+                                                    <p><strong>Notes:</strong></p>
+                                                    <p>{{ $event->notes }}</p>
+                                                @endif
+                                                <hr>
+                                                <x-request-progress-tracker :request="$event" title="Approval Progress" />
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @else
+                <div class="text-center py-5">
+                    <i class="fas fa-flag-checkered fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No finished events yet</h5>
+                    <p class="text-muted">Approved events whose date has passed will appear here.</p>
+                </div>
+            @endif
+        </div>
+    </div>
+    @endif
+
+    @if(($viewType ?? '') == 'rejected')
+    <!-- Rejected Events Section -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-times-circle text-danger"></i> Rejected Events
+                @if(isset($rejectedEvents))
+                    <span class="badge bg-danger ms-2">{{ $rejectedEvents->count() }}</span>
+                @endif
+            </h5>
+        </div>
+        <div class="card-body">
+            @if(isset($rejectedEvents) && $rejectedEvents->count() > 0)
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Event Ticket</th>
+                                <th>Requestor</th>                                <th>Event Date</th>
+                                <th>Time</th>
+                                <th>Location</th>
+                                <th>Reason</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($rejectedEvents as $event)
+                                <tr>
+                                    <td>EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</td>
+                                    <td>{{ $event->user->name ?? 'N/A' }}</td>                                    <td>{{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</td>
+                                    <td>{{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}</td>
+                                    <td>{{ $event->location }}</td>
+                                    <td>{{ $event->notes ? \Illuminate\Support\Str::limit($event->notes, 40) : '-' }}</td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-sm btn-primary bg-transparent border-0"
+                                                data-bs-toggle="modal" data-bs-target="#rejectedViewModal{{ $event->id }}" title="View">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-secondary bg-transparent border-0" title="Archive" onclick="showArchiveEventModal({{ $event->id }})">
+                                                <i class="fas fa-archive"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-danger bg-transparent border-0" title="Delete" onclick="showDeleteEventModal({{ $event->id }})">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                <!-- View Modal -->
+                                <div class="modal fade" id="rejectedViewModal{{ $event->id }}" tabindex="-1">
+                                    <div class="modal-dialog modal-lg modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Event Request Details</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <p><strong>Ticket Number:</strong> EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</p>                                                        <p><strong>Status:</strong> <span class="badge bg-danger">Rejected</span></p>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <p><strong>Requestor:</strong> {{ $event->user->name ?? 'N/A' }}</p>
+                                                        <p><strong>Event Date:</strong> {{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</p>
+                                                        <p><strong>Time:</strong> {{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}</p>
+                                                        <p><strong>Location:</strong> {{ $event->location }}</p>
+                                                    </div>
+                                                </div>
+                                                <hr>
+                                                <p><strong>Description:</strong></p>
+                                                <p>{{ $event->description }}</p>
+                                                @if($event->notes)
+                                                    <hr>
+                                                    <p><strong>Reason for Rejection:</strong></p>
+                                                    <p class="text-danger">{{ $event->notes }}</p>
+                                                @endif
+                                                <hr>
+                                                <x-request-progress-tracker :request="$event" title="Approval Progress" />
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @else
+                <div class="text-center py-5">
+                    <i class="fas fa-times-circle fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No rejected events</h5>
+                    <p class="text-muted">Rejected event requests will appear here.</p>
+                </div>
+            @endif
+        </div>
+    </div>
+    @endif
+
     @if(($viewType ?? '') == 'archives')
     <!-- Archived Events Section -->
     <div class="row mb-4">
@@ -392,10 +687,8 @@
                             <table class="table table-hover" style="display: table !important;">
                                 <thead>
                                     <tr>
-                                        <th>Title</th>
-                                        <th>Requestor</th>
-                                        <th>Category</th>
-                                        <th>Event Date</th>
+                                        <th>Event Ticket</th>
+                                        <th>Requestor</th>                                        <th>Event Date</th>
                                         <th>Time</th>
                                         <th>Location</th>
                                         <th>Status</th>
@@ -405,12 +698,8 @@
                                 <tbody>
                                     @foreach($archivedEvents as $event)
                                         <tr>
-                                            <td>{{ $event->title }}</td>
-                                            <td>{{ $event->user->name ?? 'N/A' }}</td>
-                                            <td>
-                                                <span class="badge bg-info">{{ ucfirst($event->category) }}</span>
-                                            </td>
-                                            <td>{{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</td>
+                                            <td>EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</td>
+                                            <td>{{ $event->user->name ?? 'N/A' }}</td>                                            <td>{{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</td>
                                             <td>{{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}</td>
                                             <td>{{ $event->location }}</td>
                                             <td>
@@ -451,10 +740,7 @@
                                                     <div class="modal-body">
                                                         <div class="row">
                                                             <div class="col-md-6">
-                                                                <p><strong>Reference Number:</strong> EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</p>
-                                                                <p><strong>Title:</strong> {{ $event->title }}</p>
-                                                                <p><strong>Category:</strong> {{ ucfirst($event->category) }}</p>
-                                                                <p><strong>Status:</strong>
+                                                                <p><strong>Ticket Number:</strong> EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</p>                                                                <p><strong>Status:</strong>
                                                                     <span class="badge bg-{{
                                                                         $event->status == 'Approved' ? 'success' :
                                                                         ($event->status == 'Pending' ? 'warning' :
@@ -582,9 +868,7 @@
                         <thead>
                             <tr>
                                 <th style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" id="deletedEventsSelectAll" onchange="deletedEventsToggleSelectAll()"></th>
-                                <th>Title</th>
-                                <th>Category</th>
-                                <th>Event Date</th>
+                                <th>Event Ticket</th>                                <th>Event Date</th>
                                 <th>Location</th>
                                 <th>Department</th>
                                 <th>Priority</th>
@@ -599,7 +883,7 @@
                             @forelse($deletedEvents as $event)
                                 <tr data-id="{{ $event->id }}">
                                     <td style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" class="deleted-event-checkbox" value="{{ $event->id }}" onchange="deletedEventsUpdateSelectedCount()"></td>
-                                    <td>{{ $event->title }}</td>
+                                    <td>EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</td>
                                     <td>
                                         <span class="badge bg-info">
                                             {{ $event->getCategoryLabel() }}
@@ -654,7 +938,11 @@
                                             <form action="{{ route('admin.deletedEvents.permanentDelete', $event->id) }}" method="POST" class="d-inline">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-danger bg-transparent" title="Permanently Delete" onclick="return confirm('Are you sure you want to permanently delete this event?')">
+                                                <button type="submit" class="btn btn-sm btn-danger bg-transparent" title="Permanently Delete"
+                                                    data-confirm="Are you sure you want to permanently delete this event?"
+                                                    data-confirm-title="Permanent Delete"
+                                                    data-confirm-ok="Yes, Delete Forever"
+                                                    data-confirm-color="#dc3545">
                                                     <i class="fas fa-times-circle"></i>
                                                 </button>
                                             </form>
@@ -671,7 +959,7 @@
                                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                             </div>
                                             <div class="modal-body">
-                                                <p>Are you sure you want to permanently delete <strong>{{ $event->title }}</strong>?</p>
+                                                <p>Are you sure you want to permanently delete <strong>EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</strong>?</p>
                                                 <p class="text-danger"><i class="fas fa-exclamation-triangle"></i> This action cannot be undone. The event will be permanently removed from the system.</p>
                                             </div>
                                             <div class="modal-footer">
@@ -697,10 +985,7 @@
                                             <div class="modal-body">
                                                 <div class="row">
                                                     <div class="col-md-6">
-                                                        <p><strong>Reference Number:</strong> EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</p>
-                                                        <p><strong>Title:</strong> {{ $event->title }}</p>
-                                                        <p><strong>Category:</strong> {{ ucfirst($event->category) }}</p>
-                                                        <p><strong>Status:</strong>
+                                                        <p><strong>Ticket Number:</strong> EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</p>                                                        <p><strong>Status:</strong>
                                                             <span class="badge bg-{{
                                                                 $event->status == 'Approved' ? 'success' :
                                                                 ($event->status == 'Pending' ? 'warning' :
@@ -774,21 +1059,132 @@
 <script>
 // Archive Event Function
 function showArchiveEventModal(eventId) {
-    document.getElementById('archiveEventForm').action = '/events/' + eventId + '/archive';
-    document.getElementById('archiveEventId').value = eventId;
-
-    var modal = new bootstrap.Modal(document.getElementById('archiveEventModal'));
-    modal.show();
+    confirmArchive({
+        title: 'Archive Event?',
+        text: 'This event will be archived and hidden from your active list.',
+        confirmButtonText: '<i class="fas fa-archive me-1"></i> Archive'
+    }).then(result => {
+        if (result.isConfirmed) {
+            // Show loading
+            getSwal().fire({
+                title: 'Archiving...',
+                html: '<div class="spinner-border text-primary"></div>',
+                showConfirmButton: false,
+                allowOutsideClick: false
+            });
+            
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/events/' + eventId + '/archive';
+            
+            const csrfToken = document.createElement('input');
+            csrfToken.type = 'hidden';
+            csrfToken.name = '_token';
+            csrfToken.value = '{{ csrf_token() }}';
+            form.appendChild(csrfToken);
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
 }
 
 // Delete Event Function
 function showDeleteEventModal(eventId) {
-    document.getElementById('deleteEventForm').action = '/events/' + eventId + '/delete';
-    document.getElementById('deleteEventId').value = eventId;
-
-    var modal = new bootstrap.Modal(document.getElementById('deleteEventModal'));
-    modal.show();
+    confirmDelete({
+        title: 'Delete Event?',
+        text: 'This event will be moved to deleted. You can restore it later from the Deleted tab.',
+        confirmButtonText: '<i class="fas fa-trash me-1"></i> Delete'
+    }).then(result => {
+        if (result.isConfirmed) {
+            // Show loading
+            getSwal().fire({
+                title: 'Deleting...',
+                html: '<div class="spinner-border text-danger"></div>',
+                showConfirmButton: false,
+                allowOutsideClick: false
+            });
+            
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/events/' + eventId + '/delete';
+            
+            const csrfToken = document.createElement('input');
+            csrfToken.type = 'hidden';
+            csrfToken.name = '_token';
+            csrfToken.value = '{{ csrf_token() }}';
+            form.appendChild(csrfToken);
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
 }
+
+// Approve Event Function
+function approveEvent(eventId) {
+    confirmApprove({
+        title: 'Approve Event?',
+        text: 'This event request will be approved and the requestor will be notified.',
+        confirmButtonText: '<i class="fas fa-check me-1"></i> Approve'
+    }).then(result => {
+        if (result.isConfirmed) {
+            // Show loading
+            getSwal().fire({
+                title: 'Approving...',
+                html: '<div class="spinner-border text-success"></div>',
+                showConfirmButton: false,
+                allowOutsideClick: false
+            });
+            
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/events/' + eventId + '/approve';
+            
+            const csrfToken = document.createElement('input');
+            csrfToken.type = 'hidden';
+            csrfToken.name = '_token';
+            csrfToken.value = '{{ csrf_token() }}';
+            form.appendChild(csrfToken);
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+}
+
+// Reject Event Function
+function rejectEvent(eventId) {
+    confirmReject({
+        title: 'Reject Event?',
+        text: 'This event request will be rejected and the requestor will be notified.',
+        confirmButtonText: '<i class="fas fa-times me-1"></i> Reject'
+    }).then(result => {
+        if (result.isConfirmed) {
+            // Show loading
+            getSwal().fire({
+                title: 'Rejecting...',
+                html: '<div class="spinner-border text-danger"></div>',
+                showConfirmButton: false,
+                allowOutsideClick: false
+            });
+            
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/events/' + eventId + '/reject';
+            
+            const csrfToken = document.createElement('input');
+            csrfToken.type = 'hidden';
+            csrfToken.name = '_token';
+            csrfToken.value = '{{ csrf_token() }}';
+            form.appendChild(csrfToken);
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+}
+
 // Event Action Modal Functions
 let eventActionType = null;
 let eventActionId = null;
@@ -852,15 +1248,15 @@ function executeEventAction(type, id) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert(type.charAt(0).toUpperCase() + type.slice(1) + ' successful!');
-            location.reload();
+            swalToast(type.charAt(0).toUpperCase() + type.slice(1) + ' successful!', 'success');
+            setTimeout(() => location.reload(), 1500);
         } else if (data.error) {
-            alert(data.error);
+            swalAlert(data.error, 'error');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Error performing action');
+        swalAlert('Error performing action', 'error');
     });
 
     // Close modal
@@ -937,7 +1333,7 @@ function executeEventAction(type, id) {
     function deletedEventsBulkRestore() {
         const checkboxes = document.querySelectorAll('.deleted-event-checkbox:checked');
         if (checkboxes.length === 0) {
-            alert('Please select at least one event to restore.');
+            swalAlert('Please select at least one event to restore.', 'warning');
             return;
         }
         
@@ -1039,11 +1435,11 @@ function executeEventAction(type, id) {
                             // Reload the page to show filtered results
                             window.location.href = '{{ route("admin.events", ["view" => "deleted"]) }}&days=' + days;
                         } else {
-                            alert('Error saving preference.');
+                            swalAlert('Error saving preference.', 'error');
                         }
                     })
                     .catch(error => {
-                        alert('An error occurred while saving your preference.');
+                        swalAlert('An error occurred while saving your preference.', 'error');
                         console.error(error);
                     })
                     .finally(() => {
@@ -1061,4 +1457,12 @@ function executeEventAction(type, id) {
 @endif
 
 @endsection
+
+
+
+
+
+
+
+
 

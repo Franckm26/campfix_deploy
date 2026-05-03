@@ -119,6 +119,24 @@ document.addEventListener('click', function(event) {
     }
 });
 
+// Navigation dropdown toggle (for Events menu, etc.)
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle all nav dropdown toggles
+    const navToggles = document.querySelectorAll('[data-nav-toggle]');
+    
+    navToggles.forEach(function(toggle) {
+        toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            const dropdown = this.closest('.nav-dropdown');
+            
+            if (dropdown) {
+                // Toggle the open class
+                dropdown.classList.toggle('open');
+            }
+        });
+    });
+});
+
 // Dark/Light Mode Toggle
 function toggleTheme() {
     const body = document.body;

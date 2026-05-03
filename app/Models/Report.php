@@ -97,7 +97,7 @@ class Report extends Model
 
     public function assignedTo()
     {
-        return $this->belongsTo(User::class, 'assigned_to');
+        return $this->belongsTo(\App\Models\MaintenanceStaff::class, 'assigned_to');
     }
 
     public function statusLogs()

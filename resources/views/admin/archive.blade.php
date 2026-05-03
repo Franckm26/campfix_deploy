@@ -41,9 +41,7 @@
                 <table class="table table-hover">
                     <thead>
                         <tr>
-                            <th>Title</th>
-                            <th>Category</th>
-                            <th>Priority</th>
+                            <th>Event Ticket</th>                            <th>Priority</th>
                             <th>Status</th>
                             <th>Reported By</th>
                             <th>Archived Date</th>
@@ -112,9 +110,7 @@
                 <table class="table table-hover">
                     <thead>
                         <tr>
-                            <th>Title</th>
-                            <th>Category</th>
-                            <th>Event Date</th>
+                            <th>Event Ticket</th>                            <th>Event Date</th>
                             <th>Status</th>
                             <th>Requested By</th>
                             <th>Archived Date</th>
@@ -124,7 +120,7 @@
                     <tbody>
                         @foreach($archivedEvents as $event)
                             <tr>
-                                <td>{{ $event->title }}</td>
+                                <td>EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</td>
                                 <td>{{ ucfirst($event->category) }}</td>
                                 <td>{{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</td>
                                 <td>
@@ -175,9 +171,7 @@
                 <table class="table table-hover">
                     <thead>
                         <tr>
-                            <th>Title</th>
-                            <th>Category</th>
-                            <th>Status</th>
+                            <th>Event Ticket</th>                            <th>Status</th>
                             <th>Reported By</th>
                             <th>Archived Date</th>
                             <th>Actions</th>
@@ -236,7 +230,7 @@
                 <table class="table table-hover">
                     <thead>
                         <tr>
-                            <th>Title</th>
+                            <th>Event Ticket</th>
                             <th>Status</th>
                             <th>Requested By</th>
                             <th>Archived Date</th>
@@ -295,3 +289,7 @@
     @endif
 </div>
 @endsection
+
+
+
+

@@ -283,7 +283,7 @@
                         <span class="badge bg-warning text-dark ms-2">{{ $pendingEventsList->count() }} requests</span>
                         <i class="fas fa-chevron-down ms-2" id="pending-chevron"></i>
                     </div>
-                    <a href="{{ route('events.pending') }}" class="btn btn-sm btn-warning">
+                    <a href="{{ route('admin.events') }}" class="btn btn-sm btn-warning">
                         <i class="fas fa-check-circle"></i> Review Now
                     </a>
                 </div>
@@ -295,7 +295,7 @@
                                 <div class="d-flex align-items-start">
                                     <input type="checkbox" class="form-check-input me-3 mt-1" disabled>
                                     <div class="flex-grow-1">
-                                        <div class="approval-title">{{ $event->title }}</div>
+                                        <div class="approval-title">{{ $event->location }} - {{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</div>
                                         <div class="approval-meta">
                                             <span class="me-3"><i class="fas fa-user text-muted me-1"></i>{{ $event->user->name ?? 'Unknown' }}</span>
                                             <span class="me-3"><i class="fas fa-map-marker-alt text-muted me-1"></i>{{ $event->location }}</span>
@@ -317,7 +317,7 @@
                                     </div>
                                 </div>
                                 <div class="approval-actions mt-2">
-                                    <a href="{{ route('events.pending') }}" class="btn btn-sm btn-outline-primary">
+                                    <a href="{{ route('admin.events') }}" class="btn btn-sm btn-outline-primary">
                                         <i class="fas fa-eye"></i> Review
                                     </a>
                                 </div>
@@ -325,7 +325,7 @@
                             @endforeach
                         </div>
                         <div class="text-center mt-3 pt-3 border-top">
-                            <a href="{{ route('events.pending') }}" class="btn btn-warning">
+                            <a href="{{ route('admin.events') }}" class="btn btn-warning">
                                 <i class="fas fa-check-circle"></i> Review All Requests
                             </a>
                         </div>
@@ -643,3 +643,4 @@
     });
 </script>
 @endsection
+

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Event Request - {{ $eventRequest->title }}</title>
+    <title>Event Request - {{ $eventRequest->location }}</title>
     <style>
         * {
             margin: 0;
@@ -261,10 +261,6 @@
                 <td>{{ $eventRequest->department ?? 'N/A' }}</td>
                 <th>Venue:</th>
                 <td>{{ $eventRequest->location }}</td>
-            </tr>
-            <tr>
-                <th>Activity:</th>
-                <td colspan="3">{{ $eventRequest->title }}</td>
             </tr>
             <tr>
                 <th>Date Needed:</th>

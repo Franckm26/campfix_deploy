@@ -329,7 +329,7 @@
                     </button>
                     @endif
                     @if(auth()->user()->canApproveRequests())
-                        <a href="{{ route('events.pending') }}" class="btn btn-warning">
+                        <a href="{{ route('admin.events') }}" class="btn btn-warning">
                             <i class="fas fa-tasks"></i> Pending Approvals
                         </a>
                     @endif

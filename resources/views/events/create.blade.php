@@ -42,11 +42,13 @@
                                 </select>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="category" class="form-label">Request Type *</label>
-                                <select class="form-select" id="category" name="category" required>
-                                    <option value="">Select category</option>
-                                    <option value="Area Use">Area Use</option>
+                                <label for="request_type" class="form-label">Request Type *</label>
+                                <select class="form-select" id="request_type" name="request_type" required>
+                                    <option value="">Select request type</option>
+                                    <option value="Academic">Academic</option>
+                                    <option value="Non-Academic">Non-Academic</option>
                                 </select>
+                                <input type="hidden" name="category" value="Area Use">
                             </div>
                         </div>
 
@@ -256,174 +258,187 @@
 
 @section('scripts')
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Request Type change handler - automatically show area of use since category is always "Area Use"
+    var requestTypeSelect = document.getElementById('request_type');
+    if (requestTypeSelect) {
+        requestTypeSelect.addEventListener('change', function() {
+            var areaOfUseContainer = document.getElementById('area_of_use_container');
+            var areaOfUseSelect = document.getElementById('area_of_use');
 
-    // Category change handler for cascading dropdowns
-    document.getElementById('category').addEventListener('change', function() {
-        var areaOfUseContainer = document.getElementById('area_of_use_container');
-        var roomNumberContainer = document.getElementById('room_number_container');
-        var departmentContainer = document.getElementById('department_container');
-        var areaOfUseSelect = document.getElementById('area_of_use');
-
-        if (this.value === 'Area Use') {
-            areaOfUseContainer.style.display = 'block';
-            areaOfUseSelect.required = true;
-        } else {
-            areaOfUseContainer.style.display = 'none';
-            roomNumberContainer.style.display = 'none';
-            departmentContainer.style.display = 'none';
-            areaOfUseSelect.required = false;
-            areaOfUseSelect.value = '';
-            document.getElementById('room_number').required = false;
-            document.getElementById('room_number').value = '';
-        }
-    });
+            if (this.value) {
+                areaOfUseContainer.style.display = 'block';
+                areaOfUseSelect.required = true;
+            } else {
+                areaOfUseContainer.style.display = 'none';
+                areaOfUseSelect.required = false;
+                areaOfUseSelect.value = '';
+                // Reset all dependent fields
+                document.getElementById('room_number_container').style.display = 'none';
+                document.getElementById('department_container').style.display = 'none';
+                document.getElementById('court_type_container').style.display = 'none';
+                document.getElementById('court_purpose_container').style.display = 'none';
+                document.getElementById('avr_selection_container').style.display = 'none';
+                document.getElementById('avr_request_category_container').style.display = 'none';
+            }
+        });
+    }
 
     // Area of Use change handler
-    document.getElementById('area_of_use').addEventListener('change', function() {
-        var roomNumberContainer = document.getElementById('room_number_container');
-        var departmentContainer = document.getElementById('department_container');
-        var courtTypeContainer = document.getElementById('court_type_container');
-        var courtPurposeContainer = document.getElementById('court_purpose_container');
-        var avrSelectionContainer = document.getElementById('avr_selection_container');
-        var avrRequestCategoryContainer = document.getElementById('avr_request_category_container');
-        var roomNumberSelect = document.getElementById('room_number');
-        var departmentSelect = document.getElementById('department');
-        var courtTypeSelect = document.getElementById('court_type');
-        var courtPurposeInput = document.getElementById('court_purpose');
-        var avrSelectionSelect = document.getElementById('avr_selection');
-        var avrRequestCategorySelect = document.getElementById('avr_request_category');
+    var areaOfUseSelect = document.getElementById('area_of_use');
+    if (areaOfUseSelect) {
+        areaOfUseSelect.addEventListener('change', function() {
+            var roomNumberContainer = document.getElementById('room_number_container');
+            var departmentContainer = document.getElementById('department_container');
+            var courtTypeContainer = document.getElementById('court_type_container');
+            var courtPurposeContainer = document.getElementById('court_purpose_container');
+            var avrSelectionContainer = document.getElementById('avr_selection_container');
+            var avrRequestCategoryContainer = document.getElementById('avr_request_category_container');
+            var roomNumberSelect = document.getElementById('room_number');
+            var departmentSelect = document.getElementById('department');
+            var courtTypeSelect = document.getElementById('court_type');
+            var courtPurposeInput = document.getElementById('court_purpose');
+            var avrSelectionSelect = document.getElementById('avr_selection');
+            var avrRequestCategorySelect = document.getElementById('avr_request_category');
 
-        // Clear court availability message
-        var existingCourtMsg = document.getElementById('court_availability_message');
-        if (existingCourtMsg) {
-            existingCourtMsg.remove();
-        }
+            // Clear court availability message
+            var existingCourtMsg = document.getElementById('court_availability_message');
+            if (existingCourtMsg) {
+                existingCourtMsg.remove();
+            }
 
-        // Clear AVR availability message
-        var existingAvrMsg = document.getElementById('avr_availability_message');
-        if (existingAvrMsg) {
-            existingAvrMsg.remove();
-        }
+            // Clear AVR availability message
+            var existingAvrMsg = document.getElementById('avr_availability_message');
+            if (existingAvrMsg) {
+                existingAvrMsg.remove();
+            }
 
-        if (this.value === 'Room') {
-            roomNumberContainer.style.display = 'block';
-            departmentContainer.style.display = 'block';
-            courtTypeContainer.style.display = 'none';
-            courtPurposeContainer.style.display = 'none';
-            avrSelectionContainer.style.display = 'none';
-            avrRequestCategoryContainer.style.display = 'none';
-            roomNumberSelect.required = true;
-            departmentSelect.required = true;
-            courtTypeSelect.required = false;
-            courtPurposeInput.required = false;
-            avrSelectionSelect.required = false;
-            avrRequestCategorySelect.required = false;
-            courtTypeSelect.value = '';
-            courtPurposeInput.value = '';
-            avrSelectionSelect.value = '';
-            avrRequestCategorySelect.value = '';
-        } else if (this.value === 'Court') {
-            roomNumberContainer.style.display = 'none';
-            departmentContainer.style.display = 'none';
-            courtTypeContainer.style.display = 'block';
-            courtPurposeContainer.style.display = 'none';
-            avrSelectionContainer.style.display = 'none';
-            avrRequestCategoryContainer.style.display = 'none';
-            roomNumberSelect.required = false;
-            departmentSelect.required = false;
-            courtTypeSelect.required = true;
-            courtPurposeInput.required = false;
-            avrSelectionSelect.required = false;
-            avrRequestCategorySelect.required = false;
-            roomNumberSelect.value = '';
-            departmentSelect.value = '';
-            courtPurposeInput.value = '';
-            avrSelectionSelect.value = '';
-            avrRequestCategorySelect.value = '';
-        } else if (this.value === 'AVR') {
-            roomNumberContainer.style.display = 'none';
-            departmentContainer.style.display = 'none';
-            courtTypeContainer.style.display = 'none';
-            courtPurposeContainer.style.display = 'none';
-            avrSelectionContainer.style.display = 'block';
-            avrRequestCategoryContainer.style.display = 'none';
-            roomNumberSelect.required = false;
-            departmentSelect.required = false;
-            courtTypeSelect.required = false;
-            courtPurposeInput.required = false;
-            avrSelectionSelect.required = true;
-            avrRequestCategorySelect.required = false;
-            roomNumberSelect.value = '';
-            departmentSelect.value = '';
-            courtTypeSelect.value = '';
-            courtPurposeInput.value = '';
-            avrRequestCategorySelect.value = '';
-        } else {
-            roomNumberContainer.style.display = 'none';
-            departmentContainer.style.display = 'none';
-            courtTypeContainer.style.display = 'none';
-            courtPurposeContainer.style.display = 'none';
-            avrSelectionContainer.style.display = 'none';
-            avrRequestCategoryContainer.style.display = 'none';
-            roomNumberSelect.required = false;
-            departmentSelect.required = false;
-            courtTypeSelect.required = false;
-            courtPurposeInput.required = false;
-            avrSelectionSelect.required = false;
-            avrRequestCategorySelect.required = false;
-            roomNumberSelect.value = '';
-            departmentSelect.value = '';
-            courtTypeSelect.value = '';
-            courtPurposeInput.value = '';
-            avrSelectionSelect.value = '';
-            avrRequestCategorySelect.value = '';
-        }
-    });
+            if (this.value === 'Room') {
+                roomNumberContainer.style.display = 'block';
+                departmentContainer.style.display = 'block';
+                courtTypeContainer.style.display = 'none';
+                courtPurposeContainer.style.display = 'none';
+                avrSelectionContainer.style.display = 'none';
+                avrRequestCategoryContainer.style.display = 'none';
+                roomNumberSelect.required = true;
+                departmentSelect.required = true;
+                courtTypeSelect.required = false;
+                courtPurposeInput.required = false;
+                avrSelectionSelect.required = false;
+                avrRequestCategorySelect.required = false;
+                courtTypeSelect.value = '';
+                courtPurposeInput.value = '';
+                avrSelectionSelect.value = '';
+                avrRequestCategorySelect.value = '';
+            } else if (this.value === 'Court') {
+                roomNumberContainer.style.display = 'none';
+                departmentContainer.style.display = 'none';
+                courtTypeContainer.style.display = 'block';
+                courtPurposeContainer.style.display = 'none';
+                avrSelectionContainer.style.display = 'none';
+                avrRequestCategoryContainer.style.display = 'none';
+                roomNumberSelect.required = false;
+                departmentSelect.required = false;
+                courtTypeSelect.required = true;
+                courtPurposeInput.required = false;
+                avrSelectionSelect.required = false;
+                avrRequestCategorySelect.required = false;
+                roomNumberSelect.value = '';
+                departmentSelect.value = '';
+                courtPurposeInput.value = '';
+                avrSelectionSelect.value = '';
+                avrRequestCategorySelect.value = '';
+            } else if (this.value === 'AVR') {
+                roomNumberContainer.style.display = 'none';
+                departmentContainer.style.display = 'none';
+                courtTypeContainer.style.display = 'none';
+                courtPurposeContainer.style.display = 'none';
+                avrSelectionContainer.style.display = 'block';
+                avrRequestCategoryContainer.style.display = 'none';
+                roomNumberSelect.required = false;
+                departmentSelect.required = false;
+                courtTypeSelect.required = false;
+                courtPurposeInput.required = false;
+                avrSelectionSelect.required = true;
+                avrRequestCategorySelect.required = false;
+                roomNumberSelect.value = '';
+                departmentSelect.value = '';
+                courtTypeSelect.value = '';
+                courtPurposeInput.value = '';
+                avrRequestCategorySelect.value = '';
+            } else {
+                roomNumberContainer.style.display = 'none';
+                departmentContainer.style.display = 'none';
+                courtTypeContainer.style.display = 'none';
+                courtPurposeContainer.style.display = 'none';
+                avrSelectionContainer.style.display = 'none';
+                avrRequestCategoryContainer.style.display = 'none';
+                roomNumberSelect.required = false;
+                departmentSelect.required = false;
+                courtTypeSelect.required = false;
+                courtPurposeInput.required = false;
+                avrSelectionSelect.required = false;
+                avrRequestCategorySelect.required = false;
+                roomNumberSelect.value = '';
+                departmentSelect.value = '';
+                courtTypeSelect.value = '';
+                courtPurposeInput.value = '';
+                avrSelectionSelect.value = '';
+                avrRequestCategorySelect.value = '';
+            }
+        });
+    }
 
     // AVR Selection change handler
-    document.getElementById('avr_selection').addEventListener('change', function() {
-        var avrRequestCategoryContainer = document.getElementById('avr_request_category_container');
-        var avrRequestCategorySelect = document.getElementById('avr_request_category');
+    var avrSelectionSelect = document.getElementById('avr_selection');
+    if (avrSelectionSelect) {
+        avrSelectionSelect.addEventListener('change', function() {
+            var avrRequestCategoryContainer = document.getElementById('avr_request_category_container');
+            var avrRequestCategorySelect = document.getElementById('avr_request_category');
 
-        if (this.value) {
-            avrRequestCategoryContainer.style.display = 'block';
-            avrRequestCategorySelect.required = true;
-        } else {
-            avrRequestCategoryContainer.style.display = 'none';
-            avrRequestCategorySelect.required = false;
-            avrRequestCategorySelect.value = '';
-        }
-    });
+            if (this.value) {
+                avrRequestCategoryContainer.style.display = 'block';
+                avrRequestCategorySelect.required = true;
+            } else {
+                avrRequestCategoryContainer.style.display = 'none';
+                avrRequestCategorySelect.required = false;
+                avrRequestCategorySelect.value = '';
+            }
+        });
+    }
 
     // Court Type change handler
-    document.getElementById('court_type').addEventListener('change', function() {
-        var courtPurposeContainer = document.getElementById('court_purpose_container');
-        var courtPurposeInput = document.getElementById('court_purpose');
-        var departmentContainer = document.getElementById('department_container');
-        var departmentSelect = document.getElementById('department');
+    var courtTypeSelect = document.getElementById('court_type');
+    if (courtTypeSelect) {
+        courtTypeSelect.addEventListener('change', function() {
+            var courtPurposeContainer = document.getElementById('court_purpose_container');
+            var courtPurposeInput = document.getElementById('court_purpose');
+            var departmentContainer = document.getElementById('department_container');
+            var departmentSelect = document.getElementById('department');
 
-        if (this.value) {
-            courtPurposeContainer.style.display = 'block';
-            courtPurposeInput.required = true;
+            if (this.value) {
+                courtPurposeContainer.style.display = 'block';
+                courtPurposeInput.required = true;
 
-            // Show department for academic court requests
-            if (this.value === 'Academic') {
-                departmentContainer.style.display = 'block';
-                departmentSelect.required = true;
+                // Show department for academic court requests
+                if (this.value === 'Academic') {
+                    departmentContainer.style.display = 'block';
+                    departmentSelect.required = true;
+                } else {
+                    departmentContainer.style.display = 'none';
+                    departmentSelect.required = false;
+                    departmentSelect.value = '';
+                }
             } else {
+                courtPurposeContainer.style.display = 'none';
+                courtPurposeInput.required = false;
+                courtPurposeInput.value = '';
                 departmentContainer.style.display = 'none';
                 departmentSelect.required = false;
                 departmentSelect.value = '';
             }
-        } else {
-            courtPurposeContainer.style.display = 'none';
-            courtPurposeInput.required = false;
-            courtPurposeInput.value = '';
-            departmentContainer.style.display = 'none';
-            departmentSelect.required = false;
-            departmentSelect.value = '';
-        }
-    });
+        });
+    }
 
     // Court availability checking
     function checkCourtAvailability() {
@@ -709,17 +724,6 @@
         var errors = [];
         var isValid = true;
         
-        // Title validation
-        var title = document.getElementById('title');
-        if (!title.value.trim()) {
-            showFieldError(title, 'Event title is required');
-            errors.push('Title is required');
-            isValid = false;
-        } else if (title.value.trim().length < 3) {
-            showFieldError(title, 'Event title must be at least 3 characters');
-            isValid = false;
-        }
-        
         // Category validation
         var category = document.getElementById('category');
         if (!category.value) {
@@ -891,6 +895,7 @@
             button.closest('tr').remove();
         }
     }
+}); // End DOMContentLoaded
 </script>
 @endsection
 @endsection

@@ -63,7 +63,50 @@ class DashboardController extends Controller
             $totalConcerns = Concern::count();
             $pendingConcerns = Concern::where('status', '!=', 'Resolved')->count();
 
-            return view('dashboard.building-admin', compact('pendingEvents', 'approvedEvents', 'totalConcerns', 'pendingConcerns', 'user', 'upcomingEventsList', 'pendingEventsList'));
+            // Analytics data for graphs
+            $baseQuery = Report::whereNotNull('location')
+                ->where('location', '!=', '')
+                ->where('status', 'Resolved');
+
+            $totalCost = (clone $baseQuery)->sum('cost') ?? 0;
+
+            // Location stats for pie chart
+            $locationStats = (clone $baseQuery)
+                ->select('location')
+                ->selectRaw('COUNT(*) as count')
+                ->selectRaw('SUM(COALESCE(cost, 0)) as total_cost')
+                ->groupBy('location')
+                ->orderByDesc('count')
+                ->limit(5)
+                ->get();
+
+            $chartLocations = $locationStats->pluck('location')->toArray();
+            $chartCounts = $locationStats->pluck('count')->toArray();
+            $chartCosts = $locationStats->pluck('total_cost')->toArray();
+
+            // Monthly stats for line chart - last 6 months
+            $monthlyStats = Report::where('created_at', '>=', now()->subMonths(6))
+                ->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month")
+                ->selectRaw('title')
+                ->selectRaw('COUNT(*) as total_count')
+                ->groupBy('month', 'title')
+                ->orderBy('month')
+                ->get();
+
+            return view('dashboard.building-admin', compact(
+                'pendingEvents', 
+                'approvedEvents', 
+                'totalConcerns', 
+                'pendingConcerns', 
+                'user', 
+                'upcomingEventsList', 
+                'pendingEventsList',
+                'totalCost',
+                'chartLocations',
+                'chartCounts',
+                'chartCosts',
+                'monthlyStats'
+            ));
         }
 
         // School Administrator, Academic Head, Program Head, Principal Assistant - modern Asana-style dashboard
@@ -112,47 +155,6 @@ class DashboardController extends Controller
             $pendingConcerns = Concern::where('status', '!=', 'Resolved')->count();
 
             return view('dashboard.principal', compact('pendingEvents', 'approvedEvents', 'totalConcerns', 'pendingConcerns', 'user', 'upcomingEventsList', 'pendingEventsList'));
-        }
-
-        if ($user->role === 'maintenance') {
-            // Maintenance dashboard - show reports assigned to the current maintenance user,
-            // plus shared Rooms reports visible to all maintenance users
-            $assignedReports = Report::with('category', 'user', 'assignedTo')
-                ->where('is_deleted', false)
-                ->where('maintenance_archived', false)
-                ->where('status', '!=', 'Resolved')
-                ->where(function ($query) use ($user) {
-                    $query->where('assigned_to', $user->id)
-                        ->orWhereHas('category', function ($categoryQuery) {
-                            $categoryQuery->whereRaw('LOWER(TRIM(name)) = ?', ['rooms']);
-                        });
-                })
-                ->orderBy('assigned_at', 'desc')
-                ->orderBy('created_at', 'desc')
-                ->limit(20)
-                ->get();
-
-            $pendingCount = Report::where('is_deleted', false)
-                ->where('maintenance_archived', false)
-                ->whereIn('status', ['Pending', 'Assigned', 'In Progress'])
-                ->where(function ($query) use ($user) {
-                    $query->where('assigned_to', $user->id)
-                        ->orWhereHas('category', function ($categoryQuery) {
-                            $categoryQuery->whereRaw('LOWER(TRIM(name)) = ?', ['rooms']);
-                        });
-                })
-                ->count();
-
-            $resolvedCount = Report::where('status', 'Resolved')
-                ->where(function ($query) use ($user) {
-                    $query->where('assigned_to', $user->id)
-                        ->orWhereHas('category', function ($categoryQuery) {
-                            $categoryQuery->whereRaw('LOWER(TRIM(name)) = ?', ['rooms']);
-                        });
-                })
-                ->count();
-
-            return view('dashboard.maintenance', compact('assignedReports', 'pendingCount', 'resolvedCount'));
         }
 
         if ($user->role === 'faculty') {

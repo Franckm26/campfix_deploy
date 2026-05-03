@@ -2,6 +2,49 @@
 
 @section('styles')
 <link href="{{ asset('css/admin.css') }}" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+.analytics-card {
+    background: var(--card-bg, #fff);
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    height: 100%;
+}
+
+.analytics-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.analytics-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-color, #333);
+}
+
+.analytics-title i {
+    font-size: 0.85rem;
+    margin-right: 5px;
+}
+
+.chart-container {
+    position: relative;
+    height: 200px;
+    width: 100%;
+}
+
+[data-theme="dark"] .analytics-card {
+    background: #1a1a2e !important;
+}
+
+[data-theme="dark"] .analytics-title {
+    color: #e0e0e0 !important;
+}
+</style>
 @endsection
 
 @section('page_title')
@@ -13,95 +56,104 @@
 
 @section('content')
 <div class="container-fluid px-3">
-    <div class="row mb-4">
-        <div class="col-12">
-        </div>
-    </div>
-
     <!-- Quick Stats -->
-    <div class="row mb-4">
-        <div class="col-md-4">
+    <div class="row mb-3 g-2">
+        <div class="col-md-3">
             <div class="card bg-warning text-white">
-                <div class="card-body">
-                    <h5>Pending Approvals</h5>
-                    <h2>{{ $pendingEvents }}</h2>
-                    <a href="{{ route('events.pending') }}" class="text-white">Review Now</a>
+                <div class="card-body py-3 px-3">
+                    <h6 class="mb-1">Pending Approval</h6>
+                    <h3 class="mb-1">{{ $pendingEvents }}</h3>
+                    <a href="{{ route('admin.events') }}" class="text-white text-decoration-underline small">Review Now</a>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card bg-success text-white">
-                <div class="card-body">
-                    <h5>Upcoming Events</h5>
-                    <h2>{{ $approvedEvents }}</h2>
-                    <a href="{{ route('events.calendar') }}" class="text-white">View Calendar</a>
+                <div class="card-body py-3 px-3">
+                    <h6 class="mb-1">Upcoming Events</h6>
+                    <h3 class="mb-1">{{ $approvedEvents }}</h3>
+                    <a href="{{ route('events.calendar') }}" class="text-white text-decoration-underline small">View Calendar</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body py-3 px-3">
+                    <h6 class="mb-1">Total Concerns</h6>
+                    <h3 class="mb-1">{{ $totalConcerns }}</h3>
+                    <a href="{{ route('admin.reports') }}" class="text-white text-decoration-underline small">View Reports</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body py-3 px-3">
+                    <h6 class="mb-2">Campus Overview</h6>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <small>Total Concerns Reported</small>
+                        <span class="badge bg-white text-info">{{ $totalConcerns }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <small>Unresolved Concerns</small>
+                        <span class="badge bg-white text-warning">{{ $pendingConcerns }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small>Upcoming Approved Events</small>
+                        <span class="badge bg-white text-success">{{ $approvedEvents }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics Graphs Section -->
+    <div class="row mb-3 g-2">
+        <div class="col-md-4">
+            <div class="analytics-card">
+                <div class="analytics-header">
+                    <div class="analytics-title">
+                        <i class="fas fa-chart-pie"></i> Repairs by Location
+                    </div>
+                </div>
+                <div class="chart-container" style="height: 200px;">
+                    <canvas id="locationPieChart"></canvas>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card bg-primary text-white">
-                <div class="card-body">
-                    <h5>Total Concerns</h5>
-                    <h2>{{ $totalConcerns }}</h2>
-                    <a href="{{ route('admin.reports') }}" class="text-white">View Reports</a>
+            <div class="analytics-card">
+                <div class="analytics-header">
+                    <div class="analytics-title">
+                        <i class="fas fa-chart-bar"></i> Cost by Location
+                    </div>
+                </div>
+                <div class="chart-container" style="height: 200px;">
+                    <canvas id="locationBarChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="analytics-card">
+                <div class="analytics-header">
+                    <div class="analytics-title">
+                        <i class="fas fa-chart-area"></i> Monthly Trend
+                    </div>
+                </div>
+                <div class="chart-container" style="height: 200px;">
+                    <canvas id="monthlyTrendChart"></canvas>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Quick Actions -->
+    <!-- Approved Events List and Quick Actions -->
     <div class="row">
-        <div class="col-md-6 mb-3">
-            <div class="card h-100">
-                <div class="card-header bg-warning text-dark">
-                    <h5 class="mb-0">Pending Event Approvals</h5>
-                </div>
-                <div class="card-body">
-                    @if($pendingEvents > 0)
-                        <p>You have {{ $pendingEvents }} event request(s) waiting for your approval.</p>
-                        <a href="{{ route('events.pending') }}" class="btn btn-warning">
-                            Review Requests
-                        </a>
-                    @else
-                        <p class="text-muted">No pending approvals.</p>
-                    @endif
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-6 mb-3">
-            <div class="card h-100">
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0">Campus Overview</h5>
-                </div>
-                <div class="card-body">
-                    <ul class="list-group list-group-flush">
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            Total Concerns Reported
-                            <span class="badge bg-primary rounded-pill">{{ $totalConcerns }}</span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            Unresolved Concerns
-                            <span class="badge bg-warning rounded-pill">{{ $pendingConcerns }}</span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            Upcoming Approved Events
-                            <span class="badge bg-success rounded-pill">{{ $approvedEvents }}</span>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Approved Events List -->
-    <div class="row">
-        <div class="col-12">
+        <div class="col-md-8">
             <div class="card">
                 <div class="card-header py-2 px-3 d-flex justify-content-between align-items-center">
                     <span class="mb-0"><i class="fas fa-calendar-check me-1"></i> Upcoming Approved Events</span>
                     <div>
-                        <button type="button" class="btn btn-sm btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addEventModal">
+                        <button type="button" class="btn btn-sm btn-primary me-2" data-bs-toggle="modal" data-bs-target="#eventRequestModal">
                             <i class="fas fa-plus"></i> Add Event
                         </button>
                         <a href="{{ route('events.calendar') }}" class="btn btn-sm btn-outline-primary">
@@ -109,26 +161,23 @@
                         </a>
                     </div>
                 </div>
-                <div class="card-body p-3">
+                <div class="card-body p-3" style="max-height: 400px; overflow-y: auto;">
                     @if($upcomingEventsList->count() > 0)
                         <div class="list-group list-group-flush">
-                            @foreach($upcomingEventsList as $event)
+                            @foreach($upcomingEventsList->take(5) as $event)
                             <div class="list-group-item d-flex justify-content-between align-items-start border-0 px-0 py-2">
                                 <div class="ms-2 me-auto">
-                                    <div class="fw-bold text-primary">{{ $event->title }}</div>
+                                    <div class="fw-bold text-primary" style="font-size: 0.9rem;">{{ $event->location }} - {{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</div>
                                     <div class="text-muted small">
                                         <i class="fas fa-map-marker-alt me-1"></i>{{ $event->location }}
                                         @if($event->department)
                                             <span class="ms-2"><i class="fas fa-building me-1"></i>{{ $event->department }}</span>
                                         @endif
                                     </div>
-                                    @if($event->description)
-                                        <div class="text-muted small mt-1">{{ Str::limit($event->description, 80) }}</div>
-                                    @endif
                                 </div>
                                 <div class="text-end">
-                                    <div class="badge bg-success mb-1">{{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</div>
-                                    <div class="text-muted small">
+                                    <div class="badge bg-success mb-1" style="font-size: 0.75rem;">{{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</div>
+                                    <div class="text-muted" style="font-size: 0.7rem;">
                                         {{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - 
                                         {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}
                                     </div>
@@ -136,8 +185,8 @@
                             </div>
                             @endforeach
                         </div>
-                        @if($approvedEvents > 10)
-                            <div class="text-center mt-3">
+                        @if($approvedEvents > 5)
+                            <div class="text-center mt-2">
                                 <a href="{{ route('events.calendar') }}" class="btn btn-outline-primary btn-sm">
                                     <i class="fas fa-calendar"></i> View All Events ({{ $approvedEvents }} total)
                                 </a>
@@ -145,10 +194,10 @@
                         @endif
                     @else
                         <div class="text-center py-4">
-                            <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
-                            <h5 class="text-muted">No Upcoming Events</h5>
-                            <p class="text-muted mb-3">There are no approved events scheduled for the coming days.</p>
-                            <a href="{{ route('events.calendar') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-calendar-times fa-2x text-muted mb-2"></i>
+                            <h6 class="text-muted">No Upcoming Events</h6>
+                            <p class="text-muted small mb-2">There are no approved events scheduled for the coming days.</p>
+                            <a href="{{ route('events.calendar') }}" class="btn btn-outline-primary btn-sm">
                                 <i class="fas fa-calendar"></i> View Events Calendar
                             </a>
                         </div>
@@ -156,85 +205,189 @@
                 </div>
             </div>
         </div>
-    </div>
-</div>
-
-<!-- Add Event Modal -->
-<div class="modal fade" id="addEventModal" tabindex="-1" aria-labelledby="addEventModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="addEventModalLabel"><i class="fas fa-calendar-plus"></i> Submit Event Request</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header py-2 px-3">
+                    <span class="mb-0"><i class="fas fa-bolt me-1"></i> Quick Actions</span>
+                </div>
+                <div class="card-body p-2">
+                    <div class="d-grid gap-2">
+                        <a href="{{ route('admin.reports') }}" class="btn btn-outline-primary btn-sm text-start">
+                            <i class="fas fa-file-alt me-2"></i> Reports
+                        </a>
+                        <a href="{{ route('admin.analytics') }}" class="btn btn-outline-info btn-sm text-start">
+                            <i class="fas fa-chart-line me-2"></i> Analytics
+                        </a>
+                        <a href="{{ route('admin.events') }}" class="btn btn-outline-warning btn-sm text-start">
+                            <i class="fas fa-calendar-alt me-2"></i> Events
+                        </a>
+                        <a href="{{ route('events.my') }}" class="btn btn-outline-success btn-sm text-start">
+                            <i class="fas fa-calendar me-2"></i> My Events
+                        </a>
+                        <a href="{{ route('events.calendar') }}" class="btn btn-outline-success btn-sm text-start">
+                            <i class="fas fa-calendar-check me-2"></i> Upcoming Events
+                        </a>
+                        <a href="{{ route('admin.management') }}" class="btn btn-outline-secondary btn-sm text-start">
+                            <i class="fas fa-tools me-2"></i> Management
+                        </a>
+                        <a href="/admin/logs" class="btn btn-outline-dark btn-sm text-start">
+                            <i class="fas fa-history me-2"></i> Audit Logs
+                        </a>
+                    </div>
+                </div>
             </div>
-            <form action="{{ route('events.store') }}" method="POST">
-                @csrf
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="modal-title" class="form-label">Event Title *</label>
-                        <input type="text" class="form-control" id="modal-title" name="title" placeholder="e.g., Science Fair 2026, Faculty Meeting" required>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label for="modal-category" class="form-label">Category *</label>
-                            <select class="form-select" id="modal-category" name="category" required>
-                                <option value="">Select category</option>
-                                <option value="Area Use">Area Use</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="modal-priority" class="form-label">Priority</label>
-                            <select class="form-select" id="modal-priority" name="priority">
-                                <option value="low">Low</option>
-                                <option value="medium" selected>Medium</option>
-                                <option value="high">High</option>
-                                <option value="urgent">Urgent</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="modal-department" class="form-label">Department</label>
-                            <select class="form-select" id="modal-department" name="department">
-                                <option value="">Select department</option>
-                                <option value="GE">GE</option>
-                                <option value="ICT">ICT</option>
-                                <option value="Business Management">Business Management</option>
-                                <option value="THM">THM</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="modal-event_date" class="form-label">Date *</label>
-                        <input type="date" class="form-control" id="modal-event_date" name="event_date" min="{{ date('Y-m-d') }}" required>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="modal-start_time" class="form-label">Start Time *</label>
-                            <input type="time" class="form-control" id="modal-start_time" name="start_time" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="modal-end_time" class="form-label">End Time *</label>
-                            <input type="time" class="form-control" id="modal-end_time" name="end_time" required>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="modal-location" class="form-label">Location *</label>
-                        <input type="text" class="form-control" id="modal-location" name="location" placeholder="e.g., Audio Visual Room, Gymnasium, Room 301" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="modal-description" class="form-label">Description *</label>
-                        <textarea class="form-control" id="modal-description" name="description" rows="3" placeholder="Describe the event purpose and details..." required></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Submit for Approval</button>
-                </div>
-            </form>
         </div>
     </div>
 </div>
+
+<!-- Event Request Modal is defined in layouts/app.blade.php and reused here -->
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Location Pie Chart (Repairs by Location)
+    var locationPieCtx = document.getElementById('locationPieChart');
+    if (locationPieCtx) {
+        new Chart(locationPieCtx, {
+            type: 'pie',
+            data: {
+                labels: @json($chartLocations ?? []),
+                datasets: [{
+                    data: @json($chartCounts ?? []),
+                    backgroundColor: [
+                        '#FF6384',
+                        '#36A2EB',
+                        '#FFCE56',
+                        '#4BC0C0',
+                        '#9966FF',
+                        '#FF9F40'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+
+    // Location Bar Chart (Cost by Location)
+    var locationBarCtx = document.getElementById('locationBarChart');
+    if (locationBarCtx) {
+        new Chart(locationBarCtx, {
+            type: 'bar',
+            data: {
+                labels: @json($chartLocations ?? []),
+                datasets: [{
+                    label: 'Total Cost',
+                    data: @json($chartCosts ?? []),
+                    backgroundColor: '#36A2EB'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
+    // Monthly Trend Chart
+    var monthlyTrendCtx = document.getElementById('monthlyTrendChart');
+    if (monthlyTrendCtx) {
+        // Process monthly stats data
+        var monthlyData = @json($monthlyStats ?? []);
+        var months = [];
+        var categories = {};
+        
+        // Extract unique months and categories
+        monthlyData.forEach(function(item) {
+            if (!months.includes(item.month)) {
+                months.push(item.month);
+            }
+            if (!categories[item.title]) {
+                categories[item.title] = {};
+            }
+            categories[item.title][item.month] = item.total_count;
+        });
+        
+        // Sort months chronologically
+        months.sort();
+        
+        // Prepare datasets for each category
+        var datasets = [];
+        var colors = [
+            { border: '#36A2EB', bg: 'rgba(54, 162, 235, 0.1)' },  // Blue - Aircon
+            { border: '#FF6384', bg: 'rgba(255, 99, 132, 0.1)' },  // Pink - null
+            { border: '#FFCE56', bg: 'rgba(255, 206, 86, 0.1)' },  // Yellow - Window
+            { border: '#4BC0C0', bg: 'rgba(75, 192, 192, 0.1)' },  // Teal - Door
+            { border: '#9966FF', bg: 'rgba(153, 102, 255, 0.1)' }, // Purple
+            { border: '#FF9F40', bg: 'rgba(255, 159, 64, 0.1)' }   // Orange
+        ];
+        
+        var colorIndex = 0;
+        for (var category in categories) {
+            var data = months.map(function(month) {
+                return categories[category][month] || 0;
+            });
+            
+            var color = colors[colorIndex % colors.length];
+            datasets.push({
+                label: category || 'Uncategorized',
+                data: data,
+                borderColor: color.border,
+                backgroundColor: color.bg,
+                tension: 0.4,
+                fill: true
+            });
+            colorIndex++;
+        }
+        
+        new Chart(monthlyTrendCtx, {
+            type: 'line',
+            data: {
+                labels: months,
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+
 @endsection
 
-@section('scripts')
-<!-- No scripts needed -->
-@endsection
+

@@ -131,8 +131,8 @@ class ConcernController extends Controller
             }
         }
 
-        // Priority is always set to medium on submission; Building Admin sets it later
-        $priority = 'medium';
+        // Priority is NOT set on submission — Building Admin sets it after assigning via the priority popup
+        $priority = null;
 
         // Construct location for concern
         $concernLocation = $request->location;
@@ -156,14 +156,8 @@ class ConcernController extends Controller
             'is_anonymous' => false,
         ]);
 
-        // Map priority to severity for report
-        $severityMap = [
-            'low' => 'low',
-            'medium' => 'medium',
-            'high' => 'high',
-            'urgent' => 'critical',
-        ];
-        $severity = $severityMap[$priority] ?? 'medium';
+        // Severity for report — null until building admin sets priority after assignment
+        $severity = null;
 
         // Construct location for report
         $reportLocation = $request->location;
@@ -367,6 +361,7 @@ class ConcernController extends Controller
                 'archivedConcerns' => $archivedConcerns,
                 'deletedConcerns' => $deletedConcerns,
                 'categories' => Category::all(),
+                'facilities' => \App\Models\Facility::orderBy('type')->orderBy('name')->get(),
                 'days' => auth()->user()->concerns_auto_delete_days ?? 15,
             ]);
         }
@@ -431,6 +426,7 @@ class ConcernController extends Controller
                 'resolvedConcerns' => $resolvedConcerns,
                 'deletedConcerns' => $deletedConcerns,
                 'categories' => Category::all(),
+                'facilities' => \App\Models\Facility::orderBy('type')->orderBy('name')->get(),
                 'days' => auth()->user()->concerns_auto_delete_days ?? 15,
             ]);
         }
@@ -517,6 +513,7 @@ class ConcernController extends Controller
                 'resolvedConcerns' => $resolvedConcerns,
                 'archivedConcerns' => $archivedConcerns,
                 'categories' => Category::all(),
+                'facilities' => \App\Models\Facility::orderBy('type')->orderBy('name')->get(),
                 'days' => $days,
             ]);
         }
@@ -579,7 +576,9 @@ class ConcernController extends Controller
             ->orderBy('updated_at', 'desc')
             ->get();
 
-        return view('concerns.my', compact('concerns', 'categories', 'viewType', 'resolvedConcerns', 'archivedConcerns', 'deletedConcerns', 'days'));
+        $facilities = \App\Models\Facility::orderBy('type')->orderBy('name')->get();
+
+        return view('concerns.my', compact('concerns', 'categories', 'viewType', 'resolvedConcerns', 'archivedConcerns', 'deletedConcerns', 'days', 'facilities'));
     }
 
     public function show($id)
@@ -670,7 +669,7 @@ class ConcernController extends Controller
             'description' => 'required|string',
             'priority' => 'nullable|in:low,medium,high,urgent',
             'status' => 'nullable|in:Pending,Assigned,In Progress,Resolved,Closed',
-            'assigned_to' => 'nullable|exists:users,id',
+            'assigned_to' => 'nullable|exists:maintenance_staff,id',
             'cost' => 'nullable|numeric|min:0',
         ]);
 
@@ -1638,70 +1637,6 @@ class ConcernController extends Controller
      * Show assigned concerns for maintenance users
      * Maintenance can view concerns assigned to them
      */
-    public function assignedConcerns(Request $request)
-    {
-        // Only maintenance can access this page
-        if (! auth()->check() || auth()->user()->role !== 'maintenance') {
-            return redirect('/dashboard')->with('error', 'Access denied.');
-        }
-
-        $viewType = $request->get('view', 'active'); // 'active', 'archives', or 'deleted'
-
-        // Get concerns assigned to the current maintenance user
-        $query = Concern::with('categoryRelation', 'user')
-            ->where('assigned_to', auth()->id())
-            ->where('is_deleted', false)
-            ->where('maintenance_archived', false);
-
-        // Handle archives view
-        if ($viewType === 'archives') {
-            $query->where('maintenance_archived', true);
-        }
-        // For active: show all assigned concerns that maintenance hasn't archived themselves
-        // Regardless of global archive status
-        // If archived == 'all', show all concerns
-
-        // Filter by status
-        if ($request->status) {
-            $query->where('status', $request->status);
-        }
-
-        // Filter by priority
-        if ($request->priority) {
-            $query->where('priority', $request->priority);
-        }
-
-        // Filter by category
-        if ($request->category) {
-            $query->where('category_id', $request->category);
-        }
-
-        // Filter by search
-        if ($request->search) {
-            $query->where(function ($q) use ($request) {
-                $q->where('title', 'like', '%'.$request->search.'%')
-                    ->orWhere('description', 'like', '%'.$request->search.'%')
-                    ->orWhere('location', 'like', '%'.$request->search.'%');
-            });
-        }
-
-        $concerns = $query->orderBy('created_at', 'desc')->get();
-        $categories = Category::all();
-
-        // Calculate counts for tabs
-        $activeCount = Concern::where('assigned_to', auth()->id())
-            ->where('is_deleted', false)
-            ->where('maintenance_archived', false)
-            ->count();
-
-        $archiveCount = Concern::where('assigned_to', auth()->id())
-            ->where('is_deleted', false)
-            ->where('maintenance_archived', true)
-            ->count();
-
-        return view('concerns.assigned', compact('concerns', 'categories', 'viewType', 'activeCount', 'archiveCount'));
-    }
-
     /**
      * Acknowledge a concern - MIS acknowledges they will work on it
      */
@@ -1849,7 +1784,7 @@ class ConcernController extends Controller
     public function assign(Request $request, $id)
     {
         $request->validate([
-            'assigned_to' => 'required|exists:users,id',
+            'assigned_to' => 'required|exists:maintenance_staff,id',
         ]);
 
         $user = auth()->user();
@@ -1868,17 +1803,8 @@ class ConcernController extends Controller
             return redirect('/dashboard')->with('error', 'You cannot assign this concern.');
         }
 
-        // Verify the assigned user is a maintenance staff
-        $maintenanceUser = User::findOrFail($request->assigned_to);
-        if ($maintenanceUser->role !== 'maintenance') {
-            if ($request->expectsJson()) {
-                return response()->json(['error' => 'You can only assign concerns to maintenance staff.'], 422);
-            }
-
-            return back()->with('error', 'You can only assign concerns to maintenance staff.');
-        }
-
-        $oldAssignedTo = $concern->assigned_to;
+        // Get the maintenance staff member
+        $maintenanceStaff = \App\Models\MaintenanceStaff::findOrFail($request->assigned_to);
 
         // Update the concern
         $concern->assigned_to = $request->assigned_to;
@@ -1889,25 +1815,14 @@ class ConcernController extends Controller
         // Log activity
         ActivityLog::log(
             'concern_assigned',
-            "Concern assigned to {$maintenanceUser->name}",
+            "Concern assigned to {$maintenanceStaff->name}",
             $concern->id
         );
 
-        // Send notification to the maintenance staff
-        try {
-            $maintenanceUser->notify(new ConcernAssignedNotification(
-                $concern,
-                $user->name,
-                now()
-            ));
-        } catch (\Exception $e) {
-            \Log::error('Failed to send assignment notification: '.$e->getMessage());
-        }
-
         if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => "Concern assigned to {$maintenanceUser->name} successfully!"]);
+            return response()->json(['success' => true, 'message' => "Concern assigned to {$maintenanceStaff->name} successfully!"]);
         }
 
-        return back()->with('success', "Concern assigned to {$maintenanceUser->name} successfully!");
+        return back()->with('success', "Concern assigned to {$maintenanceStaff->name} successfully!");
     }
 }

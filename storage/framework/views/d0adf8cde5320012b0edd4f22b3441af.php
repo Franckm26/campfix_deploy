@@ -327,7 +327,7 @@
                     </button>
                     <?php endif; ?>
                     <?php if(auth()->user()->canApproveRequests()): ?>
-                        <a href="<?php echo e(route('events.pending')); ?>" class="btn btn-warning">
+                        <a href="<?php echo e(route('admin.events')); ?>" class="btn btn-warning">
                             <i class="fas fa-tasks"></i> Pending Approvals
                         </a>
                     <?php endif; ?>

@@ -462,7 +462,8 @@ class AdminController extends Controller
     public function assignConcern(Request $request, $id)
     {
         $request->validate([
-            'assigned_to' => 'required|exists:users,id',
+            'assigned_to' => 'required|exists:maintenance_staff,id',
+            'notes'       => 'nullable|string|max:1000',
         ]);
 
         $concern = Concern::findOrFail($id);
@@ -477,54 +478,41 @@ class AdminController extends Controller
             return back()->with('error', 'You do not have permission to assign concerns.');
         }
 
-        // Verify the assigned user is a maintenance staff
-        $maintenanceUser = User::findOrFail($request->input('assigned_to'));
-        if ($maintenanceUser->role !== 'maintenance') {
-            if ($request->expectsJson()) {
-                return response()->json(['error' => 'You can only assign concerns to maintenance staff.'], 422);
-            }
-
-            return back()->with('error', 'You can only assign concerns to maintenance staff.');
-        }
-
-        $oldAssignedTo = $concern->assigned_to;
+        // Get the maintenance staff member
+        $maintenanceStaff = \App\Models\MaintenanceStaff::findOrFail($request->input('assigned_to'));
 
         // Update the concern
         $concern->assigned_to = $request->input('assigned_to');
         $concern->assigned_at = now();
-        $concern->status = 'Assigned';
+        $concern->status      = 'Assigned';
+        if ($request->filled('notes')) {
+            $concern->notes = $request->input('notes');
+        }
         $concern->save();
 
         // Log activity
         ActivityLog::log(
             'concern_assigned',
-            "Concern assigned to {$maintenanceUser->name}",
+            "Concern assigned to {$maintenanceStaff->name}",
             $concern->id
         );
 
-        // Send notification to the maintenance staff
-        try {
-            $notificationService = new NotificationService;
-            $notificationService->notifyConcernAssigned($concern, $maintenanceUser, $user->name);
-        } catch (\Exception $e) {
-            \Log::error('Failed to send assignment notification: '.$e->getMessage());
-        }
-
         if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => "Concern assigned to {$maintenanceUser->name} successfully!"]);
+            return response()->json(['success' => true, 'message' => "Concern assigned to {$maintenanceStaff->name} successfully!"]);
         }
 
-        return back()->with('success', "Concern assigned to {$maintenanceUser->name} successfully!");
+        return back()->with('success', "Concern assigned to {$maintenanceStaff->name} successfully!");
     }
 
     /**
-     * Assign a report to a maintenance user
+     * Assign a report to a maintenance staff member
      * Building Admin can assign reports to maintenance staff
      */
     public function assignReport(Request $request, $id)
     {
         $request->validate([
-            'assigned_to' => 'required|exists:users,id',
+            'assigned_to' => 'required|exists:maintenance_staff,id',
+            'notes'       => 'nullable|string|max:1000',
         ]);
 
         $report = Report::findOrFail($id);
@@ -539,87 +527,97 @@ class AdminController extends Controller
             return back()->with('error', 'You do not have permission to assign reports.');
         }
 
-        // Verify the assigned user is a maintenance staff
-        $maintenanceUser = User::findOrFail($request->input('assigned_to'));
-        if ($maintenanceUser->role !== 'maintenance') {
-            if ($request->expectsJson()) {
-                return response()->json(['error' => 'You can only assign reports to maintenance staff.'], 422);
-            }
-
-            return back()->with('error', 'You can only assign reports to maintenance staff.');
-        }
+        // Get the maintenance staff member
+        $maintenanceStaff = \App\Models\MaintenanceStaff::findOrFail($request->input('assigned_to'));
 
         $oldAssignedTo = $report->assigned_to;
 
-        // Update the report
+        // Update the report - store maintenance_staff id in assigned_to
         $report->assigned_to = $request->input('assigned_to');
         $report->assigned_at = now();
-        $report->status = 'Assigned';
+        $report->status      = 'Assigned';
+        if ($request->filled('notes')) {
+            $report->notes = $request->input('notes');
+        }
         $report->save();
 
-        // Find and update corresponding concern
-        $correspondingConcern = Concern::where('user_id', $report->user_id)
-            ->whereRaw('TRIM(description) = ?', [trim($report->description)])
-            ->whereRaw('TRIM(location) = ?', [trim($report->location)])
-            ->where('status', '!=', 'Resolved')
-            ->first();
-
-        if ($correspondingConcern && $correspondingConcern->status === 'Pending') {
-            $correspondingConcern->assigned_to = $request->input('assigned_to');
-            $correspondingConcern->assigned_at = now();
-            $correspondingConcern->status = 'Assigned';
-            $correspondingConcern->save();
-
-            // Log concern assignment
-            ActivityLog::log(
-                'concern_assigned',
-                "Concern assigned to {$maintenanceUser->name} via report assignment",
-                $correspondingConcern->id
-            );
-
-            // Send notification to the maintenance staff for the concern
-            try {
-                $notificationService = new NotificationService;
-                $notificationService->notifyConcernAssigned($correspondingConcern, $maintenanceUser, $user->name);
-            } catch (\Exception $e) {
-                \Log::error('Failed to send concern assignment notification: '.$e->getMessage());
-            }
+        // Sync the corresponding concern
+        $concern = $report->concern;
+        if ($concern && $concern->status === 'Pending') {
+            $concern->assigned_to = $request->input('assigned_to');
+            $concern->assigned_at = now();
+            $concern->status      = 'Assigned';
+            $concern->save();
         }
 
         // Log activity for report
         ActivityLog::log(
             'report_assigned',
-            "Report assigned to {$maintenanceUser->name}",
+            "Report assigned to {$maintenanceStaff->name}",
             $report->id,
             'report'
         );
 
-        // Send notification to the maintenance staff for the report
-        try {
-            $maintenanceUser->notify(new ReportAssignedNotification($report, $user->name, $report->assigned_at));
-        } catch (\Exception $e) {
-            \Log::error('Failed to send assignment notification: '.$e->getMessage());
-        }
-
         if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => "Report assigned to {$maintenanceUser->name} successfully!"]);
+            return response()->json(['success' => true, 'message' => "Report assigned to {$maintenanceStaff->name} successfully!"]);
         }
 
-        return back()->with('success', "Report assigned to {$maintenanceUser->name} successfully!");
+        return back()->with('success', "Report assigned to {$maintenanceStaff->name} successfully!");
     }
 
     /**
-     * Get list of maintenance users for assignment dropdown
+     * Set priority on a report after assignment
+     */
+    public function setReportPriority(Request $request, $id)
+    {
+        $request->validate(['priority' => 'required|in:low,medium,high,urgent']);
+
+        $report = Report::findOrFail($id);
+
+        if (auth()->user()->role !== 'building_admin') {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        // Reports use severity field — store urgent as urgent (not critical)
+        $report->severity = $request->priority; // low, medium, high, urgent
+        $report->save();
+
+        // Sync to linked concern
+        if ($report->concern) {
+            $report->concern->priority = $request->priority;
+            $report->concern->save();
+        }
+
+        return response()->json(['success' => true, 'priority' => $request->priority]);
+    }
+
+    public function setConcernPriority(Request $request, $id)
+    {
+        $request->validate(['priority' => 'required|in:low,medium,high,urgent']);
+
+        $concern = Concern::findOrFail($id);
+
+        if (auth()->user()->role !== 'building_admin') {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $concern->priority = $request->priority;
+        $concern->save();
+
+        return response()->json(['success' => true, 'priority' => $request->priority]);
+    }
+
+    /**
+     * Get list of maintenance staff for assignment dropdown
      */
     public function getMaintenanceUsers()
     {
-        $maintenanceUsers = User::where('role', 'maintenance')
-            ->where('is_archived', false)
-            ->select('id', 'name', 'email', 'department')
+        $maintenanceStaff = \App\Models\MaintenanceStaff::where('is_active', true)
+            ->select('id', 'name')
             ->orderBy('name')
             ->get();
 
-        return response()->json(['users' => $maintenanceUsers]);
+        return response()->json(['users' => $maintenanceStaff]);
     }
 
     /**
@@ -854,16 +852,17 @@ class AdminController extends Controller
             $chartStatuses = $statusStats->pluck('status')->toArray();
             $chartStatusCounts = $statusStats->pluck('count')->toArray();
 
-            // Monthly trend from concerns (source of truth)
+            // Per-issue monthly trend - last 6 months
             $monthlyStats = Concern::where('status', 'Resolved')
-                ->whereNotNull('location')
-                ->where('created_at', '>=', now()->subMonths(12))
+                ->whereNotNull('title')
+                ->where('title', '!=', '')
+                ->where('created_at', '>=', now()->subMonths(6))
                 ->when($request->filled('date_from'), fn($q) => $q->whereDate('created_at', '>=', $request->input('date_from')))
                 ->when($request->filled('date_to'),   fn($q) => $q->whereDate('created_at', '<=', $request->input('date_to')))
                 ->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month")
+                ->selectRaw('title')
                 ->selectRaw('COUNT(*) as total_count')
-                ->selectRaw('SUM(COALESCE(cost, 0)) as total_cost')
-                ->groupBy('month')
+                ->groupBy('month', 'title')
                 ->orderBy('month')
                 ->get();
 
@@ -990,9 +989,9 @@ class AdminController extends Controller
                 return $assetOriginalPrices[$key] ?? 10000;
             };
 
-            $trendAlerts  = collect();
-            
-            // Get all unique combinations of location and title (issue type)
+            $trendAlerts = collect();
+
+            // Trend alerts — flag locations with recurring issues
             $locationIssues = Concern::whereNotNull('location')
                 ->where('location', '!=', '')
                 ->whereNotNull('title')
@@ -1001,86 +1000,48 @@ class AdminController extends Controller
                 ->distinct()
                 ->get();
 
-            foreach ($locationIssues as $locationIssue) {
-                $loc = $locationIssue->location;
-                $issue = $locationIssue->title;
-                
-                $recent = Concern::where('location', $loc)
-                    ->where('title', $issue)
+            foreach ($locationIssues as $li) {
+                $loc   = $li->location;
+                $issue = $li->title;
+                $recent = Concern::where('location', $loc)->where('title', $issue)
                     ->where('created_at', '>=', now()->subMonths(3))->count();
-
-                $prior = Concern::where('location', $loc)
-                    ->where('title', $issue)
+                if ($recent < 1) continue;
+                $allTimeCost = Concern::where('location', $loc)->where('title', $issue)->sum('cost') ?? 0;
+                $recentCost  = Concern::where('location', $loc)->where('title', $issue)
+                    ->where('created_at', '>=', now()->subMonths(3))->sum('cost') ?? 0;
+                $prior = Concern::where('location', $loc)->where('title', $issue)
                     ->whereBetween('created_at', [now()->subMonths(6), now()->subMonths(3)])->count();
-
-                if ($recent >= 1) {
-                    $recentCost = Concern::where('location', $loc)
-                        ->where('title', $issue)
-                        ->where('created_at', '>=', now()->subMonths(3))->sum('cost') ?? 0;
-
-                    $allTimeCost = Concern::where('location', $loc)
-                        ->where('title', $issue)
-                        ->sum('cost') ?? 0;
-
-                    $replacementThreshold = $getReplacementThreshold($issue);
-                    $budgetThreshold = $replacementThreshold > 0 && $allTimeCost >= ($replacementThreshold * 0.8);
-                    $exceeded        = $replacementThreshold > 0 && $allTimeCost >= $replacementThreshold;
-
-                    if ($exceeded) {
-                        $alertTitle = 'Exceeded original cost';
-                        $severity   = 'critical';
-                        $recommendation = 'Replace Asset';
-                        $recDesc        = 'Repair cost exceeded original price.';
-                        $recColor       = 'danger';
-                    } elseif ($budgetThreshold) {
-                        $alertTitle = 'Repair cost reached 80%';
-                        $severity   = 'warning';
-                        $recommendation = 'Schedule Maintenance';
-                        $recDesc        = 'Preventive maintenance recommended.';
-                        $recColor       = 'warning';
-                    } else {
-                        $alertTitle = 'Cost increasing this month';
-                        $severity   = 'info';
-                        $recommendation = 'Continue Repair';
-                        $recDesc        = 'Cost effective to continue. Health score is acceptable.';
-                        $recColor       = 'success';
-                    }
-
-                    // Build last 12 months cost breakdown for modal (specific to this issue type)
-                    $monthlyCosts = collect(range(11, 0))->map(function ($i) use ($loc, $issue) {
-                        $date = now()->subMonths($i);
+                $severity   = $recent >= 3 ? 'critical' : ($recent >= 2 ? 'warning' : 'info');
+                $alertTitle = $severity === 'critical' ? 'High Frequency Issue' : ($severity === 'warning' ? 'Recurring Issue' : 'Issue Detected');
+                
+                // Get monthly breakdown for the last 12 months
+                $monthlyCosts = Concern::where('location', $loc)
+                    ->where('title', $issue)
+                    ->where('status', 'Resolved')
+                    ->where('created_at', '>=', now()->subMonths(12))
+                    ->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month, COUNT(*) as count, SUM(cost) as cost")
+                    ->groupBy('month')
+                    ->orderBy('month', 'desc')
+                    ->get()
+                    ->map(function($row) {
                         return [
-                            'month' => $date->format('M Y'),
-                            'cost'  => Concern::where('location', $loc)
-                                ->where('title', $issue)
-                                ->whereMonth('created_at', $date->month)
-                                ->whereYear('created_at', $date->year)
-                                ->sum('cost') ?? 0,
-                            'count' => Concern::where('location', $loc)
-                                ->where('title', $issue)
-                                ->whereMonth('created_at', $date->month)
-                                ->whereYear('created_at', $date->year)
-                                ->count(),
+                            'month' => \Carbon\Carbon::parse($row->month . '-01')->format('M Y'),
+                            'count' => $row->count,
+                            'cost' => $row->cost ?? 0
                         ];
-                    })->filter(fn($m) => $m['cost'] > 0 || $m['count'] > 0)->values();
-
-                    $trendAlerts->push([
-                        'location'             => $loc,
-                        'recent'               => $recent,
-                        'prior'                => $prior,
-                        'recent_cost'          => $recentCost,
-                        'all_time_cost'        => $allTimeCost,
-                        'top_issue'            => $issue,
-                        'severity'             => $severity,
-                        'alert_title'          => $alertTitle,
-                        'recommendation'       => $recommendation,
-                        'rec_desc'             => $recDesc,
-                        'rec_color'            => $recColor,
-                        'updated_at'           => Concern::where('location', $loc)->where('title', $issue)->latest()->value('updated_at'),
-                        'monthly_costs'        => $monthlyCosts,
-                        'replacement_threshold'=> $replacementThreshold,
-                    ]);
-                }
+                    });
+                
+                // Get replacement threshold based on issue type
+                $replacementThreshold = $getReplacementThreshold($issue);
+                
+                $trendAlerts->push([
+                    'location'    => $loc, 'top_issue' => $issue,
+                    'recent'      => $recent, 'prior' => $prior,
+                    'recent_cost' => $recentCost, 'all_time_cost' => $allTimeCost,
+                    'severity'    => $severity, 'alert_title' => $alertTitle,
+                    'updated_at'  => Concern::where('location', $loc)->where('title', $issue)->latest()->value('updated_at'),
+                    'monthly_costs' => $monthlyCosts, 'replacement_threshold' => $replacementThreshold,
+                ]);
             }
             $trendAlerts = $trendAlerts->sortByDesc('recent')->values();
 
@@ -1207,14 +1168,15 @@ class AdminController extends Controller
                 ->orderBy('total_count', 'desc')
                 ->get();
 
-            // Get monthly trend for the last 12 months
+            // Per-issue monthly trend - last 6 months
             $monthlyStats = Concern::where('status', 'Resolved')
-                ->whereNotNull('location')
-                ->where('created_at', '>=', now()->subMonths(12))
+                ->whereNotNull('title')
+                ->where('title', '!=', '')
+                ->where('created_at', '>=', now()->subMonths(6))
                 ->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month")
+                ->selectRaw('title')
                 ->selectRaw('COUNT(*) as total_count')
-                ->selectRaw('SUM(COALESCE(cost, 0)) as total_cost')
-                ->groupBy('month')
+                ->groupBy('month', 'title')
                 ->orderBy('month')
                 ->get();
 
@@ -1377,6 +1339,56 @@ class AdminController extends Controller
         ActivityLog::log('export_created', 'Exported concerns to CSV');
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    // Export Reports to PDF
+    public function exportPdf(Request $request)
+    {
+        $query = Report::with('category', 'user')
+            ->where('is_deleted', false);
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+        if ($request->filled('severity')) {
+            $query->where('severity', $request->input('severity'));
+        }
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->input('date_from'));
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->input('date_to'));
+        }
+
+        $reports = $query->orderBy('created_at', 'desc')->get();
+
+        // Organize reports by status
+        $resolvedReports = $reports->where('status', 'Resolved')->values();
+        $inProgressReports = $reports->where('status', 'In Progress')->values();
+        $pendingReports = $reports->where('status', 'Pending')->values();
+        $assignedReports = $reports->where('status', 'Assigned')->values();
+
+        // Cost by Issue + Room — group resolved reports by title + location
+        $costByRoom = $resolvedReports
+            ->whereNotNull('location')
+            ->groupBy(fn($r) => ($r->title ?? \Illuminate\Support\Str::limit($r->description, 30)) . '||' . $r->location)
+            ->map(fn($group) => [
+                'issue'      => $group->first()->title ?? \Illuminate\Support\Str::limit($group->first()->description, 30),
+                'location'   => $group->first()->location,
+                'count'      => $group->count(),
+                'total_cost' => $group->sum('cost'),
+                'avg_cost'   => $group->count() > 0 ? $group->sum('cost') / $group->count() : 0,
+            ])
+            ->sortByDesc('total_cost')
+            ->values();
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.reports-pdf', compact('reports', 'resolvedReports', 'inProgressReports', 'pendingReports', 'assignedReports', 'costByRoom'))
+            ->setPaper('a4', 'portrait')
+            ->setOptions(['defaultFont' => 'DejaVu Sans', 'isHtml5ParserEnabled' => true]);
+
+        ActivityLog::log('export_created', 'Exported reports to PDF');
+
+        return $pdf->download('campfix-reports-' . now()->format('Y-m-d') . '.pdf');
     }
 
     // Archive a concern (MIS only)
@@ -3835,8 +3847,8 @@ class AdminController extends Controller
     // Analytics - Location-based repair/damage analytics
     public function analytics(Request $request)
     {
-        // Base query: resolved concerns with location
-        $baseQuery = Concern::whereNotNull('location')
+        // Base query: resolved reports with location
+        $baseQuery = Report::whereNotNull('location')
             ->where('location', '!=', '')
             ->where('status', 'Resolved');
 
@@ -3850,56 +3862,25 @@ class AdminController extends Controller
         // Summary stats
         $totalConcerns = (clone $baseQuery)->count();
         $totalCost     = (clone $baseQuery)->sum('cost') ?? 0;
-        $uniqueLocations = (clone $baseQuery)->distinct()->count('location');
 
         // Location stats
         $locationStats = (clone $baseQuery)
             ->select('location')
-            ->selectRaw('COUNT(*) as total_count')
+            ->selectRaw('COUNT(*) as count')
             ->selectRaw('SUM(COALESCE(cost, 0)) as total_cost')
             ->groupBy('location')
-            ->orderByDesc('total_count')
+            ->orderByDesc('count')
             ->get()
-            ->map(function ($stat) use ($request) {
-                $stat->top_issue = Concern::where('location', $stat->location)
-                    ->where('status', 'Resolved')
-                    ->whereNotNull('title')->where('title', '!=', '')
-                    ->when($request->filled('date_from'), fn($q) => $q->whereDate('created_at', '>=', $request->input('date_from')))
-                    ->when($request->filled('date_to'),   fn($q) => $q->whereDate('created_at', '<=', $request->input('date_to')))
-                    ->select('title')->selectRaw('COUNT(*) as cnt')
-                    ->groupBy('title')->orderByDesc('cnt')
-                    ->value('title');
-                return $stat;
+            ->map(function ($stat) {
+                return [
+                    'location' => $stat->location,
+                    'count' => $stat->count,
+                    'total_cost' => $stat->total_cost ?? 0,
+                ];
             });
 
-        // Category stats
-        $categoryStats = Concern::with('categoryRelation')
-            ->whereNotNull('category_id')
-            ->where('status', 'Resolved')
-            ->when($request->filled('date_from'), fn($q) => $q->whereDate('created_at', '>=', $request->input('date_from')))
-            ->when($request->filled('date_to'),   fn($q) => $q->whereDate('created_at', '<=', $request->input('date_to')))
-            ->select('category_id')
-            ->selectRaw('COUNT(*) as total_count')
-            ->selectRaw('SUM(COALESCE(cost, 0)) as total_cost')
-            ->groupBy('category_id')
-            ->orderByDesc('total_count')
-            ->get();
-
-        // Monthly trend – last 12 months
-        $monthlyStats = Concern::where('status', 'Resolved')
-            ->whereNotNull('location')
-            ->where('created_at', '>=', now()->subMonths(12))
-            ->when($request->filled('date_from'), fn($q) => $q->whereDate('created_at', '>=', $request->input('date_from')))
-            ->when($request->filled('date_to'),   fn($q) => $q->whereDate('created_at', '<=', $request->input('date_to')))
-            ->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month")
-            ->selectRaw('COUNT(*) as total_count')
-            ->selectRaw('SUM(COALESCE(cost, 0)) as total_cost')
-            ->groupBy('month')
-            ->orderBy('month')
-            ->get();
-
-        // Repeated damage: locations repaired more than once
-        $repeatedDamageStats = Concern::whereNotNull('location')
+        // Combined location stats (all tickets)
+        $combinedLocationStats = Report::whereNotNull('location')
             ->where('location', '!=', '')
             ->when($request->filled('date_from'), fn($q) => $q->whereDate('created_at', '>=', $request->input('date_from')))
             ->when($request->filled('date_to'),   fn($q) => $q->whereDate('created_at', '<=', $request->input('date_to')))
@@ -3907,87 +3888,52 @@ class AdminController extends Controller
             ->selectRaw('COUNT(*) as total_count')
             ->selectRaw('SUM(COALESCE(cost, 0)) as total_cost')
             ->groupBy('location')
-            ->having('total_count', '>', 1)
             ->orderByDesc('total_count')
+            ->get()
+            ->map(function ($stat) {
+                return [
+                    'location' => $stat->location,
+                    'total_count' => $stat->total_count,
+                    'total_cost' => $stat->total_cost ?? 0,
+                ];
+            });
+
+        // Reports with details
+        $reports = (clone $baseQuery)
+            ->whereNotNull('resolved_at')
+            ->orderBy('resolved_at', 'desc')
             ->get();
 
-        // Damaged parts top 10
-        $damagedPartsStats = Concern::whereNotNull('damaged_part')
-            ->where('damaged_part', '!=', '')
-            ->where('status', 'Resolved')
+        // Chart data
+        $chartLocations = $locationStats->pluck('location')->toArray();
+        $chartCounts = $locationStats->pluck('count')->toArray();
+        $chartCosts = $locationStats->pluck('total_cost')->toArray();
+
+        // Status distribution
+        $statusStats = Report::select('status')
             ->when($request->filled('date_from'), fn($q) => $q->whereDate('created_at', '>=', $request->input('date_from')))
             ->when($request->filled('date_to'),   fn($q) => $q->whereDate('created_at', '<=', $request->input('date_to')))
-            ->select('damaged_part')
-            ->selectRaw('COUNT(*) as total_count')
-            ->selectRaw('SUM(COALESCE(cost, 0)) as total_cost')
-            ->groupBy('damaged_part')
-            ->orderByDesc('total_count')
-            ->limit(10)
+            ->selectRaw('COUNT(*) as count')
+            ->groupBy('status')
             ->get();
 
-        // ── PERIOD COMPARISON (this month vs last month) ──────────────────────
-        $thisMonthStart = now()->startOfMonth();
-        $lastMonthStart = now()->subMonth()->startOfMonth();
-        $lastMonthEnd   = now()->subMonth()->endOfMonth();
+        $chartStatuses = $statusStats->pluck('status')->toArray();
+        $chartStatusCounts = $statusStats->pluck('count')->toArray();
 
-        $thisMonthCount = Concern::where('status', 'Resolved')
-            ->where('created_at', '>=', $thisMonthStart)->count();
-        $lastMonthCount = Concern::where('status', 'Resolved')
-            ->whereBetween('created_at', [$lastMonthStart, $lastMonthEnd])->count();
+        // Monthly stats - last 6 months
+        $monthlyStats = Report::where('created_at', '>=', now()->subMonths(6))
+            ->when($request->filled('date_from'), fn($q) => $q->whereDate('created_at', '>=', $request->input('date_from')))
+            ->when($request->filled('date_to'),   fn($q) => $q->whereDate('created_at', '<=', $request->input('date_to')))
+            ->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month")
+            ->selectRaw('title')
+            ->selectRaw('COUNT(*) as total_count')
+            ->groupBy('month', 'title')
+            ->orderBy('month')
+            ->get();
 
-        $thisMonthCost = Concern::where('status', 'Resolved')
-            ->where('created_at', '>=', $thisMonthStart)->sum('cost') ?? 0;
-        $lastMonthCost = Concern::where('status', 'Resolved')
-            ->whereBetween('created_at', [$lastMonthStart, $lastMonthEnd])->sum('cost') ?? 0;
-
-        $countChange = $lastMonthCount > 0
-            ? round((($thisMonthCount - $lastMonthCount) / $lastMonthCount) * 100, 1)
-            : ($thisMonthCount > 0 ? 100 : 0);
-        $costChange = $lastMonthCost > 0
-            ? round((($thisMonthCost - $lastMonthCost) / $lastMonthCost) * 100, 1)
-            : ($thisMonthCost > 0 ? 100 : 0);
-
-        $periodComparison = [
-            'this_month_count' => $thisMonthCount,
-            'last_month_count' => $lastMonthCount,
-            'this_month_cost'  => $thisMonthCost,
-            'last_month_cost'  => $lastMonthCost,
-            'count_change'     => $countChange,
-            'cost_change'      => $costChange,
-            'this_month_label' => now()->format('F Y'),
-            'last_month_label' => now()->subMonth()->format('F Y'),
-        ];
-
-        // ── PREDICTIVE / TREND ALERTS ─────────────────────────────────────────
-        // Original asset prices per issue type (used to determine replacement threshold)
-        $assetOriginalPrices = [
-            'aircon'              => 33498,
-            'door'                => 5000,
-            'window'              => 8000,
-            'chair'               => 2500,
-            'table'               => 4000,
-            'electrical outlet'   => 1500,
-            'light'               => 1200,
-            'no internet'         => 0,
-            'printer'             => 12000,
-            'monitor'             => 9000,
-            'pc monitor'          => 9000,
-            'mouse'               => 800,
-            'keyboard'            => 1500,
-            'projector'           => 25000,
-            'whiteboard'          => 6000,
-        ];
-
-        $getReplacementThreshold = function (?string $issue) use ($assetOriginalPrices): float {
-            if (!$issue) return 10000;
-            $key = strtolower(trim($issue));
-            return $assetOriginalPrices[$key] ?? 10000;
-        };
-
+        // Trend alerts
         $trendAlerts = collect();
-        
-        // Get all unique combinations of location and title (issue type)
-        $locationIssues = Concern::whereNotNull('location')
+        $locationIssues = Report::whereNotNull('location')
             ->where('location', '!=', '')
             ->whereNotNull('title')
             ->where('title', '!=', '')
@@ -3995,145 +3941,75 @@ class AdminController extends Controller
             ->distinct()
             ->get();
 
-        foreach ($locationIssues as $locationIssue) {
-            $loc = $locationIssue->location;
-            $issue = $locationIssue->title;
-            
-            $recent = Concern::where('location', $loc)
-                ->where('title', $issue)
+        foreach ($locationIssues as $li) {
+            $loc   = $li->location;
+            $issue = $li->title;
+            $recent = Report::where('location', $loc)->where('title', $issue)
                 ->where('created_at', '>=', now()->subMonths(3))->count();
-            $prior  = Concern::where('location', $loc)
-                ->where('title', $issue)
-                ->whereBetween('created_at', [now()->subMonths(6), now()->subMonths(3)])->count();
-
-            $allTimeCost = Concern::where('location', $loc)
-                ->where('title', $issue)
-                ->sum('cost') ?? 0;
-            $recentCost  = Concern::where('location', $loc)
-                ->where('title', $issue)
+            if ($recent < 1) continue;
+            $allTimeCost = Report::where('location', $loc)->where('title', $issue)->sum('cost') ?? 0;
+            $recentCost  = Report::where('location', $loc)->where('title', $issue)
                 ->where('created_at', '>=', now()->subMonths(3))->sum('cost') ?? 0;
-
-            // Cost trend: is cost higher this month vs last month?
-            $thisMonthlyCost = Concern::where('location', $loc)
+            $prior = Report::where('location', $loc)->where('title', $issue)
+                ->whereBetween('created_at', [now()->subMonths(6), now()->subMonths(3)])->count();
+            $severity   = $recent >= 3 ? 'critical' : ($recent >= 2 ? 'warning' : 'info');
+            $alertTitle = $severity === 'critical' ? 'High Frequency Issue' : ($severity === 'warning' ? 'Recurring Issue' : 'Issue Detected');
+            
+            // Get monthly breakdown for the last 12 months
+            $monthlyCosts = Report::where('location', $loc)
                 ->where('title', $issue)
-                ->whereMonth('created_at', now()->month)
-                ->whereYear('created_at', now()->year)
-                ->sum('cost') ?? 0;
-            $lastMonthlyCost = Concern::where('location', $loc)
-                ->where('title', $issue)
-                ->whereMonth('created_at', now()->subMonth()->month)
-                ->whereYear('created_at', now()->subMonth()->year)
-                ->sum('cost') ?? 0;
-            $costIncreasingThisMonth = $thisMonthlyCost > $lastMonthlyCost;
-
-            // Use original asset price as replacement threshold
-            $replacementThreshold = $getReplacementThreshold($issue);
-
-            // Budget threshold: cumulative repair cost >= 80% of original asset price
-            $budgetThreshold = $replacementThreshold > 0 && $allTimeCost >= ($replacementThreshold * 0.8);
-
-            // Exceeded: cumulative repair cost >= original asset price
-            $exceeded = $replacementThreshold > 0 && $allTimeCost >= $replacementThreshold;
-
-            if ($recent >= 1) {
-                // Determine alert type
-                if ($exceeded) {
-                    $alertType = 'exceeded';
-                    $alertTitle = 'Exceeded original cost';
-                    $alertDesc  = $issue . ' in ' . $loc . ' — Replacement recommended';
-                    $severity   = 'critical';
-                } elseif ($budgetThreshold) {
-                    $alertType = 'threshold';
-                    $alertTitle = 'Repair cost reached 80%';
-                    $alertDesc  = $issue . ' in ' . $loc . ' — Approaching threshold';
-                    $severity   = 'warning';
-                } else {
-                    $alertType = 'trend';
-                    $alertTitle = 'Cost increasing this month';
-                    $alertDesc  = $issue . ' in ' . $loc . ' — Trend detected';
-                    $severity   = 'info';
-                }
-
-                // Recommendation
-                if ($exceeded) {
-                    $recommendation = 'Replace Asset';
-                    $recDesc        = 'Repair cost exceeded original price.';
-                    $recColor       = 'danger';
-                } elseif ($budgetThreshold || $recent >= 3) {
-                    $recommendation = 'Schedule Maintenance';
-                    $recDesc        = 'Preventive maintenance recommended.';
-                    $recColor       = 'warning';
-                } else {
-                    $recommendation = 'Continue Repair';
-                    $recDesc        = 'Cost effective to continue. Health score is acceptable.';
-                    $recColor       = 'success';
-                }
-
-                // Build last 12 months cost breakdown for modal (specific to this issue type)
-                $monthlyCosts = collect(range(11, 0))->map(function ($i) use ($loc, $issue) {
-                    $date = now()->subMonths($i);
+                ->where('status', 'Resolved')
+                ->where('created_at', '>=', now()->subMonths(12))
+                ->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month, COUNT(*) as count, SUM(cost) as cost")
+                ->groupBy('month')
+                ->orderBy('month', 'desc')
+                ->get()
+                ->map(function($row) {
                     return [
-                        'month' => $date->format('M Y'),
-                        'cost'  => Concern::where('location', $loc)
-                            ->where('title', $issue)
-                            ->whereMonth('created_at', $date->month)
-                            ->whereYear('created_at', $date->year)
-                            ->sum('cost') ?? 0,
-                        'count' => Concern::where('location', $loc)
-                            ->where('title', $issue)
-                            ->whereMonth('created_at', $date->month)
-                            ->whereYear('created_at', $date->year)
-                            ->count(),
+                        'month' => \Carbon\Carbon::parse($row->month . '-01')->format('M Y'),
+                        'count' => $row->count,
+                        'cost' => $row->cost ?? 0
                     ];
-                })->filter(fn($m) => $m['cost'] > 0 || $m['count'] > 0)->values();
-
-                $trendAlerts->push([
-                    'location'             => $loc,
-                    'recent'               => $recent,
-                    'prior'                => $prior,
-                    'recent_cost'          => $recentCost,
-                    'all_time_cost'        => $allTimeCost,
-                    'top_issue'            => $issue,
-                    'severity'             => $severity,
-                    'alert_type'           => $alertType,
-                    'alert_title'          => $alertTitle,
-                    'alert_desc'           => $alertDesc,
-                    'recommendation'       => $recommendation,
-                    'rec_desc'             => $recDesc,
-                    'rec_color'            => $recColor,
-                    'updated_at'           => Concern::where('location', $loc)->where('title', $issue)->latest()->value('updated_at'),
-                    'monthly_costs'        => $monthlyCosts,
-                    'replacement_threshold'=> $replacementThreshold,
-                ]);
-            }
+                });
+            
+            // Get replacement threshold based on issue type
+            $assetOriginalPrices = [
+                'aircon' => 35000, 'air conditioner' => 35000, 'ac' => 35000,
+                'chair' => 800, 'table' => 1500, 'desk' => 1500,
+                'door' => 3000, 'window' => 2000,
+                'light' => 200, 'bulb' => 200, 'lighting' => 200,
+                'fan' => 1200, 'ceiling fan' => 1200,
+                'computer' => 20000, 'pc' => 20000,
+                'monitor' => 9000,
+                'mouse' => 100, 'keyboard' => 150,
+                'projector'=> 25000, 'whiteboard' => 1700,
+            ];
+            $key = strtolower(trim($issue));
+            $replacementThreshold = $assetOriginalPrices[$key] ?? 10000;
+            
+            $trendAlerts->push([
+                'location'    => $loc, 'top_issue' => $issue,
+                'recent'      => $recent, 'prior' => $prior,
+                'recent_cost' => $recentCost, 'all_time_cost' => $allTimeCost,
+                'severity'    => $severity, 'alert_title' => $alertTitle,
+                'updated_at'  => Report::where('location', $loc)->where('title', $issue)->latest()->value('updated_at'),
+                'monthly_costs' => $monthlyCosts, 'replacement_threshold' => $replacementThreshold,
+            ]);
         }
         $trendAlerts = $trendAlerts->sortByDesc('recent')->values();
-
-        // Issue stats (grouped by title — populated from Issue dropdown)
-        $issueStats = Concern::whereNotNull('title')
-            ->where('title', '!=', '')
-            ->where('status', 'Resolved')
-            ->when($request->filled('date_from'), fn($q) => $q->whereDate('created_at', '>=', $request->input('date_from')))
-            ->when($request->filled('date_to'),   fn($q) => $q->whereDate('created_at', '<=', $request->input('date_to')))
-            ->select('title')
-            ->selectRaw('COUNT(*) as total_count')
-            ->selectRaw('SUM(COALESCE(cost, 0)) as total_cost')
-            ->groupBy('title')
-            ->orderByDesc('total_count')
-            ->limit(15)
-            ->get();
 
         return view('admin.analytics', compact(
             'totalConcerns',
             'totalCost',
-            'uniqueLocations',
             'locationStats',
-            'categoryStats',
-            'issueStats',
+            'combinedLocationStats',
+            'reports',
+            'chartLocations',
+            'chartCounts',
+            'chartCosts',
+            'chartStatuses',
+            'chartStatusCounts',
             'monthlyStats',
-            'repeatedDamageStats',
-            'damagedPartsStats',
-            'periodComparison',
             'trendAlerts'
         ));
     }

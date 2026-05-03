@@ -176,6 +176,11 @@ class AuthController extends Controller
             return redirect('/')->with('error', 'Too many incorrect attempts. Please login again.');
         }
 
+        // Check if OTP exists and is not expired
+        if (!$user->otp || !$user->otp_expires_at) {
+            return redirect('/')->with('error', 'No valid OTP found. Please login again.');
+        }
+
         // Manual UTC timestamp comparison to avoid casting issues
         $expiresAt = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $user->otp_expires_at->format('Y-m-d H:i:s'), 'UTC');
         $currentTime = now()->utc();

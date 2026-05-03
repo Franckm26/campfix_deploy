@@ -189,7 +189,7 @@
                                             <td style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" class="active-checkbox" value="{{ $concern->id }}" onchange="updateActiveBulkActions()"></td>
                                             <td style="width:100px;max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                                                 <a href="#" onclick="event.preventDefault(); viewConcern({{ $concern->id }});">
-                                                    {{ $concern->title ?? 'No Title' }}
+                                                    {{ $concern->title ?? \Illuminate\Support\Str::limit($concern->description, 40) }}
                                                 </a>
                                                 @if($concern->image_path)
                                                     <i class="fas fa-image text-muted" title="Has photo"></i>
@@ -203,7 +203,7 @@
                                                     ($concern->priority == 'high' ? 'warning' : 
                                                     ($concern->priority == 'medium' ? 'info' : 'secondary'))
                                                 }}">
-                                                    {{ ucfirst($concern->priority) }}
+                                                    {{ ($concern->priority ? ucfirst($concern->priority) : 'Not Set') }}
                                                 </span>
                                             </td>
                                             <td>
@@ -360,7 +360,7 @@
                                             <td style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" class="resolved-checkbox" value="{{ $concern->id }}" onchange="updateResolvedBulkActions()"></td>
                                             <td style="width:100px;max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                                                 <a href="#" onclick="event.preventDefault(); viewConcern({{ $concern->id }});">
-                                                    {{ $concern->title ?? 'No Title' }}
+                                                    {{ $concern->title ?? \Illuminate\Support\Str::limit($concern->description, 40) }}
                                                 </a>
                                                 @if($concern->image_path)
                                                     <i class="fas fa-image text-muted" title="Has photo"></i>
@@ -374,7 +374,7 @@
                                                     ($concern->priority == 'high' ? 'warning' : 
                                                     ($concern->priority == 'medium' ? 'info' : 'secondary'))
                                                 }}">
-                                                    {{ ucfirst($concern->priority) }}
+                                                    {{ ($concern->priority ? ucfirst($concern->priority) : 'Not Set') }}
                                                 </span>
                                             </td>
                                             @if(auth()->user()->role === 'mis')
@@ -505,7 +505,7 @@
                                             <td style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" class="archive-checkbox" value="{{ $concern->id }}" onchange="updateArchiveBulkActions()"></td>
                                             <td style="width:100px;max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                                                 <a href="#" onclick="event.preventDefault(); viewConcern({{ $concern->id }});">
-                                                    {{ $concern->title ?? 'No Title' }}
+                                                    {{ $concern->title ?? \Illuminate\Support\Str::limit($concern->description, 40) }}
                                                 </a>
                                             </td>
                                             <td>{{ $concern->categoryRelation->name ?? 'N/A' }}</td>
@@ -516,7 +516,7 @@
                                                     ($concern->priority == 'high' ? 'warning' : 
                                                     ($concern->priority == 'medium' ? 'info' : 'secondary'))
                                                 }}">
-                                                    {{ ucfirst($concern->priority) }}
+                                                    {{ ($concern->priority ? ucfirst($concern->priority) : 'Not Set') }}
                                                 </span>
                                             </td>
                                             <td>
@@ -685,7 +685,7 @@
                                             <td style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" class="deleted-checkbox" value="{{ $concern->id }}" onchange="updateDeletedBulkActions()"></td>
                                             <td style="width:100px;max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                                                 <a href="#" onclick="event.preventDefault(); viewConcern({{ $concern->id }});">
-                                                    {{ $concern->title ?? 'No Title' }}
+                                                    {{ $concern->title ?? \Illuminate\Support\Str::limit($concern->description, 40) }}
                                                 </a>
                                             </td>
                                             <td>{{ $concern->categoryRelation->name ?? 'N/A' }}</td>
@@ -696,7 +696,7 @@
                                                     ($concern->priority == 'high' ? 'warning' : 
                                                     ($concern->priority == 'medium' ? 'info' : 'secondary'))
                                                 }}">
-                                                    {{ ucfirst($concern->priority) }}
+                                                    {{ ($concern->priority ? ucfirst($concern->priority) : 'Not Set') }}
                                                 </span>
                                             </td>
                                             <td>
@@ -948,9 +948,9 @@
                     </div>
 
                     <!-- Issue dropdown -->
-                    <div class="mb-3" id="new_issue_container">
+                    <div class="mb-3" id="new_issue_container" style="display: none;">
                         <label for="new_issue" class="form-label">Issue *</label>
-                        <select class="form-select" id="new_issue" name="_issue" required>
+                        <select class="form-select" id="new_issue" name="_issue">
                             <option value="" disabled selected>Select an issue</option>
                         </select>
                     </div>
@@ -960,61 +960,13 @@
                         <label for="new_location" class="form-label">Location *</label>
                         <select class="form-select" id="new_location" name="location">
                             <option value="" disabled selected>Select a location</option>
-                            <optgroup label="Rooms">
-                                <option value="Room M01">Room M01</option>
-                                <option value="Room M02">Room M02</option>
-                                <option value="Room 202">Room 202</option>
-                                <option value="Room 203">Room 203</option>
-                                <option value="Room 204">Room 204</option>
-                                <option value="Room 205">Room 205</option>
-                                <option value="Room 206">Room 206</option>
-                                <option value="Room 207">Room 207</option>
-                                <option value="Room 301">Room 301</option>
-                                <option value="Room 302">Room 302</option>
-                                <option value="Room 303">Room 303</option>
-                                <option value="Room 304">Room 304</option>
-                                <option value="Room 305">Room 305</option>
-                                <option value="Room 306">Room 306</option>
-                                <option value="Room 307">Room 307</option>
-                                <option value="Room 308">Room 308</option>
-                                <option value="Room 309">Room 309</option>
-                                <option value="Room 310">Room 310</option>
-                                <option value="Room 311">Room 311</option>
-                                <option value="Room 401">Room 401</option>
-                                <option value="Room 402">Room 402</option>
-                                <option value="Room 403">Room 403</option>
-                                <option value="Room 404">Room 404</option>
-                                <option value="Room 405">Room 405</option>
-                                <option value="Room 406">Room 406</option>
-                                <option value="Room 407">Room 407</option>
-                                <option value="Room 408">Room 408</option>
-                                <option value="Room 409">Room 409</option>
-                                <option value="Room 410">Room 410</option>
-                                <option value="Room 411">Room 411</option>
-                                <option value="Room 501">Room 501</option>
-                                <option value="Room 502">Room 502</option>
-                                <option value="Room 503">Room 503</option>
-                                <option value="Room 504">Room 504</option>
-                                <option value="Room 505">Room 505</option>
-                                <option value="Room 506">Room 506</option>
-                                <option value="Room 507">Room 507</option>
-                                <option value="Room 508">Room 508</option>
-                                <option value="Room 509">Room 509</option>
-                                <option value="Room 510">Room 510</option>
-                                <option value="Room 511">Room 511</option>
-                            </optgroup>
-                            <optgroup label="Computer Laboratory">
-                                <option value="Computer Laboratory 101">Computer Laboratory 101</option>
-                                <option value="Computer Laboratory 208">Computer Laboratory 208</option>
-                                <option value="Computer Laboratory 209">Computer Laboratory 209</option>
-                                <option value="Computer Laboratory 210">Computer Laboratory 210</option>
-                                <option value="Computer Laboratory 211">Computer Laboratory 211</option>
-                                <option value="Computer Laboratory 212">Computer Laboratory 212</option>
-                            </optgroup>
-                            <optgroup label="AVR">
-                                <option value="AVR 1">AVR 1</option>
-                                <option value="AVR 2">AVR 2</option>
-                            </optgroup>
+                            @foreach($facilities->groupBy('type') as $type => $group)
+                                <optgroup label="{{ ucfirst($type) }}">
+                                    @foreach($group as $facility)
+                                        <option value="{{ $facility->name }}">{{ $facility->name }}</option>
+                                    @endforeach
+                                </optgroup>
+                            @endforeach
                         </select>
                     </div>
 
@@ -1072,7 +1024,6 @@ function updateAutoDeletePeriod(days) {
     }
 }
 </script>
-@endsection
 <style>
 .context-menu {
     position: fixed;
@@ -1196,30 +1147,32 @@ document.addEventListener('DOMContentLoaded', function() {
     const locationContainer = document.getElementById('new_location_container');
     const locationSelect = document.getElementById('new_location');
 
-    // Per-category issue options
+    // Per-category issue options (from database)
     const categoryIssues = {
-        'maintenance': [
-            'Aircon',
-            'Door',
-            'Window',
-            'Chair',
-            'Table',
-            'Electrical outlet',
-            'Light',
-        ],
-        'technology/internet': [
-            'No Internet',
-            'Printer',
-            'Monitor',
-            'PC Monitor',
-            'Mouse',
-            'Keyboard',
-        ],
+        @foreach($categories as $cat)
+        @if($cat->issues && count($cat->issues) > 0)
+        '{{ strtolower($cat->name) }}': {!! json_encode($cat->issues) !!},
+        @endif
+        @endforeach
     };
 
     function populateIssues(categoryName) {
         const key = categoryName.toLowerCase().trim();
         const issues = categoryIssues[key] || [];
+        const issueContainer = document.getElementById('new_issue_container');
+
+        if (issues.length === 0) {
+            // No issues for this category — hide the dropdown and clear it
+            if (issueContainer) issueContainer.style.display = 'none';
+            if (issueSelect) issueSelect.removeAttribute('required');
+            issueSelect.innerHTML = '<option value="" disabled selected>Select an issue</option>';
+            if (titleHidden) titleHidden.value = '';
+            return;
+        }
+
+        // Has issues — show the dropdown and populate it
+        if (issueContainer) issueContainer.style.display = 'block';
+        if (issueSelect) issueSelect.setAttribute('required', 'required');
         issueSelect.innerHTML = '<option value="" disabled selected>Select an issue</option>';
         issues.forEach(function(issue) {
             const opt = document.createElement('option');
@@ -1460,113 +1413,156 @@ function contextPermanentDelete() {
 
 // Soft Delete Functions
 function softDeleteConcern(id) {
-    document.getElementById('softDeleteConcernForm').action = '/concerns/' + id + '/soft-delete';
-    document.getElementById('softDeleteConcernId').value = id;
-    
-    var modal = new bootstrap.Modal(document.getElementById('softDeleteModal'));
-    modal.show();
+    confirmDelete({
+        title: 'Delete Concern?',
+        text: 'This concern will be moved to deleted. You can restore it later from the Deleted tab.',
+        confirmButtonText: '<i class="fas fa-trash me-1"></i> Delete'
+    }).then(result => {
+        if (result.isConfirmed) {
+            // Show loading
+            getSwal().fire({
+                title: 'Deleting...',
+                html: '<div class="spinner-border text-danger"></div>',
+                showConfirmButton: false,
+                allowOutsideClick: false
+            });
+            
+            fetch('/concerns/' + id + '/soft-delete', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json'
+                }
+            }).then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    swalToast('Concern deleted successfully!', 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else if (data.error) {
+                    swalAlert(data.error, 'error', 'Error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                swalAlert('Error deleting concern', 'error', 'Error');
+            });
+        }
+    });
 }
 
 function softDeleteArchivedConcern(id) {
-    if (confirm('Are you sure you want to move this archived concern to deleted?')) {
-        fetch('/concerns/' + id + '/soft-delete', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Content-Type': 'application/json'
-            }
-        }).then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Concern moved to deleted!');
-                location.reload();
-            } else if (data.error) {
-                alert(data.error);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error deleting concern');
-        });
-    }
+    confirmDelete({
+        title: 'Delete Archived Concern?',
+        text: 'This archived concern will be moved to deleted.',
+        confirmButtonText: '<i class="fas fa-trash me-1"></i> Delete'
+    }).then(result => {
+        if (result.isConfirmed) {
+            fetch('/concerns/' + id + '/soft-delete', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json'
+                }
+            }).then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    swalToast('Concern moved to deleted!', 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else if (data.error) {
+                    swalAlert(data.error, 'error', 'Error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                swalAlert('Error deleting concern', 'error', 'Error');
+            });
+        }
+    });
 }
 
 // Permanent Delete Function
 function permanentDeleteConcern(id) {
-    document.getElementById('permanentDeleteConcernId').value = id;
-    var modal = new bootstrap.Modal(document.getElementById('permanentDeleteModal'));
-    modal.show();
-}
-
-document.addEventListener('DOMContentLoaded', function () {
-    document.getElementById('confirmPermanentDeleteBtn').addEventListener('click', function () {
-        var id = document.getElementById('permanentDeleteConcernId').value;
-        var btn = this;
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
-
-        fetch('/concerns/' + id + '/permanent-delete', {
-            method: 'DELETE',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            }
-        })
-        .then(function (response) { return response.json(); })
-        .then(function (data) {
-            if (data.success) {
-                var modalEl = bootstrap.Modal.getInstance(document.getElementById('permanentDeleteModal'));
-                if (modalEl) modalEl.hide();
-                location.reload();
-            } else {
-                alert(data.error || 'Failed to delete concern.');
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-ban"></i> Permanent Delete';
-            }
-        })
-        .catch(function () {
-            alert('An error occurred. Please try again.');
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-ban"></i> Permanent Delete';
-        });
+    confirmPermanentDelete({
+        title: 'Permanently Delete?',
+        html: '<p class="mb-2"><strong>Warning:</strong> This action cannot be undone!</p><p class="text-muted">The concern will be permanently removed from the database.</p>',
+        confirmButtonText: '<i class="fas fa-ban me-1"></i> Delete Forever'
+    }).then(result => {
+        if (result.isConfirmed) {
+            // Show loading
+            getSwal().fire({
+                title: 'Deleting Permanently...',
+                html: '<div class="spinner-border text-danger"></div>',
+                showConfirmButton: false,
+                allowOutsideClick: false
+            });
+            
+            fetch('/concerns/' + id + '/permanent-delete', {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    swalToast('Concern permanently deleted!', 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    swalAlert(data.error || 'Failed to delete concern.', 'error', 'Error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                swalAlert('An error occurred. Please try again.', 'error', 'Error');
+            });
+        }
     });
-});
+}
 
 // Send Follow-up Function
 function sendFollowUp(id) {
-    if (confirm('Send a follow-up notification for this concern?')) {
-        // Show loading state
-        const button = event.target.closest('button');
-        const originalHtml = button.innerHTML;
-        button.disabled = true;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        
-        fetch('/concerns/' + id + '/send-follow-up', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Content-Type': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert(data.message || 'Follow-up notification sent successfully!');
-                location.reload();
-            } else if (data.error) {
-                alert(data.error);
+    confirmAction('approve', {
+        title: 'Send Follow-up?',
+        text: 'Send a follow-up notification for this concern?',
+        icon: 'question',
+        confirmButtonText: '<i class="fas fa-bell me-1"></i> Send Follow-up',
+        confirmButtonColor: '#0d6efd'
+    }).then(result => {
+        if (result.isConfirmed) {
+            // Show loading state
+            const button = event.target.closest('button');
+            const originalHtml = button.innerHTML;
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            
+            fetch('/concerns/' + id + '/send-follow-up', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    swalToast(data.message || 'Follow-up notification sent successfully!', 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else if (data.error) {
+                    swalAlert(data.error, 'error', 'Error');
+                    button.disabled = false;
+                    button.innerHTML = originalHtml;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                swalAlert('Error sending follow-up notification', 'error', 'Error');
                 button.disabled = false;
                 button.innerHTML = originalHtml;
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error sending follow-up notification');
-            button.disabled = false;
-            button.innerHTML = originalHtml;
-        });
-    }
+            });
+        }
+    });
 }
 
 // Batch Operations for Active
@@ -1926,7 +1922,7 @@ function viewConcern(id) {
                     </div>
                 </div>
                 <div class="card-body">
-                    <h5 class="card-title">${concern.title || 'No Title'}</h5>
+                    <h5 class="card-title">${concern.title || (concern.description ? concern.description.substring(0, 40) : 'No Title')}</h5>
                     
                     <div class="row mb-3">
                         <div class="col-md-6">
@@ -2116,12 +2112,6 @@ function editConcern(id) {
                 </select>
             </div>
             <div class="mb-3">
-                <label class="form-label">Priority</label>
-                <select name="priority" class="form-select">
-                    ${priorityOptions}
-                </select>
-            </div>
-            <div class="mb-3">
                 <label class="form-label">Description</label>
                 <textarea name="description" class="form-control" rows="4" required>${concern.description}</textarea>
             </div>
@@ -2175,32 +2165,69 @@ if (editConcernForm) {
 
 // Archive Modal Function
 function showArchiveModal(concernId) {
-    document.getElementById('archiveConcernForm').action = '/concerns/' + concernId + '/archive';
-    document.getElementById('archiveConcernId').value = concernId;
-    
-    var modal = new bootstrap.Modal(document.getElementById('archiveModal'));
-    modal.show();
+    confirmArchive({
+        title: 'Archive Concern?',
+        text: 'This concern will be archived and hidden from your active list.',
+        confirmButtonText: '<i class="fas fa-archive me-1"></i> Archive'
+    }).then(result => {
+        if (result.isConfirmed) {
+            // Show loading
+            getSwal().fire({
+                title: 'Archiving...',
+                html: '<div class="spinner-border text-primary"></div>',
+                showConfirmButton: false,
+                allowOutsideClick: false
+            });
+            
+            fetch('/concerns/' + concernId + '/archive', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json'
+                }
+            }).then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    swalToast('Concern archived successfully!', 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else if (data.error) {
+                    swalAlert(data.error, 'error', 'Error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                swalAlert('Error archiving concern', 'error', 'Error');
+            });
+        }
+    });
 }
 
 function archiveConcern(id) {
-    fetch('/concerns/' + id + '/archive', {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-            'Content-Type': 'application/json'
+    confirmArchive({
+        title: 'Archive Concern?',
+        text: 'This concern will be archived and hidden from your active list.'
+    }).then(result => {
+        if (result.isConfirmed) {
+            fetch('/concerns/' + id + '/archive', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json'
+                }
+            }).then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    swalToast('Concern archived successfully!', 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else if (data.error) {
+                    swalAlert(data.error, 'error', 'Error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                swalAlert('Error archiving concern', 'error', 'Error');
+            });
         }
-    }).then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('Concern archived successfully!');
-            location.reload();
-        } else if (data.error) {
-            alert(data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error archiving concern');
     });
 }
 
@@ -2339,3 +2366,5 @@ if (assignConcernForm) {
 </div>
 
 
+
+@endsection

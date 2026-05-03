@@ -22,7 +22,7 @@ class NotificationController extends Controller
 
             } elseif (str_contains($notification->type, 'EventRequest')) {
 
-                return redirect()->route('events.pending');
+                return redirect()->route('admin.events');
 
             } else {
 

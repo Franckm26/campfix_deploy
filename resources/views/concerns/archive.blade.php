@@ -74,9 +74,7 @@
                     <table class="table table-hover" style="display: table !important;">
                         <thead>
                             <tr>
-                                <th>Title</th>
-                                <th>Category</th>
-                                <th>Priority</th>
+                                <th>Event Ticket</th>                                <th>Priority</th>
                                 <th>Status</th>
                                 <th>Location</th>
                                 <th>Archived Date</th>
@@ -151,9 +149,7 @@
                     <table class="table table-hover" style="display: table !important;">
                         <thead>
                             <tr>
-                                <th>Title</th>
-                                <th>Category</th>
-                                <th>Event Date</th>
+                                <th>Event Ticket</th>                                <th>Event Date</th>
                                 <th>Status</th>
                                 <th>Location</th>
                                 <th>Archived Date</th>
@@ -164,7 +160,7 @@
                             @foreach($archivedEvents as $event)
                                 <tr data-id="{{ $event->id }}">
                                     <td>EVT-{{ date('Y') }}-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</td>
-                                    <td>{{ $event->title }}</td>
+                                    <td>EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</td>
                                     <td>{{ ucfirst($event->category) }}</td>
                                     <td>{{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</td>
                                     <td>
@@ -360,3 +356,8 @@ function archiveConcern(id) {
     });
 }
 </script>
+
+
+
+
+

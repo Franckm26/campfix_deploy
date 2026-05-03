@@ -2,9 +2,6 @@
 
 @section('styles')
 <link href="{{ asset('css/admin.css') }}" rel="stylesheet">
-@if(($viewType ?? '') == 'analytics')
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-@endif
 @endsection
 
 @section('page_title')
@@ -27,11 +24,6 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="viewConcernModalLabel">Concern Details</h5>
-                    @if(in_array(auth()->user()->role, ['building_admin', 'school_admin', 'academic_head']))
-                        <button type="button" class="btn btn-primary btn-sm ms-2" onclick="assignReport(window.currentReportId)">
-                            <i class="fas fa-user-plus"></i> Assign
-                        </button>
-                    @endif
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body" id="viewConcernContent">
@@ -44,34 +36,6 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Assign Modal -->
-    <div class="modal fade" id="assignConcernModal" tabindex="-1" aria-labelledby="assignConcernModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="assignConcernModalLabel">Assign Concern</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <form id="assignConcernForm" method="POST">
-                    @csrf
-                    <div class="modal-body">
-                        <input type="hidden" id="assignConcernId" name="concern_id" value="">
-                        <div class="mb-3">
-                            <label for="assigned_to" class="form-label">Assign to Maintenance Staff</label>
-                            <select class="form-select" id="assigned_to" name="assigned_to" required>
-                                <option value="">Select maintenance staff</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary"><i class="fas fa-user-plus"></i> Assign</button>
-                    </div>
-                </form>
             </div>
         </div>
     </div>
@@ -170,14 +134,9 @@
                             <i class="fas fa-trash-alt"></i> Deleted Reports
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link {{ ($viewType ?? '') == 'analytics' ? 'active' : '' }}" href="{{ route('admin.reports', ['view' => 'analytics']) }}" style="color: #17a2b8;">
-                            <i class="fas fa-chart-line"></i> Analytics
-                        </a>
-                    </li>
                 </ul>
-                <a href="{{ route('admin.export') }}" class="btn btn-success btn-sm">
-                    <i class="fas fa-download"></i> Export CSV
+                <a href="{{ route('admin.export.pdf') }}" class="btn btn-danger btn-sm">
+                    <i class="fas fa-file-pdf"></i> Export PDF
                 </a>
             </div>
             <form method="GET" action="{{ route('admin.reports') }}">
@@ -233,6 +192,7 @@
 
     @if(($viewType ?? 'active') == 'active')
     <!-- Summary Cards -->
+    @if(auth()->user()->role !== 'building_admin')
     <div class="row mb-4" style="display: flex !important;">
         <div class="col-md-3">
             <div class="card bg-primary text-white">
@@ -267,6 +227,7 @@
             </div>
         </div>
     </div>
+    @endif
 
     <!-- Reports Table -->
     <div class="card" style="display: block !important;">
@@ -276,7 +237,7 @@
                     <thead>
                         <tr>
                             <th class="checkbox-col"><input type="checkbox" id="selectAllReports" onclick="toggleAllReports(this)"></th>
-                            <th>Title</th>
+                            <th>Issue</th>
                             <th>Category</th>
                             <th>Location</th>
                             <th>Priority</th>
@@ -291,16 +252,16 @@
                         @forelse($reports as $report)
                             <tr data-id="{{ $report->id }}">
                                 <td class="checkbox-col"><input type="checkbox" class="report-checkbox" value="{{ $report->id }}"></td>
-                                <td>{{ $report->title ?? 'No Title' }}</td>
+                                <td>{{ $report->title ?? \Illuminate\Support\Str::limit($report->description, 40) }}</td>
                                         <td>{{ $report->category->name ?? 'N/A' }}</td>
                                         <td>{{ $report->location }}</td>
                                         <td>
                                             <span class="badge bg-{{
-                                                $report->severity == 'critical' ? 'danger' :
+                                                $report->severity == 'critical' || $report->severity == 'urgent' ? 'danger' :
                                                 ($report->severity == 'high' ? 'warning' :
                                                 ($report->severity == 'medium' ? 'info' : 'secondary'))
                                             }}">
-                                                {{ ucfirst($report->severity) }}
+                                                {{ ($report->severity ? ucfirst($report->severity) : 'Not Set') }}
                                             </span>
                                         </td>
                                         <td>
@@ -324,6 +285,9 @@
                                                 </button>
                                                 <button type="button" class="btn btn-sm btn-primary" onclick="assignReport({{ $report->id }})" title="Assign">
                                                     <i class="fas fa-user-plus"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-info bg-transparent border-0" onclick="viewReportProgress({{ $report->id }})" title="View Progress">
+                                                    <i class="fas fa-tasks"></i>
                                                 </button>
                                                 @if(!$report->isArchivedByUser(auth()->id()))
                                                     <button type="button" class="btn btn-sm btn-secondary" onclick="showReportArchiveModal({{ $report->id }})" title="Archive">
@@ -377,7 +341,7 @@
                     <table class="table table-hover" style="display: table !important;">
                         <thead>
                             <tr>
-                                <th>Title</th>
+                                <th>Issue</th>
                                 <th>Category</th>
                                 <th>Location</th>
                                 <th>Priority</th>
@@ -391,16 +355,16 @@
                         <tbody>
                             @foreach($resolvedReports as $report)
                                 <tr data-id="{{ $report->id }}">
-                                    <td>{{ $report->title ?? 'No Title' }}</td>
+                                    <td>{{ $report->title ?? \Illuminate\Support\Str::limit($report->description, 40) }}</td>
                                     <td>{{ $report->category->name ?? 'N/A' }}</td>
                                     <td>{{ $report->location }}</td>
                                     <td>
                                         <span class="badge bg-{{
-                                            $report->severity == 'critical' ? 'danger' :
+                                            $report->severity == 'critical' || $report->severity == 'urgent' ? 'danger' :
                                             ($report->severity == 'high' ? 'warning' :
                                             ($report->severity == 'medium' ? 'info' : 'secondary'))
                                         }}">
-                                            {{ ucfirst($report->severity) }}
+                                            {{ ($report->severity ? ucfirst($report->severity) : 'Not Set') }}
                                         </span>
                                     </td>
                                     <td>{{ $report->user->name ?? 'Unknown' }}</td>
@@ -456,7 +420,7 @@
                             <table class="table table-hover" style="display: table !important;">
                                 <thead>
                                     <tr>
-                                        <th>Title</th>
+                                        <th>Issue</th>
                                         <th>Category</th>
                                         <th>Location</th>
                                         <th>Priority</th>
@@ -470,7 +434,7 @@
                                 <tbody>
                                     @foreach($archivedConcerns as $concern)
                                         <tr data-id="{{ $concern->id }}">
-                                            <td>{{ $concern->title ?? 'No Title' }}</td>
+                                            <td>{{ $concern->title ?? \Illuminate\Support\Str::limit($concern->description, 40) }}</td>
                                             <td>{{ $concern->categoryRelation->name ?? 'N/A' }}</td>
                                             <td>{{ $concern->location }}</td>
                                             <td>
@@ -479,7 +443,7 @@
                                                     ($concern->priority == 'high' ? 'warning' :
                                                     ($concern->priority == 'medium' ? 'info' : 'secondary'))
                                                 }}">
-                                                    {{ ucfirst($concern->priority) }}
+                                                    {{ ($concern->priority ? ucfirst($concern->priority) : 'Not Set') }}
                                                 </span>
                                             </td>
                                             <td>
@@ -615,7 +579,7 @@
                         <thead>
                             <tr>
                                 <th style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" id="deletedReportsSelectAll" onchange="deletedReportsToggleSelectAll()"></th>
-                                <th>Title</th>
+                                <th>Issue</th>
                                 <th>Category</th>
                                 <th>Location</th>
                                 <th>Priority</th>
@@ -738,414 +702,6 @@
         </div>
     </div>
     @endif
-
-    @if(($viewType ?? '') == 'analytics')
-    <!-- Analytics Section -->
-    <div class="container-fluid">
-        <div class="analytics-header">
-            <div class="analytics-title">
-                <i class="fas fa-chart-line"></i> Analytics - Cost Tracking & Repair/Damage Analysis
-            </div>
-        </div>
-
-
-        <!-- Summary Stats -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-value">{{ $totalConcerns }}</div>
-                <div class="stat-label">Total Repairs/Damages</div>
-            </div>
-            <div class="stat-card green">
-                <div class="stat-value">₱{{ number_format($totalCost, 2) }}</div>
-                <div class="stat-label">
-                    Total Cost
-                    <a href="#" data-bs-toggle="modal" data-bs-target="#costModal" style="color: #fff; text-decoration: underline;">View Details</a>
-                </div>
-            </div>
-            <div class="stat-card orange">
-                <div class="stat-value">{{ $locationStats->count() }}</div>
-                <div class="stat-label">
-                    Frequently Fixed Room
-                    <a href="#" data-bs-toggle="modal" data-bs-target="#roomsModal" style="color: #fff; text-decoration: underline;">See Room</a>
-                </div>
-            </div>
-            <div class="stat-card yellow">
-                <div class="stat-value">{{ $totalConcerns > 0 ? number_format($totalCost / $totalConcerns, 2) : 0 }}</div>
-                <div class="stat-label">Average Cost per Repair</div>
-            </div>
-        </div>
-
-        <!-- Filter Section -->
-        <div class="filter-section">
-            <form method="GET" action="{{ route('admin.reports', ['view' => 'analytics']) }}" class="filter-form">
-                <div class="filter-group">
-                    <label for="date_from">Date From</label>
-                    <input type="date" name="date_from" id="date_from" value="{{ request('date_from') }}">
-                </div>
-                <div class="filter-group">
-                    <label for="date_to">Date To</label>
-                    <input type="date" name="date_to" id="date_to" value="{{ request('date_to') }}">
-                </div>
-                <div class="filter-group">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-filter"></i> Filter
-                    </button>
-                    <a href="{{ route('admin.reports', ['view' => 'analytics']) }}" class="btn-reset">
-                        <i class="fas fa-times"></i> Reset
-                    </a>
-                </div>
-            </form>
-        </div>
-
-        <!-- ── TREND ALERTS ─────────────────────────────────────────────── -->
-        @if(isset($trendAlerts) && $trendAlerts->count() > 0)
-        <div class="analytics-card">
-
-            {{-- ALERTS & NOTIFICATIONS --}}
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <div class="analytics-title" style="font-size:1rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">
-                    <i class="fas fa-bell text-danger me-2"></i> Alerts &amp; Notifications
-                    <span class="badge bg-danger ms-2">{{ $trendAlerts->count() }}</span>
-                </div>
-            </div>
-
-            <div class="mb-4">
-                @foreach($trendAlerts as $alert)
-                @php
-                    $borderColor = $alert['severity'] === 'critical' ? '#ef4444' : ($alert['severity'] === 'warning' ? '#f97316' : '#f59e0b');
-                    $bgColor     = $alert['severity'] === 'critical' ? '#fef2f2' : ($alert['severity'] === 'warning' ? '#fff7ed' : '#fffbeb');
-                    $iconColor   = $alert['severity'] === 'critical' ? '#ef4444' : ($alert['severity'] === 'warning' ? '#f97316' : '#f59e0b');
-                    $timeAgo     = isset($alert['updated_at']) && $alert['updated_at'] ? \Carbon\Carbon::parse($alert['updated_at'])->diffForHumans(null, true, true) : 'recently';
-                @endphp
-                <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;border-left:4px solid {{ $borderColor }};background:{{ $bgColor }};border-radius:8px;margin-bottom:10px;cursor:pointer;"
-                    onclick="showCostTrendModal({{ json_encode($alert) }})">
-                    <div style="width:36px;height:36px;border-radius:50%;background:{{ $iconColor }};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                        <i class="fas fa-triangle-exclamation" style="color:#fff;font-size:15px;"></i>
-                    </div>
-                    <div style="flex:1;">
-                        <div style="font-weight:700;font-size:.95rem;color:#1e293b;">{{ $alert['alert_title'] ?? 'Trend Detected' }}</div>
-                        <div style="font-size:.82rem;color:#64748b;">
-                            @if(!empty($alert['top_issue'])){{ $alert['top_issue'] }} on {{ $alert['location'] }}@else{{ $alert['location'] }}@endif
-                            &mdash; {{ $alert['severity'] === 'critical' ? 'Replacement recommended' : ($alert['severity'] === 'warning' ? 'Approaching threshold' : 'Trend detected') }}
-                        </div>
-                    </div>
-                    <div style="font-size:.78rem;color:#94a3b8;white-space:nowrap;">{{ $timeAgo }}</div>
-                </div>
-                @endforeach
-            </div>
-
-            <hr style="border-color:#e2e8f0;margin:20px 0;">
-
-            {{-- RECOMMENDATION ENGINE --}}
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <div class="analytics-title" style="font-size:1rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">
-                    <i class="fas fa-lightbulb text-warning me-2"></i> Recommendation Engine
-                </div>
-            </div>
-
-            <div>
-                @foreach($trendAlerts as $alert)
-                @php
-                    $recColor = $alert['rec_color'] ?? 'info';
-                    $recIcon  = $recColor === 'success' ? 'fa-check' : ($recColor === 'warning' ? 'fa-wrench' : 'fa-xmark');
-                    $recBg    = $recColor === 'success' ? '#22c55e' : ($recColor === 'warning' ? '#f97316' : '#ef4444');
-                    $recText  = $recColor === 'success' ? '#16a34a' : ($recColor === 'warning' ? '#ea580c' : '#dc2626');
-                @endphp
-                <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:10px;cursor:pointer;transition:all 0.2s ease;"
-                    onclick="showCostTrendModal({{ json_encode($alert) }})"
-                    onmouseover="this.style.background='#f8fafc';this.style.borderColor='#cbd5e1';"
-                    onmouseout="this.style.background='#fff';this.style.borderColor='#e2e8f0';">
-                    <div style="width:40px;height:40px;border-radius:50%;background:{{ $recBg }};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                        <i class="fas {{ $recIcon }}" style="color:#fff;font-size:16px;"></i>
-                    </div>
-                    <div style="flex:1;">
-                        <div style="font-weight:700;font-size:.95rem;color:{{ $recText }};">{{ $alert['recommendation'] ?? 'Monitor' }}</div>
-                        <div style="font-size:.82rem;color:#64748b;">@if(!empty($alert['top_issue'])){{ $alert['top_issue'] }} on {{ $alert['location'] }}@else{{ $alert['location'] }}@endif</div>
-                    </div>
-                    <div style="font-size:.82rem;color:#64748b;max-width:180px;text-align:right;">{{ $alert['rec_desc'] ?? '' }}</div>
-                    <i class="fas fa-chevron-right" style="color:#cbd5e1;font-size:13px;"></i>
-                </div>
-                @endforeach
-            </div>
-
-        </div>
-        @endif
-
-        <!-- Combined Cost by Location -->
-        <div class="analytics-card">
-            <div class="analytics-header">
-                <div class="analytics-title">
-                    <i class="fas fa-map-marker-alt"></i> Combined Cost by Location (All Tickets)
-                </div>
-            </div>
-                <table class="analytics-table">
-                    <thead>
-                        <tr>
-                            <th>Location</th>
-                            <th>Total Tickets</th>
-                            <th>Total Cost</th>
-                            <th>Avg Cost per Ticket</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($combinedLocationStats ?? [] as $stat)
-                        <tr>
-                            <td>{{ $stat['location'] }}</td>
-                            <td><span class="count-badge">{{ $stat['total_count'] }}</span></td>
-                            <td><span class="cost-badge">₱{{ number_format($stat['total_cost'], 2) }}</span></td>
-                            <td>₱{{ number_format($stat['total_count'] > 0 ? $stat['total_cost'] / $stat['total_count'] : 0, 2) }}</td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="4" class="text-center">No data found</td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Repair/Damage Details -->
-        <div class="analytics-card">
-            <div class="analytics-header">
-                <div class="analytics-title">
-                    <i class="fas fa-list"></i> Reports Details
-                </div>
-            </div>
-            
-            @if($reports->count() > 0)
-            <div class="table-responsive">
-                <table class="analytics-table">
-                    <thead>
-                        <tr>
-                            <th>Location</th>
-                            <th>Damage</th>
-                            <th>Date and Time Fixed</th>
-                            <th>Repair Cost</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($reports as $report)
-                        <tr>
-                            <td>{{ $report->location }}</td>
-                            <td>{{ $report->damaged_part ?? 'N/A' }}</td>
-                            <td>{{ $report->resolved_at ? \Carbon\Carbon::parse($report->resolved_at)->format('M d, Y g:i A') : 'Not Fixed' }}</td>
-                            <td><span class="cost-badge">₱{{ number_format($report->cost ?? 0, 2) }}</span></td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-            @else
-            <div class="alert-info">
-                <i class="fas fa-info-circle"></i> No reports with location and date fixed data found for the selected period.
-            </div>
-            @endif
-        </div>
-
-        <!-- Charts Section -->
-        <div class="row mb-4">
-            <div class="col-md-6">
-                <div class="analytics-card">
-                    <div class="analytics-header">
-                        <div class="analytics-title">
-                            <i class="fas fa-chart-pie"></i> Repairs by Location
-                        </div>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="locationPieChart"></canvas>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="analytics-card">
-                    <div class="analytics-header">
-                        <div class="analytics-title">
-                            <i class="fas fa-chart-bar"></i> Cost by Location
-                        </div>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="locationBarChart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Additional Charts Row -->
-        <div class="row mb-4">
-            <div class="col-md-6">
-                <div class="analytics-card">
-                    <div class="analytics-header">
-                        <div class="analytics-title">
-                            <i class="fas fa-chart-line"></i> Status Distribution
-                        </div>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="statusDoughnutChart"></canvas>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="analytics-card">
-                    <div class="analytics-header">
-                        <div class="analytics-title">
-                            <i class="fas fa-chart-area"></i> Monthly Trend
-                        </div>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="monthlyTrendChart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <script>
-        (function() {
-            var locations = {!! json_encode($chartLocations ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
-            var counts    = {!! json_encode($chartCounts ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
-            var costs     = {!! json_encode($chartCosts ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
-            var statuses  = {!! json_encode($chartStatuses ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
-            var statusCounts = {!! json_encode($chartStatusCounts ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
-            var monthly   = {!! json_encode(isset($monthlyStats) ? $monthlyStats->map(fn($s) => ['month' => \Carbon\Carbon::parse($s->month)->format('M Y'), 'count' => $s->total_count, 'cost' => $s->total_cost])->values() : [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
-
-            var colors = ['#FF6384','#36A2EB','#FFCE56','#4BC0C0','#9966FF','#FF9F40','#C9CBCF','#4BC0C0'];
-
-            function buildCharts() {
-                if (typeof Chart === 'undefined') { setTimeout(buildCharts, 100); return; }
-
-                // Pie — Repairs by Location
-                var pieEl = document.getElementById('locationPieChart');
-                if (pieEl && locations.length > 0) {
-                    new Chart(pieEl, { type: 'pie', data: { labels: locations, datasets: [{ data: counts, backgroundColor: colors, borderWidth: 2 }] }, options: { responsive: true, plugins: { legend: { position: 'bottom' } } } });
-                }
-
-                // Bar — Cost by Location
-                var barEl = document.getElementById('locationBarChart');
-                if (barEl && locations.length > 0) {
-                    new Chart(barEl, { type: 'bar', data: { labels: locations, datasets: [{ label: 'Total Cost (₱)', data: costs, backgroundColor: '#36A2EB', borderWidth: 1 }] }, options: { responsive: true, scales: { y: { beginAtZero: true, ticks: { callback: function(v){ return '₱'+v.toLocaleString(); } } } } } });
-                }
-
-                // Doughnut — Status Distribution
-                var doughEl = document.getElementById('statusDoughnutChart');
-                if (doughEl && statuses.length > 0) {
-                    new Chart(doughEl, { type: 'doughnut', data: { labels: statuses, datasets: [{ data: statusCounts, backgroundColor: colors, borderWidth: 2 }] }, options: { responsive: true, plugins: { legend: { position: 'bottom' } } } });
-                }
-
-                // Line — Monthly Trend
-                var lineEl = document.getElementById('monthlyTrendChart');
-                if (lineEl && monthly.length > 0) {
-                    var months = monthly.map(function(i){ return i.month; });
-                    var mCounts = monthly.map(function(i){ return i.count; });
-                    var mCosts  = monthly.map(function(i){ return i.cost; });
-                    new Chart(lineEl, { type: 'line', data: { labels: months, datasets: [
-                        { label: 'Repairs', data: mCounts, borderColor: '#36A2EB', backgroundColor: 'rgba(54,162,235,0.1)', tension: 0.4, yAxisID: 'y' },
-                        { label: 'Cost (₱)', data: mCosts, borderColor: '#FF6384', backgroundColor: 'rgba(255,99,132,0.1)', tension: 0.4, yAxisID: 'y1' }
-                    ]}, options: { responsive: true, scales: {
-                        y: {
-                            type: 'linear', position: 'left',
-                            beginAtZero: true,
-                            ticks: {
-                                stepSize: 1,
-                                precision: 0,
-                                callback: function(v) {
-                                    return Number.isInteger(v) ? v + (v === 1 ? ' repair' : ' repairs') : null;
-                                }
-                            }
-                        },
-                        y1: {
-                            type: 'linear', position: 'right',
-                            beginAtZero: true,
-                            grid: { drawOnChartArea: false },
-                            ticks: { callback: function(v){ return '₱' + v.toLocaleString(); } }
-                        }
-                    }}});
-                }
-            }
-            buildCharts();
-        })();
-        </script>
-    </div>
-
-<!-- Rooms Modal -->
-<div class="modal fade" id="roomsModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Frequently Fixed Rooms</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                @foreach($locationStats as $stat)
-                <div class="room-item" onclick="showRoomDetails({{ json_encode($stat['location']) }})" style="cursor: pointer; padding: 10px; border-bottom: 1px solid #eee;">
-                    <strong>{{ $stat['location'] }}</strong> - {{ $stat['count'] }} repairs, Total Cost: ₱{{ number_format($stat['total_cost'], 2) }}
-                </div>
-                @endforeach
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Room Details Modal -->
-<div class="modal fade" id="roomDetailsModal" tabindex="-1">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Repairs for <span id="roomName"></span></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="roomDetailsBody">
-                <!-- Details will be loaded here -->
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Cost Modal -->
-<div class="modal fade" id="costModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Cost Breakdown</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6>Total Repairs/Damages</h6>
-                        <p class="h4 text-primary">{{ $totalConcerns }}</p>
-                    </div>
-                    <div class="col-md-6">
-                        <h6>Total Cost</h6>
-                        <p class="h4 text-success">₱{{ number_format($totalCost, 2) }}</p>
-                    </div>
-                </div>
-                <hr>
-                <h6>Cost by Location</h6>
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Location</th>
-                                <th>Repairs</th>
-                                <th>Total Cost</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($locationStats->sortByDesc('total_cost') as $stat)
-                            <tr>
-                                <td>{{ $stat['location'] }}</td>
-                                <td>{{ $stat['count'] }}</td>
-                                <td>₱{{ number_format($stat['total_cost'], 2) }}</td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-    @endif
 </div>
 
 <!-- Permanent Delete All Confirmation Modal for Deleted Concerns -->
@@ -1174,182 +730,6 @@
 </div>
 @endif
 @endsection
-
-<style>
-.analytics-card {
-    background: var(--card-bg, #fff);
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    margin-bottom: 20px;
-}
-
-.analytics-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.analytics-title {
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: var(--text-color, #333);
-}
-
-/* Trend Alerts */
-.trend-alert-item { display:flex; align-items:center; gap:12px; padding:12px 16px; border-radius:8px; margin-bottom:10px; }
-.trend-alert-item.critical { background:#fde8ea; border-left:4px solid #dc3545; }
-.trend-alert-item.warning  { background:#fff8e1; border-left:4px solid #ffc107; }
-.trend-alert-item.info     { background:#e8f4fd; border-left:4px solid #17a2b8; }
-.trend-alert-icon { font-size:1.3rem; }
-.trend-alert-text { flex:1; }
-.trend-alert-text strong { display:block; font-size:.95rem; }
-.trend-alert-text span   { font-size:.82rem; color:#666; }
-
-/* Period Comparison */
-.period-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; margin-bottom:16px; }
-.period-card { background:#fff; border-radius:10px; padding:16px 18px; box-shadow:0 2px 8px rgba(0,0,0,.07); border-left:4px solid #667eea; }
-.period-card.up      { border-left-color:#dc3545; }
-.period-card.down    { border-left-color:#28a745; }
-.period-card.neutral { border-left-color:#6c757d; }
-.period-label { font-size:.78rem; color:#888; margin-bottom:4px; }
-.period-value { font-size:1.5rem; font-weight:700; }
-.period-sub   { font-size:.8rem; color:#555; margin-top:4px; }
-.chg-badge { display:inline-block; padding:1px 7px; border-radius:10px; font-size:.76rem; font-weight:600; }
-.chg-badge.up      { background:#fde8ea; color:#dc3545; }
-.chg-badge.down    { background:#e6f9f0; color:#28a745; }
-.chg-badge.neutral { background:#f0f0f0; color:#6c757d; }
-
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
-    margin-bottom: 30px;
-}
-
-.stat-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 20px;
-    border-radius: 10px;
-    text-align: center;
-}
-
-.stat-card.green {
-    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-}
-
-.stat-card.orange {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-}
-
-.stat-card.yellow {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-}
-
-.chart-container {
-    position: relative;
-    height: 300px;
-    width: 100%;
-}
-
-.stat-value {
-    font-size: 2rem;
-    font-weight: bold;
-    margin-bottom: 5px;
-}
-
-.stat-label {
-    font-size: 0.9rem;
-    opacity: 0.9;
-}
-
-.filter-section {
-    background: var(--card-bg, #fff);
-    border-radius: 10px;
-    padding: 20px;
-    margin-bottom: 20px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
-
-.filter-form {
-    display: flex;
-    gap: 15px;
-    align-items: flex-end;
-    flex-wrap: wrap;
-}
-
-.filter-group {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
-
-.filter-group label {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--text-color, #333);
-}
-
-.filter-group input {
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    font-size: 0.9rem;
-}
-
-.btn-reset {
-    padding: 8px 15px;
-    background: #6c757d;
-    color: white;
-    text-decoration: none;
-    border-radius: 5px;
-    font-size: 0.9rem;
-}
-
-.btn-reset:hover {
-    background: #5a6268;
-    color: white;
-}
-
-.analytics-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.analytics-table th,
-.analytics-table td {
-    padding: 12px;
-    text-align: center;
-    border-bottom: 1px solid #eee;
-    vertical-align: middle;
-}
-
-.analytics-table th {
-    background: #f8f9fa;
-    font-weight: 600;
-    color: #333;
-    text-align: center;
-    white-space: nowrap;
-}
-
-.analytics-table tbody td {
-    text-align: center;
-}
-
-.analytics-table tr:hover {
-    background: #f8f9fa;
-}
-
-.cost-badge {
-    background: #28a745;
-    color: white;
-    padding: 4px 10px;
-    border-radius: 15px;
-    font-size: 0.85rem;
-}
-</style>
 
 <style>
 .dropdown-menu {
@@ -1468,7 +848,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.chartStatuses  = {!! json_encode($chartStatuses ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) !!};
     window.chartStatusCounts = {!! json_encode($chartStatusCounts ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) !!};
     window.monthlyData    = {!! json_encode(
-        isset($monthlyStats) ? $monthlyStats->map(fn($s) => ['month' => \Carbon\Carbon::parse($s->month)->format('M Y'), 'count' => $s->total_count, 'cost' => $s->total_cost])->values() : [],
+        isset($monthlyStats) ? $monthlyStats->map(fn($s) => ['month' => $s->month, 'title' => $s->title, 'count' => $s->total_count])->values() : [],
         JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
     ) !!};
     @endif
@@ -1582,73 +962,126 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Line Chart for Monthly Trend
+    // Line Chart for Monthly Trend — one line per issue type
     const monthlyTrendCtx = document.getElementById('monthlyTrendChart');
-    if (monthlyTrendCtx && window.monthlyData.length > 0) {
-        const months = window.monthlyData.map(item => item.month);
-        const counts = window.monthlyData.map(item => item.count);
-        const costs = window.monthlyData.map(item => item.cost);
+    if (monthlyTrendCtx) {
+        // Build 6-month label range
+        const monthLabels = [];
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(1);
+            d.setMonth(d.getMonth() - i);
+            const key = d.toISOString().slice(0, 7); // YYYY-MM
+            const label = d.toLocaleDateString('en-PH', { month: 'short', year: 'numeric' });
+            monthLabels.push({ key, label });
+        }
+
+        // Group data by issue title
+        const issueMap = {};
+        window.monthlyData.forEach(item => {
+            if (!issueMap[item.title]) issueMap[item.title] = {};
+            issueMap[item.title][item.month] = item.count;
+        });
+
+        // Color palette
+        const palette = [
+            '#36A2EB', '#FF6384', '#FFCE56', '#4BC0C0',
+            '#9966FF', '#FF9F40', '#22C55E', '#F97316',
+            '#7BC8A4', '#EC4899'
+        ];
+
+        const datasets = Object.entries(issueMap).map(([title, monthData], idx) => ({
+            label: title,
+            data: monthLabels.map(m => monthData[m.key] || 0),
+            borderColor: palette[idx % palette.length],
+            backgroundColor: palette[idx % palette.length] + '22',
+            borderWidth: 2.5,
+            pointRadius: 5,
+            pointHoverRadius: 7,
+            pointBackgroundColor: palette[idx % palette.length],
+            tension: 0.3,
+            fill: false,
+        }));
+
+        // Plugin to draw issue name label at the last non-zero point of each line
+        const endLabelPlugin = {
+            id: 'endLabel',
+            afterDatasetsDraw(chart) {
+                const ctx = chart.ctx;
+                chart.data.datasets.forEach((dataset, i) => {
+                    const meta = chart.getDatasetMeta(i);
+                    if (meta.hidden) return;
+
+                    // Find last point with value > 0
+                    let lastIdx = -1;
+                    for (let j = dataset.data.length - 1; j >= 0; j--) {
+                        if (dataset.data[j] > 0) { lastIdx = j; break; }
+                    }
+                    if (lastIdx === -1) return;
+
+                    const point = meta.data[lastIdx];
+                    const x = point.x + 8;
+                    const y = point.y;
+
+                    ctx.save();
+                    ctx.font = 'bold 11px sans-serif';
+                    ctx.fillStyle = dataset.borderColor;
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(dataset.label, x, y);
+                    ctx.restore();
+                });
+            }
+        };
 
         new Chart(monthlyTrendCtx, {
             type: 'line',
+            plugins: [endLabelPlugin],
             data: {
-                labels: months,
-                datasets: [{
-                    label: 'Number of Repairs',
-                    data: counts,
-                    borderColor: '#36A2EB',
-                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
-                    tension: 0.4,
-                    yAxisID: 'y'
-                }, {
-                    label: 'Total Cost (₱)',
-                    data: costs,
-                    borderColor: '#FF6384',
-                    backgroundColor: 'rgba(255, 99, 132, 0.1)',
-                    tension: 0.4,
-                    yAxisID: 'y1'
-                }]
+                labels: monthLabels.map(m => m.label),
+                datasets: datasets
             },
             options: {
                 responsive: true,
+                layout: { padding: { right: 90 } }, // space for end labels
+                interaction: { mode: 'index', intersect: false },
                 scales: {
-                    y: {
-                        type: 'linear',
-                        display: true,
-                        position: 'left',
-                        title: {
-                            display: true,
-                            text: 'Number of Repairs'
-                        }
+                    x: {
+                        ticks: { font: { size: 11 } },
+                        grid: { display: false }
                     },
-                    y1: {
-                        type: 'linear',
-                        display: true,
-                        position: 'right',
-                        title: {
-                            display: true,
-                            text: 'Total Cost (₱)'
-                        },
-                        grid: {
-                            drawOnChartArea: false,
-                        },
+                    y: {
+                        min: 0,
+                        title: { display: true, text: 'Reports' },
                         ticks: {
-                            callback: function(value) {
-                                return '₱' + value.toLocaleString();
-                            }
-                        }
+                            stepSize: 1,
+                            callback: v => v
+                        },
+                        grid: { color: 'rgba(0,0,0,0.05)' }
                     }
                 },
                 plugins: {
+                    legend: {
+                        display: true,
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                            padding: 20,
+                            font: { size: 13, weight: 'bold' },
+                            generateLabels: chart => chart.data.datasets.map((ds, i) => ({
+                                text: ds.label,
+                                fillStyle: ds.borderColor,
+                                strokeStyle: ds.borderColor,
+                                pointStyle: 'circle',
+                                hidden: chart.getDatasetMeta(i).hidden,
+                                datasetIndex: i
+                            }))
+                        }
+                    },
                     tooltip: {
                         callbacks: {
-                            label: function(context) {
-                                if (context.datasetIndex === 0) {
-                                    return 'Repairs: ' + context.parsed.y;
-                                } else {
-                                    return 'Cost: ₱' + context.parsed.y.toLocaleString();
-                                }
-                            }
+                            label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y} ${ctx.parsed.y === 1 ? 'report' : 'reports'}`
                         }
                     }
                 }
@@ -1661,6 +1094,7 @@ document.addEventListener('DOMContentLoaded', function() {
 @if(($viewType ?? '') == 'analytics')
     initializeCharts();
 @endif
+}); // Close first DOMContentLoaded
 
 document.addEventListener('touchend', function() {
     clearTimeout(longPressTimer);
@@ -2073,27 +1507,41 @@ function deletedReportsContextView() {
 
 function deletedReportsContextRestore() {
     hideDeletedReportsContextMenu();
-    if (confirm('Are you sure you want to restore this concern?')) {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '/admin/deleted-reports/' + currentDeletedReportId + '/restore';
-        
-        const csrfToken = document.createElement('input');
-        csrfToken.type = 'hidden';
-        csrfToken.name = '_token';
-        csrfToken.value = '{{ csrf_token() }}';
-        form.appendChild(csrfToken);
-        
-        document.body.appendChild(form);
-        form.submit();
-    }
+    confirmRestore({
+        title: 'Restore Report?',
+        text: 'This will move the report back to active reports.',
+        confirmButtonText: '<i class="fas fa-trash-restore me-1"></i> Restore'
+    }).then(result => {
+        if (result.isConfirmed) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/admin/deleted-reports/' + currentDeletedReportId + '/restore';
+            
+            const csrfToken = document.createElement('input');
+            csrfToken.type = 'hidden';
+            csrfToken.name = '_token';
+            csrfToken.value = '{{ csrf_token() }}';
+            form.appendChild(csrfToken);
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
 }
 
 function deletedReportsContextPermanentDelete() {
     hideDeletedReportsContextMenu();
-    const modalId = 'deletedReportsPermanentDeleteModal' + currentDeletedReportId;
-    const modal = new bootstrap.Modal(document.getElementById(modalId));
-    modal.show();
+    confirmPermanentDelete({
+        title: 'Permanently Delete Report?',
+        html: '<p class="mb-2"><strong>Warning:</strong> This action cannot be undone!</p><p class="text-muted">The report will be permanently removed from the database.</p>',
+        confirmButtonText: '<i class="fas fa-ban me-1"></i> Delete Forever'
+    }).then(result => {
+        if (result.isConfirmed) {
+            const modalId = 'deletedReportsPermanentDeleteModal' + currentDeletedReportId;
+            const modal = new bootstrap.Modal(document.getElementById(modalId));
+            modal.show();
+        }
+    });
 }
 
 // Add right-click listeners to deleted reports table rows
@@ -2126,84 +1574,104 @@ let currentReportId = null;
 
 // Show Archive Modal
 function showReportArchiveModal(reportId) {
-    currentReportId = reportId;
-    const modal = new bootstrap.Modal(document.getElementById('reportArchiveModal'));
-    modal.show();
+    confirmArchive({
+        title: 'Archive Report?',
+        text: 'This report will be archived and hidden from your active list.',
+        confirmButtonText: '<i class="fas fa-archive me-1"></i> Archive'
+    }).then(result => {
+        if (result.isConfirmed) {
+            // Show loading
+            getSwal().fire({
+                title: 'Archiving...',
+                html: '<div class="spinner-border text-primary"></div>',
+                showConfirmButton: false,
+                allowOutsideClick: false
+            });
+            
+            fetch('/reports/' + reportId + '/archive', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    swalToast('Report archived successfully!', 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    swalAlert(data.error || 'Failed to archive report', 'error', 'Error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                swalAlert('An error occurred while archiving the report', 'error', 'Error');
+            });
+        }
+    });
 }
 
-// Confirm Archive
+// Confirm Archive (legacy - redirects to new function)
 function confirmReportArchive() {
     if (!currentReportId) return;
-
-    fetch('/reports/' + currentReportId + '/archive', {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Close modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('reportArchiveModal'));
-            modal.hide();
-            // Reload page to update the table
-            location.reload();
-        } else {
-            alert('Error: ' + (data.error || 'Failed to archive report'));
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('An error occurred while archiving the report');
-    });
+    showReportArchiveModal(currentReportId);
 }
 
 // Show Delete Modal
 function showReportDeleteModal(reportId) {
-    currentReportId = reportId;
-    const modal = new bootstrap.Modal(document.getElementById('reportDeleteModal'));
-    modal.show();
+    confirmDelete({
+        title: 'Delete Report?',
+        text: 'This report will be moved to deleted. You can restore it later.',
+        confirmButtonText: '<i class="fas fa-trash me-1"></i> Delete'
+    }).then(result => {
+        if (result.isConfirmed) {
+            // Show loading
+            getSwal().fire({
+                title: 'Deleting...',
+                html: '<div class="spinner-border text-danger"></div>',
+                showConfirmButton: false,
+                allowOutsideClick: false
+            });
+            
+            fetch('/reports/' + reportId, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('HTTP error! status: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    swalToast('Report deleted successfully!', 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    swalAlert(data.error || 'Failed to delete report', 'error', 'Error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                swalAlert('An error occurred while deleting the report', 'error', 'Error');
+            });
+        }
+    });
 }
 
-// Confirm Delete
+// Confirm Delete (legacy - redirects to new function)
 function confirmReportDelete() {
     if (!currentReportId || isNaN(currentReportId)) {
-        alert('Invalid report ID');
+        swalAlert('Invalid report ID', 'error', 'Error');
         return;
     }
-
-    fetch('/reports/' + currentReportId, {
-        method: 'DELETE',
-        headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        }
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('HTTP error! status: ' + response.status);
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
-            // Close modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('reportDeleteModal'));
-            modal.hide();
-            // Reload page to update the table
-            location.reload();
-        } else {
-            alert('Error: ' + (data.error || 'Failed to delete report'));
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('An error occurred while deleting the report');
-    });
+    showReportDeleteModal(currentReportId);
 }
 
 // Store current concern ID for assignment
@@ -2213,125 +1681,492 @@ let currentConcernId = null;
 window.assignReport = function(id) {
     window.currentReportId = id;
     window.currentConcernId = null;
-    window.showAssignModal();
+    window.startAssignWizard();
 }
 
-// Show Assign Modal
-window.showAssignModal = function showAssignModal() {
+// Single-step assign wizard
+window.startAssignWizard = async function() {
+    const reportId  = window.currentReportId;
     const concernId = window.currentConcernId;
-    const reportId = window.currentReportId;
 
-    if (!concernId && !reportId) {
-        alert('No item selected');
-        return;
+    if (!reportId && !concernId) return;
+
+    const itemId   = reportId || concernId;
+    const itemType = reportId ? 'report' : 'concern';
+
+    // Load staff list
+    let staffOptions = '<option value="">Loading...</option>';
+    try {
+        const res   = await fetch('/admin/maintenance-users', {
+            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+            credentials: 'same-origin'
+        });
+        const data  = await res.json();
+        if (data.users && data.users.length) {
+            staffOptions = '<option value="">-- Select maintenance staff --</option>'
+                + data.users.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
+        } else {
+            staffOptions = '<option value="">No maintenance staff found</option>';
+        }
+    } catch(e) {
+        staffOptions = '<option value="">Error loading staff</option>';
     }
 
-    const modal = new bootstrap.Modal(document.getElementById('assignConcernModal'));
-    const select = document.getElementById('assigned_to');
-    const form = document.getElementById('assignConcernForm');
-
-    // Determine if it's a concern or report
-    const isReport = !!reportId;
-    const itemId = isReport ? reportId : concernId;
-    const itemType = isReport ? 'report' : 'concern';
-
-    // Set the ID
-    document.getElementById('assignConcernId').value = itemId;
-
-    // Set data attribute for type
-    form.setAttribute('data-type', itemType);
-
-    // Set the form action for non-JS fallback
-    form.action = '/admin/' + itemType + '/' + itemId + '/assign';
-    
-    // Load maintenance staff list
-    select.innerHTML = '<option value="">Loading...</option>';
-    
-    fetch('/admin/maintenance-users', {
-        method: 'GET',
-        headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-            'Content-Type': 'application/json'
-        },
-        credentials: 'same-origin'
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) {
-            select.innerHTML = '<option value="">Error loading users</option>';
-            return;
+    // Show single-step assign dialog
+    const result = await getSwal().fire({
+        title: `Assign ${itemType.charAt(0).toUpperCase() + itemType.slice(1)}`,
+        html: `
+            <div class="text-start">
+                <p class="mb-3">Assign to Maintenance Staff</p>
+                <select id="swal-staff-select" class="form-select" style="width:100%;">
+                    ${staffOptions}
+                </select>
+            </div>`,
+        confirmButtonText: '<i class="fas fa-user-plus me-1"></i> Assign',
+        cancelButtonText: 'Cancel',
+        showCancelButton: true,
+        confirmButtonColor: '#0d6efd',
+        cancelButtonColor: '#6c757d',
+        width: 500,
+        preConfirm: () => {
+            const val = document.getElementById('swal-staff-select').value;
+            if (!val) {
+                Swal.showValidationMessage('Please select a staff member');
+                return false;
+            }
+            return val;
         }
-        
-        select.innerHTML = '<option value="">Select maintenance staff</option>';
-        data.users.forEach(user => {
-            select.innerHTML += `<option value="${user.id}">${user.name}</option>`;
-        });
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        select.innerHTML = '<option value="">Error loading users</option>';
     });
+
+    if (!result.isConfirmed) return;
     
-    modal.show();
-}
+    const selectedStaffId = result.value;
+    const selectedStaffName = document.getElementById('swal-staff-select').options[
+        document.getElementById('swal-staff-select').selectedIndex
+    ].text;
 
-// Handle assign form submission
-const assignForm = document.getElementById('assignConcernForm');
-if (assignForm) {
-    assignForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-
-        const itemId = document.getElementById('assignConcernId').value;
-        const assignedTo = document.getElementById('assigned_to').value;
-        const itemType = this.getAttribute('data-type') || 'concern';
-
-        if (!assignedTo) {
-            alert('Please select a maintenance staff');
-            return;
+    // Show loading
+    getSwal().fire({
+        title: 'Assigning...',
+        html: '<div class="text-center"><div class="spinner-border text-primary" role="status"></div></div>',
+        showConfirmButton: false,
+        allowOutsideClick: false,
+        didOpen: () => {
+            getSwal().showLoading();
         }
+    });
 
-        const formData = new FormData();
-        formData.append('assigned_to', assignedTo);
-        formData.append('_token', '{{ csrf_token() }}');
+    // Submit assignment
+    const formData = new FormData();
+    formData.append('assigned_to', selectedStaffId);
+    formData.append('notes', '');
+    formData.append('_token', '{{ csrf_token() }}');
 
-        fetch('/admin/' + itemType + '/' + itemId + '/assign', {
+    try {
+        const res  = await fetch('/admin/' + itemType + '/' + itemId + '/assign', {
             method: 'POST',
             credentials: 'same-origin',
-            headers: {
-                'Accept': 'application/json'
-            },
+            headers: { 'Accept': 'application/json' },
             body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                bootstrap.Modal.getInstance(document.getElementById('assignConcernModal')).hide();
-                alert(itemType.charAt(0).toUpperCase() + itemType.slice(1) + ' assigned successfully!');
-                location.reload();
-            } else {
-                alert(data.error || 'Failed to assign ' + itemType);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error assigning ' + itemType);
         });
-    });
+        const data = await res.json();
+
+        if (data.success) {
+            // Ask building admin to set priority
+            let selectedPriority = null;
+
+            await getSwal().fire({
+                title: 'Set Priority',
+                html: `
+                    <p class="mb-3">${itemType.charAt(0).toUpperCase() + itemType.slice(1)} assigned to <strong>${selectedStaffName}</strong>.</p>
+                    <p class="mb-3">How urgent is this?</p>
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-danger btn-sm swal-priority-btn" data-priority="urgent">
+                            <i class="fas fa-exclamation-circle me-1"></i> Urgent
+                        </button>
+                        <button type="button" class="btn btn-warning btn-sm swal-priority-btn" data-priority="high">
+                            <i class="fas fa-arrow-up me-1"></i> High
+                        </button>
+                        <button type="button" class="btn btn-info btn-sm swal-priority-btn text-white" data-priority="medium">
+                            <i class="fas fa-minus me-1"></i> Medium
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm swal-priority-btn" data-priority="low">
+                            <i class="fas fa-arrow-down me-1"></i> Low
+                        </button>
+                    </div>`,
+                showConfirmButton: false,
+                showCancelButton: false,
+                allowOutsideClick: false,
+                didOpen: (popup) => {
+                    popup.querySelectorAll('.swal-priority-btn').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            selectedPriority = btn.getAttribute('data-priority');
+                            getSwal().close();
+                        });
+                    });
+                }
+            });
+
+            const priority = selectedPriority || 'medium';
+
+            // Save priority to backend
+            const pResponse = await fetch('/admin/' + itemType + '/' + itemId + '/priority', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify({ priority: priority })
+            });
+            const pData = await pResponse.json();
+            console.log('Priority save result:', pData, 'priority sent:', priority);
+
+            await getSwal().fire({
+                icon: 'success',
+                title: 'Done!',
+                text: 'Assigned to ' + selectedStaffName + ' with ' + priority + ' priority.',
+                confirmButtonColor: '#198754',
+                timer: 2000,
+                showConfirmButton: false
+            });
+            location.reload();
+        } else {
+            await getSwal().fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.error || 'Failed to assign ' + itemType,
+                confirmButtonColor: '#dc3545'
+            });
+        }
+    } catch(e) {
+        await getSwal().fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Error assigning ' + itemType,
+            confirmButtonColor: '#dc3545'
+        });
+    }
 }
 
 // Date formatting function
 function formatDate(dateString) {
     const date = new Date(dateString);
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const month = months[date.getMonth()];
     const day = date.getDate();
     const year = date.getFullYear();
     let hours = date.getHours();
     const minutes = date.getMinutes().toString().padStart(2, '0');
     const ampm = hours >= 12 ? 'PM' : 'AM';
-    hours = hours % 12;
-    hours = hours ? hours : 12; // the hour '0' should be '12'
+    hours = hours % 12 || 12;
     return `${month} ${day}, ${year} ${hours}:${minutes} ${ampm}`;
+}
+
+// View task progress via SweetAlert2 Queue
+window.viewReportProgress = async function(id) {
+    // Show loading state in queue
+    getSwal().fire({
+        title: 'Loading Progress...',
+        html: '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>',
+        showConfirmButton: false,
+        allowOutsideClick: false,
+        didOpen: () => {
+            getSwal().showLoading();
+        }
+    });
+
+    try {
+        const res = await fetch('/api/reports/' + id, {
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept': 'application/json'
+            }
+        });
+        const data = await res.json();
+        
+        if (data.error) {
+            // Use queue to show error
+            await getSwal().fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.error,
+                confirmButtonColor: '#dc3545'
+            });
+            return;
+        }
+
+        const r = data.report;
+
+        const statusColor = r.status === 'Resolved'    ? '#198754' :
+                            r.status === 'In Progress'  ? '#ffc107' :
+                            r.status === 'Assigned'     ? '#0d6efd' : '#6c757d';
+
+        const steps = [
+            { label: 'Submitted',    done: true,                          icon: 'fa-file-alt',    date: r.created_at },
+            { label: 'Assigned',     done: !!r.assigned_to,               icon: 'fa-user-plus',   date: r.assigned_at || null, detail: r.assigned_user_name || null },
+            { label: 'In Progress',  done: ['In Progress','Resolved'].includes(r.status), icon: 'fa-spinner', date: null },
+            { label: 'Resolved',     done: r.status === 'Resolved',       icon: 'fa-check-circle', date: r.resolved_at || null },
+        ];
+
+        const timeline = steps.map((s, i) => {
+            const color  = s.done ? '#0d6efd' : '#dee2e6';
+            const txtCol = s.done ? '#0d6efd' : '#aaa';
+            const line   = i < steps.length - 1
+                ? `<div style="width:2px;height:28px;background:${s.done && steps[i+1].done ? '#0d6efd' : '#dee2e6'};margin:0 auto;"></div>`
+                : '';
+            return `
+                <div class="d-flex align-items-start gap-3 mb-1">
+                    <div style="display:flex;flex-direction:column;align-items:center;min-width:36px;">
+                        <div style="width:36px;height:36px;border-radius:50%;background:${color};color:${s.done?'#fff':'#aaa'};display:flex;align-items:center;justify-content:center;font-size:15px;">
+                            <i class="fas ${s.icon}"></i>
+                        </div>
+                        ${line}
+                    </div>
+                    <div class="text-start pt-1">
+                        <div style="font-weight:600;color:${txtCol};">${s.label}</div>
+                        ${s.detail ? `<div style="font-size:12px;color:#666;">→ ${s.detail}</div>` : ''}
+                        ${s.date   ? `<div style="font-size:11px;color:#999;">${s.date}</div>` : ''}
+                    </div>
+                </div>`;
+        }).join('');
+
+        // Determine next action based on current status
+        let nextAction = null;
+        let showProceedButton = false;
+        
+        if (r.status === 'Assigned') {
+            nextAction = { status: 'In Progress', label: 'Start Working', icon: 'fa-play', color: '#ffc107' };
+            showProceedButton = true;
+        } else if (r.status === 'In Progress') {
+            nextAction = { status: 'Resolved', label: 'Mark as Resolved', icon: 'fa-check', color: '#198754' };
+            showProceedButton = true;
+        }
+
+        // Build buttons configuration
+        const buttons = {};
+        if (showProceedButton && nextAction) {
+            buttons.cancel = {
+                text: 'Close',
+                value: null,
+                visible: true,
+                className: 'swal2-cancel',
+                closeModal: true
+            };
+            buttons.confirm = {
+                text: `<i class="fas ${nextAction.icon} me-1"></i> ${nextAction.label}`,
+                value: 'proceed',
+                visible: true,
+                className: 'swal2-confirm',
+                closeModal: false
+            };
+        }
+
+        // Use queue to show progress
+        const result = await getSwal().fire({
+            title: `<span style="font-size:16px;color:#666;">Report #${r.id}</span><br><span style="font-size:20px;">${r.title || (r.description ? r.description.substring(0, 40) : 'No Title')}</span>`,
+            html: `
+                <div class="mb-3">
+                    <span class="badge" style="background:${statusColor};font-size:13px;">${r.status}</span>
+                    ${r.assigned_user_name ? `<span class="ms-2 text-muted" style="font-size:13px;"><i class="fas fa-user me-1"></i>${r.assigned_user_name}</span>` : ''}
+                </div>
+                <div class="p-3 rounded" style="background:#f8f9fa;text-align:left;">
+                    ${timeline}
+                </div>
+                ${r.notes ? `<div class="mt-3 text-start"><small class="text-muted"><strong>Notes:</strong> ${r.notes}</small></div>` : ''}`,
+            showCancelButton: showProceedButton,
+            confirmButtonText: showProceedButton ? `<i class="fas ${nextAction.icon} me-1"></i> ${nextAction.label}` : 'Close',
+            cancelButtonText: 'Close',
+            confirmButtonColor: showProceedButton ? nextAction.color : '#6c757d',
+            cancelButtonColor: '#6c757d',
+            width: 420,
+        });
+
+        // Handle proceed action
+        if (result.isConfirmed && showProceedButton && nextAction) {
+            await proceedReportToNextLevel(id, nextAction.status, r.title);
+        } else if (result.isDismissed || !result.isConfirmed) {
+            // Reload page when user clicks Close or dismisses the modal
+            location.reload();
+        }
+    } catch (error) {
+        // Use queue to show error
+        await getSwal().fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to load report progress. Please try again.',
+            confirmButtonColor: '#dc3545'
+        });
+        console.error('Error loading report progress:', error);
+    }
+};
+
+// Function to proceed report to next level
+async function proceedReportToNextLevel(reportId, newStatus, reportTitle) {
+    // Show confirmation based on status
+    let confirmTitle = '';
+    let confirmText = '';
+    let confirmIcon = '';
+    let confirmColor = '';
+    
+    if (newStatus === 'In Progress') {
+        confirmTitle = 'Start Working on Report?';
+        confirmText = `This will mark "${reportTitle}" as In Progress.`;
+        confirmIcon = 'question';
+        confirmColor = '#ffc107';
+        
+        const confirm = await getSwal().fire({
+            title: confirmTitle,
+            text: confirmText,
+            icon: confirmIcon,
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Proceed',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: confirmColor,
+            cancelButtonColor: '#6c757d'
+        });
+
+        if (!confirm.isConfirmed) {
+            // Re-open the progress view if user cancels
+            await viewReportProgress(reportId);
+            return;
+        }
+        
+        // Proceed with status update (no additional data needed)
+        await updateReportStatus(reportId, newStatus, null, reportTitle);
+        
+    } else if (newStatus === 'Resolved') {
+        // Show resolution form for collecting details
+        const result = await getSwal().fire({
+            title: 'Mark Report as Resolved',
+            html: `
+                <div class="text-start">
+                    <p class="mb-3">Please provide resolution details for "${reportTitle}":</p>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Cost (₱)</label>
+                        <input type="number" id="swal-cost" class="form-control" placeholder="0.00" step="0.01" min="0">
+                        <small class="text-muted">Enter the total cost of repair/replacement</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Damaged Part</label>
+                        <input type="text" id="swal-damaged-part" class="form-control" placeholder="e.g., Door hinge">
+                        <small class="text-muted">What was damaged or broken?</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Replaced With</label>
+                        <input type="text" id="swal-replaced-part" class="form-control" placeholder="e.g., New stainless steel hinge">
+                        <small class="text-muted">What part was used for replacement?</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Resolution Notes</label>
+                        <textarea id="swal-resolution-notes" class="form-control" rows="3" placeholder="Additional details about the resolution..."></textarea>
+                    </div>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: '<i class="fas fa-check me-1"></i> Mark as Resolved',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#198754',
+            cancelButtonColor: '#6c757d',
+            width: 600,
+            preConfirm: () => {
+                const cost = document.getElementById('swal-cost').value;
+                const damagedPart = document.getElementById('swal-damaged-part').value;
+                const replacedPart = document.getElementById('swal-replaced-part').value;
+                const resolutionNotes = document.getElementById('swal-resolution-notes').value;
+                
+                return {
+                    cost: cost ? parseFloat(cost) : null,
+                    damaged_part: damagedPart.trim() || null,
+                    replaced_part: replacedPart.trim() || null,
+                    resolution_notes: resolutionNotes.trim() || null
+                };
+            }
+        });
+
+        if (!result.isConfirmed) {
+            // Re-open the progress view if user cancels
+            await viewReportProgress(reportId);
+            return;
+        }
+        
+        // Proceed with status update including resolution data
+        await updateReportStatus(reportId, newStatus, result.value, reportTitle);
+    }
+}
+
+// Helper function to update report status
+async function updateReportStatus(reportId, newStatus, resolutionData, reportTitle) {
+    // Show loading
+    getSwal().fire({
+        title: 'Updating Status...',
+        html: '<div class="text-center"><div class="spinner-border text-primary" role="status"></div></div>',
+        showConfirmButton: false,
+        allowOutsideClick: false,
+        didOpen: () => {
+            getSwal().showLoading();
+        }
+    });
+
+    try {
+        const requestBody = { status: newStatus };
+        
+        // Add resolution data if provided
+        if (resolutionData) {
+            Object.assign(requestBody, resolutionData);
+        }
+        
+        const response = await fetch(`/reports/${reportId}/update-status`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Show success message briefly
+            await getSwal().fire({
+                icon: 'success',
+                title: 'Success!',
+                text: `Report has been updated to ${newStatus}.`,
+                confirmButtonColor: '#198754',
+                timer: 1500,
+                showConfirmButton: false
+            });
+            
+            // Refresh the progress view to show updated status
+            await viewReportProgress(reportId);
+        } else {
+            await getSwal().fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.error || 'Failed to update report status.',
+                confirmButtonColor: '#dc3545'
+            });
+            // Re-open the progress view after error
+            await viewReportProgress(reportId);
+        }
+    } catch (error) {
+        await getSwal().fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to update report status. Please try again.',
+            confirmButtonColor: '#dc3545'
+        });
+        console.error('Error updating report status:', error);
+        // Re-open the progress view after error
+        await viewReportProgress(reportId);
+    }
 }
 
 // View report function for Building Admin
@@ -2379,13 +2214,21 @@ function viewReport(id) {
             imageHtml = '<div class="mb-3"><p><strong>Photo:</strong></p><img src="' + report.photo_path + '" alt="Report photo" class="img-fluid rounded" style="max-width: 400px;"></div>';
         }
 
+        const canAssign = {{ in_array(auth()->user()->role, ['building_admin', 'school_admin', 'academic_head']) ? 'true' : 'false' }};
+
+        const assignBtn = (canAssign && report.status !== 'Resolved')
+            ? `<button class="btn btn-primary btn-sm ms-2" onclick="bootstrap.Modal.getInstance(document.getElementById('viewConcernModal')).hide(); assignReport(${report.id});">
+                   <i class="fas fa-user-plus"></i> Assign
+               </button>`
+            : '';
+
         bodyDiv.innerHTML = '<div class="card">' +
             '<div class="card-header d-flex justify-content-between align-items-center">' +
                 '<h4>Report #' + report.id + '</h4>' +
-                '<div><span class="badge bg-' + severityClass + ' me-2">' + report.severity.charAt(0).toUpperCase() + report.severity.slice(1) + ' Priority</span><span class="badge bg-' + statusClass + '">' + report.status + '</span></div>' +
+                '<div class="d-flex align-items-center gap-2"><span class="badge bg-' + severityClass + '">' + report.severity.charAt(0).toUpperCase() + report.severity.slice(1) + ' Priority</span><span class="badge bg-' + statusClass + '">' + report.status + '</span>' + assignBtn + '</div>' +
             '</div>' +
             '<div class="card-body">' +
-                '<h5 class="card-title">' + (report.title || 'No Title') + '</h5>' +
+                '<h5 class="card-title">' + (report.title || (report.description ? report.description.substring(0, 40) : 'No Title')) + '</h5>' +
                 '<div class="row mb-3">' +
                     '<div class="col-md-6"><p><strong>Category:</strong> ' + (report.category ? report.category.name : 'N/A') + '</p><p><strong>Location:</strong> ' + report.location + '</p></div>' +
                     '<div class="col-md-6"><p><strong>Reported by:</strong> ' + (report.user ? report.user.name : 'Unknown') + '</p><p><strong>Date:</strong> ' + report.created_at + '</p></div>' +
@@ -2436,49 +2279,47 @@ function acknowledgeConcern(concernId) {
     });
 }
 
-    // Handle retention days dropdown change (only if element exists)
-    document.addEventListener('DOMContentLoaded', function() {
-        const retentionDaysElement = document.getElementById('retentionDays');
-        if (retentionDaysElement) {
-            retentionDaysElement.addEventListener('change', function() {
-                const days = this.value;
-                if (confirm(`Set auto-filter to show reports deleted more than ${days} days ago?`)) {
-                    // Show loading indicator
-                    this.disabled = true;
+// Handle retention days dropdown change (only if element exists)
+const retentionDaysElement = document.getElementById('retentionDays');
+if (retentionDaysElement) {
+    retentionDaysElement.addEventListener('change', function() {
+        const days = this.value;
+        if (confirm(`Set auto-filter to show reports deleted more than ${days} days ago?`)) {
+            // Show loading indicator
+            this.disabled = true;
 
-                    // Make AJAX request to save preference
-                    fetch('{{ route("saveAutoDeletePreference") }}', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                        },
-                        body: JSON.stringify({ days: parseInt(days), module: 'reports' })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Reload the page to show filtered results
-                            window.location.href = '{{ route("admin.reports") }}?view=deleted&days=' + days;
-                        } else {
-                            alert('Error saving preference.');
-                        }
-                    })
-                    .catch(error => {
-                        alert('An error occurred while saving your preference.');
-                        console.error(error);
-                    })
-                    .finally(() => {
-                        // Restore dropdown
-                        this.disabled = false;
-                    });
+            // Make AJAX request to save preference
+            fetch('{{ route("saveAutoDeletePreference") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify({ days: parseInt(days), module: 'reports' })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Reload the page to show filtered results
+                    window.location.href = '{{ route("admin.reports") }}?view=deleted&days=' + days;
                 } else {
-                    // Reset to previous value
-                    this.value = '{{ $days ?? 15 }}';
+                    alert('Error saving preference.');
                 }
+            })
+            .catch(error => {
+                alert('An error occurred while saving your preference.');
+                console.error(error);
+            })
+            .finally(() => {
+                // Restore dropdown
+                this.disabled = false;
             });
+        } else {
+            // Reset to previous value
+            this.value = '{{ $days ?? 15 }}';
         }
     });
+}
 </script>
 
 <script>
@@ -2492,48 +2333,6 @@ function getSelectedReports() {
     const checkboxes = document.querySelectorAll('.report-checkbox:checked');
     return Array.from(checkboxes).map(cb => cb.value);
 }
-
-// Assign Report from table button
-function assignReport(id) {
-    window.currentReportId = id;
-    window.currentConcernId = null;
-
-    const modal = new bootstrap.Modal(document.getElementById('assignConcernModal'));
-    const select = document.getElementById('assigned_to');
-    const form = document.getElementById('assignConcernForm');
-
-    document.getElementById('assignConcernId').value = id;
-    form.setAttribute('data-type', 'report');
-    form.action = '/admin/report/' + id + '/assign';
-
-    select.innerHTML = '<option value="">Loading...</option>';
-
-    fetch('/admin/maintenance-users', {
-        method: 'GET',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-            'Content-Type': 'application/json'
-        },
-        credentials: 'same-origin'
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) {
-            select.innerHTML = '<option value="">Error loading users</option>';
-            return;
-        }
-        select.innerHTML = '<option value="">Select maintenance staff</option>';
-        data.users.forEach(function(user) {
-            select.innerHTML += '<option value="' + user.id + '">' + user.name + '</option>';
-        });
-    })
-    .catch(function() {
-        select.innerHTML = '<option value="">Error loading users</option>';
-    });
-
-    modal.show();
-}
-
 // View Report from table button
 function viewReport(id) {
     window.currentReportId = id;
@@ -2574,14 +2373,22 @@ function viewReport(id) {
         if (report.photo_path) {
             imageHtml = '<div class="mb-3"><p><strong>Photo:</strong></p><img src="' + report.photo_path + '" alt="Report photo" class="img-fluid rounded" style="max-width:400px;"></div>';
         }
+        const canAssign2 = {{ in_array(auth()->user()->role, ['building_admin', 'school_admin', 'academic_head']) ? 'true' : 'false' }};
+
+        const assignBtn2 = (canAssign2 && report.status !== 'Resolved')
+            ? `<button class="btn btn-primary btn-sm ms-2" onclick="bootstrap.Modal.getInstance(document.getElementById('viewConcernModal')).hide(); assignReport(${report.id});">
+                   <i class="fas fa-user-plus"></i> Assign
+               </button>`
+            : '';
+
         bodyDiv.innerHTML = '<div class="card">' +
             '<div class="card-header d-flex justify-content-between align-items-center">' +
                 '<h4>Report #' + report.id + '</h4>' +
-                '<div><span class="badge bg-' + severityClass + ' me-2">' + report.severity.charAt(0).toUpperCase() + report.severity.slice(1) + ' Priority</span>' +
-                '<span class="badge bg-' + statusClass + '">' + report.status + '</span></div>' +
+                '<div class="d-flex align-items-center gap-2"><span class="badge bg-' + severityClass + '">' + report.severity.charAt(0).toUpperCase() + report.severity.slice(1) + ' Priority</span>' +
+                '<span class="badge bg-' + statusClass + '">' + report.status + '</span>' + assignBtn2 + '</div>' +
             '</div>' +
             '<div class="card-body">' +
-                '<h5 class="card-title">' + (report.title || 'No Title') + '</h5>' +
+                '<h5 class="card-title">' + (report.title || (report.description ? report.description.substring(0, 40) : 'No Title')) + '</h5>' +
                 '<div class="row mb-3">' +
                     '<div class="col-md-6"><p><strong>Category:</strong> ' + (report.category ? report.category.name : 'N/A') + '</p>' +
                     '<p><strong>Location:</strong> ' + report.location + '</p></div>' +
@@ -2606,103 +2413,5 @@ function viewReport(id) {
 }
 </script>
 
-<!-- Cost Trend Modal -->
-<div class="modal fade" id="costTrendModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="fas fa-chart-line me-2"></i><span id="ctm_title"></span></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="row mb-3">
-                    <div class="col-6">
-                        <div style="font-size:.8rem;color:#888;">Location</div>
-                        <div style="font-weight:700;" id="ctm_location"></div>
-                    </div>
-                    <div class="col-3">
-                        <div style="font-size:.8rem;color:#888;">Total Repairs</div>
-                        <div style="font-weight:700;color:#3b82f6;" id="ctm_repairs"></div>
-                    </div>
-                    <div class="col-3">
-                        <div style="font-size:.8rem;color:#888;">Cumulative Cost</div>
-                        <div style="font-weight:700;color:#22c55e;" id="ctm_total_cost"></div>
-                    </div>
-                </div>
-                <div class="row mb-3" id="ctm_threshold_row">
-                    <div class="col-6">
-                        <div style="font-size:.8rem;color:#888;">Original Asset Price</div>
-                        <div style="font-weight:700;" id="ctm_threshold"></div>
-                    </div>
-                    <div class="col-6">
-                        <div style="font-size:.8rem;color:#888;">Cost vs Original Price</div>
-                        <div class="progress mt-1" style="height:10px;">
-                            <div class="progress-bar" id="ctm_progress_bar" style="width:0%"></div>
-                        </div>
-                        <div style="font-size:.78rem;color:#888;margin-top:3px;" id="ctm_progress_label"></div>
-                    </div>
-                </div>
-                <hr>
-                <h6 class="mb-3">Monthly Cost Breakdown</h6>
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Month</th>
-                                <th class="text-center">Repairs</th>
-                                <th class="text-end">Cost</th>
-                            </tr>
-                        </thead>
-                        <tbody id="ctm_monthly_rows"></tbody>
-                        <tfoot>
-                            <tr class="table-secondary fw-bold">
-                                <td>Total</td>
-                                <td class="text-center" id="ctm_total_count"></td>
-                                <td class="text-end" id="ctm_total_cost_foot"></td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-function showCostTrendModal(alert) {
-    document.getElementById('ctm_title').textContent = (alert.top_issue || 'Issue') + ' — ' + alert.location;
-    document.getElementById('ctm_location').textContent = alert.location;
-    document.getElementById('ctm_repairs').textContent = alert.recent + ' repair(s)';
-    document.getElementById('ctm_total_cost').textContent = '₱' + parseFloat(alert.all_time_cost).toLocaleString('en-PH', {minimumFractionDigits:2});
-
-    const threshold = parseFloat(alert.replacement_threshold || 0);
-    const allTime   = parseFloat(alert.all_time_cost || 0);
-    const threshRow = document.getElementById('ctm_threshold_row');
-    if (threshold > 0) {
-        threshRow.style.display = '';
-        document.getElementById('ctm_threshold').textContent = '₱' + threshold.toLocaleString('en-PH', {minimumFractionDigits:2});
-        const pct = Math.min(100, Math.round((allTime / threshold) * 100));
-        const bar = document.getElementById('ctm_progress_bar');
-        bar.style.width = pct + '%';
-        bar.className = 'progress-bar ' + (pct >= 100 ? 'bg-danger' : pct >= 80 ? 'bg-warning' : 'bg-success');
-        document.getElementById('ctm_progress_label').textContent = pct + '% of original price used in repairs';
-    } else {
-        threshRow.style.display = 'none';
-    }
-
-    const tbody = document.getElementById('ctm_monthly_rows');
-    tbody.innerHTML = '';
-    let totalCount = 0, totalCost = 0;
-    (alert.monthly_costs || []).forEach(function(row) {
-        totalCount += parseInt(row.count || 0);
-        totalCost  += parseFloat(row.cost || 0);
-        tbody.innerHTML += '<tr><td>' + row.month + '</td><td class="text-center">' + row.count + '</td><td class="text-end">₱' + parseFloat(row.cost).toLocaleString('en-PH', {minimumFractionDigits:2}) + '</td></tr>';
-    });
-    document.getElementById('ctm_total_count').textContent = totalCount;
-    document.getElementById('ctm_total_cost_foot').textContent = '₱' + totalCost.toLocaleString('en-PH', {minimumFractionDigits:2});
-
-    new bootstrap.Modal(document.getElementById('costTrendModal')).show();
-}
-</script>
 @endsection
 

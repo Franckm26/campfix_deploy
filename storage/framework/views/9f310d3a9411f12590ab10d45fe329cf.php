@@ -1,13 +1,13 @@
-@extends('layouts.app')
 
-@section('page_title')
+
+<?php $__env->startSection('page_title'); ?>
 <h2>Analytics</h2>
 <p>Cost Tracking & Repair/Damage Analysis</p>
-@endsection
+<?php $__env->stopSection(); ?>
 
-@section('styles')
+<?php $__env->startSection('styles'); ?>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<link href="{{ asset('css/admin.css') }}" rel="stylesheet">
+<link href="<?php echo e(asset('css/admin.css')); ?>" rel="stylesheet">
 <style>
 .analytics-card {
     background: var(--card-bg, #fff);
@@ -205,52 +205,52 @@
     .filter-form { flex-direction: column; align-items: stretch; }
 }
 </style>
-@endsection
+<?php $__env->stopSection(); ?>
 
-@section('content')
+<?php $__env->startSection('content'); ?>
 <div class="container-fluid">
     <!-- Summary Stats -->
     <div class="stats-grid">
         <div class="stat-card">
-            <div class="stat-value">{{ $totalConcerns }}</div>
+            <div class="stat-value"><?php echo e($totalConcerns); ?></div>
             <div class="stat-label">Total Repairs/Damages</div>
         </div>
         <div class="stat-card green">
-            <div class="stat-value">₱{{ number_format($totalCost, 2) }}</div>
+            <div class="stat-value">₱<?php echo e(number_format($totalCost, 2)); ?></div>
             <div class="stat-label">
                 Total Cost
                 <a href="#" data-bs-toggle="modal" data-bs-target="#costModal" style="color: #fff; text-decoration: underline;">View Details</a>
             </div>
         </div>
         <div class="stat-card orange">
-            <div class="stat-value">{{ $locationStats->count() }}</div>
+            <div class="stat-value"><?php echo e($locationStats->count()); ?></div>
             <div class="stat-label">
                 Frequently Fixed Room
                 <a href="#" data-bs-toggle="modal" data-bs-target="#roomsModal" style="color: #fff; text-decoration: underline;">See Room</a>
             </div>
         </div>
         <div class="stat-card yellow">
-            <div class="stat-value">{{ $totalConcerns > 0 ? number_format($totalCost / $totalConcerns, 2) : 0 }}</div>
+            <div class="stat-value"><?php echo e($totalConcerns > 0 ? number_format($totalCost / $totalConcerns, 2) : 0); ?></div>
             <div class="stat-label">Average Cost per Repair</div>
         </div>
     </div>
 
     <!-- Filter Section -->
     <div class="filter-section">
-        <form method="GET" action="{{ route('admin.analytics') }}" class="filter-form">
+        <form method="GET" action="<?php echo e(route('admin.analytics')); ?>" class="filter-form">
             <div class="filter-group">
                 <label for="date_from">Date From</label>
-                <input type="date" name="date_from" id="date_from" value="{{ request('date_from') }}">
+                <input type="date" name="date_from" id="date_from" value="<?php echo e(request('date_from')); ?>">
             </div>
             <div class="filter-group">
                 <label for="date_to">Date To</label>
-                <input type="date" name="date_to" id="date_to" value="{{ request('date_to') }}">
+                <input type="date" name="date_to" id="date_to" value="<?php echo e(request('date_to')); ?>">
             </div>
             <div class="filter-group">
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-filter"></i> Filter
                 </button>
-                <a href="{{ route('admin.analytics') }}" class="btn-reset">
+                <a href="<?php echo e(route('admin.analytics')); ?>" class="btn-reset">
                     <i class="fas fa-times"></i> Reset
                 </a>
             </div>
@@ -258,40 +258,40 @@
     </div>
 
     <!-- ── TREND ALERTS ─────────────────────────────────────────────── -->
-    @if(isset($trendAlerts) && $trendAlerts->count() > 0)
+    <?php if(isset($trendAlerts) && $trendAlerts->count() > 0): ?>
     <div class="analytics-card">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <div class="analytics-title" style="font-size:1rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">
                 <i class="fas fa-bell text-danger me-2"></i> Alerts &amp; Notifications
-                <span class="badge bg-danger ms-2">{{ $trendAlerts->count() }}</span>
+                <span class="badge bg-danger ms-2"><?php echo e($trendAlerts->count()); ?></span>
             </div>
         </div>
 
         <div class="mb-4">
-            @foreach($trendAlerts as $alert)
-            @php
+            <?php $__currentLoopData = $trendAlerts; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $alert): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+            <?php
                 $borderColor = $alert['severity'] === 'critical' ? '#ef4444' : ($alert['severity'] === 'warning' ? '#f97316' : '#f59e0b');
                 $bgColor     = $alert['severity'] === 'critical' ? '#fef2f2' : ($alert['severity'] === 'warning' ? '#fff7ed' : '#fffbeb');
                 $iconColor   = $alert['severity'] === 'critical' ? '#ef4444' : ($alert['severity'] === 'warning' ? '#f97316' : '#f59e0b');
                 $timeAgo     = isset($alert['updated_at']) && $alert['updated_at'] ? \Carbon\Carbon::parse($alert['updated_at'])->diffForHumans(null, true, true) : 'recently';
-            @endphp
-            <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;border-left:4px solid {{ $borderColor }};background:{{ $bgColor }};border-radius:8px;margin-bottom:10px;cursor:pointer;"
-                onclick="showCostTrendModal({{ json_encode($alert) }})">
-                <div style="width:36px;height:36px;border-radius:50%;background:{{ $iconColor }};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            ?>
+            <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;border-left:4px solid <?php echo e($borderColor); ?>;background:<?php echo e($bgColor); ?>;border-radius:8px;margin-bottom:10px;cursor:pointer;"
+                onclick="showCostTrendModal(<?php echo e(json_encode($alert)); ?>)">
+                <div style="width:36px;height:36px;border-radius:50%;background:<?php echo e($iconColor); ?>;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                     <i class="fas fa-triangle-exclamation" style="color:#fff;font-size:15px;"></i>
                 </div>
                 <div style="flex:1;">
-                    <div style="font-weight:700;font-size:.95rem;color:#1e293b;">{{ $alert['alert_title'] ?? 'Trend Detected' }}</div>
+                    <div style="font-weight:700;font-size:.95rem;color:#1e293b;"><?php echo e($alert['alert_title'] ?? 'Trend Detected'); ?></div>
                     <div style="font-size:.82rem;color:#64748b;">
-                        @if(!empty($alert['top_issue'])){{ $alert['top_issue'] }} on {{ $alert['location'] }}@else{{ $alert['location'] }}@endif
+                        <?php if(!empty($alert['top_issue'])): ?><?php echo e($alert['top_issue']); ?> on <?php echo e($alert['location']); ?><?php else: ?><?php echo e($alert['location']); ?><?php endif; ?>
                     </div>
                 </div>
-                <div style="font-size:.78rem;color:#94a3b8;white-space:nowrap;">{{ $timeAgo }}</div>
+                <div style="font-size:.78rem;color:#94a3b8;white-space:nowrap;"><?php echo e($timeAgo); ?></div>
             </div>
-            @endforeach
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
         </div>
     </div>
-    @endif
+    <?php endif; ?>
 
     <!-- Combined Cost by Location -->
     <div class="analytics-card">
@@ -310,18 +310,18 @@
                 </tr>
             </thead>
             <tbody>
-                @forelse($combinedLocationStats ?? [] as $stat)
+                <?php $__empty_1 = true; $__currentLoopData = $combinedLocationStats ?? []; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $stat): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                 <tr>
-                    <td>{{ $stat['location'] }}</td>
-                    <td><span class="count-badge">{{ $stat['total_count'] }}</span></td>
-                    <td><span class="cost-badge">₱{{ number_format($stat['total_cost'], 2) }}</span></td>
-                    <td>₱{{ number_format($stat['total_count'] > 0 ? $stat['total_cost'] / $stat['total_count'] : 0, 2) }}</td>
+                    <td><?php echo e($stat['location']); ?></td>
+                    <td><span class="count-badge"><?php echo e($stat['total_count']); ?></span></td>
+                    <td><span class="cost-badge">₱<?php echo e(number_format($stat['total_cost'], 2)); ?></span></td>
+                    <td>₱<?php echo e(number_format($stat['total_count'] > 0 ? $stat['total_cost'] / $stat['total_count'] : 0, 2)); ?></td>
                 </tr>
-                @empty
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                 <tr>
                     <td colspan="4" class="text-center">No data found</td>
                 </tr>
-                @endforelse
+                <?php endif; ?>
             </tbody>
         </table>
     </div>
@@ -334,7 +334,7 @@
             </div>
         </div>
         
-        @if($reports->count() > 0)
+        <?php if($reports->count() > 0): ?>
         <div class="table-responsive">
             <table class="analytics-table">
                 <thead>
@@ -346,22 +346,22 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($reports as $report)
+                    <?php $__currentLoopData = $reports; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $report): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                     <tr>
-                        <td>{{ $report->location }}</td>
-                        <td>{{ $report->damaged_part ?? 'N/A' }}</td>
-                        <td>{{ $report->resolved_at ? \Carbon\Carbon::parse($report->resolved_at)->format('M d, Y g:i A') : 'Not Fixed' }}</td>
-                        <td><span class="cost-badge">₱{{ number_format($report->cost ?? 0, 2) }}</span></td>
+                        <td><?php echo e($report->location); ?></td>
+                        <td><?php echo e($report->damaged_part ?? 'N/A'); ?></td>
+                        <td><?php echo e($report->resolved_at ? \Carbon\Carbon::parse($report->resolved_at)->format('M d, Y g:i A') : 'Not Fixed'); ?></td>
+                        <td><span class="cost-badge">₱<?php echo e(number_format($report->cost ?? 0, 2)); ?></span></td>
                     </tr>
-                    @endforeach
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </tbody>
             </table>
         </div>
-        @else
+        <?php else: ?>
         <div class="alert-info">
             <i class="fas fa-info-circle"></i> No reports with location and date fixed data found for the selected period.
         </div>
-        @endif
+        <?php endif; ?>
     </div>
 
     <!-- Charts Section -->
@@ -430,11 +430,12 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                @foreach($locationStats as $stat)
+                <?php $__currentLoopData = $locationStats; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $stat): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                 <div class="room-item" style="padding: 10px; border-bottom: 1px solid #eee;">
-                    <strong>{{ $stat['location'] }}</strong> - {{ $stat['count'] }} repairs, Total Cost: ₱{{ number_format($stat['total_cost'], 2) }}
+                    <strong><?php echo e($stat['location']); ?></strong> - <?php echo e($stat['count']); ?> repairs, Total Cost: ₱<?php echo e(number_format($stat['total_cost'], 2)); ?>
+
                 </div>
-                @endforeach
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
             </div>
         </div>
     </div>
@@ -452,11 +453,11 @@
                 <div class="row">
                     <div class="col-md-6">
                         <h6>Total Repairs/Damages</h6>
-                        <p class="h4 text-primary">{{ $totalConcerns }}</p>
+                        <p class="h4 text-primary"><?php echo e($totalConcerns); ?></p>
                     </div>
                     <div class="col-md-6">
                         <h6>Total Cost</h6>
-                        <p class="h4 text-success">₱{{ number_format($totalCost, 2) }}</p>
+                        <p class="h4 text-success">₱<?php echo e(number_format($totalCost, 2)); ?></p>
                     </div>
                 </div>
                 <hr>
@@ -471,13 +472,13 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($locationStats->sortByDesc('total_cost') as $stat)
+                            <?php $__currentLoopData = $locationStats->sortByDesc('total_cost'); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $stat): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                             <tr>
-                                <td>{{ $stat['location'] }}</td>
-                                <td>{{ $stat['count'] }}</td>
-                                <td>₱{{ number_format($stat['total_cost'], 2) }}</td>
+                                <td><?php echo e($stat['location']); ?></td>
+                                <td><?php echo e($stat['count']); ?></td>
+                                <td>₱<?php echo e(number_format($stat['total_cost'], 2)); ?></td>
                             </tr>
-                            @endforeach
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                         </tbody>
                     </table>
                 </div>
@@ -547,17 +548,17 @@
         </div>
     </div>
 </div>
-@endsection
+<?php $__env->stopSection(); ?>
 
-@section('scripts')
+<?php $__env->startSection('scripts'); ?>
 <script>
 (function() {
-    var locations = {!! json_encode($chartLocations ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
-    var counts    = {!! json_encode($chartCounts ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
-    var costs     = {!! json_encode($chartCosts ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
-    var statuses  = {!! json_encode($chartStatuses ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
-    var statusCounts = {!! json_encode($chartStatusCounts ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
-    var monthly   = {!! json_encode(isset($monthlyStats) ? $monthlyStats->map(fn($s) => ['month' => $s->month, 'title' => $s->title, 'count' => $s->total_count])->values() : [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
+    var locations = <?php echo json_encode($chartLocations ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP); ?>;
+    var counts    = <?php echo json_encode($chartCounts ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP); ?>;
+    var costs     = <?php echo json_encode($chartCosts ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP); ?>;
+    var statuses  = <?php echo json_encode($chartStatuses ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP); ?>;
+    var statusCounts = <?php echo json_encode($chartStatusCounts ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP); ?>;
+    var monthly   = <?php echo json_encode(isset($monthlyStats) ? $monthlyStats->map(fn($s) => ['month' => $s->month, 'title' => $s->title, 'count' => $s->total_count])->values() : [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP); ?>;
 
     var colors = ['#FF6384','#36A2EB','#FFCE56','#4BC0C0','#9966FF','#FF9F40','#C9CBCF','#4BC0C0'];
 
@@ -730,4 +731,6 @@ function showCostTrendModal(alert) {
     new bootstrap.Modal(document.getElementById('costTrendModal')).show();
 }
 </script>
-@endsection
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\Campfix\resources\views/admin/analytics.blade.php ENDPATH**/ ?>

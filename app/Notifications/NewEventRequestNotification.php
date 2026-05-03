@@ -51,7 +51,7 @@ class NewEventRequestNotification extends Notification
             ->line("- Category: {$this->eventRequest->category}")
             ->line("- Priority: {$this->eventRequest->priority}")
             ->line("- Description: {$this->eventRequest->description}")
-            ->action('Review Event Request', url('/events/pending'))
+            ->action('Review Event Request', url('/admin/events'))
             ->line('Thank you for using CampFix!');
     }
 
@@ -71,7 +71,7 @@ class NewEventRequestNotification extends Notification
             'event_id' => $this->eventRequest->id,
             'requester_name' => $requester->name,
             'event_date' => $this->eventRequest->event_date->toDateString(),
-            'url' => '/events/pending',
+            'url' => '/admin/events',
         ];
     }
 }

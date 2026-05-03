@@ -35,7 +35,7 @@
         <table class="sa-table">
             <thead>
                 <tr>
-                    <th>Title</th>
+                    <th>Event Ticket</th>
                     <th>Requested By</th>
                     <th>Department</th>
                     <th>Event Date</th>
@@ -95,3 +95,7 @@
     @endif
 </div>
 @endsection
+
+
+
+

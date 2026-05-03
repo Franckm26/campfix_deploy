@@ -91,10 +91,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/submit-concern', [ConcernController::class, 'store'])->name('concerns.store');
 
     // Maintenance: View assigned concerns - must come before {id} route
-    Route::get('/concerns/assigned', [ConcernController::class, 'assignedConcerns'])->name('concerns.assigned');
-
     // Maintenance: View assigned reports - must come before {id} route
-    Route::get('/reports/assigned', [ReportController::class, 'assignedReports'])->name('reports.assigned');
 
     Route::get('/concerns/{id}', [ConcernController::class, 'show'])->name('concerns.show');
     Route::get('/concerns/{id}/edit', [ConcernController::class, 'edit'])->name('concerns.edit');
@@ -142,21 +139,19 @@ Route::middleware('auth')->group(function () {
     Route::post('/reports/{report}/restore', [ReportController::class, 'restore'])->name('reports.restore');
 });
 
-/* MAINTENANCE - Update status for assigned concerns */
+/* MAINTENANCE - Update status routes */
 Route::middleware('auth')->group(function () {
-    // Maintenance can only update status for their assigned concerns
+    // Update status for assigned concerns
     Route::post('/update-status/{id}', [AdminController::class, 'updateStatus'])->name('admin.updateStatus');
 
-    // Maintenance can only update status for their assigned reports
+    // Update status for assigned reports
     Route::post('/update-report-status/{id}', [AdminController::class, 'updateReportStatus'])->name('admin.updateReportStatus');
+    
+    // Update report status (new route for progress tracking)
+    Route::post('/reports/{id}/update-status', [ReportController::class, 'updateStatus'])->name('reports.updateStatus');
 
-    // Maintenance: Acknowledge a report
-    Route::post('/reports/{id}/acknowledge', [ReportController::class, 'acknowledge'])->name('reports.acknowledge');
     Route::post('/resolution-notes/{id}', [AdminController::class, 'addResolutionNotes'])->name('admin.resolution');
     Route::post('/report-resolution-notes/{id}', [AdminController::class, 'addReportResolutionNotes'])->name('admin.report-resolution');
-
-    // Maintenance: Acknowledge a concern
-    Route::post('/concerns/{id}/acknowledge', [ConcernController::class, 'acknowledge'])->name('concerns.acknowledge');
 
     // MIS: Acknowledge a concern
     Route::post('/concerns/{id}/mis-acknowledge', [ConcernController::class, 'misAcknowledge'])->name('concerns.mis-acknowledge');
@@ -166,12 +161,6 @@ Route::middleware('auth')->group(function () {
 
     // API: Get maintenance users for assignment
     Route::get('/admin/maintenance-users', [AdminController::class, 'getMaintenanceUsers']);
-
-    // API: Maintenance can view their assigned concerns
-    Route::get('/api/concerns/assigned', [ConcernController::class, 'apiAssignedConcerns']);
-
-    // API: Maintenance can acknowledge a concern
-    Route::post('/api/concerns/{id}/acknowledge', [ConcernController::class, 'apiAcknowledge']);
 });
 
 /* FACULTY - Event Requests */
@@ -203,13 +192,33 @@ Route::middleware('auth')->group(function () {
 
 /* APPROVAL - For Principal/Admin */
 Route::middleware('auth')->group(function () {
-    Route::get('/pending-requests', [EventRequestController::class, 'pendingRequests'])->name('events.pending');
     Route::post('/events/{id}/approve', [EventRequestController::class, 'approve'])->name('events.approve');
     Route::post('/events/{id}/reject', [EventRequestController::class, 'reject'])->name('events.reject');
     Route::get('/events-calendar', [EventRequestController::class, 'calendar'])->name('events.calendar');
     Route::get('/events-calendar/events', [EventRequestController::class, 'calendarEvents'])->name('events.calendar.events');
     Route::post('/events-import', [EventRequestController::class, 'import'])->name('events.import');
     Route::get('/events/{id}/pdf', [EventRequestController::class, 'generatePdf'])->name('events.pdf');
+});
+
+/* BUILDING ADMIN - Management Module */
+Route::middleware('auth')->group(function () {
+    Route::get('/admin/management', [\App\Http\Controllers\ManagementController::class, 'index'])->name('admin.management');
+
+    // Maintenance staff
+    Route::post('/admin/management/staff', [\App\Http\Controllers\ManagementController::class, 'storeStaff'])->name('admin.management.staff.store');
+    Route::put('/admin/management/staff/{id}', [\App\Http\Controllers\ManagementController::class, 'updateStaff'])->name('admin.management.staff.update');
+    Route::delete('/admin/management/staff/{id}', [\App\Http\Controllers\ManagementController::class, 'destroyStaff'])->name('admin.management.staff.destroy');
+
+    // Facilities
+    Route::post('/admin/management/facilities', [\App\Http\Controllers\ManagementController::class, 'storeFacility'])->name('admin.management.facilities.store');
+    Route::put('/admin/management/facilities/{id}', [\App\Http\Controllers\ManagementController::class, 'updateFacility'])->name('admin.management.facilities.update');
+    Route::delete('/admin/management/facilities/{id}', [\App\Http\Controllers\ManagementController::class, 'destroyFacility'])->name('admin.management.facilities.destroy');
+    Route::patch('/admin/management/facilities/{id}/status', [\App\Http\Controllers\ManagementController::class, 'updateFacilityStatus'])->name('admin.management.facilities.status');
+
+    // Categories (in management)
+    Route::post('/admin/management/categories', [\App\Http\Controllers\ManagementController::class, 'storeCategory'])->name('admin.management.categories.store');
+    Route::put('/admin/management/categories/{id}', [\App\Http\Controllers\ManagementController::class, 'updateCategory'])->name('admin.management.categories.update');
+    Route::delete('/admin/management/categories/{id}', [\App\Http\Controllers\ManagementController::class, 'destroyCategory'])->name('admin.management.categories.destroy');
 });
 
 /* ADMIN PANEL - ADMIN ONLY */
@@ -234,6 +243,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     // Reports
     Route::get('/admin/reports', [AdminController::class, 'reports'])->name('admin.reports');
     Route::get('/admin/export', [AdminController::class, 'exportCsv'])->name('admin.export');
+    Route::get('/admin/export-pdf', [AdminController::class, 'exportPdf'])->name('admin.export.pdf');
 
     // User management
     Route::post('/admin/reauth', [AdminController::class, 'reauth'])->name('admin.reauth');
@@ -328,6 +338,10 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     // Building Admin: Assign reports to maintenance
     Route::post('/admin/report/{id}/assign', [AdminController::class, 'assignReport'])->name('admin.report.assign');
+
+    // Building Admin: Set priority after assignment
+    Route::post('/admin/report/{id}/priority', [AdminController::class, 'setReportPriority'])->name('admin.report.priority');
+    Route::post('/admin/concern/{id}/priority', [AdminController::class, 'setConcernPriority'])->name('admin.concern.priority');
 
     // Building Admin: Get maintenance users list
     Route::get('/admin/maintenance-users', [AdminController::class, 'getMaintenanceUsers'])->name('admin.maintenance.users');

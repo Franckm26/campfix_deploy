@@ -113,9 +113,7 @@
                     <thead>
                         <tr>
                             <th style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
-                            <th>Title</th>
-                            <th>Category</th>
-                            <th>Event Date</th>
+                            <th>Event Ticket</th>                            <th>Event Date</th>
                             <th>Location</th>
                             <th>Department</th>
                             <th>Priority</th>
@@ -130,7 +128,7 @@
                         @forelse($events as $event)
                             <tr data-id="{{ $event->id }}">
                                 <td style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" class="event-checkbox" value="{{ $event->id }}" onchange="updateSelectedCount()"></td>
-                                <td>{{ $event->title }}</td>
+                                <td>EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</td>
                                 <td>
                                     <span class="badge bg-info">
                                         {{ $event->getCategoryLabel() }}
@@ -202,7 +200,7 @@
                                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                         </div>
                                         <div class="modal-body">
-                                            <p>Are you sure you want to permanently delete <strong>{{ $event->title }}</strong>?</p>
+                                            <p>Are you sure you want to permanently delete <strong>EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</strong>?</p>
                                             <p class="text-danger"><i class="fas fa-exclamation-triangle"></i> This action cannot be undone. The event will be permanently removed from the system.</p>
                                         </div>
                                         <div class="modal-footer">
@@ -228,10 +226,7 @@
                                         <div class="modal-body">
                                             <div class="row">
                                                 <div class="col-md-6">
-                                                    <p><strong>Reference Number:</strong> EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</p>
-                                                    <p><strong>Title:</strong> {{ $event->title }}</p>
-                                                    <p><strong>Category:</strong> {{ ucfirst($event->category) }}</p>
-                                                    <p><strong>Status:</strong>
+                                                    <p><strong>Event Ticket:</strong> EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</p>                                                    <p><strong>Status:</strong>
                                                         <span class="badge bg-{{
                                                             $event->status == 'Approved' ? 'success' :
                                                             ($event->status == 'Pending' ? 'warning' :
@@ -475,3 +470,11 @@
     });
 </script>
 @endsection
+
+
+
+
+
+
+
+

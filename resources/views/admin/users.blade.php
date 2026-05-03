@@ -91,7 +91,6 @@
                                 <option value="">All Roles</option>
                                 <option value="student" {{ request('role') == 'student' ? 'selected' : '' }}>Student</option>
                                 <option value="faculty" {{ request('role') == 'faculty' ? 'selected' : '' }}>Faculty</option>
-                                <option value="maintenance" {{ request('role') == 'maintenance' ? 'selected' : '' }}>Maintenance</option>
                                 <option value="mis" {{ request('role') == 'mis' ? 'selected' : '' }}>MIS</option>
                                 <option value="school_admin" {{ request('role') == 'school_admin' ? 'selected' : '' }}>School Administrator</option>
                                 <option value="building_admin" {{ request('role') == 'building_admin' ? 'selected' : '' }}>Building Administrator</option>
@@ -126,7 +125,6 @@
                     <select id="archiveRoleFilter" class="form-select" onchange="toggleUsersByRole()">
                         <option value="">Select Role</option>
                         <option value="faculty">Faculty Only</option>
-                        <option value="maintenance">Maintenance Only</option>
                         <option value="student">Student Only</option>
                     </select>
                 </div>
@@ -202,7 +200,7 @@
                                 <td>{{ $user->name }}</td>
                                 <td>{{ $user->email }}</td>
                                 <td>
-                                    @php $staffRoles = ['mis','school_admin','building_admin','academic_head','program_head','principal_assistant','maintenance']; @endphp
+                                    @php $staffRoles = ['mis','school_admin','building_admin','academic_head','program_head','principal_assistant']; @endphp
                                     @if($user->department)
                                         {{ $user->department }}{{ $user->level ? ' - ' . $user->level : '' }}
                                     @elseif(in_array($user->role, $staffRoles))
@@ -276,7 +274,6 @@
                                                         <select name="role" class="form-select edit-role-select" data-userid="{{ $user->id }}" required>
                                                             <option value="student"             {{ $user->role == 'student'             ? 'selected' : '' }}>Student</option>
                                                             <option value="faculty"             {{ $user->role == 'faculty'             ? 'selected' : '' }}>Faculty</option>
-                                                            <option value="maintenance"         {{ $user->role == 'maintenance'         ? 'selected' : '' }}>Maintenance</option>
                                                             <option value="mis"                 {{ $user->role == 'mis'                 ? 'selected' : '' }}>MIS</option>
                                                             <option value="school_admin"        {{ $user->role == 'school_admin'        ? 'selected' : '' }}>School Administrator</option>
                                                             <option value="building_admin"      {{ $user->role == 'building_admin'      ? 'selected' : '' }}>Building Administrator</option>
@@ -995,7 +992,6 @@
                             <select name="role" id="addUserRole" class="form-select {{ $errors->has('role') ? 'is-invalid' : '' }}" required onchange="onRoleChange(this.value)">
                                 <option value="student"             {{ old('role') == 'student'             ? 'selected' : '' }}>Student</option>
                                 <option value="faculty"             {{ old('role') == 'faculty'             ? 'selected' : '' }}>Faculty</option>
-                                <option value="maintenance"         {{ old('role') == 'maintenance'         ? 'selected' : '' }}>Maintenance</option>
                                 <option value="mis"                 {{ old('role') == 'mis'                 ? 'selected' : '' }}>MIS</option>
                                 <option value="school_admin"        {{ old('role') == 'school_admin'        ? 'selected' : '' }}>School Administrator</option>
                                 <option value="building_admin"      {{ old('role') == 'building_admin'      ? 'selected' : '' }}>Building Administrator</option>

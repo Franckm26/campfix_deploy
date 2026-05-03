@@ -105,26 +105,38 @@
                 <ul class="nav nav-pills mb-0 flex-wrap">
                     <li class="nav-item">
                         <a class="nav-link <?php echo e(($viewType ?? 'active') == 'active' ? 'active' : ''); ?>" href="<?php echo e(route('admin.events', ['view' => 'active'])); ?>">
-                            <i class="fas fa-calendar-check"></i> Active Events
+                            <i class="fas fa-calendar-check"></i> Active
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?php echo e(($viewType ?? '') == 'approved' ? 'active' : ''); ?>" href="<?php echo e(route('admin.events', ['view' => 'approved'])); ?>" style="<?php echo e(($viewType ?? '') == 'approved' ? '' : 'color: #28a745;'); ?>">
+                            <i class="fas fa-check-circle"></i> Approved
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?php echo e(($viewType ?? '') == 'finished' ? 'active' : ''); ?>" href="<?php echo e(route('admin.events', ['view' => 'finished'])); ?>" style="<?php echo e(($viewType ?? '') == 'finished' ? '' : 'color: #6f42c1;'); ?>">
+                            <i class="fas fa-flag-checkered"></i> Finished
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?php echo e(($viewType ?? '') == 'rejected' ? 'active' : ''); ?>" href="<?php echo e(route('admin.events', ['view' => 'rejected'])); ?>" style="<?php echo e(($viewType ?? '') == 'rejected' ? '' : 'color: #dc3545;'); ?>">
+                            <i class="fas fa-times-circle"></i> Rejected
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link <?php echo e(($viewType ?? '') == 'archives' ? 'active' : ''); ?>" href="<?php echo e(route('admin.events', ['view' => 'archives'])); ?>">
-                            <i class="fas fa-archive"></i> Archived Events
+                            <i class="fas fa-archive"></i> Archived
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link <?php echo e(($viewType ?? '') == 'deleted' ? 'active' : ''); ?>" href="<?php echo e(route('admin.events', ['view' => 'deleted'])); ?>" style="color: #dc3545;">
-                            <i class="fas fa-trash-alt"></i> Deleted Events
+                            <i class="fas fa-trash-alt"></i> Deleted
                         </a>
                     </li>
                 </ul>
                 <div>
                     <a href="<?php echo e(route('events.calendar')); ?>" class="btn btn-info btn-sm">
                         <i class="fas fa-calendar"></i> Calendar View
-                    </a>
-                    <a href="<?php echo e(route('events.pending')); ?>" class="btn btn-secondary btn-sm ms-1">
-                        <i class="fas fa-hourglass-half"></i> Pending Only
                     </a>
                 </div>
             </div>
@@ -169,6 +181,7 @@
 
     <?php if(($viewType ?? 'active') == 'active'): ?>
     <!-- Summary Cards -->
+    <?php if(auth()->user()->role !== 'building_admin'): ?>
     <div class="row mb-4" style="display: flex !important;">
         <div class="col-md-3">
             <div class="card bg-primary text-white">
@@ -203,16 +216,15 @@
             </div>
         </div>
     </div>
+    <?php endif; ?>
 
     <?php if($requests->count() > 0): ?>
         <div class="table-responsive" style="display: block !important; visibility: visible !important; opacity: 1 !important;">
             <table class="table table-hover" style="display: table !important;">
                 <thead>
                     <tr>
-                        <th>Title</th>
-                        <th>Requestor</th>
-                        <th>Category</th>
-                        <th>Event Date</th>
+                        <th>Event Ticket</th>
+                        <th>Requestor</th>                        <th>Event Date</th>
                         <th>Time</th>
                         <th>Location</th>
                         <th>Status</th>
@@ -222,12 +234,8 @@
                 <tbody>
                     <?php $__currentLoopData = $requests; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $request): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                         <tr>
-                            <td><?php echo e($request->title); ?></td>
-                            <td><?php echo e($request->user->name ?? 'N/A'); ?></td>
-                            <td>
-                                <span class="badge bg-info"><?php echo e(ucfirst($request->category)); ?></span>
-                            </td>
-                            <td><?php echo e(\Carbon\Carbon::parse($request->event_date)->format('M d, Y')); ?></td>
+                            <td>EVT-<?php echo e(str_pad($request->id, 5, '0', STR_PAD_LEFT)); ?></td>
+                            <td><?php echo e($request->user->name ?? 'N/A'); ?></td>                            <td><?php echo e(\Carbon\Carbon::parse($request->event_date)->format('M d, Y')); ?></td>
                             <td><?php echo e(\Carbon\Carbon::parse($request->start_time)->format('g:i A')); ?> - <?php echo e(\Carbon\Carbon::parse($request->end_time)->format('g:i A')); ?></td>
                             <td><?php echo e($request->location); ?></td>
                             <td>
@@ -245,18 +253,12 @@
                                         <i class="fas fa-eye"></i>
                                     </button>
                                     <?php if($request->status == 'Pending' && auth()->user()->role !== 'mis'): ?>
-                                        <form method="POST" action="<?php echo e(route('events.approve', $request->id)); ?>" class="d-inline">
-                                            <?php echo csrf_field(); ?>
-                                            <button type="submit" class="btn btn-sm btn-success bg-transparent border-0" title="Approve">
-                                                <i class="fas fa-check"></i>
-                                            </button>
-                                        </form>
-                                        <form method="POST" action="<?php echo e(route('events.reject', $request->id)); ?>" class="d-inline">
-                                            <?php echo csrf_field(); ?>
-                                            <button type="submit" class="btn btn-sm btn-danger bg-transparent border-0" title="Reject">
-                                                <i class="fas fa-times"></i>
-                                            </button>
-                                        </form>
+                                        <button type="button" class="btn btn-sm btn-success bg-transparent border-0" title="Approve" onclick="approveEvent(<?php echo e($request->id); ?>)">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-danger bg-transparent border-0" title="Reject" onclick="rejectEvent(<?php echo e($request->id); ?>)">
+                                            <i class="fas fa-times"></i>
+                                        </button>
                                     <?php endif; ?>
                                     <?php
                                         $userRole = auth()->user()->role;
@@ -286,10 +288,7 @@
                                     <div class="modal-body">
                                         <div class="row">
                                             <div class="col-md-6">
-                                                <p><strong>Reference Number:</strong> EVT-<?php echo e(str_pad($request->id, 5, '0', STR_PAD_LEFT)); ?></p>
-                                                <p><strong>Title:</strong> <?php echo e($request->title); ?></p>
-                                                <p><strong>Category:</strong> <?php echo e(ucfirst($request->category)); ?></p>
-                                                <p><strong>Status:</strong> 
+                                                <p><strong>Ticket Number:</strong> EVT-<?php echo e(str_pad($request->id, 5, '0', STR_PAD_LEFT)); ?></p>                                                <p><strong>Status:</strong> 
                                                     <span class="badge bg-<?php echo e($request->status == 'Approved' ? 'success' : 
                                                         ($request->status == 'Pending' ? 'warning' : 
                                                         ($request->status == 'Rejected' ? 'danger' : 'secondary'))); ?>">
@@ -395,6 +394,359 @@
     <?php endif; ?>
     <?php endif; ?>
 
+    <?php if(($viewType ?? '') == 'approved'): ?>
+    <!-- Approved Events Section -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-check-circle text-success"></i> Approved Events
+                <?php if(isset($approvedEvents)): ?>
+                    <span class="badge bg-success ms-2"><?php echo e($approvedEvents->count()); ?></span>
+                <?php endif; ?>
+            </h5>
+        </div>
+        <div class="card-body">
+            <?php if(isset($approvedEvents) && $approvedEvents->count() > 0): ?>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Event Ticket</th>
+                                <th>Requestor</th>                                <th>Event Date</th>
+                                <th>Time</th>
+                                <th>Location</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php $__currentLoopData = $approvedEvents; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $event): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <tr>
+                                    <td>EVT-<?php echo e(str_pad($event->id, 5, '0', STR_PAD_LEFT)); ?></td>
+                                    <td><?php echo e($event->user->name ?? 'N/A'); ?></td>                                    <td><?php echo e(\Carbon\Carbon::parse($event->event_date)->format('M d, Y')); ?></td>
+                                    <td><?php echo e(\Carbon\Carbon::parse($event->start_time)->format('g:i A')); ?> - <?php echo e(\Carbon\Carbon::parse($event->end_time)->format('g:i A')); ?></td>
+                                    <td><?php echo e($event->location); ?></td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-sm btn-primary bg-transparent border-0"
+                                                data-bs-toggle="modal" data-bs-target="#approvedViewModal<?php echo e($event->id); ?>" title="View">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-secondary bg-transparent border-0" title="Archive" onclick="showArchiveEventModal(<?php echo e($event->id); ?>)">
+                                                <i class="fas fa-archive"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-danger bg-transparent border-0" title="Delete" onclick="showDeleteEventModal(<?php echo e($event->id); ?>)">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                <!-- View Modal -->
+                                <div class="modal fade" id="approvedViewModal<?php echo e($event->id); ?>" tabindex="-1">
+                                    <div class="modal-dialog modal-lg modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Event Request Details</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <p><strong>Ticket Number:</strong> EVT-<?php echo e(str_pad($event->id, 5, '0', STR_PAD_LEFT)); ?></p>                                                        <p><strong>Status:</strong> <span class="badge bg-success">Approved</span></p>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <p><strong>Requestor:</strong> <?php echo e($event->user->name ?? 'N/A'); ?></p>
+                                                        <p><strong>Event Date:</strong> <?php echo e(\Carbon\Carbon::parse($event->event_date)->format('M d, Y')); ?></p>
+                                                        <p><strong>Time:</strong> <?php echo e(\Carbon\Carbon::parse($event->start_time)->format('g:i A')); ?> - <?php echo e(\Carbon\Carbon::parse($event->end_time)->format('g:i A')); ?></p>
+                                                        <p><strong>Location:</strong> <?php echo e($event->location); ?></p>
+                                                    </div>
+                                                </div>
+                                                <hr>
+                                                <p><strong>Description:</strong></p>
+                                                <p><?php echo e($event->description); ?></p>
+                                                <?php if($event->notes): ?>
+                                                    <hr>
+                                                    <p><strong>Notes:</strong></p>
+                                                    <p><?php echo e($event->notes); ?></p>
+                                                <?php endif; ?>
+                                                <hr>
+                                                <?php if (isset($component)) { $__componentOriginalf6ed9c701b8ff063a88b8473bcdabf00 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginalf6ed9c701b8ff063a88b8473bcdabf00 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.request-progress-tracker','data' => ['request' => $event,'title' => 'Approval Progress']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('request-progress-tracker'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['request' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($event),'title' => 'Approval Progress']); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginalf6ed9c701b8ff063a88b8473bcdabf00)): ?>
+<?php $attributes = $__attributesOriginalf6ed9c701b8ff063a88b8473bcdabf00; ?>
+<?php unset($__attributesOriginalf6ed9c701b8ff063a88b8473bcdabf00); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginalf6ed9c701b8ff063a88b8473bcdabf00)): ?>
+<?php $component = $__componentOriginalf6ed9c701b8ff063a88b8473bcdabf00; ?>
+<?php unset($__componentOriginalf6ed9c701b8ff063a88b8473bcdabf00); ?>
+<?php endif; ?>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php else: ?>
+                <div class="text-center py-5">
+                    <i class="fas fa-check-circle fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No approved upcoming events</h5>
+                    <p class="text-muted">Approved events with a future date will appear here.</p>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <?php if(($viewType ?? '') == 'finished'): ?>
+    <!-- Finished Events Section -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-flag-checkered" style="color:#6f42c1;"></i> Finished Events
+                <?php if(isset($finishedEvents)): ?>
+                    <span class="badge ms-2" style="background:#6f42c1;"><?php echo e($finishedEvents->count()); ?></span>
+                <?php endif; ?>
+            </h5>
+        </div>
+        <div class="card-body">
+            <?php if(isset($finishedEvents) && $finishedEvents->count() > 0): ?>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Event Ticket</th>
+                                <th>Requestor</th>                                <th>Event Date</th>
+                                <th>Time</th>
+                                <th>Location</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php $__currentLoopData = $finishedEvents; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $event): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <tr>
+                                    <td>EVT-<?php echo e(str_pad($event->id, 5, '0', STR_PAD_LEFT)); ?></td>
+                                    <td><?php echo e($event->user->name ?? 'N/A'); ?></td>                                    <td><?php echo e(\Carbon\Carbon::parse($event->event_date)->format('M d, Y')); ?></td>
+                                    <td><?php echo e(\Carbon\Carbon::parse($event->start_time)->format('g:i A')); ?> - <?php echo e(\Carbon\Carbon::parse($event->end_time)->format('g:i A')); ?></td>
+                                    <td><?php echo e($event->location); ?></td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-sm btn-primary bg-transparent border-0"
+                                                data-bs-toggle="modal" data-bs-target="#finishedViewModal<?php echo e($event->id); ?>" title="View">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-secondary bg-transparent border-0" title="Archive" onclick="showArchiveEventModal(<?php echo e($event->id); ?>)">
+                                                <i class="fas fa-archive"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-danger bg-transparent border-0" title="Delete" onclick="showDeleteEventModal(<?php echo e($event->id); ?>)">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                <!-- View Modal -->
+                                <div class="modal fade" id="finishedViewModal<?php echo e($event->id); ?>" tabindex="-1">
+                                    <div class="modal-dialog modal-lg modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Event Request Details</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <p><strong>Ticket Number:</strong> EVT-<?php echo e(str_pad($event->id, 5, '0', STR_PAD_LEFT)); ?></p>                                                        <p><strong>Status:</strong> <span class="badge" style="background:#6f42c1;">Finished</span></p>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <p><strong>Requestor:</strong> <?php echo e($event->user->name ?? 'N/A'); ?></p>
+                                                        <p><strong>Event Date:</strong> <?php echo e(\Carbon\Carbon::parse($event->event_date)->format('M d, Y')); ?></p>
+                                                        <p><strong>Time:</strong> <?php echo e(\Carbon\Carbon::parse($event->start_time)->format('g:i A')); ?> - <?php echo e(\Carbon\Carbon::parse($event->end_time)->format('g:i A')); ?></p>
+                                                        <p><strong>Location:</strong> <?php echo e($event->location); ?></p>
+                                                    </div>
+                                                </div>
+                                                <hr>
+                                                <p><strong>Description:</strong></p>
+                                                <p><?php echo e($event->description); ?></p>
+                                                <?php if($event->notes): ?>
+                                                    <hr>
+                                                    <p><strong>Notes:</strong></p>
+                                                    <p><?php echo e($event->notes); ?></p>
+                                                <?php endif; ?>
+                                                <hr>
+                                                <?php if (isset($component)) { $__componentOriginalf6ed9c701b8ff063a88b8473bcdabf00 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginalf6ed9c701b8ff063a88b8473bcdabf00 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.request-progress-tracker','data' => ['request' => $event,'title' => 'Approval Progress']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('request-progress-tracker'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['request' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($event),'title' => 'Approval Progress']); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginalf6ed9c701b8ff063a88b8473bcdabf00)): ?>
+<?php $attributes = $__attributesOriginalf6ed9c701b8ff063a88b8473bcdabf00; ?>
+<?php unset($__attributesOriginalf6ed9c701b8ff063a88b8473bcdabf00); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginalf6ed9c701b8ff063a88b8473bcdabf00)): ?>
+<?php $component = $__componentOriginalf6ed9c701b8ff063a88b8473bcdabf00; ?>
+<?php unset($__componentOriginalf6ed9c701b8ff063a88b8473bcdabf00); ?>
+<?php endif; ?>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php else: ?>
+                <div class="text-center py-5">
+                    <i class="fas fa-flag-checkered fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No finished events yet</h5>
+                    <p class="text-muted">Approved events whose date has passed will appear here.</p>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <?php if(($viewType ?? '') == 'rejected'): ?>
+    <!-- Rejected Events Section -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-times-circle text-danger"></i> Rejected Events
+                <?php if(isset($rejectedEvents)): ?>
+                    <span class="badge bg-danger ms-2"><?php echo e($rejectedEvents->count()); ?></span>
+                <?php endif; ?>
+            </h5>
+        </div>
+        <div class="card-body">
+            <?php if(isset($rejectedEvents) && $rejectedEvents->count() > 0): ?>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Event Ticket</th>
+                                <th>Requestor</th>                                <th>Event Date</th>
+                                <th>Time</th>
+                                <th>Location</th>
+                                <th>Reason</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php $__currentLoopData = $rejectedEvents; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $event): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <tr>
+                                    <td>EVT-<?php echo e(str_pad($event->id, 5, '0', STR_PAD_LEFT)); ?></td>
+                                    <td><?php echo e($event->user->name ?? 'N/A'); ?></td>                                    <td><?php echo e(\Carbon\Carbon::parse($event->event_date)->format('M d, Y')); ?></td>
+                                    <td><?php echo e(\Carbon\Carbon::parse($event->start_time)->format('g:i A')); ?> - <?php echo e(\Carbon\Carbon::parse($event->end_time)->format('g:i A')); ?></td>
+                                    <td><?php echo e($event->location); ?></td>
+                                    <td><?php echo e($event->notes ? \Illuminate\Support\Str::limit($event->notes, 40) : '-'); ?></td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-sm btn-primary bg-transparent border-0"
+                                                data-bs-toggle="modal" data-bs-target="#rejectedViewModal<?php echo e($event->id); ?>" title="View">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-secondary bg-transparent border-0" title="Archive" onclick="showArchiveEventModal(<?php echo e($event->id); ?>)">
+                                                <i class="fas fa-archive"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-danger bg-transparent border-0" title="Delete" onclick="showDeleteEventModal(<?php echo e($event->id); ?>)">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                <!-- View Modal -->
+                                <div class="modal fade" id="rejectedViewModal<?php echo e($event->id); ?>" tabindex="-1">
+                                    <div class="modal-dialog modal-lg modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Event Request Details</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <p><strong>Ticket Number:</strong> EVT-<?php echo e(str_pad($event->id, 5, '0', STR_PAD_LEFT)); ?></p>                                                        <p><strong>Status:</strong> <span class="badge bg-danger">Rejected</span></p>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <p><strong>Requestor:</strong> <?php echo e($event->user->name ?? 'N/A'); ?></p>
+                                                        <p><strong>Event Date:</strong> <?php echo e(\Carbon\Carbon::parse($event->event_date)->format('M d, Y')); ?></p>
+                                                        <p><strong>Time:</strong> <?php echo e(\Carbon\Carbon::parse($event->start_time)->format('g:i A')); ?> - <?php echo e(\Carbon\Carbon::parse($event->end_time)->format('g:i A')); ?></p>
+                                                        <p><strong>Location:</strong> <?php echo e($event->location); ?></p>
+                                                    </div>
+                                                </div>
+                                                <hr>
+                                                <p><strong>Description:</strong></p>
+                                                <p><?php echo e($event->description); ?></p>
+                                                <?php if($event->notes): ?>
+                                                    <hr>
+                                                    <p><strong>Reason for Rejection:</strong></p>
+                                                    <p class="text-danger"><?php echo e($event->notes); ?></p>
+                                                <?php endif; ?>
+                                                <hr>
+                                                <?php if (isset($component)) { $__componentOriginalf6ed9c701b8ff063a88b8473bcdabf00 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginalf6ed9c701b8ff063a88b8473bcdabf00 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.request-progress-tracker','data' => ['request' => $event,'title' => 'Approval Progress']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('request-progress-tracker'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['request' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($event),'title' => 'Approval Progress']); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginalf6ed9c701b8ff063a88b8473bcdabf00)): ?>
+<?php $attributes = $__attributesOriginalf6ed9c701b8ff063a88b8473bcdabf00; ?>
+<?php unset($__attributesOriginalf6ed9c701b8ff063a88b8473bcdabf00); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginalf6ed9c701b8ff063a88b8473bcdabf00)): ?>
+<?php $component = $__componentOriginalf6ed9c701b8ff063a88b8473bcdabf00; ?>
+<?php unset($__componentOriginalf6ed9c701b8ff063a88b8473bcdabf00); ?>
+<?php endif; ?>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php else: ?>
+                <div class="text-center py-5">
+                    <i class="fas fa-times-circle fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No rejected events</h5>
+                    <p class="text-muted">Rejected event requests will appear here.</p>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <?php if(($viewType ?? '') == 'archives'): ?>
     <!-- Archived Events Section -->
     <div class="row mb-4">
@@ -409,10 +761,8 @@
                             <table class="table table-hover" style="display: table !important;">
                                 <thead>
                                     <tr>
-                                        <th>Title</th>
-                                        <th>Requestor</th>
-                                        <th>Category</th>
-                                        <th>Event Date</th>
+                                        <th>Event Ticket</th>
+                                        <th>Requestor</th>                                        <th>Event Date</th>
                                         <th>Time</th>
                                         <th>Location</th>
                                         <th>Status</th>
@@ -422,12 +772,8 @@
                                 <tbody>
                                     <?php $__currentLoopData = $archivedEvents; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $event): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                         <tr>
-                                            <td><?php echo e($event->title); ?></td>
-                                            <td><?php echo e($event->user->name ?? 'N/A'); ?></td>
-                                            <td>
-                                                <span class="badge bg-info"><?php echo e(ucfirst($event->category)); ?></span>
-                                            </td>
-                                            <td><?php echo e(\Carbon\Carbon::parse($event->event_date)->format('M d, Y')); ?></td>
+                                            <td>EVT-<?php echo e(str_pad($event->id, 5, '0', STR_PAD_LEFT)); ?></td>
+                                            <td><?php echo e($event->user->name ?? 'N/A'); ?></td>                                            <td><?php echo e(\Carbon\Carbon::parse($event->event_date)->format('M d, Y')); ?></td>
                                             <td><?php echo e(\Carbon\Carbon::parse($event->start_time)->format('g:i A')); ?> - <?php echo e(\Carbon\Carbon::parse($event->end_time)->format('g:i A')); ?></td>
                                             <td><?php echo e($event->location); ?></td>
                                             <td>
@@ -467,10 +813,7 @@
                                                     <div class="modal-body">
                                                         <div class="row">
                                                             <div class="col-md-6">
-                                                                <p><strong>Reference Number:</strong> EVT-<?php echo e(str_pad($event->id, 5, '0', STR_PAD_LEFT)); ?></p>
-                                                                <p><strong>Title:</strong> <?php echo e($event->title); ?></p>
-                                                                <p><strong>Category:</strong> <?php echo e(ucfirst($event->category)); ?></p>
-                                                                <p><strong>Status:</strong>
+                                                                <p><strong>Ticket Number:</strong> EVT-<?php echo e(str_pad($event->id, 5, '0', STR_PAD_LEFT)); ?></p>                                                                <p><strong>Status:</strong>
                                                                     <span class="badge bg-<?php echo e($event->status == 'Approved' ? 'success' :
                                                                         ($event->status == 'Pending' ? 'warning' :
                                                                         ($event->status == 'Rejected' ? 'danger' : 'secondary'))); ?>">
@@ -597,9 +940,7 @@
                         <thead>
                             <tr>
                                 <th style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" id="deletedEventsSelectAll" onchange="deletedEventsToggleSelectAll()"></th>
-                                <th>Title</th>
-                                <th>Category</th>
-                                <th>Event Date</th>
+                                <th>Event Ticket</th>                                <th>Event Date</th>
                                 <th>Location</th>
                                 <th>Department</th>
                                 <th>Priority</th>
@@ -614,7 +955,7 @@
                             <?php $__empty_1 = true; $__currentLoopData = $deletedEvents; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $event): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                                 <tr data-id="<?php echo e($event->id); ?>">
                                     <td style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" class="deleted-event-checkbox" value="<?php echo e($event->id); ?>" onchange="deletedEventsUpdateSelectedCount()"></td>
-                                    <td><?php echo e($event->title); ?></td>
+                                    <td>EVT-<?php echo e(str_pad($event->id, 5, '0', STR_PAD_LEFT)); ?></td>
                                     <td>
                                         <span class="badge bg-info">
                                             <?php echo e($event->getCategoryLabel()); ?>
@@ -672,7 +1013,11 @@
                                             <form action="<?php echo e(route('admin.deletedEvents.permanentDelete', $event->id)); ?>" method="POST" class="d-inline">
                                                 <?php echo csrf_field(); ?>
                                                 <?php echo method_field('DELETE'); ?>
-                                                <button type="submit" class="btn btn-sm btn-danger bg-transparent" title="Permanently Delete" onclick="return confirm('Are you sure you want to permanently delete this event?')">
+                                                <button type="submit" class="btn btn-sm btn-danger bg-transparent" title="Permanently Delete"
+                                                    data-confirm="Are you sure you want to permanently delete this event?"
+                                                    data-confirm-title="Permanent Delete"
+                                                    data-confirm-ok="Yes, Delete Forever"
+                                                    data-confirm-color="#dc3545">
                                                     <i class="fas fa-times-circle"></i>
                                                 </button>
                                             </form>
@@ -689,7 +1034,7 @@
                                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                             </div>
                                             <div class="modal-body">
-                                                <p>Are you sure you want to permanently delete <strong><?php echo e($event->title); ?></strong>?</p>
+                                                <p>Are you sure you want to permanently delete <strong>EVT-<?php echo e(str_pad($event->id, 5, '0', STR_PAD_LEFT)); ?></strong>?</p>
                                                 <p class="text-danger"><i class="fas fa-exclamation-triangle"></i> This action cannot be undone. The event will be permanently removed from the system.</p>
                                             </div>
                                             <div class="modal-footer">
@@ -715,10 +1060,7 @@
                                             <div class="modal-body">
                                                 <div class="row">
                                                     <div class="col-md-6">
-                                                        <p><strong>Reference Number:</strong> EVT-<?php echo e(str_pad($event->id, 5, '0', STR_PAD_LEFT)); ?></p>
-                                                        <p><strong>Title:</strong> <?php echo e($event->title); ?></p>
-                                                        <p><strong>Category:</strong> <?php echo e(ucfirst($event->category)); ?></p>
-                                                        <p><strong>Status:</strong>
+                                                        <p><strong>Ticket Number:</strong> EVT-<?php echo e(str_pad($event->id, 5, '0', STR_PAD_LEFT)); ?></p>                                                        <p><strong>Status:</strong>
                                                             <span class="badge bg-<?php echo e($event->status == 'Approved' ? 'success' :
                                                                 ($event->status == 'Pending' ? 'warning' :
                                                                 ($event->status == 'Rejected' ? 'danger' : 'secondary'))); ?>">
@@ -791,21 +1133,132 @@
 <script>
 // Archive Event Function
 function showArchiveEventModal(eventId) {
-    document.getElementById('archiveEventForm').action = '/events/' + eventId + '/archive';
-    document.getElementById('archiveEventId').value = eventId;
-
-    var modal = new bootstrap.Modal(document.getElementById('archiveEventModal'));
-    modal.show();
+    confirmArchive({
+        title: 'Archive Event?',
+        text: 'This event will be archived and hidden from your active list.',
+        confirmButtonText: '<i class="fas fa-archive me-1"></i> Archive'
+    }).then(result => {
+        if (result.isConfirmed) {
+            // Show loading
+            getSwal().fire({
+                title: 'Archiving...',
+                html: '<div class="spinner-border text-primary"></div>',
+                showConfirmButton: false,
+                allowOutsideClick: false
+            });
+            
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/events/' + eventId + '/archive';
+            
+            const csrfToken = document.createElement('input');
+            csrfToken.type = 'hidden';
+            csrfToken.name = '_token';
+            csrfToken.value = '<?php echo e(csrf_token()); ?>';
+            form.appendChild(csrfToken);
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
 }
 
 // Delete Event Function
 function showDeleteEventModal(eventId) {
-    document.getElementById('deleteEventForm').action = '/events/' + eventId + '/delete';
-    document.getElementById('deleteEventId').value = eventId;
-
-    var modal = new bootstrap.Modal(document.getElementById('deleteEventModal'));
-    modal.show();
+    confirmDelete({
+        title: 'Delete Event?',
+        text: 'This event will be moved to deleted. You can restore it later from the Deleted tab.',
+        confirmButtonText: '<i class="fas fa-trash me-1"></i> Delete'
+    }).then(result => {
+        if (result.isConfirmed) {
+            // Show loading
+            getSwal().fire({
+                title: 'Deleting...',
+                html: '<div class="spinner-border text-danger"></div>',
+                showConfirmButton: false,
+                allowOutsideClick: false
+            });
+            
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/events/' + eventId + '/delete';
+            
+            const csrfToken = document.createElement('input');
+            csrfToken.type = 'hidden';
+            csrfToken.name = '_token';
+            csrfToken.value = '<?php echo e(csrf_token()); ?>';
+            form.appendChild(csrfToken);
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
 }
+
+// Approve Event Function
+function approveEvent(eventId) {
+    confirmApprove({
+        title: 'Approve Event?',
+        text: 'This event request will be approved and the requestor will be notified.',
+        confirmButtonText: '<i class="fas fa-check me-1"></i> Approve'
+    }).then(result => {
+        if (result.isConfirmed) {
+            // Show loading
+            getSwal().fire({
+                title: 'Approving...',
+                html: '<div class="spinner-border text-success"></div>',
+                showConfirmButton: false,
+                allowOutsideClick: false
+            });
+            
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/events/' + eventId + '/approve';
+            
+            const csrfToken = document.createElement('input');
+            csrfToken.type = 'hidden';
+            csrfToken.name = '_token';
+            csrfToken.value = '<?php echo e(csrf_token()); ?>';
+            form.appendChild(csrfToken);
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+}
+
+// Reject Event Function
+function rejectEvent(eventId) {
+    confirmReject({
+        title: 'Reject Event?',
+        text: 'This event request will be rejected and the requestor will be notified.',
+        confirmButtonText: '<i class="fas fa-times me-1"></i> Reject'
+    }).then(result => {
+        if (result.isConfirmed) {
+            // Show loading
+            getSwal().fire({
+                title: 'Rejecting...',
+                html: '<div class="spinner-border text-danger"></div>',
+                showConfirmButton: false,
+                allowOutsideClick: false
+            });
+            
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/events/' + eventId + '/reject';
+            
+            const csrfToken = document.createElement('input');
+            csrfToken.type = 'hidden';
+            csrfToken.name = '_token';
+            csrfToken.value = '<?php echo e(csrf_token()); ?>';
+            form.appendChild(csrfToken);
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+}
+
 // Event Action Modal Functions
 let eventActionType = null;
 let eventActionId = null;
@@ -869,15 +1322,15 @@ function executeEventAction(type, id) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert(type.charAt(0).toUpperCase() + type.slice(1) + ' successful!');
-            location.reload();
+            swalToast(type.charAt(0).toUpperCase() + type.slice(1) + ' successful!', 'success');
+            setTimeout(() => location.reload(), 1500);
         } else if (data.error) {
-            alert(data.error);
+            swalAlert(data.error, 'error');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Error performing action');
+        swalAlert('Error performing action', 'error');
     });
 
     // Close modal
@@ -954,7 +1407,7 @@ function executeEventAction(type, id) {
     function deletedEventsBulkRestore() {
         const checkboxes = document.querySelectorAll('.deleted-event-checkbox:checked');
         if (checkboxes.length === 0) {
-            alert('Please select at least one event to restore.');
+            swalAlert('Please select at least one event to restore.', 'warning');
             return;
         }
         
@@ -1056,11 +1509,11 @@ function executeEventAction(type, id) {
                             // Reload the page to show filtered results
                             window.location.href = '<?php echo e(route("admin.events", ["view" => "deleted"])); ?>&days=' + days;
                         } else {
-                            alert('Error saving preference.');
+                            swalAlert('Error saving preference.', 'error');
                         }
                     })
                     .catch(error => {
-                        alert('An error occurred while saving your preference.');
+                        swalAlert('An error occurred while saving your preference.', 'error');
                         console.error(error);
                     })
                     .finally(() => {
@@ -1078,6 +1531,14 @@ function executeEventAction(type, id) {
 <?php endif; ?>
 
 <?php $__env->stopSection(); ?>
+
+
+
+
+
+
+
+
 
 
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\Campfix\resources\views/admin/events.blade.php ENDPATH**/ ?>

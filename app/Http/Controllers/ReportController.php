@@ -475,86 +475,6 @@ class ReportController extends Controller
     /**
      * Maintenance can view reports assigned to them
      */
-    public function assignedReports(Request $request)
-    {
-        // Only maintenance can access this page
-        if (! auth()->check() || auth()->user()->role !== 'maintenance') {
-            return redirect('/dashboard')->with('error', 'Access denied.');
-        }
-
-        $viewType = $request->get('view', 'active'); // 'active', 'archives', or 'deleted'
-
-        // Get reports assigned to the current maintenance user,
-        // plus shared Rooms reports visible to all maintenance users
-        $query = Report::with('category', 'user')
-            ->where('is_deleted', false)
-            ->where(function ($query) {
-                $query->where('assigned_to', auth()->id())
-                    ->orWhereHas('category', function ($categoryQuery) {
-                        $categoryQuery->whereRaw('LOWER(TRIM(name)) = ?', ['rooms']);
-                    });
-            });
-
-        // Handle archives view
-        if ($viewType === 'archives') {
-            $query->where('maintenance_archived', true);
-        } else {
-            $query->where('maintenance_archived', false);
-        }
-        // For active: show all assigned reports that maintenance hasn't archived themselves
-        // For archives: show assigned reports that maintenance has archived
-
-        // Filter by status
-        if ($request->status) {
-            $query->where('status', $request->status);
-        }
-
-        // Filter by severity
-        if ($request->severity) {
-            $query->where('severity', $request->severity);
-        }
-
-        // Filter by category
-        if ($request->category) {
-            $query->where('category_id', $request->category);
-        }
-
-        // Filter by search
-        if ($request->search) {
-            $query->where(function ($q) use ($request) {
-                $q->where('title', 'like', '%'.$request->search.'%')
-                    ->orWhere('description', 'like', '%'.$request->search.'%')
-                    ->orWhere('location', 'like', '%'.$request->search.'%');
-            });
-        }
-
-        $reports = $query->orderBy('created_at', 'desc')->get();
-        $categories = Category::all();
-
-        // Calculate counts for tabs
-        $activeCount = Report::where('is_deleted', false)
-            ->where('maintenance_archived', false)
-            ->where(function ($query) {
-                $query->where('assigned_to', auth()->id())
-                    ->orWhereHas('category', function ($categoryQuery) {
-                        $categoryQuery->whereRaw('LOWER(TRIM(name)) = ?', ['rooms']);
-                    });
-            })
-            ->count();
-
-        $archiveCount = Report::where('is_deleted', false)
-            ->where('maintenance_archived', true)
-            ->where(function ($query) {
-                $query->where('assigned_to', auth()->id())
-                    ->orWhereHas('category', function ($categoryQuery) {
-                        $categoryQuery->whereRaw('LOWER(TRIM(name)) = ?', ['rooms']);
-                    });
-            })
-            ->count();
-
-        return view('reports.assigned', compact('reports', 'categories', 'viewType', 'activeCount', 'archiveCount'));
-    }
-
     /**
      * Acknowledge a report - maintenance acknowledges they will work on it
      */
@@ -601,5 +521,108 @@ class ReportController extends Controller
         }
 
         return back()->with('success', 'Report acknowledged successfully!');
+    }
+
+    /**
+     * Update report status (for progress tracking)
+     */
+    public function updateStatus(Request $request, $id)
+    {
+        $request->validate([
+            'status' => 'required|in:Assigned,In Progress,Resolved',
+            'cost' => 'nullable|numeric|min:0',
+            'damaged_part' => 'nullable|string|max:255',
+            'replaced_part' => 'nullable|string|max:255',
+            'resolution_notes' => 'nullable|string|max:1000'
+        ]);
+
+        $report = \App\Models\Report::findOrFail($id);
+
+        // Check permissions
+        $user = auth()->user();
+        $canUpdate = false;
+
+        // MIS, School Admin, Building Admin can update any report
+        if (in_array($user->role, ['mis', 'school_admin', 'building_admin'])) {
+            $canUpdate = true;
+        }
+
+        // Maintenance can update their assigned reports
+        if ($user->role === 'maintenance' && $report->assigned_to === $user->id) {
+            $canUpdate = true;
+        }
+
+        // Maintenance can update shared Rooms reports
+        $isSharedRoomsReport = strtolower(trim($report->category->name ?? '')) === 'rooms';
+        if ($user->role === 'maintenance' && $isSharedRoomsReport) {
+            $canUpdate = true;
+        }
+
+        if (!$canUpdate) {
+            return response()->json([
+                'success' => false,
+                'error' => 'You do not have permission to update this report.'
+            ], 403);
+        }
+
+        $oldStatus = $report->status;
+        $newStatus = $request->status;
+
+        // Update status
+        $report->status = $newStatus;
+
+        // Set resolved_at timestamp if marking as resolved
+        if ($newStatus === 'Resolved' && $oldStatus !== 'Resolved') {
+            $report->resolved_at = now();
+            
+            // Update resolution details if provided
+            if ($request->has('cost')) {
+                $report->cost = $request->cost;
+            }
+            if ($request->has('damaged_part')) {
+                $report->damaged_part = $request->damaged_part;
+            }
+            if ($request->has('replaced_part')) {
+                $report->replaced_part = $request->replaced_part;
+            }
+            if ($request->has('resolution_notes')) {
+                $report->resolution_notes = $request->resolution_notes;
+            }
+        }
+
+        $report->save();
+
+        // Sync the corresponding concern status
+        $concern = $report->concern;
+        if ($concern && $concern->status !== 'Resolved') {
+            $concern->status = $newStatus;
+            if ($newStatus === 'Resolved') {
+                $concern->resolved_at = now();
+                $concern->resolution_notes = $request->resolution_notes ?? null;
+                $concern->cost = $request->cost ?? null;
+                $concern->damaged_part = $request->damaged_part ?? null;
+                $concern->replaced_part = $request->replaced_part ?? null;
+            }
+            $concern->save();
+        }
+
+        // Log the activity
+        $logMessage = "Report #{$report->id} status changed from {$oldStatus} to {$newStatus} by " . $user->name;
+        if ($newStatus === 'Resolved' && $request->has('cost')) {
+            $logMessage .= " (Cost: ₱" . number_format($request->cost, 2) . ")";
+        }
+        
+        \App\Models\ActivityLog::log(
+            'report_status_updated',
+            $logMessage,
+            $report->id,
+            'report'
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => "Report status updated to {$newStatus}.",
+            'report' => $report
+        ]);
     }
 }

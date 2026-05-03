@@ -89,7 +89,6 @@
                                 <option value="">All Roles</option>
                                 <option value="student" <?php echo e(request('role') == 'student' ? 'selected' : ''); ?>>Student</option>
                                 <option value="faculty" <?php echo e(request('role') == 'faculty' ? 'selected' : ''); ?>>Faculty</option>
-                                <option value="maintenance" <?php echo e(request('role') == 'maintenance' ? 'selected' : ''); ?>>Maintenance</option>
                                 <option value="mis" <?php echo e(request('role') == 'mis' ? 'selected' : ''); ?>>MIS</option>
                                 <option value="school_admin" <?php echo e(request('role') == 'school_admin' ? 'selected' : ''); ?>>School Administrator</option>
                                 <option value="building_admin" <?php echo e(request('role') == 'building_admin' ? 'selected' : ''); ?>>Building Administrator</option>
@@ -124,7 +123,6 @@
                     <select id="archiveRoleFilter" class="form-select" onchange="toggleUsersByRole()">
                         <option value="">Select Role</option>
                         <option value="faculty">Faculty Only</option>
-                        <option value="maintenance">Maintenance Only</option>
                         <option value="student">Student Only</option>
                     </select>
                 </div>
@@ -200,7 +198,7 @@
                                 <td><?php echo e($user->name); ?></td>
                                 <td><?php echo e($user->email); ?></td>
                                 <td>
-                                    <?php $staffRoles = ['mis','school_admin','building_admin','academic_head','program_head','principal_assistant','maintenance']; ?>
+                                    <?php $staffRoles = ['mis','school_admin','building_admin','academic_head','program_head','principal_assistant']; ?>
                                     <?php if($user->department): ?>
                                         <?php echo e($user->department); ?><?php echo e($user->level ? ' - ' . $user->level : ''); ?>
 
@@ -276,7 +274,6 @@
                                                         <select name="role" class="form-select edit-role-select" data-userid="<?php echo e($user->id); ?>" required>
                                                             <option value="student"             <?php echo e($user->role == 'student'             ? 'selected' : ''); ?>>Student</option>
                                                             <option value="faculty"             <?php echo e($user->role == 'faculty'             ? 'selected' : ''); ?>>Faculty</option>
-                                                            <option value="maintenance"         <?php echo e($user->role == 'maintenance'         ? 'selected' : ''); ?>>Maintenance</option>
                                                             <option value="mis"                 <?php echo e($user->role == 'mis'                 ? 'selected' : ''); ?>>MIS</option>
                                                             <option value="school_admin"        <?php echo e($user->role == 'school_admin'        ? 'selected' : ''); ?>>School Administrator</option>
                                                             <option value="building_admin"      <?php echo e($user->role == 'building_admin'      ? 'selected' : ''); ?>>Building Administrator</option>
@@ -1004,7 +1001,6 @@
                             <select name="role" id="addUserRole" class="form-select <?php echo e($errors->has('role') ? 'is-invalid' : ''); ?>" required onchange="onRoleChange(this.value)">
                                 <option value="student"             <?php echo e(old('role') == 'student'             ? 'selected' : ''); ?>>Student</option>
                                 <option value="faculty"             <?php echo e(old('role') == 'faculty'             ? 'selected' : ''); ?>>Faculty</option>
-                                <option value="maintenance"         <?php echo e(old('role') == 'maintenance'         ? 'selected' : ''); ?>>Maintenance</option>
                                 <option value="mis"                 <?php echo e(old('role') == 'mis'                 ? 'selected' : ''); ?>>MIS</option>
                                 <option value="school_admin"        <?php echo e(old('role') == 'school_admin'        ? 'selected' : ''); ?>>School Administrator</option>
                                 <option value="building_admin"      <?php echo e(old('role') == 'building_admin'      ? 'selected' : ''); ?>>Building Administrator</option>
