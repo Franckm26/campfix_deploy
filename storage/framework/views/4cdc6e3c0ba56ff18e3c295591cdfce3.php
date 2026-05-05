@@ -8,6 +8,57 @@
 
         .page { padding: 40px 50px; }
 
+        /* Letterhead */
+        .letterhead {
+            display: table;
+            width: 100%;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #003087;
+            padding-bottom: 12px;
+        }
+        .letterhead-left-logo {
+            display: table-cell;
+            width: 70px;
+            vertical-align: middle;
+        }
+        .letterhead-left-logo img {
+            width: 60px;
+            height: 60px;
+        }
+        .letterhead-info {
+            display: table-cell;
+            vertical-align: middle;
+            text-align: center;
+            padding: 0 15px;
+        }
+        .letterhead-info .school-name {
+            font-size: 16px;
+            font-weight: 700;
+            color: #003087;
+            letter-spacing: 0.5px;
+        }
+        .letterhead-info .school-address {
+            font-size: 10px;
+            color: #555;
+            margin-top: 2px;
+        }
+        .letterhead-info .school-tagline {
+            font-size: 10px;
+            color: #003087;
+            font-style: italic;
+            margin-top: 2px;
+        }
+        .letterhead-right-logo {
+            display: table-cell;
+            width: 70px;
+            vertical-align: middle;
+            text-align: right;
+        }
+        .letterhead-right-logo img {
+            width: 60px;
+            height: 60px;
+        }
+
         /* Header */
         .header { display: table; width: 100%; margin-bottom: 30px; }
         .header-left { display: table-cell; vertical-align: top; }
@@ -68,15 +119,36 @@
 <div class="page">
 
     
+    <?php 
+        $stiLogoPath = public_path('Campfix/Images/images.png');
+        $campfixLogoPath = public_path('Campfix/Images/logo.png');
+    ?>
+    <div class="letterhead">
+        <div class="letterhead-left-logo">
+            <?php if(file_exists($stiLogoPath)): ?>
+                <img src="data:image/png;base64,<?php echo e(base64_encode(file_get_contents($stiLogoPath))); ?>" alt="STI Logo">
+            <?php endif; ?>
+        </div>
+        <div class="letterhead-info">
+            <div class="school-name">STI COLLEGE NOVALICHES</div>
+            <div class="school-address">STI Academic Center, Diamond Avenue corner Quirino Highway, San Bartolome, Novaliches, Quezon City</div>
+            <div class="school-tagline">Campus Facility Management System - CampFix</div>
+        </div>
+        <div class="letterhead-right-logo">
+            <?php if(file_exists($campfixLogoPath)): ?>
+                <img src="data:image/png;base64,<?php echo e(base64_encode(file_get_contents($campfixLogoPath))); ?>" alt="CampFix Logo">
+            <?php endif; ?>
+        </div>
+    </div>
+
+    
     <div class="header">
         <div class="header-left">
             <div class="report-title">Reports Export</div>
             <div class="report-date">Generated: <?php echo e(now()->format('F d, Y g:i A')); ?></div>
         </div>
         <div class="header-right">
-            <div class="school-name">CampFix</div>
-            <div class="school-sub">STI College Novaliches</div>
-            <div class="school-sub">Campus Facility Management System</div>
+            <div class="school-sub">Exported by: <?php echo e(auth()->user()->name); ?></div>
         </div>
     </div>
 
@@ -98,10 +170,14 @@
 
     
     <div class="summary-row">
+        <?php if($viewType === 'resolved'): ?>
+        <div class="summary-col"><strong>Resolved:</strong> <?php echo e($resolvedReports->count()); ?></div>
+        <?php else: ?>
         <div class="summary-col"><strong>Pending:</strong> <?php echo e($pendingReports->count()); ?></div>
         <div class="summary-col"><strong>Assigned:</strong> <?php echo e($assignedReports->count()); ?></div>
         <div class="summary-col"><strong>In Progress:</strong> <?php echo e($inProgressReports->count()); ?></div>
         <div class="summary-col"><strong>Resolved:</strong> <?php echo e($resolvedReports->count()); ?></div>
+        <?php endif; ?>
         <div class="summary-col"><strong>Exported by:</strong> <?php echo e(auth()->user()->name); ?></div>
     </div>
 
@@ -149,7 +225,7 @@
     <?php endif; ?>
 
     
-    <?php if($inProgressReports->count() > 0): ?>
+    <?php if($viewType !== 'resolved' && $inProgressReports->count() > 0): ?>
     <div style="font-size:14px; font-weight:700; color:#d97706; margin-bottom:12px; margin-top:20px; text-transform:uppercase; letter-spacing:0.05em;">
         ⚙ In Progress Reports (<?php echo e($inProgressReports->count()); ?>)
     </div>
@@ -192,7 +268,7 @@
     <?php endif; ?>
 
     
-    <?php if($pendingReports->count() > 0): ?>
+    <?php if($viewType !== 'resolved' && $pendingReports->count() > 0): ?>
     <div style="font-size:14px; font-weight:700; color:#64748b; margin-bottom:12px; margin-top:20px; text-transform:uppercase; letter-spacing:0.05em;">
         ⏳ Pending Reports (<?php echo e($pendingReports->count()); ?>)
     </div>
@@ -233,7 +309,7 @@
     <?php endif; ?>
 
     
-    <?php if($assignedReports->count() > 0): ?>
+    <?php if($viewType !== 'resolved' && $assignedReports->count() > 0): ?>
     <div style="font-size:14px; font-weight:700; color:#1d4ed8; margin-bottom:12px; margin-top:20px; text-transform:uppercase; letter-spacing:0.05em;">
         📋 Assigned Reports (<?php echo e($assignedReports->count()); ?>)
     </div>

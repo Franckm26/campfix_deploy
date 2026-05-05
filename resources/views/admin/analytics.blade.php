@@ -7,8 +7,83 @@
 
 @section('styles')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <link href="{{ asset('css/admin.css') }}" rel="stylesheet">
 <style>
+/* SweetAlert2 Custom Styles for Modals */
+.swal-analytics-modal {
+    padding: 0 !important;
+}
+
+.swal-analytics-modal .swal2-popup {
+    max-height: 90vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.swal-wide-popup {
+    border-radius: 10px !important;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.4) !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.swal2-title {
+    font-size: 1.5rem !important;
+    padding: 1rem 1.5rem !important;
+    margin: 0 !important;
+    border-bottom: 3px solid #e9ecef;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white !important;
+    border-radius: 10px 10px 0 0 !important;
+}
+
+.swal2-html-container {
+    margin: 0 !important;
+    padding: 1.5rem !important;
+    max-height: 75vh !important;
+    overflow-y: auto !important;
+    flex: 1 !important;
+}
+
+.swal2-close {
+    font-size: 2rem !important;
+    width: 3rem !important;
+    height: 3rem !important;
+    color: white !important;
+    opacity: 0.9 !important;
+}
+
+.swal2-close:hover {
+    opacity: 1 !important;
+    color: white !important;
+}
+
+/* Make tables more readable in modals */
+.swal2-popup table {
+    font-size: 0.95rem !important;
+}
+
+.swal2-popup .table th {
+    padding: 0.75rem !important;
+}
+
+.swal2-popup .table td {
+    padding: 0.6rem !important;
+}
+
+.swal2-popup .card {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    border: none;
+}
+
+.swal2-popup .card-body h3,
+.swal2-popup .card-body h4,
+.swal2-popup .card-body h5,
+.swal2-popup .card-body h6 {
+    font-weight: 700;
+}
+
 .analytics-card {
     background: var(--card-bg, #fff);
     border-radius: 10px;
@@ -110,13 +185,16 @@
     display: flex;
     gap: 15px;
     align-items: flex-end;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    overflow-x: auto;
 }
 
 .filter-group {
     display: flex;
     flex-direction: column;
     gap: 5px;
+    min-width: 140px;
+    flex-shrink: 0;
 }
 
 .filter-group label {
@@ -130,6 +208,16 @@
     border: 1px solid #ddd;
     border-radius: 5px;
     font-size: 0.9rem;
+}
+
+.filter-group select,
+.filter-group .form-select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 0.9rem;
+    background-color: white;
+    cursor: pointer;
 }
 
 .btn-reset {
@@ -235,63 +323,190 @@
         </div>
     </div>
 
+    <!-- Export Button -->
+    <div class="mb-3 text-end">
+        <a href="{{ route('admin.analytics.export-pdf') }}?{{ http_build_query(request()->all()) }}" class="btn btn-danger" target="_blank">
+            <i class="fas fa-file-pdf"></i> Export to PDF
+        </a>
+    </div>
+
     <!-- Filter Section -->
     <div class="filter-section">
-        <form method="GET" action="{{ route('admin.analytics') }}" class="filter-form">
+        <form method="GET" action="{{ route('admin.analytics') }}" id="analyticsFilterForm" class="filter-form">
             <div class="filter-group">
+                <label for="period">Period</label>
+                <select name="period" id="period" class="form-select" onchange="document.getElementById('analyticsFilterForm').submit()">
+                    <option value="">Custom</option>
+                    <option value="monthly" {{ request('period') == 'monthly' ? 'selected' : '' }}>Monthly</option>
+                    <option value="quarterly" {{ request('period') == 'quarterly' ? 'selected' : '' }}>Quarterly</option>
+                    <option value="yearly" {{ request('period') == 'yearly' ? 'selected' : '' }}>Yearly</option>
+                </select>
+            </div>
+            <div class="filter-group" id="month-group">
+                <label for="month">Month</label>
+                <select name="month" id="month" class="form-select" onchange="document.getElementById('analyticsFilterForm').submit()">
+                    <option value="">All Months</option>
+                    @for($m = 1; $m <= 12; $m++)
+                        <option value="{{ $m }}" {{ request('month') == $m ? 'selected' : '' }}>
+                            {{ \Carbon\Carbon::create()->month($m)->format('F') }}
+                        </option>
+                    @endfor
+                </select>
+            </div>
+            <div class="filter-group" id="month-from-group" style="display: none;">
+                <label for="month_from">From Month</label>
+                <select name="month_from" id="month_from" class="form-select" onchange="document.getElementById('analyticsFilterForm').submit()">
+                    <option value="">Select Month</option>
+                    @for($m = 1; $m <= 12; $m++)
+                        <option value="{{ $m }}" {{ request('month_from') == $m ? 'selected' : '' }}>
+                            {{ \Carbon\Carbon::create()->month($m)->format('F') }}
+                        </option>
+                    @endfor
+                </select>
+            </div>
+            <div class="filter-group" id="month-to-group" style="display: none;">
+                <label for="month_to">To Month</label>
+                <select name="month_to" id="month_to" class="form-select" onchange="document.getElementById('analyticsFilterForm').submit()">
+                    <option value="">Select Month</option>
+                    @for($m = 1; $m <= 12; $m++)
+                        <option value="{{ $m }}" {{ request('month_to') == $m ? 'selected' : '' }}>
+                            {{ \Carbon\Carbon::create()->month($m)->format('F') }}
+                        </option>
+                    @endfor
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="year">Year</label>
+                <select name="year" id="year" class="form-select" onchange="document.getElementById('analyticsFilterForm').submit()">
+                    <option value="">All Years</option>
+                    @for($y = now()->year; $y >= now()->year - 5; $y--)
+                        <option value="{{ $y }}" {{ request('year') == $y ? 'selected' : '' }}>
+                            {{ $y }}
+                        </option>
+                    @endfor
+                </select>
+            </div>
+            <div class="filter-group" id="date-from-group">
                 <label for="date_from">Date From</label>
-                <input type="date" name="date_from" id="date_from" value="{{ request('date_from') }}">
+                <input type="date" name="date_from" id="date_from" value="{{ request('date_from') }}" onchange="document.getElementById('analyticsFilterForm').submit()">
             </div>
-            <div class="filter-group">
+            <div class="filter-group" id="date-to-group">
                 <label for="date_to">Date To</label>
-                <input type="date" name="date_to" id="date_to" value="{{ request('date_to') }}">
+                <input type="date" name="date_to" id="date_to" value="{{ request('date_to') }}" onchange="document.getElementById('analyticsFilterForm').submit()">
             </div>
-            <div class="filter-group">
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-filter"></i> Filter
-                </button>
-                <a href="{{ route('admin.analytics') }}" class="btn-reset">
+            <div class="filter-group" style="align-self: flex-end;">
+                <a href="{{ route('admin.analytics') }}" class="btn btn-secondary" style="padding: 8px 15px; text-decoration: none; display: inline-block;">
                     <i class="fas fa-times"></i> Reset
                 </a>
             </div>
         </form>
     </div>
 
-    <!-- ── TREND ALERTS ─────────────────────────────────────────────── -->
-    @if(isset($trendAlerts) && $trendAlerts->count() > 0)
-    <div class="analytics-card">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <div class="analytics-title" style="font-size:1rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">
-                <i class="fas fa-bell text-danger me-2"></i> Alerts &amp; Notifications
-                <span class="badge bg-danger ms-2">{{ $trendAlerts->count() }}</span>
-            </div>
-        </div>
+    <script>
+    // Handle period selection to show/hide relevant filters
+    document.addEventListener('DOMContentLoaded', function() {
+        const periodSelect = document.getElementById('period');
+        const monthGroup = document.getElementById('month-group');
+        const monthFromGroup = document.getElementById('month-from-group');
+        const monthToGroup = document.getElementById('month-to-group');
+        const dateFromGroup = document.getElementById('date-from-group');
+        const dateToGroup = document.getElementById('date-to-group');
+        
+        function updateFilterVisibility() {
+            const period = periodSelect.value;
+            
+            if (period === 'monthly') {
+                monthGroup.style.display = 'flex';
+                monthFromGroup.style.display = 'none';
+                monthToGroup.style.display = 'none';
+                dateFromGroup.style.display = 'none';
+                dateToGroup.style.display = 'none';
+            } else if (period === 'quarterly') {
+                monthGroup.style.display = 'none';
+                monthFromGroup.style.display = 'flex';
+                monthToGroup.style.display = 'flex';
+                dateFromGroup.style.display = 'none';
+                dateToGroup.style.display = 'none';
+            } else if (period === 'yearly') {
+                monthGroup.style.display = 'none';
+                monthFromGroup.style.display = 'none';
+                monthToGroup.style.display = 'none';
+                dateFromGroup.style.display = 'none';
+                dateToGroup.style.display = 'none';
+            } else {
+                // Custom - show all
+                monthGroup.style.display = 'flex';
+                monthFromGroup.style.display = 'none';
+                monthToGroup.style.display = 'none';
+                dateFromGroup.style.display = 'flex';
+                dateToGroup.style.display = 'flex';
+            }
+        }
+        
+        periodSelect.addEventListener('change', updateFilterVisibility);
+        updateFilterVisibility(); // Initialize on page load
+    });
+    </script>
 
-        <div class="mb-4">
-            @foreach($trendAlerts as $alert)
-            @php
-                $borderColor = $alert['severity'] === 'critical' ? '#ef4444' : ($alert['severity'] === 'warning' ? '#f97316' : '#f59e0b');
-                $bgColor     = $alert['severity'] === 'critical' ? '#fef2f2' : ($alert['severity'] === 'warning' ? '#fff7ed' : '#fffbeb');
-                $iconColor   = $alert['severity'] === 'critical' ? '#ef4444' : ($alert['severity'] === 'warning' ? '#f97316' : '#f59e0b');
-                $timeAgo     = isset($alert['updated_at']) && $alert['updated_at'] ? \Carbon\Carbon::parse($alert['updated_at'])->diffForHumans(null, true, true) : 'recently';
-            @endphp
-            <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;border-left:4px solid {{ $borderColor }};background:{{ $bgColor }};border-radius:8px;margin-bottom:10px;cursor:pointer;"
-                onclick="showCostTrendModal({{ json_encode($alert) }})">
-                <div style="width:36px;height:36px;border-radius:50%;background:{{ $iconColor }};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                    <i class="fas fa-triangle-exclamation" style="color:#fff;font-size:15px;"></i>
-                </div>
-                <div style="flex:1;">
-                    <div style="font-weight:700;font-size:.95rem;color:#1e293b;">{{ $alert['alert_title'] ?? 'Trend Detected' }}</div>
-                    <div style="font-size:.82rem;color:#64748b;">
-                        @if(!empty($alert['top_issue'])){{ $alert['top_issue'] }} on {{ $alert['location'] }}@else{{ $alert['location'] }}@endif
+    <!-- Charts Section -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="analytics-card" style="cursor: pointer;" onclick="showLocationDetailsModal()">
+                <div class="analytics-header">
+                    <div class="analytics-title">
+                        <i class="fas fa-chart-pie"></i> Repairs by Location
+                        <small class="text-muted" style="font-size: 0.7rem; font-weight: normal;">(Click for details)</small>
                     </div>
                 </div>
-                <div style="font-size:.78rem;color:#94a3b8;white-space:nowrap;">{{ $timeAgo }}</div>
+                <div class="chart-container">
+                    <canvas id="locationPieChart"></canvas>
+                </div>
             </div>
-            @endforeach
+        </div>
+        <div class="col-md-6">
+            <div class="analytics-card" style="cursor: pointer;" onclick="showCostDetailsModal()">
+                <div class="analytics-header">
+                    <div class="analytics-title">
+                        <i class="fas fa-chart-bar"></i> Cost by Location
+                        <small class="text-muted" style="font-size: 0.7rem; font-weight: normal;">(Click for details)</small>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="locationBarChart"></canvas>
+                </div>
+            </div>
         </div>
     </div>
-    @endif
+
+    <!-- Additional Charts Row -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="analytics-card" style="cursor: pointer;" onclick="showStatusDetailsModal()">
+                <div class="analytics-header">
+                    <div class="analytics-title">
+                        <i class="fas fa-chart-pie"></i> Status Distribution
+                        <small class="text-muted" style="font-size: 0.7rem; font-weight: normal;">(Click for details)</small>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="statusDoughnutChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="analytics-card" style="cursor: pointer;" onclick="showMonthlyTrendModal()">
+                <div class="analytics-header">
+                    <div class="analytics-title">
+                        <i class="fas fa-chart-area"></i> Monthly Trend
+                        <small class="text-muted" style="font-size: 0.7rem; font-weight: normal;">(Click for details)</small>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="monthlyTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Combined Cost by Location -->
     <div class="analytics-card">
@@ -364,57 +579,99 @@
         @endif
     </div>
 
-    <!-- Charts Section -->
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="analytics-card">
-                <div class="analytics-header">
-                    <div class="analytics-title">
-                        <i class="fas fa-chart-pie"></i> Repairs by Location
-                    </div>
-                </div>
-                <div class="chart-container">
-                    <canvas id="locationPieChart"></canvas>
-                </div>
+    <!-- ── TREND ALERTS ─────────────────────────────────────────────── -->
+    @if(isset($trendAlerts) && $trendAlerts->count() > 0)
+    <div class="analytics-card">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="analytics-title" style="font-size:1rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">
+                <i class="fas fa-bell text-danger me-2"></i> Alerts &amp; Notifications
+                <span class="badge bg-danger ms-2">{{ $trendAlerts->count() }}</span>
             </div>
         </div>
-        <div class="col-md-6">
-            <div class="analytics-card">
-                <div class="analytics-header">
-                    <div class="analytics-title">
-                        <i class="fas fa-chart-bar"></i> Cost by Location
+
+        <div class="mb-4">
+            @foreach($trendAlerts as $alert)
+            @php
+                $borderColor = $alert['severity'] === 'critical' ? '#ef4444' : ($alert['severity'] === 'warning' ? '#f97316' : '#f59e0b');
+                $bgColor     = $alert['severity'] === 'critical' ? '#fef2f2' : ($alert['severity'] === 'warning' ? '#fff7ed' : '#fffbeb');
+                $iconColor   = $alert['severity'] === 'critical' ? '#ef4444' : ($alert['severity'] === 'warning' ? '#f97316' : '#f59e0b');
+                $timeAgo     = isset($alert['updated_at']) && $alert['updated_at'] ? \Carbon\Carbon::parse($alert['updated_at'])->diffForHumans(null, true, true) : 'recently';
+            @endphp
+            <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;border-left:4px solid {{ $borderColor }};background:{{ $bgColor }};border-radius:8px;margin-bottom:10px;cursor:pointer;"
+                onclick="showCostTrendModal({{ json_encode($alert) }})">
+                <div style="width:36px;height:36px;border-radius:50%;background:{{ $iconColor }};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="fas fa-triangle-exclamation" style="color:#fff;font-size:15px;"></i>
+                </div>
+                <div style="flex:1;">
+                    <div style="font-weight:700;font-size:.95rem;color:#1e293b;">{{ $alert['alert_title'] ?? 'Trend Detected' }}</div>
+                    <div style="font-size:.82rem;color:#64748b;">
+                        @if(!empty($alert['top_issue'])){{ $alert['top_issue'] }} on {{ $alert['location'] }}@else{{ $alert['location'] }}@endif
                     </div>
                 </div>
-                <div class="chart-container">
-                    <canvas id="locationBarChart"></canvas>
-                </div>
+                <div style="font-size:.78rem;color:#94a3b8;white-space:nowrap;">{{ $timeAgo }}</div>
             </div>
+            @endforeach
         </div>
     </div>
+    @endif
+</div>
 
-    <!-- Additional Charts Row -->
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="analytics-card">
-                <div class="analytics-header">
-                    <div class="analytics-title">
-                        <i class="fas fa-chart-pie"></i> Status Distribution
-                    </div>
-                </div>
-                <div class="chart-container">
-                    <canvas id="statusDoughnutChart"></canvas>
-                </div>
+<!-- Cost Trend Modal (for alerts) -->
+<div class="modal fade" id="costTrendModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-chart-line me-2"></i><span id="ctm_title"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-        </div>
-        <div class="col-md-6">
-            <div class="analytics-card">
-                <div class="analytics-header">
-                    <div class="analytics-title">
-                        <i class="fas fa-chart-area"></i> Monthly Trend
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <div style="font-size:.8rem;color:#888;">Location</div>
+                        <div style="font-weight:700;" id="ctm_location"></div>
+                    </div>
+                    <div class="col-3">
+                        <div style="font-size:.8rem;color:#888;">Total Repairs</div>
+                        <div style="font-weight:700;color:#3b82f6;" id="ctm_repairs"></div>
+                    </div>
+                    <div class="col-3">
+                        <div style="font-size:.8rem;color:#888;">Cumulative Cost</div>
+                        <div style="font-weight:700;color:#22c55e;" id="ctm_total_cost"></div>
                     </div>
                 </div>
-                <div class="chart-container">
-                    <canvas id="monthlyTrendChart"></canvas>
+                <div class="row mb-3" id="ctm_threshold_row">
+                    <div class="col-6">
+                        <div style="font-size:.8rem;color:#888;">Original Asset Price</div>
+                        <div style="font-weight:700;" id="ctm_threshold"></div>
+                    </div>
+                    <div class="col-6">
+                        <div style="font-size:.8rem;color:#888;">Cost vs Original Price</div>
+                        <div class="progress mt-1" style="height:10px;">
+                            <div class="progress-bar" id="ctm_progress_bar" style="width:0%"></div>
+                        </div>
+                        <div style="font-size:.78rem;color:#888;margin-top:3px;" id="ctm_progress_label"></div>
+                    </div>
+                </div>
+                <hr>
+                <h6 class="mb-3">Monthly Cost Breakdown</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Month</th>
+                                <th class="text-center">Repairs</th>
+                                <th class="text-end">Cost</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ctm_monthly_rows"></tbody>
+                        <tfoot>
+                            <tr class="table-secondary fw-bold">
+                                <td>Total</td>
+                                <td class="text-center" id="ctm_total_count"></td>
+                                <td class="text-end" id="ctm_total_cost_foot"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
                 </div>
             </div>
         </div>
@@ -550,14 +807,25 @@
 @endsection
 
 @section('scripts')
+<script src="{{ asset('js/analytics-modals.js') }}?v={{ time() }}"></script>
 <script>
 (function() {
-    var locations = {!! json_encode($chartLocations ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
+    // Set global variables for modal functions
+    window.chartLocations = {!! json_encode($chartLocations ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
+    window.chartCounts = {!! json_encode($chartCounts ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
+    window.chartCosts = {!! json_encode($chartCosts ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
+    window.chartStatuses = {!! json_encode($chartStatuses ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
+    window.chartStatusCounts = {!! json_encode($chartStatusCounts ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
+    window.monthlyStats = {!! json_encode(isset($monthlyStats) ? $monthlyStats->map(fn($s) => ['month' => $s->month, 'title' => $s->title, 'count' => $s->total_count])->values() : [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
+    window.locationDetailedStats = {!! json_encode($locationStats ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
+
+    var locations = window.chartLocations;
     var counts    = {!! json_encode($chartCounts ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
     var costs     = {!! json_encode($chartCosts ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
     var statuses  = {!! json_encode($chartStatuses ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
     var statusCounts = {!! json_encode($chartStatusCounts ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
     var monthly   = {!! json_encode(isset($monthlyStats) ? $monthlyStats->map(fn($s) => ['month' => $s->month, 'title' => $s->title, 'count' => $s->total_count])->values() : [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
+    var locationDetails = {!! json_encode($locationStats ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
 
     var colors = ['#FF6384','#36A2EB','#FFCE56','#4BC0C0','#9966FF','#FF9F40','#C9CBCF','#4BC0C0'];
 
@@ -567,19 +835,154 @@
         // Pie — Repairs by Location
         var pieEl = document.getElementById('locationPieChart');
         if (pieEl && locations.length > 0) {
-            new Chart(pieEl, { type: 'pie', data: { labels: locations, datasets: [{ data: counts, backgroundColor: colors, borderWidth: 2 }] }, options: { responsive: true, plugins: { legend: { position: 'bottom' } } } });
+            new Chart(pieEl, { 
+                type: 'pie', 
+                data: { 
+                    labels: locations, 
+                    datasets: [{ 
+                        data: counts, 
+                        backgroundColor: colors, 
+                        borderWidth: 2 
+                    }] 
+                }, 
+                options: { 
+                    responsive: true, 
+                    plugins: { 
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                title: function(context) {
+                                    return context[0].label;
+                                },
+                                label: function(context) {
+                                    var location = context.label || '';
+                                    var totalRepairs = context.parsed || 0;
+                                    
+                                    // Get item breakdown for this location
+                                    var items = locationDetails.filter(function(item) {
+                                        return item.location === location;
+                                    });
+                                    
+                                    var lines = ['Repairs: ' + totalRepairs];
+                                    
+                                    // Add each item breakdown
+                                    items.forEach(function(item) {
+                                        lines.push(item.title + ' - ' + item.count);
+                                    });
+                                    
+                                    // Add total cost
+                                    lines.push('Cost: ₱' + (costs[context.dataIndex] || 0).toLocaleString('en-PH', {minimumFractionDigits: 2}));
+                                    
+                                    return lines;
+                                }
+                            },
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleFont: { size: 14, weight: 'bold' },
+                            bodyFont: { size: 13 },
+                            padding: 12,
+                            displayColors: true
+                        }
+                    } 
+                } 
+            });
         }
 
         // Bar — Cost by Location
         var barEl = document.getElementById('locationBarChart');
         if (barEl && locations.length > 0) {
-            new Chart(barEl, { type: 'bar', data: { labels: locations, datasets: [{ label: 'Total Cost (₱)', data: costs, backgroundColor: '#36A2EB', borderWidth: 1 }] }, options: { responsive: true, scales: { y: { beginAtZero: true, ticks: { callback: function(v){ return '₱'+v.toLocaleString(); } } } } } });
+            new Chart(barEl, { 
+                type: 'bar', 
+                data: { 
+                    labels: locations, 
+                    datasets: [{ 
+                        label: 'Total Cost (₱)', 
+                        data: costs, 
+                        backgroundColor: '#36A2EB', 
+                        borderWidth: 1 
+                    }] 
+                }, 
+                options: { 
+                    responsive: true, 
+                    scales: { 
+                        y: { 
+                            beginAtZero: true, 
+                            ticks: { 
+                                callback: function(v){ 
+                                    return '₱'+v.toLocaleString(); 
+                                } 
+                            } 
+                        } 
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                title: function(context) {
+                                    return context[0].label;
+                                },
+                                label: function(context) {
+                                    var value = context.parsed.y || 0;
+                                    var repairs = counts[context.dataIndex] || 0;
+                                    var avgCost = repairs > 0 ? (value / repairs) : 0;
+                                    return [
+                                        'Total Cost: ₱' + value.toLocaleString('en-PH', {minimumFractionDigits: 2}),
+                                        'Total Repairs: ' + repairs,
+                                        'Avg Cost: ₱' + avgCost.toLocaleString('en-PH', {minimumFractionDigits: 2})
+                                    ];
+                                }
+                            },
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleFont: { size: 14, weight: 'bold' },
+                            bodyFont: { size: 13 },
+                            padding: 12,
+                            displayColors: true
+                        }
+                    }
+                } 
+            });
         }
 
         // Doughnut — Status Distribution
         var doughEl = document.getElementById('statusDoughnutChart');
         if (doughEl && statuses.length > 0) {
-            new Chart(doughEl, { type: 'doughnut', data: { labels: statuses, datasets: [{ data: statusCounts, backgroundColor: colors, borderWidth: 2 }] }, options: { responsive: true, plugins: { legend: { position: 'bottom' } } } });
+            new Chart(doughEl, { 
+                type: 'doughnut', 
+                data: { 
+                    labels: statuses, 
+                    datasets: [{ 
+                        data: statusCounts, 
+                        backgroundColor: colors, 
+                        borderWidth: 2 
+                    }] 
+                }, 
+                options: { 
+                    responsive: true, 
+                    plugins: { 
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                title: function(context) {
+                                    return context[0].label + ' Status';
+                                },
+                                label: function(context) {
+                                    var value = context.parsed || 0;
+                                    var total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    var percentage = ((value / total) * 100).toFixed(1);
+                                    return [
+                                        'Count: ' + value + ' reports',
+                                        'Percentage: ' + percentage + '%',
+                                        'Total Reports: ' + total
+                                    ];
+                                }
+                            },
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleFont: { size: 14, weight: 'bold' },
+                            bodyFont: { size: 13 },
+                            padding: 12,
+                            displayColors: true
+                        }
+                    } 
+                } 
+            });
         }
 
         // Line — Monthly Trend (per issue type)
@@ -729,5 +1132,7 @@ function showCostTrendModal(alert) {
 
     new bootstrap.Modal(document.getElementById('costTrendModal')).show();
 }
+
+// Modal functions are now loaded from analytics-modals.js (SweetAlert2 versions)
 </script>
 @endsection

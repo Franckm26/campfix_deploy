@@ -1,12 +1,63 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: DejaVu Sans, sans-serif; font-size: 12px; color: #1e293b; background: #fff; }
 
         .page { padding: 40px 50px; }
+
+        /* Letterhead */
+        .letterhead {
+            display: table;
+            width: 100%;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #003087;
+            padding-bottom: 12px;
+        }
+        .letterhead-left-logo {
+            display: table-cell;
+            width: 70px;
+            vertical-align: middle;
+        }
+        .letterhead-left-logo img {
+            width: 60px;
+            height: 60px;
+        }
+        .letterhead-info {
+            display: table-cell;
+            vertical-align: middle;
+            text-align: center;
+            padding: 0 15px;
+        }
+        .letterhead-info .school-name {
+            font-size: 16px;
+            font-weight: 700;
+            color: #003087;
+            letter-spacing: 0.5px;
+        }
+        .letterhead-info .school-address {
+            font-size: 10px;
+            color: #555;
+            margin-top: 2px;
+        }
+        .letterhead-info .school-tagline {
+            font-size: 10px;
+            color: #003087;
+            font-style: italic;
+            margin-top: 2px;
+        }
+        .letterhead-right-logo {
+            display: table-cell;
+            width: 70px;
+            vertical-align: middle;
+            text-align: right;
+        }
+        .letterhead-right-logo img {
+            width: 60px;
+            height: 60px;
+        }
 
         /* Header */
         .header { display: table; width: 100%; margin-bottom: 30px; }
@@ -67,6 +118,29 @@
 <body>
 <div class="page">
 
+    {{-- Letterhead with Logos --}}
+    @php 
+        $stiLogoPath = public_path('Campfix/Images/images.png');
+        $campfixLogoPath = public_path('Campfix/Images/logo.png');
+    @endphp
+    <div class="letterhead">
+        <div class="letterhead-left-logo">
+            @if(file_exists($stiLogoPath))
+                <img src="data:image/png;base64,{{ base64_encode(file_get_contents($stiLogoPath)) }}" alt="STI Logo">
+            @endif
+        </div>
+        <div class="letterhead-info">
+            <div class="school-name">STI COLLEGE NOVALICHES</div>
+            <div class="school-address">STI Academic Center, Diamond Avenue corner Quirino Highway, San Bartolome, Novaliches, Quezon City</div>
+            <div class="school-tagline">Campus Facility Management System - CampFix</div>
+        </div>
+        <div class="letterhead-right-logo">
+            @if(file_exists($campfixLogoPath))
+                <img src="data:image/png;base64,{{ base64_encode(file_get_contents($campfixLogoPath)) }}" alt="CampFix Logo">
+            @endif
+        </div>
+    </div>
+
     {{-- Header --}}
     <div class="header">
         <div class="header-left">
@@ -74,9 +148,7 @@
             <div class="report-date">Generated: {{ now()->format('F d, Y g:i A') }}</div>
         </div>
         <div class="header-right">
-            <div class="school-name">CampFix</div>
-            <div class="school-sub">STI College Novaliches</div>
-            <div class="school-sub">Campus Facility Management System</div>
+            <div class="school-sub">Exported by: {{ auth()->user()->name }}</div>
         </div>
     </div>
 
@@ -92,16 +164,20 @@
         </div>
         <div class="info-col">
             <div class="info-label">Total Repair Cost</div>
-            <div class="info-value">₱{{ number_format($resolvedReports->sum('cost'), 2) }}</div>
+            <div class="info-value">PHP {{ number_format($resolvedReports->sum('cost'), 2) }}</div>
         </div>
     </div>
 
     {{-- Summary Row --}}
     <div class="summary-row">
+        @if($viewType === 'resolved')
+        <div class="summary-col"><strong>Resolved:</strong> {{ $resolvedReports->count() }}</div>
+        @else
         <div class="summary-col"><strong>Pending:</strong> {{ $pendingReports->count() }}</div>
         <div class="summary-col"><strong>Assigned:</strong> {{ $assignedReports->count() }}</div>
         <div class="summary-col"><strong>In Progress:</strong> {{ $inProgressReports->count() }}</div>
         <div class="summary-col"><strong>Resolved:</strong> {{ $resolvedReports->count() }}</div>
+        @endif
         <div class="summary-col"><strong>Exported by:</strong> {{ auth()->user()->name }}</div>
     </div>
 
@@ -141,7 +217,7 @@
                 <td><span class="badge {{ $priorityClass }}">{{ ucfirst($report->severity) }}</span></td>
                 <td>{{ $report->user->name ?? 'Unknown' }}</td>
                 <td>{{ $report->created_at->format('M d, Y') }}</td>
-                <td>{{ $report->cost ? '₱'.number_format($report->cost, 2) : '-' }}</td>
+                <td>{{ $report->cost ? 'PHP '.number_format($report->cost, 2) : '-' }}</td>
             </tr>
             @endforeach
         </tbody>
@@ -149,7 +225,7 @@
     @endif
 
     {{-- In Progress Reports Table --}}
-    @if($inProgressReports->count() > 0)
+    @if($viewType !== 'resolved' && $inProgressReports->count() > 0)
     <div style="font-size:14px; font-weight:700; color:#d97706; margin-bottom:12px; margin-top:20px; text-transform:uppercase; letter-spacing:0.05em;">
         ⚙ In Progress Reports ({{ $inProgressReports->count() }})
     </div>
@@ -192,7 +268,7 @@
     @endif
 
     {{-- Pending Reports Table --}}
-    @if($pendingReports->count() > 0)
+    @if($viewType !== 'resolved' && $pendingReports->count() > 0)
     <div style="font-size:14px; font-weight:700; color:#64748b; margin-bottom:12px; margin-top:20px; text-transform:uppercase; letter-spacing:0.05em;">
         ⏳ Pending Reports ({{ $pendingReports->count() }})
     </div>
@@ -233,7 +309,7 @@
     @endif
 
     {{-- Assigned Reports Table (if any) --}}
-    @if($assignedReports->count() > 0)
+    @if($viewType !== 'resolved' && $assignedReports->count() > 0)
     <div style="font-size:14px; font-weight:700; color:#1d4ed8; margin-bottom:12px; margin-top:20px; text-transform:uppercase; letter-spacing:0.05em;">
         📋 Assigned Reports ({{ $assignedReports->count() }})
     </div>
@@ -286,17 +362,17 @@
             </div>
             <div class="totals-row">
                 <div class="totals-label">Total Repair Cost</div>
-                <div class="totals-value">₱{{ number_format($resolvedReports->sum('cost'), 2) }}</div>
+                <div class="totals-value">PHP {{ number_format($resolvedReports->sum('cost'), 2) }}</div>
             </div>
             <div class="totals-row">
                 <div class="totals-label">Avg Cost per Repair</div>
                 <div class="totals-value">
-                    ₱{{ $resolvedReports->count() > 0 ? number_format($resolvedReports->sum('cost') / $resolvedReports->count(), 2) : '0.00' }}
+                    PHP {{ $resolvedReports->count() > 0 ? number_format($resolvedReports->sum('cost') / $resolvedReports->count(), 2) : '0.00' }}
                 </div>
             </div>
             <div class="totals-row totals-total">
                 <div class="totals-label">Grand Total Cost</div>
-                <div class="totals-value">₱{{ number_format($resolvedReports->sum('cost'), 2) }}</div>
+                <div class="totals-value">PHP {{ number_format($resolvedReports->sum('cost'), 2) }}</div>
             </div>
         </div>
     </div>
@@ -324,8 +400,8 @@
                 <td style="font-weight:600;">{{ $row['issue'] }}</td>
                 <td>{{ $row['location'] }}</td>
                 <td style="text-align:center;">{{ $row['count'] }}</td>
-                <td style="text-align:right; font-weight:600;">₱{{ number_format($row['total_cost'], 2) }}</td>
-                <td style="text-align:right;">₱{{ number_format($row['avg_cost'], 2) }}</td>
+                <td style="text-align:right; font-weight:600;">PHP {{ number_format($row['total_cost'], 2) }}</td>
+                <td style="text-align:right;">PHP {{ number_format($row['avg_cost'], 2) }}</td>
             </tr>
             @endforeach
         </tbody>
@@ -344,7 +420,7 @@
             </div>
             <div class="totals-row totals-total">
                 <div class="totals-label">Grand Total Cost</div>
-                <div class="totals-value">₱{{ number_format($costByRoom->sum('total_cost'), 2) }}</div>
+                <div class="totals-value">PHP {{ number_format($costByRoom->sum('total_cost'), 2) }}</div>
             </div>
         </div>
     </div>

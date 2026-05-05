@@ -56,6 +56,10 @@ class AppServiceProvider extends ServiceProvider
                 $view->with('unread_count', $user->unreadNotifications()->count());
                 $view->with('userDateFormat', $user->date_format ?: 'Y-m-d');
                 $view->with('userItemsPerPage', max(5, min(100, $perPage)));
+                
+                // Share facilities for event request modal
+                $facilities = \App\Models\Facility::orderBy('type')->orderBy('name')->get();
+                $view->with('facilities', $facilities);
             }
         });
     }

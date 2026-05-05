@@ -693,17 +693,35 @@ class AdminController extends Controller
 
         if ($viewType === 'resolved') {
             // Show resolved reports
-            $resolvedReports = Report::with('user', 'category')
+            $query = Report::with('user', 'category')
                 ->where('status', 'Resolved')
                 ->where('is_deleted', false)
-                ->where(function ($query) {
-                    $query->where('building_admin_archived', false)
+                ->where(function ($q) {
+                    $q->where('building_admin_archived', false)
                         ->where('mis_archived', false)
                         ->where('school_admin_archived', false)
                         ->where('admin_archived', false);
-                })
-                ->orderBy('updated_at', 'desc')
-                ->get();
+                });
+
+            // Apply filters
+            if ($request->filled('priority')) {
+                $query->where('severity', $request->input('priority'));
+            }
+
+            if ($request->filled('category')) {
+                $query->where('category_id', $request->input('category'));
+            }
+
+            if ($request->filled('search')) {
+                $search = $request->input('search');
+                $query->where(function ($q) use ($search) {
+                    $q->where('title', 'ILIKE', "%{$search}%")
+                      ->orWhere('description', 'ILIKE', "%{$search}%")
+                      ->orWhere('location', 'ILIKE', "%{$search}%");
+                });
+            }
+
+            $resolvedReports = $query->orderBy('updated_at', 'desc')->get();
 
             return view('admin.reports', [
                 'viewType' => $viewType,
@@ -1073,17 +1091,39 @@ class AdminController extends Controller
         }
 
         // Default: Show all active reports for admin management (excluding resolved)
-        $reports = Report::with('user', 'category')
+        $query = Report::with('user', 'category')
             ->where('is_deleted', false)
             ->where('status', '!=', 'Resolved')
-            ->where(function ($query) {
-                $query->where('building_admin_archived', false)
+            ->where(function ($q) {
+                $q->where('building_admin_archived', false)
                     ->where('mis_archived', false)
                     ->where('school_admin_archived', false)
                     ->where('admin_archived', false);
-            })
-            ->orderBy('created_at', 'desc')
-            ->get();
+            });
+
+        // Apply filters
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
+        if ($request->filled('priority')) {
+            $query->where('severity', $request->input('priority'));
+        }
+
+        if ($request->filled('category')) {
+            $query->where('category_id', $request->input('category'));
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'ILIKE', "%{$search}%")
+                  ->orWhere('description', 'ILIKE', "%{$search}%")
+                  ->orWhere('location', 'ILIKE', "%{$search}%");
+            });
+        }
+
+        $reports = $query->orderBy('created_at', 'desc')->get();
 
         return view('admin.reports', [
             'viewType' => $viewType,
@@ -1344,12 +1384,70 @@ class AdminController extends Controller
     // Export Reports to PDF
     public function exportPdf(Request $request)
     {
+        $viewType = $request->input('view', 'active');
+        
         $query = Report::with('category', 'user')
             ->where('is_deleted', false);
 
+        // Apply view type filter
+        if ($viewType === 'resolved') {
+            $query->where('status', 'Resolved');
+        } elseif ($viewType === 'archives') {
+            // For archives, get reports archived by current user
+            $query->whereHas('archivedByUsers', function ($q) {
+                $q->where('user_id', auth()->id());
+            });
+        } elseif ($viewType === 'deleted') {
+            $query->where('is_deleted', true);
+        } else {
+            // Active reports - not deleted and not archived by current user
+            $query->whereDoesntHave('archivedByUsers', function ($q) {
+                $q->where('user_id', auth()->id());
+            });
+        }
+
+        // Apply archived filter
+        if ($request->filled('archived')) {
+            if ($request->input('archived') === '1') {
+                $query->whereHas('archivedByUsers', function ($q) {
+                    $q->where('user_id', auth()->id());
+                });
+            } elseif ($request->input('archived') === 'all') {
+                // No filter - show all
+            } else {
+                // Active concerns (not archived)
+                $query->whereDoesntHave('archivedByUsers', function ($q) {
+                    $q->where('user_id', auth()->id());
+                });
+            }
+        }
+
+        // Apply status filter
         if ($request->filled('status')) {
             $query->where('status', $request->input('status'));
         }
+
+        // Apply priority filter (severity in reports table)
+        if ($request->filled('priority')) {
+            $query->where('severity', $request->input('priority'));
+        }
+
+        // Apply category filter
+        if ($request->filled('category')) {
+            $query->where('category_id', $request->input('category'));
+        }
+
+        // Apply search filter
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'ILIKE', "%{$search}%")
+                  ->orWhere('description', 'ILIKE', "%{$search}%")
+                  ->orWhere('location', 'ILIKE', "%{$search}%");
+            });
+        }
+
+        // Legacy date filters (if provided)
         if ($request->filled('severity')) {
             $query->where('severity', $request->input('severity'));
         }
@@ -1382,13 +1480,75 @@ class AdminController extends Controller
             ->sortByDesc('total_cost')
             ->values();
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.reports-pdf', compact('reports', 'resolvedReports', 'inProgressReports', 'pendingReports', 'assignedReports', 'costByRoom'))
+        // Build filter description for PDF
+        $filterDescription = $this->buildFilterDescription($request, $viewType);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.reports-pdf', compact('reports', 'resolvedReports', 'inProgressReports', 'pendingReports', 'assignedReports', 'costByRoom', 'filterDescription', 'viewType'))
             ->setPaper('a4', 'portrait')
             ->setOptions(['defaultFont' => 'DejaVu Sans', 'isHtml5ParserEnabled' => true]);
 
-        ActivityLog::log('export_created', 'Exported reports to PDF');
+        ActivityLog::log('export_created', 'Exported reports to PDF with filters: ' . $filterDescription);
 
-        return $pdf->download('campfix-reports-' . now()->format('Y-m-d') . '.pdf');
+        return $pdf->stream('campfix-reports-' . now()->format('Y-m-d') . '.pdf');
+    }
+
+    // Helper method to build filter description
+    private function buildFilterDescription(Request $request, $viewType)
+    {
+        $filters = [];
+        
+        // View type
+        $viewLabels = [
+            'active' => 'Active Reports',
+            'resolved' => 'Resolved Reports',
+            'archives' => 'Archived Reports',
+            'deleted' => 'Deleted Reports'
+        ];
+        $filters[] = $viewLabels[$viewType] ?? 'All Reports';
+
+        // Archived filter
+        if ($request->filled('archived')) {
+            if ($request->input('archived') === '1') {
+                $filters[] = 'Archived';
+            } elseif ($request->input('archived') === 'all') {
+                $filters[] = 'All Concerns';
+            } else {
+                $filters[] = 'Active Concerns';
+            }
+        }
+
+        // Status filter
+        if ($request->filled('status')) {
+            $filters[] = 'Status: ' . $request->input('status');
+        }
+
+        // Priority filter
+        if ($request->filled('priority')) {
+            $filters[] = 'Priority: ' . ucfirst($request->input('priority'));
+        }
+
+        // Category filter
+        if ($request->filled('category')) {
+            $category = \App\Models\Category::find($request->input('category'));
+            if ($category) {
+                $filters[] = 'Category: ' . $category->name;
+            }
+        }
+
+        // Search filter
+        if ($request->filled('search')) {
+            $filters[] = 'Search: "' . $request->input('search') . '"';
+        }
+
+        // Date filters
+        if ($request->filled('date_from')) {
+            $filters[] = 'From: ' . \Carbon\Carbon::parse($request->input('date_from'))->format('M d, Y');
+        }
+        if ($request->filled('date_to')) {
+            $filters[] = 'To: ' . \Carbon\Carbon::parse($request->input('date_to'))->format('M d, Y');
+        }
+
+        return !empty($filters) ? implode(' | ', $filters) : 'No filters applied';
     }
 
     // Archive a concern (MIS only)
@@ -3852,32 +4012,101 @@ class AdminController extends Controller
             ->where('location', '!=', '')
             ->where('status', 'Resolved');
 
-        if ($request->filled('date_from')) {
-            $baseQuery->whereDate('created_at', '>=', $request->input('date_from'));
-        }
-        if ($request->filled('date_to')) {
-            $baseQuery->whereDate('created_at', '<=', $request->input('date_to'));
+        // Apply filters based on period selection
+        $period = $request->input('period');
+        
+        if ($period === 'monthly' && $request->filled('month') && $request->filled('year')) {
+            // Monthly: specific month and year
+            $baseQuery->whereMonth('created_at', $request->input('month'))
+                     ->whereYear('created_at', $request->input('year'));
+        } elseif ($period === 'quarterly' && $request->filled('month_from') && $request->filled('month_to')) {
+            // Quarterly: month range (e.g., January to March)
+            $monthFrom = (int) $request->input('month_from');
+            $monthTo = (int) $request->input('month_to');
+            
+            if ($request->filled('year')) {
+                $year = (int) $request->input('year');
+                
+                if ($monthFrom <= $monthTo) {
+                    // Normal range within same year (e.g., Jan to Mar)
+                    $baseQuery->whereYear('created_at', $year)
+                             ->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom])
+                             ->whereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                } else {
+                    // Range wraps around year (e.g., Nov to Feb)
+                    $baseQuery->where(function($q) use ($year, $monthFrom, $monthTo) {
+                        $q->where(function($q1) use ($year, $monthFrom) {
+                            $q1->whereYear('created_at', $year)
+                               ->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom]);
+                        })->orWhere(function($q2) use ($year, $monthTo) {
+                            $q2->whereYear('created_at', $year + 1)
+                               ->whereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                        });
+                    });
+                }
+            } else {
+                // No year specified - filter by month range across all years
+                if ($monthFrom <= $monthTo) {
+                    $baseQuery->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom])
+                             ->whereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                } else {
+                    // Range wraps around year
+                    $baseQuery->where(function($q) use ($monthFrom, $monthTo) {
+                        $q->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom])
+                          ->orWhereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                    });
+                }
+            }
+        } elseif ($period === 'yearly' && $request->filled('year')) {
+            // Yearly: entire year
+            $baseQuery->whereYear('created_at', $request->input('year'));
+        } else {
+            // Custom filters
+            if ($request->filled('month')) {
+                $baseQuery->whereMonth('created_at', $request->input('month'));
+            }
+            if ($request->filled('year')) {
+                $baseQuery->whereYear('created_at', $request->input('year'));
+            }
+            if ($request->filled('date_from')) {
+                $baseQuery->whereDate('created_at', '>=', $request->input('date_from'));
+            }
+            if ($request->filled('date_to')) {
+                $baseQuery->whereDate('created_at', '<=', $request->input('date_to'));
+            }
         }
 
         // Summary stats
         $totalConcerns = (clone $baseQuery)->count();
         $totalCost     = (clone $baseQuery)->sum('cost') ?? 0;
 
-        // Location stats
+        // Location stats with individual items
         $locationStats = (clone $baseQuery)
-            ->select('location')
+            ->select('location', 'title')
             ->selectRaw('COUNT(*) as count')
             ->selectRaw('SUM(COALESCE(cost, 0)) as total_cost')
-            ->groupBy('location')
+            ->whereNotNull('title')
+            ->where('title', '!=', '')
+            ->groupBy('location', 'title')
             ->orderByDesc('count')
             ->get()
             ->map(function ($stat) {
                 return [
                     'location' => $stat->location,
+                    'title' => $stat->title,
                     'count' => $stat->count,
                     'total_cost' => $stat->total_cost ?? 0,
                 ];
             });
+        
+        // For chart data, we still need aggregated by location only
+        $locationChartStats = (clone $baseQuery)
+            ->select('location')
+            ->selectRaw('COUNT(*) as count')
+            ->selectRaw('SUM(COALESCE(cost, 0)) as total_cost')
+            ->groupBy('location')
+            ->orderByDesc('count')
+            ->get();
 
         // Combined location stats (all tickets)
         $combinedLocationStats = Report::whereNotNull('location')
@@ -3904,27 +4133,137 @@ class AdminController extends Controller
             ->orderBy('resolved_at', 'desc')
             ->get();
 
-        // Chart data
-        $chartLocations = $locationStats->pluck('location')->toArray();
-        $chartCounts = $locationStats->pluck('count')->toArray();
-        $chartCosts = $locationStats->pluck('total_cost')->toArray();
+        // Chart data (aggregated by location for the pie chart)
+        $chartLocations = $locationChartStats->pluck('location')->toArray();
+        $chartCounts = $locationChartStats->pluck('count')->toArray();
+        $chartCosts = $locationChartStats->pluck('total_cost')->toArray();
 
-        // Status distribution
-        $statusStats = Report::select('status')
-            ->when($request->filled('date_from'), fn($q) => $q->whereDate('created_at', '>=', $request->input('date_from')))
-            ->when($request->filled('date_to'),   fn($q) => $q->whereDate('created_at', '<=', $request->input('date_to')))
-            ->selectRaw('COUNT(*) as count')
+        // Status distribution - use same filters as baseQuery
+        $statusQuery = Report::select('status');
+        
+        // Apply same period filters
+        if ($period === 'monthly' && $request->filled('month') && $request->filled('year')) {
+            $statusQuery->whereMonth('created_at', $request->input('month'))
+                       ->whereYear('created_at', $request->input('year'));
+        } elseif ($period === 'quarterly' && $request->filled('month_from') && $request->filled('month_to')) {
+            $monthFrom = (int) $request->input('month_from');
+            $monthTo = (int) $request->input('month_to');
+            
+            if ($request->filled('year')) {
+                $year = (int) $request->input('year');
+                
+                if ($monthFrom <= $monthTo) {
+                    $statusQuery->whereYear('created_at', $year)
+                               ->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom])
+                               ->whereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                } else {
+                    $statusQuery->where(function($q) use ($year, $monthFrom, $monthTo) {
+                        $q->where(function($q1) use ($year, $monthFrom) {
+                            $q1->whereYear('created_at', $year)
+                               ->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom]);
+                        })->orWhere(function($q2) use ($year, $monthTo) {
+                            $q2->whereYear('created_at', $year + 1)
+                               ->whereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                        });
+                    });
+                }
+            } else {
+                if ($monthFrom <= $monthTo) {
+                    $statusQuery->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom])
+                               ->whereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                } else {
+                    $statusQuery->where(function($q) use ($monthFrom, $monthTo) {
+                        $q->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom])
+                          ->orWhereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                    });
+                }
+            }
+        } elseif ($period === 'yearly' && $request->filled('year')) {
+            $statusQuery->whereYear('created_at', $request->input('year'));
+        } else {
+            if ($request->filled('month')) {
+                $statusQuery->whereMonth('created_at', $request->input('month'));
+            }
+            if ($request->filled('year')) {
+                $statusQuery->whereYear('created_at', $request->input('year'));
+            }
+            if ($request->filled('date_from')) {
+                $statusQuery->whereDate('created_at', '>=', $request->input('date_from'));
+            }
+            if ($request->filled('date_to')) {
+                $statusQuery->whereDate('created_at', '<=', $request->input('date_to'));
+            }
+        }
+        
+        $statusStats = $statusQuery->selectRaw('COUNT(*) as count')
             ->groupBy('status')
             ->get();
 
         $chartStatuses = $statusStats->pluck('status')->toArray();
         $chartStatusCounts = $statusStats->pluck('count')->toArray();
 
-        // Monthly stats - last 6 months
-        $monthlyStats = Report::where('created_at', '>=', now()->subMonths(6))
-            ->when($request->filled('date_from'), fn($q) => $q->whereDate('created_at', '>=', $request->input('date_from')))
-            ->when($request->filled('date_to'),   fn($q) => $q->whereDate('created_at', '<=', $request->input('date_to')))
-            ->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month")
+        // Monthly stats - apply same filters
+        $monthlyQuery = Report::query();
+        
+        // Apply same period filters
+        if ($period === 'monthly' && $request->filled('month') && $request->filled('year')) {
+            $monthlyQuery->whereMonth('created_at', $request->input('month'))
+                        ->whereYear('created_at', $request->input('year'));
+        } elseif ($period === 'quarterly' && $request->filled('month_from') && $request->filled('month_to')) {
+            $monthFrom = (int) $request->input('month_from');
+            $monthTo = (int) $request->input('month_to');
+            
+            if ($request->filled('year')) {
+                $year = (int) $request->input('year');
+                
+                if ($monthFrom <= $monthTo) {
+                    $monthlyQuery->whereYear('created_at', $year)
+                                ->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom])
+                                ->whereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                } else {
+                    $monthlyQuery->where(function($q) use ($year, $monthFrom, $monthTo) {
+                        $q->where(function($q1) use ($year, $monthFrom) {
+                            $q1->whereYear('created_at', $year)
+                               ->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom]);
+                        })->orWhere(function($q2) use ($year, $monthTo) {
+                            $q2->whereYear('created_at', $year + 1)
+                               ->whereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                        });
+                    });
+                }
+            } else {
+                if ($monthFrom <= $monthTo) {
+                    $monthlyQuery->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom])
+                                ->whereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                } else {
+                    $monthlyQuery->where(function($q) use ($monthFrom, $monthTo) {
+                        $q->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom])
+                          ->orWhereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                    });
+                }
+            }
+        } elseif ($period === 'yearly' && $request->filled('year')) {
+            $monthlyQuery->whereYear('created_at', $request->input('year'));
+        } else {
+            // Default to last 6 months if no specific filters
+            if (!$request->filled('month') && !$request->filled('year') && !$request->filled('date_from') && !$request->filled('date_to')) {
+                $monthlyQuery->where('created_at', '>=', now()->subMonths(6));
+            }
+            if ($request->filled('month')) {
+                $monthlyQuery->whereMonth('created_at', $request->input('month'));
+            }
+            if ($request->filled('year')) {
+                $monthlyQuery->whereYear('created_at', $request->input('year'));
+            }
+            if ($request->filled('date_from')) {
+                $monthlyQuery->whereDate('created_at', '>=', $request->input('date_from'));
+            }
+            if ($request->filled('date_to')) {
+                $monthlyQuery->whereDate('created_at', '<=', $request->input('date_to'));
+            }
+        }
+        
+        $monthlyStats = $monthlyQuery->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month")
             ->selectRaw('title')
             ->selectRaw('COUNT(*) as total_count')
             ->groupBy('month', 'title')
@@ -3998,6 +4337,23 @@ class AdminController extends Controller
         }
         $trendAlerts = $trendAlerts->sortByDesc('recent')->values();
 
+        // Handle AJAX requests - return JSON data
+        if ($request->ajax() || $request->input('ajax')) {
+            return response()->json([
+                'chartLocations' => $chartLocations,
+                'chartCounts' => $chartCounts,
+                'chartCosts' => $chartCosts,
+                'chartStatuses' => $chartStatuses,
+                'chartStatusCounts' => $chartStatusCounts,
+                'monthlyStats' => $monthlyStats->map(fn($s) => [
+                    'month' => $s->month,
+                    'title' => $s->title,
+                    'count' => $s->total_count
+                ])->values(),
+                'locationStats' => $locationStats,
+            ]);
+        }
+
         return view('admin.analytics', compact(
             'totalConcerns',
             'totalCost',
@@ -4012,6 +4368,811 @@ class AdminController extends Controller
             'monthlyStats',
             'trendAlerts'
         ));
+    }
+
+    // Export Location Report to PDF
+    public function locationReportPDF(Request $request)
+    {
+        try {
+            // Base query: resolved reports with location
+            $baseQuery = Report::whereNotNull('location')
+                ->where('location', '!=', '')
+                ->where('status', 'Resolved');
+
+            // Apply filters based on period selection
+            $period = $request->input('period');
+            
+            if ($period === 'monthly' && $request->filled('month') && $request->filled('year')) {
+                $baseQuery->whereMonth('created_at', $request->input('month'))
+                         ->whereYear('created_at', $request->input('year'));
+            } elseif ($period === 'quarterly' && $request->filled('month_from') && $request->filled('month_to')) {
+                $monthFrom = (int) $request->input('month_from');
+                $monthTo = (int) $request->input('month_to');
+                
+                if ($request->filled('year')) {
+                    $year = (int) $request->input('year');
+                    
+                    if ($monthFrom <= $monthTo) {
+                        $baseQuery->whereYear('created_at', $year)
+                                 ->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom])
+                                 ->whereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                    } else {
+                        $baseQuery->where(function($q) use ($year, $monthFrom, $monthTo) {
+                            $q->where(function($q1) use ($year, $monthFrom) {
+                                $q1->whereYear('created_at', $year)
+                                   ->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom]);
+                            })->orWhere(function($q2) use ($year, $monthTo) {
+                                $q2->whereYear('created_at', $year + 1)
+                                   ->whereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                            });
+                        });
+                    }
+                } else {
+                    if ($monthFrom <= $monthTo) {
+                        $baseQuery->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom])
+                                 ->whereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                    } else {
+                        $baseQuery->where(function($q) use ($monthFrom, $monthTo) {
+                            $q->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom])
+                              ->orWhereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                        });
+                    }
+                }
+            } elseif ($period === 'yearly' && $request->filled('year')) {
+                $baseQuery->whereYear('created_at', $request->input('year'));
+            } else {
+                if ($request->filled('month')) {
+                    $baseQuery->whereMonth('created_at', $request->input('month'));
+                }
+                if ($request->filled('year')) {
+                    $baseQuery->whereYear('created_at', $request->input('year'));
+                }
+                if ($request->filled('date_from')) {
+                    $baseQuery->whereDate('created_at', '>=', $request->input('date_from'));
+                }
+                if ($request->filled('date_to')) {
+                    $baseQuery->whereDate('created_at', '<=', $request->input('date_to'));
+                }
+            }
+
+            // Get detailed location stats with individual items
+            $locationStats = (clone $baseQuery)
+                ->select('location', 'title')
+                ->selectRaw('COUNT(*) as count')
+                ->selectRaw('SUM(COALESCE(cost, 0)) as total_cost')
+                ->whereNotNull('title')
+                ->where('title', '!=', '')
+                ->groupBy('location', 'title')
+                ->orderByDesc('count')
+                ->get();
+
+            $totalRepairs = $locationStats->sum('count');
+            $totalCost = $locationStats->sum('total_cost');
+            
+            // Build date range string
+            $dateRange = '';
+            
+            if ($period === 'monthly' && $request->filled('month') && $request->filled('year')) {
+                $monthName = \Carbon\Carbon::createFromDate($request->input('year'), $request->input('month'), 1)->format('F');
+                $dateRange = $monthName . ' ' . $request->input('year');
+            } elseif ($period === 'quarterly' && $request->filled('month_from') && $request->filled('month_to')) {
+                $monthFromName = \Carbon\Carbon::createFromDate(null, $request->input('month_from'), 1)->format('F');
+                $monthToName = \Carbon\Carbon::createFromDate(null, $request->input('month_to'), 1)->format('F');
+                $year = $request->filled('year') ? ' ' . $request->input('year') : '';
+                $dateRange = $monthFromName . ' - ' . $monthToName . $year;
+            } elseif ($period === 'yearly' && $request->filled('year')) {
+                $dateRange = 'Year ' . $request->input('year');
+            } else {
+                $parts = [];
+                if ($request->filled('month')) {
+                    $monthName = \Carbon\Carbon::createFromDate(null, $request->input('month'), 1)->format('F');
+                    $parts[] = $monthName;
+                }
+                if ($request->filled('year')) {
+                    $parts[] = $request->input('year');
+                }
+                if ($request->filled('date_from')) {
+                    $parts[] = 'From ' . \Carbon\Carbon::parse($request->input('date_from'))->format('M d, Y');
+                }
+                if ($request->filled('date_to')) {
+                    $parts[] = 'To ' . \Carbon\Carbon::parse($request->input('date_to'))->format('M d, Y');
+                }
+                $dateRange = !empty($parts) ? implode(' ', $parts) : 'All Time';
+            }
+
+            $pdf = \PDF::loadView('admin.analytics-location-pdf', compact(
+                'locationStats',
+                'totalRepairs',
+                'totalCost',
+                'dateRange'
+            ));
+
+            return $pdf->stream('location-report-' . now()->format('Y-m-d') . '.pdf');
+        } catch (\Exception $e) {
+            \Log::error('PDF Generation Error: ' . $e->getMessage());
+            \Log::error('Request params: ' . json_encode($request->all()));
+            return back()->with('error', 'Failed to generate PDF: ' . $e->getMessage());
+        }
+    }
+
+    // Export Cost Report to PDF
+    public function costReportPDF(Request $request)
+    {
+        try {
+            $baseQuery = Report::whereNotNull('location')
+                ->where('location', '!=', '')
+                ->where('status', 'Resolved');
+
+            // Apply filters based on period selection
+            $period = $request->input('period');
+            
+            if ($period === 'monthly' && $request->filled('month') && $request->filled('year')) {
+                $baseQuery->whereMonth('created_at', $request->input('month'))
+                         ->whereYear('created_at', $request->input('year'));
+            } elseif ($period === 'quarterly' && $request->filled('month_from') && $request->filled('month_to')) {
+                $monthFrom = (int) $request->input('month_from');
+                $monthTo = (int) $request->input('month_to');
+                
+                if ($request->filled('year')) {
+                    $year = (int) $request->input('year');
+                    
+                    if ($monthFrom <= $monthTo) {
+                        $baseQuery->whereYear('created_at', $year)
+                                 ->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom])
+                                 ->whereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                    } else {
+                        $baseQuery->where(function($q) use ($year, $monthFrom, $monthTo) {
+                            $q->where(function($q1) use ($year, $monthFrom) {
+                                $q1->whereYear('created_at', $year)
+                                   ->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom]);
+                            })->orWhere(function($q2) use ($year, $monthTo) {
+                                $q2->whereYear('created_at', $year + 1)
+                                   ->whereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                            });
+                        });
+                    }
+                } else {
+                    if ($monthFrom <= $monthTo) {
+                        $baseQuery->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom])
+                                 ->whereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                    } else {
+                        $baseQuery->where(function($q) use ($monthFrom, $monthTo) {
+                            $q->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom])
+                              ->orWhereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                        });
+                    }
+                }
+            } elseif ($period === 'yearly' && $request->filled('year')) {
+                $baseQuery->whereYear('created_at', $request->input('year'));
+            } else {
+                if ($request->filled('month')) {
+                    $baseQuery->whereMonth('created_at', $request->input('month'));
+                }
+                if ($request->filled('year')) {
+                    $baseQuery->whereYear('created_at', $request->input('year'));
+                }
+            }
+
+            // Get cost data by location
+            $locationCosts = (clone $baseQuery)
+                ->select('location')
+                ->selectRaw('COUNT(*) as count')
+                ->selectRaw('SUM(COALESCE(cost, 0)) as cost')
+                ->groupBy('location')
+                ->orderByDesc('cost')
+                ->get();
+
+            $costData = [];
+            $avgCost = $locationCosts->avg('cost') ?: 0;
+            
+            foreach ($locationCosts as $item) {
+                $avgPerRepair = $item->count > 0 ? $item->cost / $item->count : 0;
+                
+                if ($item->cost > $avgCost * 1.5) {
+                    $costLevel = 'Very High';
+                    $badgeClass = 'danger';
+                } elseif ($item->cost > $avgCost) {
+                    $costLevel = 'High';
+                    $badgeClass = 'warning';
+                } elseif ($item->cost > $avgCost * 0.5) {
+                    $costLevel = 'Medium';
+                    $badgeClass = 'info';
+                } else {
+                    $costLevel = 'Low';
+                    $badgeClass = 'success';
+                }
+                
+                $costData[] = [
+                    'location' => $item->location,
+                    'count' => $item->count,
+                    'cost' => $item->cost,
+                    'avg_per_repair' => $avgPerRepair,
+                    'cost_level' => $costLevel,
+                    'badge_class' => $badgeClass
+                ];
+            }
+
+            $highestCost = $costData[0] ?? ['location' => 'N/A', 'cost' => 0];
+            $lowestCost = end($costData) ?: ['location' => 'N/A', 'cost' => 0];
+            
+            // Build date range string
+            $dateRange = '';
+            
+            if ($period === 'monthly' && $request->filled('month') && $request->filled('year')) {
+                $monthName = \Carbon\Carbon::createFromDate($request->input('year'), $request->input('month'), 1)->format('F');
+                $dateRange = $monthName . ' ' . $request->input('year');
+            } elseif ($period === 'quarterly' && $request->filled('month_from') && $request->filled('month_to')) {
+                $monthFromName = \Carbon\Carbon::createFromDate(null, $request->input('month_from'), 1)->format('F');
+                $monthToName = \Carbon\Carbon::createFromDate(null, $request->input('month_to'), 1)->format('F');
+                $year = $request->filled('year') ? ' ' . $request->input('year') : '';
+                $dateRange = $monthFromName . ' - ' . $monthToName . $year;
+            } elseif ($period === 'yearly' && $request->filled('year')) {
+                $dateRange = 'Year ' . $request->input('year');
+            } else {
+                $parts = [];
+                if ($request->filled('month')) {
+                    $monthName = \Carbon\Carbon::createFromDate(null, $request->input('month'), 1)->format('F');
+                    $parts[] = $monthName;
+                }
+                if ($request->filled('year')) {
+                    $parts[] = $request->input('year');
+                }
+                $dateRange = !empty($parts) ? implode(' ', $parts) : 'All Time';
+            }
+
+            $pdf = \PDF::loadView('admin.analytics-cost-pdf', compact(
+                'costData',
+                'highestCost',
+                'lowestCost',
+                'avgCost',
+                'dateRange'
+            ));
+
+            return $pdf->stream('cost-report-' . now()->format('Y-m-d') . '.pdf');
+        } catch (\Exception $e) {
+            \Log::error('Cost PDF Generation Error: ' . $e->getMessage());
+            return back()->with('error', 'Failed to generate PDF: ' . $e->getMessage());
+        }
+    }
+
+    // Export Status Report to PDF
+    public function statusReportPDF(Request $request)
+    {
+        try {
+            $baseQuery = Report::query();
+
+            // Apply filters based on period selection
+            $period = $request->input('period');
+            
+            if ($period === 'monthly' && $request->filled('month') && $request->filled('year')) {
+                $baseQuery->whereMonth('created_at', $request->input('month'))
+                         ->whereYear('created_at', $request->input('year'));
+            } elseif ($period === 'quarterly' && $request->filled('month_from') && $request->filled('month_to')) {
+                $monthFrom = (int) $request->input('month_from');
+                $monthTo = (int) $request->input('month_to');
+                
+                if ($request->filled('year')) {
+                    $year = (int) $request->input('year');
+                    
+                    if ($monthFrom <= $monthTo) {
+                        $baseQuery->whereYear('created_at', $year)
+                                 ->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom])
+                                 ->whereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                    } else {
+                        $baseQuery->where(function($q) use ($year, $monthFrom, $monthTo) {
+                            $q->where(function($q1) use ($year, $monthFrom) {
+                                $q1->whereYear('created_at', $year)
+                                   ->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom]);
+                            })->orWhere(function($q2) use ($year, $monthTo) {
+                                $q2->whereYear('created_at', $year + 1)
+                                   ->whereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                            });
+                        });
+                    }
+                } else {
+                    if ($monthFrom <= $monthTo) {
+                        $baseQuery->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom])
+                                 ->whereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                    } else {
+                        $baseQuery->where(function($q) use ($monthFrom, $monthTo) {
+                            $q->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom])
+                              ->orWhereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                        });
+                    }
+                }
+            } elseif ($period === 'yearly' && $request->filled('year')) {
+                $baseQuery->whereYear('created_at', $request->input('year'));
+            } else {
+                if ($request->filled('month')) {
+                    $baseQuery->whereMonth('created_at', $request->input('month'));
+                }
+                if ($request->filled('year')) {
+                    $baseQuery->whereYear('created_at', $request->input('year'));
+                }
+            }
+
+            // Get status distribution
+            $statusCounts = (clone $baseQuery)
+                ->select('status')
+                ->selectRaw('COUNT(*) as count')
+                ->groupBy('status')
+                ->orderByDesc('count')
+                ->get();
+
+            $totalCount = $statusCounts->sum('count');
+            $statusData = [];
+            
+            foreach ($statusCounts as $item) {
+                $percentage = $totalCount > 0 ? number_format(($item->count / $totalCount) * 100, 1) : 0;
+                
+                $badgeClass = 'secondary';
+                if (in_array($item->status, ['Resolved', 'Completed'])) {
+                    $badgeClass = 'success';
+                } elseif (in_array($item->status, ['Pending', 'In Progress'])) {
+                    $badgeClass = 'warning';
+                } elseif (in_array($item->status, ['Rejected', 'Cancelled'])) {
+                    $badgeClass = 'danger';
+                }
+                
+                $statusData[] = [
+                    'status' => $item->status,
+                    'count' => $item->count,
+                    'percentage' => $percentage,
+                    'badge_class' => $badgeClass
+                ];
+            }
+            
+            // Build date range string
+            $dateRange = '';
+            
+            if ($period === 'monthly' && $request->filled('month') && $request->filled('year')) {
+                $monthName = \Carbon\Carbon::createFromDate($request->input('year'), $request->input('month'), 1)->format('F');
+                $dateRange = $monthName . ' ' . $request->input('year');
+            } elseif ($period === 'quarterly' && $request->filled('month_from') && $request->filled('month_to')) {
+                $monthFromName = \Carbon\Carbon::createFromDate(null, $request->input('month_from'), 1)->format('F');
+                $monthToName = \Carbon\Carbon::createFromDate(null, $request->input('month_to'), 1)->format('F');
+                $year = $request->filled('year') ? ' ' . $request->input('year') : '';
+                $dateRange = $monthFromName . ' - ' . $monthToName . $year;
+            } elseif ($period === 'yearly' && $request->filled('year')) {
+                $dateRange = 'Year ' . $request->input('year');
+            } else {
+                $parts = [];
+                if ($request->filled('month')) {
+                    $monthName = \Carbon\Carbon::createFromDate(null, $request->input('month'), 1)->format('F');
+                    $parts[] = $monthName;
+                }
+                if ($request->filled('year')) {
+                    $parts[] = $request->input('year');
+                }
+                $dateRange = !empty($parts) ? implode(' ', $parts) : 'All Time';
+            }
+
+            $pdf = \PDF::loadView('admin.analytics-status-pdf', compact(
+                'statusData',
+                'totalCount',
+                'dateRange'
+            ));
+
+            return $pdf->stream('status-report-' . now()->format('Y-m-d') . '.pdf');
+        } catch (\Exception $e) {
+            \Log::error('Status PDF Generation Error: ' . $e->getMessage());
+            return back()->with('error', 'Failed to generate PDF: ' . $e->getMessage());
+        }
+    }
+
+    // Export Trend Report to PDF
+    public function trendReportPDF(Request $request)
+    {
+        try {
+            $baseQuery = Report::where('status', 'Resolved');
+
+            // Apply filters based on period selection
+            $period = $request->input('period');
+            
+            if ($period === 'monthly' && $request->filled('month') && $request->filled('year')) {
+                $baseQuery->whereMonth('created_at', $request->input('month'))
+                         ->whereYear('created_at', $request->input('year'));
+            } elseif ($period === 'quarterly' && $request->filled('month_from') && $request->filled('month_to')) {
+                $monthFrom = (int) $request->input('month_from');
+                $monthTo = (int) $request->input('month_to');
+                
+                if ($request->filled('year')) {
+                    $year = (int) $request->input('year');
+                    
+                    if ($monthFrom <= $monthTo) {
+                        $baseQuery->whereYear('created_at', $year)
+                                 ->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom])
+                                 ->whereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                    } else {
+                        $baseQuery->where(function($q) use ($year, $monthFrom, $monthTo) {
+                            $q->where(function($q1) use ($year, $monthFrom) {
+                                $q1->whereYear('created_at', $year)
+                                   ->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom]);
+                            })->orWhere(function($q2) use ($year, $monthTo) {
+                                $q2->whereYear('created_at', $year + 1)
+                                   ->whereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                            });
+                        });
+                    }
+                } else {
+                    if ($monthFrom <= $monthTo) {
+                        $baseQuery->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom])
+                                 ->whereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                    } else {
+                        $baseQuery->where(function($q) use ($monthFrom, $monthTo) {
+                            $q->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom])
+                              ->orWhereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                        });
+                    }
+                }
+            } elseif ($period === 'yearly' && $request->filled('year')) {
+                $baseQuery->whereYear('created_at', $request->input('year'));
+            } else {
+                if ($request->filled('month')) {
+                    $baseQuery->whereMonth('created_at', $request->input('month'));
+                }
+                if ($request->filled('year')) {
+                    $baseQuery->whereYear('created_at', $request->input('year'));
+                }
+            }
+
+            // Get monthly trend data (last 6 months)
+            $monthlyData = (clone $baseQuery)
+                ->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month")
+                ->selectRaw('title')
+                ->selectRaw('COUNT(*) as count')
+                ->whereNotNull('title')
+                ->where('title', '!=', '')
+                ->groupBy('month', 'title')
+                ->orderBy('month')
+                ->get();
+
+            // Build 6-month labels
+            $monthLabels = [];
+            for ($i = 5; $i >= 0; $i--) {
+                $date = now()->subMonths($i);
+                $key = $date->format('Y-m');
+                $label = $date->format('M Y');
+                $monthLabels[$key] = ['label' => $label, 'issues' => []];
+            }
+
+            // Group data by month
+            foreach ($monthlyData as $item) {
+                if (isset($monthLabels[$item->month])) {
+                    if (!isset($monthLabels[$item->month]['issues'][$item->title])) {
+                        $monthLabels[$item->month]['issues'][$item->title] = 0;
+                    }
+                    $monthLabels[$item->month]['issues'][$item->title] += $item->count;
+                }
+            }
+
+            // Calculate statistics
+            $peakMonth = null;
+            $peakCount = 0;
+            $lowestMonth = null;
+            $lowestCount = PHP_INT_MAX;
+            $totalCount = 0;
+
+            foreach ($monthLabels as $key => $data) {
+                $monthTotal = array_sum($data['issues']);
+                $totalCount += $monthTotal;
+                
+                if ($monthTotal > $peakCount) {
+                    $peakCount = $monthTotal;
+                    $peakMonth = $data['label'];
+                }
+                if ($monthTotal < $lowestCount) {
+                    $lowestCount = $monthTotal;
+                    $lowestMonth = $data['label'];
+                }
+            }
+
+            $avgPerMonth = $totalCount / 6;
+            if ($lowestCount === PHP_INT_MAX) $lowestCount = 0;
+
+            // Build table data
+            $trendData = [];
+            foreach ($monthLabels as $key => $data) {
+                if (empty($data['issues'])) {
+                    $trendData[] = [
+                        'is_first_row' => true,
+                        'rowspan' => 1,
+                        'month_label' => $data['label'],
+                        'issue_type' => null,
+                        'count' => 0,
+                        'trend' => ''
+                    ];
+                } else {
+                    $isFirst = true;
+                    $rowspan = count($data['issues']);
+                    foreach ($data['issues'] as $issue => $count) {
+                        $trend = $count > 5 ? 'High' : ($count > 2 ? 'Medium' : 'Low');
+                        
+                        $trendData[] = [
+                            'is_first_row' => $isFirst,
+                            'rowspan' => $rowspan,
+                            'month_label' => $data['label'],
+                            'issue_type' => $issue,
+                            'count' => $count,
+                            'trend' => $trend
+                        ];
+                        $isFirst = false;
+                    }
+                }
+            }
+            
+            // Build date range string
+            $dateRange = '';
+            
+            if ($period === 'monthly' && $request->filled('month') && $request->filled('year')) {
+                $monthName = \Carbon\Carbon::createFromDate($request->input('year'), $request->input('month'), 1)->format('F');
+                $dateRange = $monthName . ' ' . $request->input('year');
+            } elseif ($period === 'quarterly' && $request->filled('month_from') && $request->filled('month_to')) {
+                $monthFromName = \Carbon\Carbon::createFromDate(null, $request->input('month_from'), 1)->format('F');
+                $monthToName = \Carbon\Carbon::createFromDate(null, $request->input('month_to'), 1)->format('F');
+                $year = $request->filled('year') ? ' ' . $request->input('year') : '';
+                $dateRange = $monthFromName . ' - ' . $monthToName . $year;
+            } elseif ($period === 'yearly' && $request->filled('year')) {
+                $dateRange = 'Year ' . $request->input('year');
+            } else {
+                $parts = [];
+                if ($request->filled('month')) {
+                    $monthName = \Carbon\Carbon::createFromDate(null, $request->input('month'), 1)->format('F');
+                    $parts[] = $monthName;
+                }
+                if ($request->filled('year')) {
+                    $parts[] = $request->input('year');
+                }
+                $dateRange = !empty($parts) ? implode(' ', $parts) : 'Last 6 Months';
+            }
+
+            $pdf = \PDF::loadView('admin.analytics-trend-pdf', compact(
+                'trendData',
+                'peakMonth',
+                'peakCount',
+                'lowestMonth',
+                'lowestCount',
+                'avgPerMonth',
+                'dateRange'
+            ));
+
+            return $pdf->stream('trend-report-' . now()->format('Y-m-d') . '.pdf');
+        } catch (\Exception $e) {
+            \Log::error('Trend PDF Generation Error: ' . $e->getMessage());
+            return back()->with('error', 'Failed to generate PDF: ' . $e->getMessage());
+        }
+    }
+
+    // Export Complete Analytics to PDF
+    public function exportAnalyticsPDF(Request $request)
+    {
+        try {
+            // Base query: resolved reports with location
+            $baseQuery = Report::whereNotNull('location')
+                ->where('location', '!=', '')
+                ->where('status', 'Resolved');
+
+            // Apply filters based on period selection
+            $period = $request->input('period');
+            
+            if ($period === 'monthly' && $request->filled('month') && $request->filled('year')) {
+                $baseQuery->whereMonth('created_at', $request->input('month'))
+                         ->whereYear('created_at', $request->input('year'));
+            } elseif ($period === 'quarterly' && $request->filled('month_from') && $request->filled('month_to')) {
+                $monthFrom = (int) $request->input('month_from');
+                $monthTo = (int) $request->input('month_to');
+                
+                if ($request->filled('year')) {
+                    $year = (int) $request->input('year');
+                    
+                    if ($monthFrom <= $monthTo) {
+                        $baseQuery->whereYear('created_at', $year)
+                                 ->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom])
+                                 ->whereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                    } else {
+                        $baseQuery->where(function($q) use ($year, $monthFrom, $monthTo) {
+                            $q->where(function($q1) use ($year, $monthFrom) {
+                                $q1->whereYear('created_at', $year)
+                                   ->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom]);
+                            })->orWhere(function($q2) use ($year, $monthTo) {
+                                $q2->whereYear('created_at', $year + 1)
+                                   ->whereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                            });
+                        });
+                    }
+                } else {
+                    if ($monthFrom <= $monthTo) {
+                        $baseQuery->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom])
+                                 ->whereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                    } else {
+                        $baseQuery->where(function($q) use ($monthFrom, $monthTo) {
+                            $q->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom])
+                              ->orWhereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                        });
+                    }
+                }
+            } elseif ($period === 'yearly' && $request->filled('year')) {
+                $baseQuery->whereYear('created_at', $request->input('year'));
+            } else {
+                if ($request->filled('month')) {
+                    $baseQuery->whereMonth('created_at', $request->input('month'));
+                }
+                if ($request->filled('year')) {
+                    $baseQuery->whereYear('created_at', $request->input('year'));
+                }
+                if ($request->filled('date_from')) {
+                    $baseQuery->whereDate('created_at', '>=', $request->input('date_from'));
+                }
+                if ($request->filled('date_to')) {
+                    $baseQuery->whereDate('created_at', '<=', $request->input('date_to'));
+                }
+            }
+
+            // Summary stats
+            $totalConcerns = (clone $baseQuery)->count();
+            $totalCost     = (clone $baseQuery)->sum('cost') ?? 0;
+            $avgCost = $totalConcerns > 0 ? $totalCost / $totalConcerns : 0;
+
+            // 1. Location stats with individual items (for Location Details modal)
+            $locationStats = (clone $baseQuery)
+                ->select('location', 'title')
+                ->selectRaw('COUNT(*) as count')
+                ->selectRaw('SUM(COALESCE(cost, 0)) as total_cost')
+                ->whereNotNull('title')
+                ->where('title', '!=', '')
+                ->groupBy('location', 'title')
+                ->orderByDesc('count')
+                ->get();
+
+            // 2. Cost breakdown by title (for Cost Details modal)
+            $costStats = (clone $baseQuery)
+                ->select('title')
+                ->selectRaw('COUNT(*) as count')
+                ->selectRaw('SUM(COALESCE(cost, 0)) as total_cost')
+                ->selectRaw('AVG(COALESCE(cost, 0)) as avg_cost')
+                ->whereNotNull('title')
+                ->where('title', '!=', '')
+                ->groupBy('title')
+                ->orderByDesc('total_cost')
+                ->get();
+
+            // 3. Status distribution (for Status modal)
+            $statusQuery = Report::select('status');
+            
+            // Apply same period filters to status query
+            if ($period === 'monthly' && $request->filled('month') && $request->filled('year')) {
+                $statusQuery->whereMonth('created_at', $request->input('month'))
+                           ->whereYear('created_at', $request->input('year'));
+            } elseif ($period === 'quarterly' && $request->filled('month_from') && $request->filled('month_to')) {
+                $monthFrom = (int) $request->input('month_from');
+                $monthTo = (int) $request->input('month_to');
+                
+                if ($request->filled('year')) {
+                    $year = (int) $request->input('year');
+                    
+                    if ($monthFrom <= $monthTo) {
+                        $statusQuery->whereYear('created_at', $year)
+                                   ->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom])
+                                   ->whereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                    }
+                }
+            } elseif ($period === 'yearly' && $request->filled('year')) {
+                $statusQuery->whereYear('created_at', $request->input('year'));
+            } else {
+                if ($request->filled('month')) {
+                    $statusQuery->whereMonth('created_at', $request->input('month'));
+                }
+                if ($request->filled('year')) {
+                    $statusQuery->whereYear('created_at', $request->input('year'));
+                }
+            }
+            
+            $statusStats = $statusQuery
+                ->selectRaw('status, COUNT(*) as count')
+                ->groupBy('status')
+                ->get();
+
+            // 4. Monthly trend data (for Trend modal)
+            $monthlyData = (clone $baseQuery)
+                ->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month")
+                ->selectRaw('title')
+                ->selectRaw('COUNT(*) as count')
+                ->whereNotNull('title')
+                ->where('title', '!=', '')
+                ->groupBy('month', 'title')
+                ->orderBy('month')
+                ->get();
+
+            // Build 6-month labels
+            $monthLabels = [];
+            for ($i = 5; $i >= 0; $i--) {
+                $date = now()->subMonths($i);
+                $key = $date->format('Y-m');
+                $label = $date->format('M Y');
+                $monthLabels[$key] = ['label' => $label, 'issues' => []];
+            }
+
+            // Group data by month
+            foreach ($monthlyData as $item) {
+                if (isset($monthLabels[$item->month])) {
+                    if (!isset($monthLabels[$item->month]['issues'][$item->title])) {
+                        $monthLabels[$item->month]['issues'][$item->title] = 0;
+                    }
+                    $monthLabels[$item->month]['issues'][$item->title] += $item->count;
+                }
+            }
+
+            // Build trend table data
+            $trendData = [];
+            foreach ($monthLabels as $key => $data) {
+                if (empty($data['issues'])) {
+                    $trendData[] = [
+                        'is_first_row' => true,
+                        'rowspan' => 1,
+                        'month_label' => $data['label'],
+                        'issue_type' => 'No issues',
+                        'count' => 0
+                    ];
+                } else {
+                    $isFirst = true;
+                    $rowspan = count($data['issues']);
+                    foreach ($data['issues'] as $issue => $count) {
+                        $trendData[] = [
+                            'is_first_row' => $isFirst,
+                            'rowspan' => $rowspan,
+                            'month_label' => $data['label'],
+                            'issue_type' => $issue,
+                            'count' => $count
+                        ];
+                        $isFirst = false;
+                    }
+                }
+            }
+
+            // Build date range string
+            $dateRange = '';
+            
+            if ($period === 'monthly' && $request->filled('month') && $request->filled('year')) {
+                $monthName = \Carbon\Carbon::createFromDate($request->input('year'), $request->input('month'), 1)->format('F');
+                $dateRange = $monthName . ' ' . $request->input('year');
+            } elseif ($period === 'quarterly' && $request->filled('month_from') && $request->filled('month_to')) {
+                $monthFromName = \Carbon\Carbon::createFromDate(null, $request->input('month_from'), 1)->format('F');
+                $monthToName = \Carbon\Carbon::createFromDate(null, $request->input('month_to'), 1)->format('F');
+                $year = $request->filled('year') ? ' ' . $request->input('year') : '';
+                $dateRange = $monthFromName . ' - ' . $monthToName . $year;
+            } elseif ($period === 'yearly' && $request->filled('year')) {
+                $dateRange = 'Year ' . $request->input('year');
+            } else {
+                $parts = [];
+                if ($request->filled('month')) {
+                    $monthName = \Carbon\Carbon::createFromDate(null, $request->input('month'), 1)->format('F');
+                    $parts[] = $monthName;
+                }
+                if ($request->filled('year')) {
+                    $parts[] = $request->input('year');
+                }
+                if ($request->filled('date_from') && $request->filled('date_to')) {
+                    $parts[] = $request->input('date_from') . ' to ' . $request->input('date_to');
+                }
+                $dateRange = !empty($parts) ? implode(' ', $parts) : 'All Time';
+            }
+
+            $pdf = \PDF::loadView('admin.analytics-main-pdf', compact(
+                'totalConcerns',
+                'totalCost',
+                'avgCost',
+                'locationStats',
+                'costStats',
+                'statusStats',
+                'trendData',
+                'dateRange'
+            ));
+
+            return $pdf->stream('analytics-report-' . now()->format('Y-m-d') . '.pdf');
+        } catch (\Exception $e) {
+            \Log::error('Analytics PDF Generation Error: ' . $e->getMessage());
+            return back()->with('error', 'Failed to generate PDF: ' . $e->getMessage());
+        }
     }
 
     // Update concern cost - Admin or maintenance can update

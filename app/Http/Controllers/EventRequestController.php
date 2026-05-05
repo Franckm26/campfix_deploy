@@ -259,6 +259,9 @@ class EventRequestController extends Controller
 
         $user = auth()->user();
         $archiveColumn = $user->role.'_archived';
+        
+        // Get facilities for the modal dropdown
+        $facilities = \App\Models\Facility::orderBy('type')->orderBy('name')->get();
 
         // ========== APPROVED VIEW ==========
         if ($viewType === 'approved') {
@@ -277,6 +280,7 @@ class EventRequestController extends Controller
                 'rejectedRequests' => collect(),
                 'archivedRequests' => collect(),
                 'deletedRequests' => collect(),
+                'facilities' => $facilities,
             ]);
         }
 
@@ -297,6 +301,7 @@ class EventRequestController extends Controller
                 'rejectedRequests' => collect(),
                 'archivedRequests' => collect(),
                 'deletedRequests' => collect(),
+                'facilities' => $facilities,
             ]);
         }
 
@@ -316,6 +321,7 @@ class EventRequestController extends Controller
                 'finishedRequests' => collect(),
                 'archivedRequests' => collect(),
                 'deletedRequests' => collect(),
+                'facilities' => $facilities,
             ]);
         }
 
@@ -352,6 +358,7 @@ class EventRequestController extends Controller
                 'finishedRequests' => collect(),
                 'rejectedRequests' => collect(),
                 'deletedRequests' => collect(),
+                'facilities' => $facilities,
             ]);
         }
 
@@ -387,6 +394,7 @@ class EventRequestController extends Controller
                 'finishedRequests' => collect(),
                 'rejectedRequests' => collect(),
                 'archivedRequests' => collect(),
+                'facilities' => $facilities,
             ]);
         }
 
@@ -447,7 +455,7 @@ class EventRequestController extends Controller
             ->orderBy('updated_at', 'desc')
             ->get();
 
-        return view('events.my', compact('requests', 'viewType', 'approvedRequests', 'finishedRequests', 'rejectedRequests', 'archivedRequests', 'deletedRequests'));
+        return view('events.my', compact('requests', 'viewType', 'approvedRequests', 'finishedRequests', 'rejectedRequests', 'archivedRequests', 'deletedRequests', 'facilities'));
     }
 
     // Approve request - handles multi-level approval (ALL approvers must approve at each level)

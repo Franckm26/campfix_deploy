@@ -190,56 +190,6 @@ Campfix is a Laravel-based system for managing maintenance reports, concerns, ev
 
 ### Step-by-Step Explanation of the Main System Flow
 
-The flowchart below shows what happens from the moment a user logs in until they log out, based on their role in the system.
-
-```mermaid
-graph TD
-    A[User Login] --> B{OTP Verification}
-    B --> C{Force Password Change?}
-    C -->|Yes| D[Password Update]
-    C -->|No| E{Role Check}
-
-    E -->|MIS| F[Admin Dashboard]
-    E -->|School/Building/Admin Heads| G[Principal Dashboard]
-    E -->|Maintenance| H[Maintenance Dashboard]
-    E -->|Faculty| I[Faculty Dashboard]
-    E -->|Student| J[Student Dashboard]
-
-    F --> K[Full System Management]
-    G --> L[Approval Workflows]
-    H --> M[Assigned Tasks Resolution]
-    I --> N[Personal Item Management]
-    J --> O[Personal Item Creation]
-
-    K --> P[User Management]
-    K --> Q[Item Management]
-    K --> R[Archive Management]
-    K --> S[Analytics & Logs]
-
-    L --> T[Event Approvals]
-    L --> U[Facility Approvals]
-
-    M --> V[Report Resolution]
-    M --> W[Status Updates]
-
-    N --> X[Create Concerns/Events]
-    N --> Y[Track Personal Items]
-
-    O --> Z[Create Concerns/Events]
-    O --> AA[View Personal Items]
-
-    P --> AB[CRUD Users]
-    Q --> AC[CRUD Concerns/Reports/Events]
-    R --> AD[Archive/Restore/Delete]
-    S --> AE[View Analytics]
-
-    All[All Roles] --> AF[Profile Settings]
-    All --> AG[Notifications]
-    All --> AH[Logout]
-```
-
-**Detailed Walkthrough:**
-
 1. **User Login** → Everyone starts by logging into the system
 2. **OTP Verification** → The system sends a one-time password (OTP) via email or SMS for security
 3. **Force Password Change?** → If it's their first time or password needs updating, they must change it
@@ -283,25 +233,6 @@ graph TD
 ### How Event Requests Get Approved
 
 Events need multiple levels of approval depending on the type and scope. Here's how the approval process works:
-
-```mermaid
-graph TD
-    A[Event Request Created] --> B{Program Head Approval?}
-    B -->|Required| C[Program Head Review]
-    B -->|Not Required| D{Building Admin Approval}
-
-    C -->|Approved| D
-    C -->|Rejected| E[Request Rejected]
-
-    D -->|Approved| F{Academic Head Approval?}
-    D -->|Not Required| G{Final Approval}
-
-    F -->|Approved| G
-    F -->|Rejected| E
-
-    G -->|Approved| H[Event Approved]
-    G -->|Rejected| E
-```
 
 **Step-by-Step Approval Process:**
 

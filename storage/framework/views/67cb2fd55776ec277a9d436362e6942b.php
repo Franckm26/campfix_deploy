@@ -133,31 +133,30 @@
                         </a>
                     </li>
                 </ul>
-                <a href="<?php echo e(route('admin.export.pdf')); ?>" class="btn btn-danger btn-sm">
+                <a href="<?php echo e(route('admin.export.pdf', array_filter([
+                    'view' => $viewType ?? 'active',
+                    'archived' => request('archived'),
+                    'status' => request('status'),
+                    'priority' => request('priority'),
+                    'category' => request('category'),
+                    'search' => request('search')
+                ]))); ?>" class="btn btn-danger btn-sm" target="_blank">
                     <i class="fas fa-file-pdf"></i> Export PDF
                 </a>
             </div>
-            <form method="GET" action="<?php echo e(route('admin.reports')); ?>">
+            <form method="GET" action="<?php echo e(route('admin.reports')); ?>" id="reportsFilterForm">
                 <input type="hidden" name="view" value="<?php echo e($viewType ?? 'active'); ?>">
                 <div class="row g-2">
                     <div class="col-6 col-md">
-                        <select name="archived" class="form-select form-select-sm">
-                            <option value="">Active Concerns</option>
-                            <option value="1" <?php echo e(request('archived') == '1' ? 'selected' : ''); ?>>Archived</option>
-                            <option value="all" <?php echo e(request('archived') == 'all' ? 'selected' : ''); ?>>All Concerns</option>
-                        </select>
-                    </div>
-                    <div class="col-6 col-md">
-                        <select name="status" class="form-select form-select-sm">
+                        <select name="status" class="form-select form-select-sm auto-submit-filter">
                             <option value="">All Status</option>
                             <option value="Pending" <?php echo e(request('status') == 'Pending' ? 'selected' : ''); ?>>Pending</option>
                             <option value="Assigned" <?php echo e(request('status') == 'Assigned' ? 'selected' : ''); ?>>Assigned</option>
                             <option value="In Progress" <?php echo e(request('status') == 'In Progress' ? 'selected' : ''); ?>>In Progress</option>
-                            <option value="Resolved" <?php echo e(request('status') == 'Resolved' ? 'selected' : ''); ?>>Resolved</option>
                         </select>
                     </div>
                     <div class="col-6 col-md">
-                        <select name="priority" class="form-select form-select-sm">
+                        <select name="priority" class="form-select form-select-sm auto-submit-filter">
                             <option value="">All Priority</option>
                             <option value="low" <?php echo e(request('priority') == 'low' ? 'selected' : ''); ?>>Low</option>
                             <option value="medium" <?php echo e(request('priority') == 'medium' ? 'selected' : ''); ?>>Medium</option>
@@ -166,7 +165,7 @@
                         </select>
                     </div>
                     <div class="col-6 col-md">
-                        <select name="category" class="form-select form-select-sm">
+                        <select name="category" class="form-select form-select-sm auto-submit-filter">
                             <option value="">All Categories</option>
                             <?php $__currentLoopData = $categories; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $category): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                 <option value="<?php echo e($category->id); ?>" <?php echo e(request('category') == $category->id ? 'selected' : ''); ?>>
@@ -182,7 +181,7 @@
                     </div>
                     <div class="col-auto">
                         <button type="submit" class="btn btn-primary btn-sm">Filter</button>
-                        <a href="<?php echo e(route('admin.reports')); ?>" class="btn btn-secondary btn-sm ms-1"><i class="fas fa-times"></i></a>
+                        <a href="<?php echo e(route('admin.reports', ['view' => $viewType ?? 'active'])); ?>" class="btn btn-secondary btn-sm ms-1"><i class="fas fa-times"></i></a>
                     </div>
                 </div>
             </form>
@@ -2407,6 +2406,18 @@ function viewReport(id) {
         bodyDiv.innerHTML = '<div class="alert alert-danger">Error loading report details.</div>';
     });
 }
+
+// Auto-submit filter form when dropdowns change
+document.addEventListener('DOMContentLoaded', function() {
+    const filterForm = document.getElementById('reportsFilterForm');
+    const autoSubmitFilters = document.querySelectorAll('.auto-submit-filter');
+    
+    autoSubmitFilters.forEach(function(filter) {
+        filter.addEventListener('change', function() {
+            filterForm.submit();
+        });
+    });
+});
 </script>
 
 <?php $__env->stopSection(); ?>

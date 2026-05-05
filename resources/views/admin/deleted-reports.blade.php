@@ -96,7 +96,7 @@
                             <th>Title</th>
                             <th>Category</th>
                             <th>Location</th>
-                            <th>Severity</th>
+                            <th>Priority</th>
                             <th>Status</th>
                             <th>Reported By</th>
                             <th>Deleted Date</th>

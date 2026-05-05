@@ -630,44 +630,18 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="col-md-6 mb-3" id="modal_area_of_use_container" style="display: none;">
                             <label for="modal_area_of_use" class="form-label">Location *</label>
                             <select class="form-select @error('area_of_use') is-invalid @enderror" id="modal_area_of_use" name="area_of_use">
-                                <option value="">Select area</option>
-                                <option value="Room">Room</option>
-                                <option value="Court">Court</option>
-                                <option value="AVR">AVR</option>
-                                <option value="Library">Library</option>
-                                <option value="Open Lobby">Open Lobby</option>
-                                <option value="Computer Laboratory">Computer Laboratory</option>
-                                <option value="Kitchen">Kitchen</option>
+                                <option value="">Select a location</option>
+                                @if(isset($facilities))
+                                    @foreach($facilities->groupBy('type') as $type => $group)
+                                        <optgroup label="{{ ucfirst($type) }}">
+                                            @foreach($group as $facility)
+                                                <option value="{{ $facility->name }}">{{ $facility->name }}</option>
+                                            @endforeach
+                                        </optgroup>
+                                    @endforeach
+                                @endif
                             </select>
                             @error('area_of_use')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        <div class="col-md-6 mb-3" id="modal_room_number_container" style="display: none;">
-                            <label for="modal_room_number" class="form-label">Room Number *</label>
-                            <select class="form-select @error('room_number') is-invalid @enderror" id="modal_room_number" name="room_number">
-                                <option value="">Select room</option>
-                                @for($i = 1; $i <= 5; $i++)
-                                    @for($j = 1; $j <= 11; $j++)
-                                        @php $room = $i . str_pad($j, 2, '0', STR_PAD_LEFT); @endphp
-                                        <option value="{{ $room }}">{{ $room }}</option>
-                                    @endfor
-                                @endfor
-                                <option value="Suite Room">Suite Room</option>
-                                <option value="Kitchen 1">Kitchen 1</option>
-                                <option value="Kitchen 2">Kitchen 2</option>
-                                <option value="Bar">Bar</option>
-                                <option value="M01">M01</option>
-                            </select>
-                            @error('room_number')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        <div class="col-md-6 mb-3" id="modal_court_purpose_container" style="display: none;">
-                            <label for="modal_court_purpose" class="form-label">Purpose *</label>
-                            <input type="text" class="form-control @error('court_purpose') is-invalid @enderror" id="modal_court_purpose" name="court_purpose"
-                                placeholder="Describe the purpose for court use" value="{{ old('court_purpose') }}">
-                            @error('court_purpose')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
@@ -709,16 +683,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         @enderror
                     </div>
 
-                    <!-- Upload Picture (Optional) -->
-                    <div class="mb-3">
-                        <label for="modal_picture" class="form-label">Upload Picture <span class="text-muted">(Optional)</span></label>
-                        <input type="file" class="form-control" id="modal_picture" name="picture" accept="image/*">
-                        <div class="form-text">Accepted formats: JPG, PNG. Max size: 5MB.</div>
-                        <div id="modal_picture_preview" class="mt-2" style="display: none;">
-                            <img id="modal_picture_img" src="" alt="Preview" style="max-height: 150px; border-radius: 6px; border: 1px solid #dee2e6;">
-                        </div>
-                    </div>
-
                     <!-- Materials/Equipment Needed (Optional) -->
                     <div class="mb-3">
                         <label class="form-label">Materials/Equipment Needed (Optional)</label>
@@ -728,7 +692,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <tr>
                                     <th style="width: 70px;">Qty</th>
                                     <th>Item</th>
-                                    <th>Purpose</th>
                                     <th style="width: 40px;"></th>
                                 </tr>
                             </thead>
@@ -736,7 +699,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <tr>
                                     <td><input type="number" class="form-control form-control-sm" name="materials[0][qty]" min="1" placeholder="1"></td>
                                     <td><input type="text" class="form-control form-control-sm" name="materials[0][item]" placeholder="e.g., Projector"></td>
-                                    <td><input type="text" class="form-control form-control-sm" name="materials[0][purpose]" placeholder="e.g., For presentation"></td>
                                     <td><button type="button" class="btn btn-danger btn-sm" onclick="removeModalMaterialRow(this)"><i class="fas fa-times"></i></button></td>
                                 </tr>
                             </tbody>
@@ -790,10 +752,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="col-md-4 fw-bold">Department:</div>
                     <div class="col-md-8" id="preview_department"></div>
                 </div>
-                <div class="row mb-2" id="preview_court_purpose_row" style="display: none;">
-                    <div class="col-md-4 fw-bold">Court Purpose:</div>
-                    <div class="col-md-8" id="preview_court_purpose"></div>
-                </div>
                 <div class="row mb-2" id="preview_avr_selection_row" style="display: none;">
                     <div class="col-md-4 fw-bold">AVR Selection:</div>
                     <div class="col-md-8" id="preview_avr_selection"></div>
@@ -840,38 +798,44 @@ document.addEventListener('DOMContentLoaded', function() {
         modalRequestType.addEventListener('change', function() {
             var areaOfUseContainer = document.getElementById('modal_area_of_use_container');
             var areaOfUseSelect = document.getElementById('modal_area_of_use');
+            var departmentContainer = document.getElementById('modal_department_container');
+            var departmentSelect = document.getElementById('modal_department');
 
             // Always show area of use when request type is selected (category is always "Area Use")
             if (this.value) {
                 areaOfUseContainer.style.display = 'block';
                 areaOfUseSelect.required = true;
+                
+                // Show department if Academic and location is already selected
+                if (this.value === 'Academic' && areaOfUseSelect.value) {
+                    if (departmentContainer) departmentContainer.style.display = 'block';
+                    if (departmentSelect) departmentSelect.setAttribute('required', 'required');
+                } else if (this.value === 'Non-Academic') {
+                    if (departmentContainer) departmentContainer.style.display = 'none';
+                    if (departmentSelect) {
+                        departmentSelect.removeAttribute('required');
+                        departmentSelect.value = '';
+                    }
+                }
             } else {
                 areaOfUseContainer.style.display = 'none';
                 areaOfUseSelect.required = false;
                 areaOfUseSelect.value = '';
                 // Reset all dependent fields
-                document.getElementById('modal_room_number_container').style.display = 'none';
-                document.getElementById('modal_department_container').style.display = 'none';
-                document.getElementById('modal_court_type_container').style.display = 'none';
-                document.getElementById('modal_court_purpose_container').style.display = 'none';
-                document.getElementById('modal_avr_selection_container').style.display = 'none';
-                document.getElementById('modal_avr_request_category_container').style.display = 'none';
+                var avrSelectionContainer = document.getElementById('modal_avr_selection_container');
+                if (departmentContainer) departmentContainer.style.display = 'none';
+                if (avrSelectionContainer) avrSelectionContainer.style.display = 'none';
             }
+            updatePreviewButtonState();
         });
     }
 
     var modalAreaOfUse = document.getElementById('modal_area_of_use');
     if (modalAreaOfUse) {
         modalAreaOfUse.addEventListener('change', function() {
-            var roomNumberContainer = document.getElementById('modal_room_number_container');
             var departmentContainer = document.getElementById('modal_department_container');
-            var courtTypeContainer = document.getElementById('modal_court_type_container');
-            var courtPurposeContainer = document.getElementById('modal_court_purpose_container');
             var avrSelectionContainer = document.getElementById('modal_avr_selection_container');
-            var avrRequestCategoryContainer = document.getElementById('modal_avr_request_category_container');
-            var roomNumberSelect = document.getElementById('modal_room_number');
             var departmentSelect = document.getElementById('modal_department');
-            var courtPurposeInput = document.getElementById('modal_court_purpose');
             var avrSelectionSelect = document.getElementById('modal_avr_selection');
 
             // Clear court availability message
@@ -888,79 +852,63 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Get request type to determine if Academic (for department requirement)
             var requestType = document.getElementById('modal_request_type').value;
+            var selectedLocation = this.value;
 
-            if (this.value === 'Room') {
-                var isShs = document.getElementById('modal_education_level').value === 'shs';
-                roomNumberContainer.style.display = 'block';
-                // Show department for Academic requests and non-SHS
-                departmentContainer.style.display = (requestType === 'Academic' && !isShs) ? 'block' : 'none';
-                courtPurposeContainer.style.display = 'none';
-                avrSelectionContainer.style.display = 'none';
-                roomNumberSelect.setAttribute('required', 'required');
-                if (requestType === 'Academic' && !isShs) { 
-                    departmentSelect.setAttribute('required', 'required'); 
-                } else { 
-                    departmentSelect.removeAttribute('required'); 
-                    departmentSelect.value = ''; 
-                }
-                courtPurposeInput.removeAttribute('required');
-                avrSelectionSelect.removeAttribute('required');
-                courtPurposeInput.value = '';
-                avrSelectionSelect.value = '';
-            } else if (this.value === 'Court') {
-                roomNumberContainer.style.display = 'none';
-                courtPurposeContainer.style.display = 'block';
-                avrSelectionContainer.style.display = 'none';
+            // Check if location contains "Court" or "AVR" keywords
+            var isCourt = selectedLocation && (selectedLocation.toLowerCase().includes('court') || selectedLocation === 'Court');
+            var isAVR = selectedLocation && (selectedLocation.toLowerCase().includes('avr') || selectedLocation === 'AVR');
+            var isRoom = selectedLocation && (selectedLocation.toLowerCase().includes('room') || selectedLocation.toLowerCase().includes('lab') || selectedLocation.match(/^\d{3}$/));
+
+            if (isCourt) {
+                if (avrSelectionContainer) avrSelectionContainer.style.display = 'none';
                 // Show department for Academic requests
-                departmentContainer.style.display = (requestType === 'Academic') ? 'block' : 'none';
-                roomNumberSelect.removeAttribute('required');
-                courtPurposeInput.setAttribute('required', 'required');
-                avrSelectionSelect.removeAttribute('required');
-                if (requestType === 'Academic') { 
+                if (departmentContainer) departmentContainer.style.display = (requestType === 'Academic') ? 'block' : 'none';
+                if (avrSelectionSelect) avrSelectionSelect.removeAttribute('required');
+                if (requestType === 'Academic' && departmentSelect) { 
                     departmentSelect.setAttribute('required', 'required'); 
-                } else { 
+                } else if (departmentSelect) { 
                     departmentSelect.removeAttribute('required'); 
                     departmentSelect.value = ''; 
                 }
-                roomNumberSelect.value = '';
-                avrSelectionSelect.value = '';
-            } else if (this.value === 'AVR') {
-                roomNumberContainer.style.display = 'none';
-                courtPurposeContainer.style.display = 'none';
-                avrSelectionContainer.style.display = 'block';
+                if (avrSelectionSelect) avrSelectionSelect.value = '';
+            } else if (isAVR) {
+                if (avrSelectionContainer) avrSelectionContainer.style.display = 'none'; // AVR is now in the main dropdown
                 // Show department for Academic requests
-                departmentContainer.style.display = (requestType === 'Academic') ? 'block' : 'none';
-                roomNumberSelect.removeAttribute('required');
-                courtPurposeInput.removeAttribute('required');
-                avrSelectionSelect.setAttribute('required', 'required');
-                if (requestType === 'Academic') { 
+                if (departmentContainer) departmentContainer.style.display = (requestType === 'Academic') ? 'block' : 'none';
+                if (requestType === 'Academic' && departmentSelect) { 
                     departmentSelect.setAttribute('required', 'required'); 
-                } else { 
+                } else if (departmentSelect) { 
                     departmentSelect.removeAttribute('required'); 
                     departmentSelect.value = ''; 
                 }
-                roomNumberSelect.value = '';
-                courtPurposeInput.value = '';
+            } else if (isRoom) {
+                // Show department for Academic requests (always, regardless of education level)
+                if (departmentContainer) departmentContainer.style.display = (requestType === 'Academic') ? 'block' : 'none';
+                if (avrSelectionContainer) avrSelectionContainer.style.display = 'none';
+                if (requestType === 'Academic' && departmentSelect) { 
+                    departmentSelect.setAttribute('required', 'required'); 
+                } else if (departmentSelect) { 
+                    departmentSelect.removeAttribute('required'); 
+                    departmentSelect.value = ''; 
+                }
+                if (avrSelectionSelect) avrSelectionSelect.removeAttribute('required');
+                if (avrSelectionSelect) avrSelectionSelect.value = '';
             } else {
-                roomNumberContainer.style.display = 'none';
-                departmentContainer.style.display = 'none';
-                courtPurposeContainer.style.display = 'none';
-                avrSelectionContainer.style.display = 'none';
-                roomNumberSelect.removeAttribute('required');
-                departmentSelect.removeAttribute('required');
-                courtPurposeInput.removeAttribute('required');
-                avrSelectionSelect.removeAttribute('required');
-                roomNumberSelect.value = '';
-                departmentSelect.value = '';
-                courtPurposeInput.value = '';
-                avrSelectionSelect.value = '';
+                // For any other location type, show department if Academic
+                if (departmentContainer) departmentContainer.style.display = (requestType === 'Academic') ? 'block' : 'none';
+                if (avrSelectionContainer) avrSelectionContainer.style.display = 'none';
+                if (requestType === 'Academic' && departmentSelect) {
+                    departmentSelect.setAttribute('required', 'required');
+                } else if (departmentSelect) {
+                    departmentSelect.removeAttribute('required');
+                    departmentSelect.value = '';
+                }
+                if (avrSelectionSelect) avrSelectionSelect.removeAttribute('required');
+                if (avrSelectionSelect) avrSelectionSelect.value = '';
             }
             updatePreviewButtonState();
         });
     }
-
-    // Court Type change handler for modal
-    var modalCourtType = document.getElementById('modal_court_type');
 
     // Court availability check
     function checkCourtAvailabilityModal() {
@@ -969,7 +917,10 @@ document.addEventListener('DOMContentLoaded', function() {
         var endTime = document.getElementById('modal_end_time') ? document.getElementById('modal_end_time').value : '';
         var areaOfUse = document.getElementById('modal_area_of_use') ? document.getElementById('modal_area_of_use').value : '';
 
-        if (!eventDate || !startTime || !endTime || areaOfUse !== 'Court') {
+        // Check if location contains "Court"
+        var isCourt = areaOfUse && (areaOfUse.toLowerCase().includes('court') || areaOfUse === 'Court');
+        
+        if (!eventDate || !startTime || !endTime || !isCourt) {
             return; // Don't check if fields are empty or not checking court
         }
 
@@ -985,9 +936,9 @@ document.addEventListener('DOMContentLoaded', function() {
         messageDiv.className = 'alert alert-info mt-2';
         messageDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking court availability...';
 
-        var courtContainer = document.getElementById('modal_court_type_container');
-        if (courtContainer) {
-            courtContainer.parentNode.insertBefore(messageDiv, courtContainer.nextSibling);
+        var areaOfUseContainer = document.getElementById('modal_area_of_use_container');
+        if (areaOfUseContainer) {
+            areaOfUseContainer.parentNode.insertBefore(messageDiv, areaOfUseContainer.nextSibling);
         }
 
         fetch('/api/check-court-availability', {
@@ -1006,6 +957,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             var messageDiv = document.getElementById('modal_court_availability_message');
+            if (!messageDiv) return;
 
             if (data.available) {
                 messageDiv.className = 'alert alert-success mt-2';
@@ -1096,14 +1048,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Room availability check
-    var modalRoomNumber = document.getElementById('modal_room_number');
-    if (modalRoomNumber) {
-        modalRoomNumber.addEventListener('change', function() {
-            checkRoomAvailability();
-        });
-    }
-
+    // Availability check listeners
     var modalEventDate = document.getElementById('modal_event_date');
     var modalStartTime = document.getElementById('modal_start_time');
     var modalEndTime = document.getElementById('modal_end_time');
@@ -1112,11 +1057,11 @@ document.addEventListener('DOMContentLoaded', function() {
     [modalEventDate, modalStartTime, modalEndTime].forEach(function(element) {
         if (element) {
             element.addEventListener('change', function() {
-                if (modalRoomNumber && modalRoomNumber.value) {
-                    checkRoomAvailability();
-                }
-                if (modalAreaOfUse && modalAreaOfUse.value === 'Court') {
-                    checkCourtAvailabilityModal();
+                if (modalAreaOfUse && modalAreaOfUse.value) {
+                    var isCourt = modalAreaOfUse.value.toLowerCase().includes('court');
+                    if (isCourt) {
+                        checkCourtAvailabilityModal();
+                    }
                 }
             });
         }
@@ -1125,7 +1070,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Court availability listeners
     if (modalAreaOfUse) {
         modalAreaOfUse.addEventListener('change', function() {
-            if (this.value === 'Court') {
+            var isCourt = this.value && this.value.toLowerCase().includes('court');
+            if (isCourt) {
                 checkCourtAvailabilityModal();
             }
         });
@@ -1148,47 +1094,17 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function checkRoomAvailability() {
-        var roomNumber = modalRoomNumber ? modalRoomNumber.value : '';
-        var eventDate = modalEventDate ? modalEventDate.value : '';
-        var startTime = modalStartTime ? modalStartTime.value : '';
-        var endTime = modalEndTime ? modalEndTime.value : '';
-
-        if (roomNumber && eventDate && startTime && endTime) {
-            // Here you would typically make an AJAX call to check availability
-            // For now, we'll show a placeholder message
-            var availabilityMessage = document.getElementById('room_availability_message');
-            if (!availabilityMessage) {
-                availabilityMessage = document.createElement('div');
-                availabilityMessage.id = 'room_availability_message';
-                availabilityMessage.className = 'alert alert-warning mt-2';
-                modalRoomNumber.parentNode.appendChild(availabilityMessage);
-            }
-
-            // Placeholder: In a real implementation, this would check against existing bookings
-            availabilityMessage.innerHTML = '<i class="fas fa-info-circle"></i> Checking room availability for ' + roomNumber + ' on ' + eventDate + ' from ' + startTime + ' to ' + endTime + '...';
-            availabilityMessage.style.display = 'block';
-
-            // Simulate API call delay
-            setTimeout(function() {
-                // This is where you'd handle the response
-                // For demo purposes, we'll assume the room is available
-                availabilityMessage.innerHTML = '<i class="fas fa-check-circle text-success"></i> Room ' + roomNumber + ' appears to be available for the selected time.';
-                availabilityMessage.className = 'alert alert-success mt-2';
-            }, 1000);
-        }
+        // Room availability checking is no longer needed as rooms are now part of the location dropdown
+        // This function is kept for backward compatibility but does nothing
     }
 
     // Function to check if required fields are filled and enable/disable Preview button
     function updatePreviewButtonState() {
         var requestType = document.getElementById('modal_request_type');
         var areaOfUse = document.getElementById('modal_area_of_use');
-        var roomNumber = document.getElementById('modal_room_number');
-        var courtType = document.getElementById('modal_court_type');
-        var courtPurpose = document.getElementById('modal_court_purpose');
         var department = document.getElementById('modal_department');
         var educationLevel = document.getElementById('modal_education_level');
         var avrSelection = document.getElementById('modal_avr_selection');
-        var avrRequestCategory = document.getElementById('modal_avr_request_category');
         var eventDate = document.getElementById('modal_event_date');
         var startTime = document.getElementById('modal_start_time');
         var endTime = document.getElementById('modal_end_time');
@@ -1198,8 +1114,6 @@ document.addEventListener('DOMContentLoaded', function() {
         var isValid = true;
         var requestTypeValue = requestType ? requestType.value : '';
         var areaValue = areaOfUse ? areaOfUse.value : '';
-        var courtTypeValue = courtType ? courtType.value : '';
-        var avrSelectionValue = avrSelection ? avrSelection.value : '';
         var educationLevelValue = educationLevel ? educationLevel.value : 'faculty';
 
         // Request type is required
@@ -1208,19 +1122,21 @@ document.addEventListener('DOMContentLoaded', function() {
         // Area of use is always required (category is always "Area Use")
         if (!areaValue) isValid = false;
 
-        if (areaValue === 'Room') {
-            if (!roomNumber || !roomNumber.value) isValid = false;
-            // Only require department for tertiary level
-            if (educationLevelValue !== 'shs' && (!department || !department.value)) isValid = false;
-        }
+        // Check if location is a room, court, or AVR
+        var isRoom = areaValue && (areaValue.toLowerCase().includes('room') || areaValue.toLowerCase().includes('lab') || areaValue.match(/^\d{3}$/));
+        var isCourt = areaValue && areaValue.toLowerCase().includes('court');
+        var isAVR = areaValue && areaValue.toLowerCase().includes('avr');
 
-        if (areaValue === 'Court') {
-            if (!courtPurpose || !courtPurpose.value.trim()) isValid = false;
+        if (isRoom) {
+            // Always require department for Academic requests (regardless of education level)
             if (requestTypeValue === 'Academic' && (!department || !department.value)) isValid = false;
         }
 
-        if (areaValue === 'AVR') {
-            if (!avrSelectionValue) isValid = false;
+        if (isCourt) {
+            if (requestTypeValue === 'Academic' && (!department || !department.value)) isValid = false;
+        }
+
+        if (isAVR) {
             // Require department for Academic AVR
             if (requestTypeValue === 'Academic' && (!department || !department.value)) isValid = false;
         }
@@ -1238,28 +1154,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Picture preview
-    var pictureInput = document.getElementById('modal_picture');
-    if (pictureInput) {
-        pictureInput.addEventListener('change', function() {
-            var preview = document.getElementById('modal_picture_preview');
-            var img = document.getElementById('modal_picture_img');
-            if (this.files && this.files[0]) {
-                var reader = new FileReader();
-                reader.onload = function(e) {
-                    img.src = e.target.result;
-                    preview.style.display = 'block';
-                };
-                reader.readAsDataURL(this.files[0]);
-            } else {
-                preview.style.display = 'none';
-                img.src = '';
-            }
-        });
-    }
-
     // Add event listeners to all required fields to update Preview button state
-    var requiredFieldIds = ['modal_request_type', 'modal_area_of_use', 'modal_room_number', 'modal_court_type', 'modal_court_purpose', 'modal_department', 'modal_education_level', 'modal_avr_selection', 'modal_avr_request_category', 'modal_event_date', 'modal_start_time', 'modal_end_time', 'modal_description'];
+    var requiredFieldIds = ['modal_request_type', 'modal_area_of_use', 'modal_department', 'modal_education_level', 'modal_avr_selection', 'modal_event_date', 'modal_start_time', 'modal_end_time', 'modal_description'];
     requiredFieldIds.forEach(function(fieldId) {
         var field = document.getElementById(fieldId);
         if (field) {
@@ -1299,9 +1195,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Get form values
             var requestType = document.getElementById('modal_request_type').value;
             var areaOfUse = document.getElementById('modal_area_of_use').value;
-            var roomNumber = document.getElementById('modal_room_number').value;
             var department = document.getElementById('modal_department').value;
-            var courtPurpose = document.getElementById('modal_court_purpose').value;
             var avrSelection = document.getElementById('modal_avr_selection').value;
             var eventDate = document.getElementById('modal_event_date').value;
             var startTime = document.getElementById('modal_start_time').value;
@@ -1309,26 +1203,15 @@ document.addEventListener('DOMContentLoaded', function() {
             var description = document.getElementById('modal_description').value;
 
             // Build location from selected options
-            var location = '';
-            if (areaOfUse) {
-                location = areaOfUse;
-                if (areaOfUse === 'Room' && roomNumber) {
-                    location += ' ' + roomNumber;
-                } else if (areaOfUse === 'Court') {
-                    location += ' (' + requestType + ')';
-                } else if (areaOfUse === 'AVR' && avrSelection) {
-                    location += ' ' + avrSelection;
-                }
-            }
+            var location = areaOfUse || '';
 
             // Populate preview fields
             document.getElementById('preview_category').textContent = 'Area Use';
             document.getElementById('preview_request_type').textContent = requestType || 'Not specified';
             document.getElementById('preview_area_of_use').textContent = areaOfUse || 'Not specified';
-            document.getElementById('preview_room_number').textContent = roomNumber || 'Not specified';
             document.getElementById('preview_department').textContent = department || 'Not specified';
-            document.getElementById('preview_court_purpose').textContent = courtPurpose || 'Not specified';
-            document.getElementById('preview_avr_selection').textContent = avrSelection || 'Not specified';
+            var avrSelectionEl = document.getElementById('preview_avr_selection');
+            if (avrSelectionEl) avrSelectionEl.textContent = avrSelection || 'Not specified';
             document.getElementById('preview_event_date').textContent = eventDate ? new Date(eventDate).toLocaleDateString() : 'Not specified';
             document.getElementById('preview_start_time').textContent = startTime || 'Not specified';
             document.getElementById('preview_end_time').textContent = endTime || 'Not specified';
@@ -1343,11 +1226,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 areaOfUseRow.style.display = 'none';
             }
 
-            // Show/hide room number row
+            // Hide room number row (no longer used)
             var roomNumberRow = document.getElementById('preview_room_number_row');
-            if (areaOfUse === 'Room' && roomNumber) {
-                roomNumberRow.style.display = 'block';
-            } else {
+            if (roomNumberRow) {
                 roomNumberRow.style.display = 'none';
             }
 
@@ -1359,17 +1240,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 departmentRow.style.display = 'none';
             }
 
-            // Show/hide court purpose row
-            var courtPurposeRow = document.getElementById('preview_court_purpose_row');
-            if (areaOfUse === 'Court' && courtPurpose) {
-                courtPurposeRow.style.display = 'block';
-            } else {
-                courtPurposeRow.style.display = 'none';
-            }
+            // Check if location contains "avr" keyword
+            var isAVR = areaOfUse && areaOfUse.toLowerCase().includes('avr');
 
             // Show/hide AVR selection row
             var avrSelectionRow = document.getElementById('preview_avr_selection_row');
-            if (areaOfUse === 'AVR' && avrSelection) {
+            if (isAVR && avrSelection) {
                 avrSelectionRow.style.display = 'block';
             } else {
                 avrSelectionRow.style.display = 'none';
@@ -1409,44 +1285,26 @@ document.addEventListener('DOMContentLoaded', function() {
             isValid = false;
         }
 
-        // Validate Room Number (if 'Room' is selected in Area of Use)
-        var roomNumber = document.getElementById('modal_room_number');
-        if (areaOfUse.value === 'Room' && !roomNumber.value) {
-            showFieldError(roomNumber, 'Please select a room number');
-            errors.push('Room number is required');
-            isValid = false;
-        }
+        // No need to validate room number separately - it's now part of area_of_use
 
-        // Validate Department (if 'Room' is selected in Area of Use and education level is tertiary)
+        // Validate Department (if Academic request type is selected and location is chosen)
         var department = document.getElementById('modal_department');
         var educationLevel = document.getElementById('modal_education_level');
         var educationLevelValue = educationLevel ? educationLevel.value : 'faculty';
-        if (areaOfUse.value === 'Room' && educationLevelValue !== 'shs' && !department.value) {
+        var isRoom = areaOfUse.value && (areaOfUse.value.toLowerCase().includes('room') || areaOfUse.value.toLowerCase().includes('lab') || areaOfUse.value.match(/^\d{3}$/));
+        var isCourt = areaOfUse.value && areaOfUse.value.toLowerCase().includes('court');
+        var isAVR = areaOfUse.value && areaOfUse.value.toLowerCase().includes('avr');
+        
+        if (isRoom && requestType.value === 'Academic' && !department.value) {
             showFieldError(department, 'Please select a department');
             errors.push('Department is required');
             isValid = false;
         }
 
-        // Validate Court Purpose (if Court is selected)
-        var courtPurpose = document.getElementById('modal_court_purpose');
-        if (areaOfUse.value === 'Court' && !courtPurpose.value.trim()) {
-            showFieldError(courtPurpose, 'Please enter the purpose for court use');
-            errors.push('Court purpose is required');
-            isValid = false;
-        }
-
         // Validate Department (if Academic request type and Court/AVR selected)
-        if (requestType.value === 'Academic' && (areaOfUse.value === 'Court' || areaOfUse.value === 'AVR') && !department.value) {
+        if (requestType.value === 'Academic' && (isCourt || isAVR) && !department.value) {
             showFieldError(department, 'Please select a department for academic requests');
             errors.push('Department is required for academic requests');
-            isValid = false;
-        }
-
-        // Validate AVR Selection (if AVR is selected in Area of Use)
-        var avrSelection = document.getElementById('modal_avr_selection');
-        if (areaOfUse.value === 'AVR' && !avrSelection.value) {
-            showFieldError(avrSelection, 'Please select an AVR');
-            errors.push('AVR selection is required');
             isValid = false;
         }
         
@@ -1595,8 +1453,6 @@ document.addEventListener('DOMContentLoaded', function() {
             // Get form values
             var requestType = document.getElementById('modal_request_type').value;
             var areaOfUse = document.getElementById('modal_area_of_use').value;
-            var roomNumber = document.getElementById('modal_room_number').value;
-            var courtPurpose = document.getElementById('modal_court_purpose').value;
             var department = document.getElementById('modal_department').value;
             var educationLevel = document.getElementById('modal_education_level').value;
             var avrSelectionValue = document.getElementById('modal_avr_selection').value;
@@ -1605,17 +1461,8 @@ document.addEventListener('DOMContentLoaded', function() {
             var endTime = document.getElementById('modal_end_time').value;
             var description = document.getElementById('modal_description').value;
             
-            var location = '';
-            if (areaOfUse) {
-                location = areaOfUse;
-                if (areaOfUse === 'Room' && roomNumber) {
-                    location += ' ' + roomNumber;
-                } else if (areaOfUse === 'Court') {
-                    location += ' (' + requestType + ')';
-                } else if (areaOfUse === 'AVR' && avrSelectionValue) {
-                    location += ' (' + avrSelectionValue + ')';
-                }
-            }
+            // Location is now just the area of use value (which includes the specific room/facility)
+            var location = areaOfUse || '';
 
             var dateDisplay = eventDate ? new Date(eventDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '';
 
@@ -1636,9 +1483,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('preview_request_type').textContent = requestType || 'Not specified';
             document.getElementById('preview_education_level').textContent = educationLevel === 'shs' ? 'Senior High School' : educationLevel === 'faculty' ? 'Faculty' : educationLevel === 'staff' ? 'Staff' : educationLevel === 'maintenance' ? 'Maintenance' : 'Tertiary';
             document.getElementById('preview_area_of_use').textContent = areaOfUse || 'Not specified';
-            document.getElementById('preview_room_number').textContent = roomNumber || 'Not specified';
             document.getElementById('preview_department').textContent = department || 'Not specified';
-            document.getElementById('preview_court_purpose').textContent = courtPurpose || 'Not specified';
             document.getElementById('preview_avr_selection').textContent = avrSelectionValue || 'Not specified';
             document.getElementById('preview_event_date').textContent = dateDisplay || '-';
             document.getElementById('preview_start_time').textContent = formatTime(startTime);
@@ -1647,10 +1492,13 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('preview_description').textContent = description || '-';
 
             document.getElementById('preview_area_of_use_row').style.display = areaOfUse ? 'flex' : 'none';
-            document.getElementById('preview_room_number_row').style.display = (areaOfUse === 'Room' && roomNumber) ? 'flex' : 'none';
+            document.getElementById('preview_room_number_row').style.display = 'none'; // Room number row is no longer used
             document.getElementById('preview_department_row').style.display = department ? 'flex' : 'none';
-            document.getElementById('preview_court_purpose_row').style.display = (areaOfUse === 'Court' && courtPurpose) ? 'flex' : 'none';
-            document.getElementById('preview_avr_selection_row').style.display = (areaOfUse === 'AVR' && avrSelectionValue) ? 'flex' : 'none';
+            
+            // Check if location contains "avr" keyword
+            var isAVR = areaOfUse && areaOfUse.toLowerCase().includes('avr');
+            
+            document.getElementById('preview_avr_selection_row').style.display = (isAVR && avrSelectionValue) ? 'flex' : 'none';
 
             // Set approval recipients based on education level, department, and request type
             var approvalRecipients = 'Chosen Department on the selection, Academic Head, Building Admin, and School Administrator';
@@ -1798,7 +1646,6 @@ document.addEventListener('DOMContentLoaded', function() {
             newRow.innerHTML = `
                 <td><input type="number" class="form-control form-control-sm" name="materials[${modalMaterialRowCount}][qty]" min="1" placeholder="1"></td>
                 <td><input type="text" class="form-control form-control-sm" name="materials[${modalMaterialRowCount}][item]" placeholder="e.g., Projector"></td>
-                <td><input type="text" class="form-control form-control-sm" name="materials[${modalMaterialRowCount}][purpose]" placeholder="e.g., For presentation"></td>
                 <td><button type="button" class="btn btn-danger btn-sm" onclick="removeModalMaterialRow(this)"><i class="fas fa-times"></i></button></td>
             `;
             modalMaterialRowCount++;
