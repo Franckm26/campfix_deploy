@@ -158,13 +158,12 @@
 
 .chart-container {
     position: relative;
-    height: 300px;
+    height: 350px;
     width: 100%;
-    padding-bottom: 20px;
 }
 
 .chart-container canvas {
-    max-height: 300px;
+    max-height: 350px;
 }
 
 .stat-value {
@@ -1653,7 +1652,8 @@
                 },
                 options: {
                     responsive: true,
-                    layout: { padding: { right: 90 } },
+                    maintainAspectRatio: false,
+                    layout: { padding: { right: 90, bottom: 10 } },
                     interaction: { mode: 'index', intersect: false },
                     scales: {
                         x: {
@@ -1674,25 +1674,11 @@
                             labels: {
                                 usePointStyle: true,
                                 pointStyle: 'circle',
-                                padding: 15,
-                                boxWidth: 12,
-                                boxHeight: 12,
-                                font: { size: 12, weight: 'bold' },
-                                generateLabels: function(chart) {
-                                    const datasets = chart.data.datasets;
-                                    return datasets.map((dataset, i) => ({
-                                        text: dataset.label,
-                                        fillStyle: dataset.borderColor,
-                                        strokeStyle: dataset.borderColor,
-                                        lineWidth: 2,
-                                        hidden: !chart.isDatasetVisible(i),
-                                        index: i,
-                                        pointStyle: 'circle'
-                                    }));
-                                }
-                            },
-                            align: 'center',
-                            maxWidth: 800
+                                padding: 12,
+                                boxWidth: 10,
+                                boxHeight: 10,
+                                font: { size: 12 }
+                            }
                         },
                         tooltip: {
                             callbacks: {
