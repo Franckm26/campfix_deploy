@@ -336,6 +336,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/analytics/cost-report-pdf', [AdminController::class, 'costReportPDF'])->name('admin.analytics.cost-report-pdf');
     Route::get('/admin/analytics/status-report-pdf', [AdminController::class, 'statusReportPDF'])->name('admin.analytics.status-report-pdf');
     Route::get('/admin/analytics/trend-report-pdf', [AdminController::class, 'trendReportPDF'])->name('admin.analytics.trend-report-pdf');
+    Route::get('/admin/analytics/period-comparison-pdf', [AdminController::class, 'periodComparisonPDF'])->name('admin.analytics.period-comparison-pdf');
     Route::post('/admin/concern/{id}/cost', [AdminController::class, 'updateCost'])->name('admin.concern.updateCost');
 
     // Building Admin: Assign concerns to maintenance

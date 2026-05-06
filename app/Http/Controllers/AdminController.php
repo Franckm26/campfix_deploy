@@ -4270,6 +4270,15 @@ class AdminController extends Controller
             ->orderBy('month')
             ->get();
 
+        // Monthly cost data for period comparison chart
+        $monthlyCostQuery = clone $monthlyQuery;
+        $monthlyCostData = $monthlyCostQuery->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month")
+            ->selectRaw('COUNT(*) as count')
+            ->selectRaw('SUM(COALESCE(cost, 0)) as total_cost')
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get();
+
         // Trend alerts
         $trendAlerts = collect();
         $locationIssues = Report::whereNotNull('location')
@@ -4350,6 +4359,11 @@ class AdminController extends Controller
                     'title' => $s->title,
                     'count' => $s->total_count
                 ])->values(),
+                'monthlyCostData' => $monthlyCostData->map(fn($s) => [
+                    'month' => $s->month,
+                    'count' => $s->count,
+                    'total_cost' => $s->total_cost
+                ])->values(),
                 'locationStats' => $locationStats,
             ]);
         }
@@ -4366,6 +4380,7 @@ class AdminController extends Controller
             'chartStatuses',
             'chartStatusCounts',
             'monthlyStats',
+            'monthlyCostData',
             'trendAlerts'
         ));
     }
@@ -4939,6 +4954,143 @@ class AdminController extends Controller
             return $pdf->stream('trend-report-' . now()->format('Y-m-d') . '.pdf');
         } catch (\Exception $e) {
             \Log::error('Trend PDF Generation Error: ' . $e->getMessage());
+            return back()->with('error', 'Failed to generate PDF: ' . $e->getMessage());
+        }
+    }
+
+    // Export Period Comparison Report to PDF
+    public function periodComparisonPDF(Request $request)
+    {
+        try {
+            $baseQuery = Report::where('status', 'Resolved');
+
+            // Apply date_from and date_to filters if provided
+            if ($request->filled('date_from') && $request->filled('date_to')) {
+                $baseQuery->whereBetween('created_at', [
+                    $request->input('date_from'),
+                    $request->input('date_to')
+                ]);
+            }
+
+            // Get monthly cost data
+            $monthlyCostData = (clone $baseQuery)
+                ->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month")
+                ->selectRaw('COUNT(*) as count')
+                ->selectRaw('SUM(COALESCE(cost, 0)) as total_cost')
+                ->groupBy('month')
+                ->orderBy('month')
+                ->get();
+
+            // Build 6-month labels (or use filtered range)
+            $monthLabels = [];
+            $monthKeys = [];
+            
+            if ($request->filled('date_from') && $request->filled('date_to')) {
+                $startDate = \Carbon\Carbon::parse($request->input('date_from'));
+                $endDate = \Carbon\Carbon::parse($request->input('date_to'));
+                $monthsDiff = $startDate->diffInMonths($endDate);
+                
+                for ($i = 0; $i <= min($monthsDiff, 11); $i++) {
+                    $date = $startDate->copy()->addMonths($i);
+                    $key = $date->format('Y-m');
+                    $label = $date->format('M Y');
+                    $monthKeys[] = $key;
+                    $monthLabels[] = $label;
+                }
+            } else {
+                // Default to last 6 months
+                for ($i = 5; $i >= 0; $i--) {
+                    $date = now()->subMonths($i);
+                    $key = $date->format('Y-m');
+                    $label = $date->format('M Y');
+                    $monthKeys[] = $key;
+                    $monthLabels[] = $label;
+                }
+            }
+
+            // Initialize data arrays
+            $monthCosts = array_fill(0, count($monthKeys), 0);
+            $monthCounts = array_fill(0, count($monthKeys), 0);
+
+            // Populate data from query results
+            foreach ($monthlyCostData as $item) {
+                $monthIndex = array_search($item->month, $monthKeys);
+                if ($monthIndex !== false) {
+                    $monthCosts[$monthIndex] = (float) $item->total_cost;
+                    $monthCounts[$monthIndex] = (int) $item->count;
+                }
+            }
+
+            // Calculate statistics
+            $totalCost = array_sum($monthCosts);
+            $totalCount = array_sum($monthCounts);
+            $avgCostPerMonth = count($monthKeys) > 0 ? $totalCost / count($monthKeys) : 0;
+            $avgCostPerRepair = $totalCount > 0 ? $totalCost / $totalCount : 0;
+
+            // Find highest and lowest months
+            $highestIdx = 0;
+            $lowestIdx = 0;
+            for ($i = 1; $i < count($monthCosts); $i++) {
+                if ($monthCosts[$i] > $monthCosts[$highestIdx]) $highestIdx = $i;
+                if ($monthCosts[$i] < $monthCosts[$lowestIdx]) $lowestIdx = $i;
+            }
+
+            // Build table data
+            $periodData = [];
+            foreach ($monthLabels as $idx => $label) {
+                $cost = $monthCosts[$idx];
+                $count = $monthCounts[$idx];
+                $avgPerRepair = $count > 0 ? $cost / $count : 0;
+                $percentOfTotal = $totalCost > 0 ? ($cost / $totalCost) * 100 : 0;
+
+                $trend = '';
+                if ($idx > 0) {
+                    $prevCost = $monthCosts[$idx - 1];
+                    if ($cost > $prevCost) {
+                        $trend = 'up';
+                    } elseif ($cost < $prevCost) {
+                        $trend = 'down';
+                    } else {
+                        $trend = 'neutral';
+                    }
+                }
+
+                $periodData[] = [
+                    'label' => $label,
+                    'count' => $count,
+                    'cost' => $cost,
+                    'avg_per_repair' => $avgPerRepair,
+                    'percent' => $percentOfTotal,
+                    'trend' => $trend
+                ];
+            }
+
+            // Determine date range label
+            $dateRange = '';
+            if ($request->filled('date_from') && $request->filled('date_to')) {
+                $dateRange = \Carbon\Carbon::parse($request->input('date_from'))->format('M d, Y') . 
+                           ' - ' . 
+                           \Carbon\Carbon::parse($request->input('date_to'))->format('M d, Y');
+            } else {
+                $dateRange = 'Last 6 Months';
+            }
+
+            $pdf = \PDF::loadView('admin.analytics-period-comparison-pdf', compact(
+                'periodData',
+                'totalCost',
+                'totalCount',
+                'avgCostPerMonth',
+                'avgCostPerRepair',
+                'highestIdx',
+                'lowestIdx',
+                'monthLabels',
+                'monthCosts',
+                'dateRange'
+            ));
+
+            return $pdf->stream('period-comparison-report-' . now()->format('Y-m-d') . '.pdf');
+        } catch (\Exception $e) {
+            \Log::error('Period Comparison PDF Generation Error: ' . $e->getMessage());
             return back()->with('error', 'Failed to generate PDF: ' . $e->getMessage());
         }
     }

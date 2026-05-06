@@ -323,156 +323,236 @@
         </div>
     </div>
 
-    <!-- Export Button -->
-    <div class="mb-3 text-end">
+    <!-- Export Button and Date Range Filter -->
+    <div class="mb-3 d-flex justify-content-between align-items-center">
+        <div class="dropdown">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="mainAnalyticsRangeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-calendar-alt me-2"></i>
+                <span id="mainAnalyticsRangeLabel">
+                    @if(request('date_from') && request('date_to'))
+                        {{ \Carbon\Carbon::parse(request('date_from'))->format('M d, Y') }} - {{ \Carbon\Carbon::parse(request('date_to'))->format('M d, Y') }}
+                    @elseif(request('period') == 'monthly' && request('month') && request('year'))
+                        {{ \Carbon\Carbon::create()->month(request('month'))->format('F') }} {{ request('year') }}
+                    @elseif(request('period') == 'yearly' && request('year'))
+                        Year {{ request('year') }}
+                    @else
+                        All Time
+                    @endif
+                </span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-start" aria-labelledby="mainAnalyticsRangeDropdown" style="min-width: 250px;">
+                <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRange('last7days', event)">Last 7 days</a></li>
+                <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRange('last28days', event)">Last 28 days</a></li>
+                <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRange('last90days', event)">Last 90 days</a></li>
+                <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRange('last6months', event)">Last 6 months</a></li>
+                <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRange('last12months', event)">Last 12 months</a></li>
+                <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRange('thisyear', event)">This year</a></li>
+                <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRange('lastyear', event)">Last year</a></li>
+                <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRange('alltime', event)">All time</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li class="px-3 py-2">
+                    <label class="form-label mb-1" style="font-size: 0.85rem; font-weight: 600;">Custom Range</label>
+                    <div class="mb-2">
+                        <input type="date" id="mainAnalyticsCustomDateFrom" class="form-control form-control-sm" style="font-size: 0.85rem;">
+                    </div>
+                    <div class="mb-2">
+                        <input type="date" id="mainAnalyticsCustomDateTo" class="form-control form-control-sm" style="font-size: 0.85rem;">
+                    </div>
+                    <button class="btn btn-primary btn-sm w-100" onclick="applyMainAnalyticsCustomRange(event)" style="font-size: 0.85rem;">Apply</button>
+                </li>
+            </ul>
+        </div>
         <a href="{{ route('admin.analytics.export-pdf') }}?{{ http_build_query(request()->all()) }}" class="btn btn-danger" target="_blank">
             <i class="fas fa-file-pdf"></i> Export to PDF
         </a>
     </div>
 
-    <!-- Filter Section -->
-    <div class="filter-section">
-        <form method="GET" action="{{ route('admin.analytics') }}" id="analyticsFilterForm" class="filter-form">
-            <div class="filter-group">
-                <label for="period">Period</label>
-                <select name="period" id="period" class="form-select" onchange="document.getElementById('analyticsFilterForm').submit()">
-                    <option value="">Custom</option>
-                    <option value="monthly" {{ request('period') == 'monthly' ? 'selected' : '' }}>Monthly</option>
-                    <option value="quarterly" {{ request('period') == 'quarterly' ? 'selected' : '' }}>Quarterly</option>
-                    <option value="yearly" {{ request('period') == 'yearly' ? 'selected' : '' }}>Yearly</option>
-                </select>
-            </div>
-            <div class="filter-group" id="month-group">
-                <label for="month">Month</label>
-                <select name="month" id="month" class="form-select" onchange="document.getElementById('analyticsFilterForm').submit()">
-                    <option value="">All Months</option>
-                    @for($m = 1; $m <= 12; $m++)
-                        <option value="{{ $m }}" {{ request('month') == $m ? 'selected' : '' }}>
-                            {{ \Carbon\Carbon::create()->month($m)->format('F') }}
-                        </option>
-                    @endfor
-                </select>
-            </div>
-            <div class="filter-group" id="month-from-group" style="display: none;">
-                <label for="month_from">From Month</label>
-                <select name="month_from" id="month_from" class="form-select" onchange="document.getElementById('analyticsFilterForm').submit()">
-                    <option value="">Select Month</option>
-                    @for($m = 1; $m <= 12; $m++)
-                        <option value="{{ $m }}" {{ request('month_from') == $m ? 'selected' : '' }}>
-                            {{ \Carbon\Carbon::create()->month($m)->format('F') }}
-                        </option>
-                    @endfor
-                </select>
-            </div>
-            <div class="filter-group" id="month-to-group" style="display: none;">
-                <label for="month_to">To Month</label>
-                <select name="month_to" id="month_to" class="form-select" onchange="document.getElementById('analyticsFilterForm').submit()">
-                    <option value="">Select Month</option>
-                    @for($m = 1; $m <= 12; $m++)
-                        <option value="{{ $m }}" {{ request('month_to') == $m ? 'selected' : '' }}>
-                            {{ \Carbon\Carbon::create()->month($m)->format('F') }}
-                        </option>
-                    @endfor
-                </select>
-            </div>
-            <div class="filter-group">
-                <label for="year">Year</label>
-                <select name="year" id="year" class="form-select" onchange="document.getElementById('analyticsFilterForm').submit()">
-                    <option value="">All Years</option>
-                    @for($y = now()->year; $y >= now()->year - 5; $y--)
-                        <option value="{{ $y }}" {{ request('year') == $y ? 'selected' : '' }}>
-                            {{ $y }}
-                        </option>
-                    @endfor
-                </select>
-            </div>
-            <div class="filter-group" id="date-from-group">
-                <label for="date_from">Date From</label>
-                <input type="date" name="date_from" id="date_from" value="{{ request('date_from') }}" onchange="document.getElementById('analyticsFilterForm').submit()">
-            </div>
-            <div class="filter-group" id="date-to-group">
-                <label for="date_to">Date To</label>
-                <input type="date" name="date_to" id="date_to" value="{{ request('date_to') }}" onchange="document.getElementById('analyticsFilterForm').submit()">
-            </div>
-            <div class="filter-group" style="align-self: flex-end;">
-                <a href="{{ route('admin.analytics') }}" class="btn btn-secondary" style="padding: 8px 15px; text-decoration: none; display: inline-block;">
-                    <i class="fas fa-times"></i> Reset
-                </a>
-            </div>
-        </form>
-    </div>
-
     <script>
-    // Handle period selection to show/hide relevant filters
-    document.addEventListener('DOMContentLoaded', function() {
-        const periodSelect = document.getElementById('period');
-        const monthGroup = document.getElementById('month-group');
-        const monthFromGroup = document.getElementById('month-from-group');
-        const monthToGroup = document.getElementById('month-to-group');
-        const dateFromGroup = document.getElementById('date-from-group');
-        const dateToGroup = document.getElementById('date-to-group');
+    // Main Analytics Date Range Functions
+    window.setMainAnalyticsRange = function(range, event) {
+        if (event) event.preventDefault();
         
-        function updateFilterVisibility() {
-            const period = periodSelect.value;
-            
-            if (period === 'monthly') {
-                monthGroup.style.display = 'flex';
-                monthFromGroup.style.display = 'none';
-                monthToGroup.style.display = 'none';
-                dateFromGroup.style.display = 'none';
-                dateToGroup.style.display = 'none';
-            } else if (period === 'quarterly') {
-                monthGroup.style.display = 'none';
-                monthFromGroup.style.display = 'flex';
-                monthToGroup.style.display = 'flex';
-                dateFromGroup.style.display = 'none';
-                dateToGroup.style.display = 'none';
-            } else if (period === 'yearly') {
-                monthGroup.style.display = 'none';
-                monthFromGroup.style.display = 'none';
-                monthToGroup.style.display = 'none';
-                dateFromGroup.style.display = 'none';
-                dateToGroup.style.display = 'none';
-            } else {
-                // Custom - show all
-                monthGroup.style.display = 'flex';
-                monthFromGroup.style.display = 'none';
-                monthToGroup.style.display = 'none';
-                dateFromGroup.style.display = 'flex';
-                dateToGroup.style.display = 'flex';
-            }
+        var today = new Date();
+        var dateFrom, dateTo;
+        var url = new URL(window.location.href);
+        
+        // Clear existing date parameters
+        url.searchParams.delete('period');
+        url.searchParams.delete('month');
+        url.searchParams.delete('month_from');
+        url.searchParams.delete('month_to');
+        url.searchParams.delete('year');
+        url.searchParams.delete('date_from');
+        url.searchParams.delete('date_to');
+        
+        if (range === 'alltime') {
+            // No parameters needed for all time
+            window.location.href = url.toString();
+            return;
         }
         
-        periodSelect.addEventListener('change', updateFilterVisibility);
-        updateFilterVisibility(); // Initialize on page load
-    });
+        switch(range) {
+            case 'last7days':
+                dateFrom = new Date(today);
+                dateFrom.setDate(today.getDate() - 7);
+                dateTo = today;
+                break;
+            case 'last28days':
+                dateFrom = new Date(today);
+                dateFrom.setDate(today.getDate() - 28);
+                dateTo = today;
+                break;
+            case 'last90days':
+                dateFrom = new Date(today);
+                dateFrom.setDate(today.getDate() - 90);
+                dateTo = today;
+                break;
+            case 'last6months':
+                dateFrom = new Date(today);
+                dateFrom.setMonth(today.getMonth() - 6);
+                dateTo = today;
+                break;
+            case 'last12months':
+                dateFrom = new Date(today);
+                dateFrom.setMonth(today.getMonth() - 12);
+                dateTo = today;
+                break;
+            case 'thisyear':
+                dateFrom = new Date(today.getFullYear(), 0, 1);
+                dateTo = today;
+                break;
+            case 'lastyear':
+                dateFrom = new Date(today.getFullYear() - 1, 0, 1);
+                dateTo = new Date(today.getFullYear() - 1, 11, 31);
+                break;
+        }
+        
+        // Format dates as YYYY-MM-DD
+        var dateFromStr = dateFrom.toISOString().split('T')[0];
+        var dateToStr = dateTo.toISOString().split('T')[0];
+        
+        url.searchParams.set('date_from', dateFromStr);
+        url.searchParams.set('date_to', dateToStr);
+        
+        window.location.href = url.toString();
+    };
+    
+    window.applyMainAnalyticsCustomRange = function(event) {
+        if (event) event.preventDefault();
+        
+        var dateFromInput = document.getElementById('mainAnalyticsCustomDateFrom').value;
+        var dateToInput = document.getElementById('mainAnalyticsCustomDateTo').value;
+        
+        if (!dateFromInput || !dateToInput) {
+            alert('Please select both start and end dates');
+            return;
+        }
+        
+        var dateFrom = new Date(dateFromInput);
+        var dateTo = new Date(dateToInput);
+        
+        if (dateFrom > dateTo) {
+            alert('Start date must be before end date');
+            return;
+        }
+        
+        var url = new URL(window.location.href);
+        
+        // Clear existing date parameters
+        url.searchParams.delete('period');
+        url.searchParams.delete('month');
+        url.searchParams.delete('month_from');
+        url.searchParams.delete('month_to');
+        url.searchParams.delete('year');
+        
+        url.searchParams.set('date_from', dateFromInput);
+        url.searchParams.set('date_to', dateToInput);
+        
+        window.location.href = url.toString();
+    };
     </script>
 
     <!-- Charts Section -->
     <div class="row mb-4">
         <div class="col-md-6">
-            <div class="analytics-card" style="cursor: pointer;" onclick="showLocationDetailsModal()">
+            <div class="analytics-card">
                 <div class="analytics-header">
                     <div class="analytics-title">
                         <i class="fas fa-chart-pie"></i> Repairs by Location
                         <small class="text-muted" style="font-size: 0.7rem; font-weight: normal;">(Click for details)</small>
                     </div>
+                    <div class="analytics-actions">
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="locationRangeDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.85rem;">
+                                <i class="fas fa-calendar-alt me-1"></i>
+                                <span id="locationRangeLabel">Last 6 months</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="locationRangeDropdown">
+                                <li><a class="dropdown-item" href="#" onclick="setLocationRange('last7days', event)">Last 7 days</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setLocationRange('last28days', event)">Last 28 days</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setLocationRange('last90days', event)">Last 90 days</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setLocationRange('last6months', event)">Last 6 months</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setLocationRange('last12months', event)">Last 12 months</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setLocationRange('thisyear', event)">This year</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setLocationRange('lastyear', event)">Last year</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li class="px-3 py-2">
+                                    <label class="form-label mb-1" style="font-size: 0.75rem; font-weight: 600;">Custom Range</label>
+                                    <div class="d-flex gap-2 mb-2">
+                                        <input type="date" id="locationCustomDateFrom" class="form-control form-control-sm" style="font-size: 0.75rem;">
+                                    </div>
+                                    <div class="d-flex gap-2 mb-2">
+                                        <input type="date" id="locationCustomDateTo" class="form-control form-control-sm" style="font-size: 0.75rem;">
+                                    </div>
+                                    <button class="btn btn-primary btn-sm w-100" onclick="applyLocationCustomRange(event)" style="font-size: 0.75rem;">Apply</button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
-                <div class="chart-container">
+                <div class="chart-container" style="cursor: pointer;" onclick="showLocationDetailsModal()">
                     <canvas id="locationPieChart"></canvas>
                 </div>
             </div>
         </div>
         <div class="col-md-6">
-            <div class="analytics-card" style="cursor: pointer;" onclick="showCostDetailsModal()">
+            <div class="analytics-card">
                 <div class="analytics-header">
                     <div class="analytics-title">
-                        <i class="fas fa-chart-bar"></i> Cost by Location
+                        <i class="fas fa-chart-bar"></i> Period Comparison
                         <small class="text-muted" style="font-size: 0.7rem; font-weight: normal;">(Click for details)</small>
                     </div>
+                    <div class="analytics-actions">
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="periodRangeDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.85rem;">
+                                <i class="fas fa-calendar-alt me-1"></i>
+                                <span id="periodRangeLabel">Last 6 months</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="periodRangeDropdown">
+                                <li><a class="dropdown-item" href="#" onclick="setPeriodRange('last7days', event)">Last 7 days</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setPeriodRange('last28days', event)">Last 28 days</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setPeriodRange('last90days', event)">Last 90 days</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setPeriodRange('last6months', event)">Last 6 months</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setPeriodRange('last12months', event)">Last 12 months</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setPeriodRange('thisyear', event)">This year</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setPeriodRange('lastyear', event)">Last year</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li class="px-3 py-2">
+                                    <label class="form-label mb-1" style="font-size: 0.75rem; font-weight: 600;">Custom Range</label>
+                                    <div class="d-flex gap-2 mb-2">
+                                        <input type="date" id="customDateFrom" class="form-control form-control-sm" style="font-size: 0.75rem;">
+                                    </div>
+                                    <div class="d-flex gap-2 mb-2">
+                                        <input type="date" id="customDateTo" class="form-control form-control-sm" style="font-size: 0.75rem;">
+                                    </div>
+                                    <button class="btn btn-primary btn-sm w-100" onclick="applyCustomRange(event)" style="font-size: 0.75rem;">Apply</button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
-                <div class="chart-container">
-                    <canvas id="locationBarChart"></canvas>
+                <div class="chart-container" style="cursor: pointer;" onclick="showPeriodComparisonModal()">
+                    <canvas id="periodComparisonChart"></canvas>
                 </div>
             </div>
         </div>
@@ -481,27 +561,83 @@
     <!-- Additional Charts Row -->
     <div class="row mb-4">
         <div class="col-md-6">
-            <div class="analytics-card" style="cursor: pointer;" onclick="showStatusDetailsModal()">
+            <div class="analytics-card">
                 <div class="analytics-header">
                     <div class="analytics-title">
                         <i class="fas fa-chart-pie"></i> Status Distribution
                         <small class="text-muted" style="font-size: 0.7rem; font-weight: normal;">(Click for details)</small>
                     </div>
+                    <div class="analytics-actions">
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="statusRangeDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.85rem;">
+                                <i class="fas fa-calendar-alt me-1"></i>
+                                <span id="statusRangeLabel">Last 6 months</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="statusRangeDropdown">
+                                <li><a class="dropdown-item" href="#" onclick="setStatusRange('last7days', event)">Last 7 days</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setStatusRange('last28days', event)">Last 28 days</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setStatusRange('last90days', event)">Last 90 days</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setStatusRange('last6months', event)">Last 6 months</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setStatusRange('last12months', event)">Last 12 months</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setStatusRange('thisyear', event)">This year</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setStatusRange('lastyear', event)">Last year</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li class="px-3 py-2">
+                                    <label class="form-label mb-1" style="font-size: 0.75rem; font-weight: 600;">Custom Range</label>
+                                    <div class="d-flex gap-2 mb-2">
+                                        <input type="date" id="statusCustomDateFrom" class="form-control form-control-sm" style="font-size: 0.75rem;">
+                                    </div>
+                                    <div class="d-flex gap-2 mb-2">
+                                        <input type="date" id="statusCustomDateTo" class="form-control form-control-sm" style="font-size: 0.75rem;">
+                                    </div>
+                                    <button class="btn btn-primary btn-sm w-100" onclick="applyStatusCustomRange(event)" style="font-size: 0.75rem;">Apply</button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
-                <div class="chart-container">
+                <div class="chart-container" style="cursor: pointer;" onclick="showStatusDetailsModal()">
                     <canvas id="statusDoughnutChart"></canvas>
                 </div>
             </div>
         </div>
         <div class="col-md-6">
-            <div class="analytics-card" style="cursor: pointer;" onclick="showMonthlyTrendModal()">
+            <div class="analytics-card">
                 <div class="analytics-header">
                     <div class="analytics-title">
                         <i class="fas fa-chart-area"></i> Monthly Trend
                         <small class="text-muted" style="font-size: 0.7rem; font-weight: normal;">(Click for details)</small>
                     </div>
+                    <div class="analytics-actions">
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="trendRangeDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.85rem;">
+                                <i class="fas fa-calendar-alt me-1"></i>
+                                <span id="trendRangeLabel">Last 6 months</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="trendRangeDropdown">
+                                <li><a class="dropdown-item" href="#" onclick="setTrendRange('last7days', event)">Last 7 days</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setTrendRange('last28days', event)">Last 28 days</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setTrendRange('last90days', event)">Last 90 days</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setTrendRange('last6months', event)">Last 6 months</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setTrendRange('last12months', event)">Last 12 months</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setTrendRange('thisyear', event)">This year</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setTrendRange('lastyear', event)">Last year</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li class="px-3 py-2">
+                                    <label class="form-label mb-1" style="font-size: 0.75rem; font-weight: 600;">Custom Range</label>
+                                    <div class="d-flex gap-2 mb-2">
+                                        <input type="date" id="trendCustomDateFrom" class="form-control form-control-sm" style="font-size: 0.75rem;">
+                                    </div>
+                                    <div class="d-flex gap-2 mb-2">
+                                        <input type="date" id="trendCustomDateTo" class="form-control form-control-sm" style="font-size: 0.75rem;">
+                                    </div>
+                                    <button class="btn btn-primary btn-sm w-100" onclick="applyTrendCustomRange(event)" style="font-size: 0.75rem;">Apply</button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
-                <div class="chart-container">
+                <div class="chart-container" style="cursor: pointer;" onclick="showMonthlyTrendModal()">
                     <canvas id="monthlyTrendChart"></canvas>
                 </div>
             </div>
@@ -817,6 +953,7 @@
     window.chartStatuses = {!! json_encode($chartStatuses ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
     window.chartStatusCounts = {!! json_encode($chartStatusCounts ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
     window.monthlyStats = {!! json_encode(isset($monthlyStats) ? $monthlyStats->map(fn($s) => ['month' => $s->month, 'title' => $s->title, 'count' => $s->total_count])->values() : [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
+    window.monthlyCostData = {!! json_encode(isset($monthlyCostData) ? $monthlyCostData->map(fn($s) => ['month' => $s->month, 'count' => $s->count, 'total_cost' => $s->total_cost])->values() : [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
     window.locationDetailedStats = {!! json_encode($locationStats ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
 
     var locations = window.chartLocations;
@@ -834,84 +971,400 @@
 
         // Pie — Repairs by Location
         var pieEl = document.getElementById('locationPieChart');
-        if (pieEl && locations.length > 0) {
-            new Chart(pieEl, { 
-                type: 'pie', 
-                data: { 
-                    labels: locations, 
-                    datasets: [{ 
-                        data: counts, 
-                        backgroundColor: colors, 
-                        borderWidth: 2 
-                    }] 
-                }, 
-                options: { 
-                    responsive: true, 
-                    plugins: { 
-                        legend: { position: 'bottom' },
-                        tooltip: {
-                            callbacks: {
-                                title: function(context) {
-                                    return context[0].label;
+        var locationPieChart = null;
+        
+        function buildLocationChart(data) {
+            if (!pieEl) return;
+            
+            var locations = data.chartLocations || [];
+            var counts = data.chartCounts || [];
+            var costs = data.chartCosts || [];
+            var locationDetails = data.locationStats || [];
+            
+            if (locationPieChart) {
+                locationPieChart.destroy();
+            }
+            
+            if (locations.length > 0) {
+                locationPieChart = new Chart(pieEl, { 
+                    type: 'pie', 
+                    data: { 
+                        labels: locations, 
+                        datasets: [{ 
+                            data: counts, 
+                            backgroundColor: colors, 
+                            borderWidth: 2 
+                        }] 
+                    }, 
+                    options: { 
+                        responsive: true, 
+                        plugins: { 
+                            legend: { position: 'bottom' },
+                            tooltip: {
+                                callbacks: {
+                                    title: function(context) {
+                                        return context[0].label;
+                                    },
+                                    label: function(context) {
+                                        var location = context.label || '';
+                                        var totalRepairs = context.parsed || 0;
+                                        
+                                        var items = locationDetails.filter(function(item) {
+                                            return item.location === location;
+                                        });
+                                        
+                                        var lines = ['Repairs: ' + totalRepairs];
+                                        
+                                        items.forEach(function(item) {
+                                            lines.push(item.title + ' - ' + item.count);
+                                        });
+                                        
+                                        lines.push('Cost: ₱' + (costs[context.dataIndex] || 0).toLocaleString('en-PH', {minimumFractionDigits: 2}));
+                                        
+                                        return lines;
+                                    }
                                 },
-                                label: function(context) {
-                                    var location = context.label || '';
-                                    var totalRepairs = context.parsed || 0;
-                                    
-                                    // Get item breakdown for this location
-                                    var items = locationDetails.filter(function(item) {
-                                        return item.location === location;
-                                    });
-                                    
-                                    var lines = ['Repairs: ' + totalRepairs];
-                                    
-                                    // Add each item breakdown
-                                    items.forEach(function(item) {
-                                        lines.push(item.title + ' - ' + item.count);
-                                    });
-                                    
-                                    // Add total cost
-                                    lines.push('Cost: ₱' + (costs[context.dataIndex] || 0).toLocaleString('en-PH', {minimumFractionDigits: 2}));
-                                    
-                                    return lines;
-                                }
-                            },
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            titleFont: { size: 14, weight: 'bold' },
-                            bodyFont: { size: 13 },
-                            padding: 12,
-                            displayColors: true
-                        }
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                titleFont: { size: 14, weight: 'bold' },
+                                bodyFont: { size: 13 },
+                                padding: 12,
+                                displayColors: true
+                            }
+                        } 
                     } 
-                } 
+                });
+            }
+        }
+        
+        // Initialize location chart
+        buildLocationChart({
+            chartLocations: locations,
+            chartCounts: counts,
+            chartCosts: costs,
+            locationStats: locationDetails
+        });
+        
+        // Location date range functions
+        window.setLocationRange = function(range, event) {
+            if (event) event.preventDefault();
+            
+            var labels = {
+                'last7days': 'Last 7 days',
+                'last28days': 'Last 28 days',
+                'last90days': 'Last 90 days',
+                'last6months': 'Last 6 months',
+                'last12months': 'Last 12 months',
+                'thisyear': 'This year',
+                'lastyear': 'Last year'
+            };
+            
+            document.getElementById('locationRangeLabel').textContent = labels[range] || range;
+            
+            var today = new Date();
+            var dateFrom, dateTo;
+            
+            switch(range) {
+                case 'last7days':
+                    dateFrom = new Date(today);
+                    dateFrom.setDate(today.getDate() - 7);
+                    dateTo = today;
+                    break;
+                case 'last28days':
+                    dateFrom = new Date(today);
+                    dateFrom.setDate(today.getDate() - 28);
+                    dateTo = today;
+                    break;
+                case 'last90days':
+                    dateFrom = new Date(today);
+                    dateFrom.setDate(today.getDate() - 90);
+                    dateTo = today;
+                    break;
+                case 'last6months':
+                    dateFrom = new Date(today);
+                    dateFrom.setMonth(today.getMonth() - 6);
+                    dateTo = today;
+                    break;
+                case 'last12months':
+                    dateFrom = new Date(today);
+                    dateFrom.setMonth(today.getMonth() - 12);
+                    dateTo = today;
+                    break;
+                case 'thisyear':
+                    dateFrom = new Date(today.getFullYear(), 0, 1);
+                    dateTo = today;
+                    break;
+                case 'lastyear':
+                    dateFrom = new Date(today.getFullYear() - 1, 0, 1);
+                    dateTo = new Date(today.getFullYear() - 1, 11, 31);
+                    break;
+            }
+            
+            fetchAndUpdateChart('location', dateFrom, dateTo);
+        };
+        
+        window.applyLocationCustomRange = function(event) {
+            if (event) event.preventDefault();
+            
+            var dateFromInput = document.getElementById('locationCustomDateFrom').value;
+            var dateToInput = document.getElementById('locationCustomDateTo').value;
+            
+            if (!dateFromInput || !dateToInput) {
+                alert('Please select both start and end dates');
+                return;
+            }
+            
+            var dateFrom = new Date(dateFromInput);
+            var dateTo = new Date(dateToInput);
+            
+            if (dateFrom > dateTo) {
+                alert('Start date must be before end date');
+                return;
+            }
+            
+            var fromStr = dateFrom.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            var toStr = dateTo.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            document.getElementById('locationRangeLabel').textContent = fromStr + ' - ' + toStr;
+            
+            var dropdownEl = document.getElementById('locationRangeDropdown');
+            var dropdown = bootstrap.Dropdown.getInstance(dropdownEl);
+            if (dropdown) dropdown.hide();
+            
+            fetchAndUpdateChart('location', dateFrom, dateTo);
+        };
+        
+        function fetchAndUpdateChart(chartType, dateFrom, dateTo) {
+            var dateFromStr = dateFrom.toISOString().split('T')[0];
+            var dateToStr = dateTo.toISOString().split('T')[0];
+            
+            var params = new URLSearchParams();
+            params.append('ajax', '1');
+            params.append('date_from', dateFromStr);
+            params.append('date_to', dateToStr);
+            
+            fetch('/admin/analytics?' + params.toString(), {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                window.chartLocations = data.chartLocations || [];
+                window.chartCounts = data.chartCounts || [];
+                window.chartCosts = data.chartCosts || [];
+                window.chartStatuses = data.chartStatuses || [];
+                window.chartStatusCounts = data.chartStatusCounts || [];
+                window.monthlyStats = data.monthlyStats || [];
+                window.monthlyCostData = data.monthlyCostData || [];
+                window.locationDetailedStats = data.locationStats || [];
+                
+                if (chartType === 'location') {
+                    buildLocationChart(data);
+                } else if (chartType === 'status') {
+                    buildStatusChart(data);
+                } else if (chartType === 'trend') {
+                    buildTrendChart(data);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching data:', error);
             });
         }
 
-        // Bar — Cost by Location
-        var barEl = document.getElementById('locationBarChart');
-        if (barEl && locations.length > 0) {
-            new Chart(barEl, { 
-                type: 'bar', 
-                data: { 
-                    labels: locations, 
-                    datasets: [{ 
-                        label: 'Total Cost (₱)', 
-                        data: costs, 
-                        backgroundColor: '#36A2EB', 
-                        borderWidth: 1 
-                    }] 
-                }, 
-                options: { 
-                    responsive: true, 
-                    scales: { 
-                        y: { 
-                            beginAtZero: true, 
-                            ticks: { 
-                                callback: function(v){ 
-                                    return '₱'+v.toLocaleString(); 
-                                } 
-                            } 
-                        } 
+        // Bar — Period Comparison (YouTube Analytics Style)
+        var periodComparisonEl = document.getElementById('periodComparisonChart');
+        var periodComparisonChart = null;
+        var currentPeriodRange = 'last6months';
+        
+        // Make functions global
+        window.setPeriodRange = function(range, event) {
+            if (event) event.preventDefault();
+            currentPeriodRange = range;
+            
+            // Update label
+            var labels = {
+                'last7days': 'Last 7 days',
+                'last28days': 'Last 28 days',
+                'last90days': 'Last 90 days',
+                'last6months': 'Last 6 months',
+                'last12months': 'Last 12 months',
+                'thisyear': 'This year',
+                'lastyear': 'Last year'
+            };
+            
+            document.getElementById('periodRangeLabel').textContent = labels[range] || range;
+            
+            // Calculate date range
+            var today = new Date();
+            var dateFrom, dateTo;
+            
+            switch(range) {
+                case 'last7days':
+                    dateFrom = new Date(today);
+                    dateFrom.setDate(today.getDate() - 7);
+                    dateTo = today;
+                    break;
+                case 'last28days':
+                    dateFrom = new Date(today);
+                    dateFrom.setDate(today.getDate() - 28);
+                    dateTo = today;
+                    break;
+                case 'last90days':
+                    dateFrom = new Date(today);
+                    dateFrom.setDate(today.getDate() - 90);
+                    dateTo = today;
+                    break;
+                case 'last6months':
+                    dateFrom = new Date(today);
+                    dateFrom.setMonth(today.getMonth() - 6);
+                    dateTo = today;
+                    break;
+                case 'last12months':
+                    dateFrom = new Date(today);
+                    dateFrom.setMonth(today.getMonth() - 12);
+                    dateTo = today;
+                    break;
+                case 'thisyear':
+                    dateFrom = new Date(today.getFullYear(), 0, 1);
+                    dateTo = today;
+                    break;
+                case 'lastyear':
+                    dateFrom = new Date(today.getFullYear() - 1, 0, 1);
+                    dateTo = new Date(today.getFullYear() - 1, 11, 31);
+                    break;
+            }
+            
+            updatePeriodComparisonChart(dateFrom, dateTo);
+        };
+        
+        window.applyCustomRange = function(event) {
+            if (event) event.preventDefault();
+            
+            var dateFromInput = document.getElementById('customDateFrom').value;
+            var dateToInput = document.getElementById('customDateTo').value;
+            
+            if (!dateFromInput || !dateToInput) {
+                alert('Please select both start and end dates');
+                return;
+            }
+            
+            var dateFrom = new Date(dateFromInput);
+            var dateTo = new Date(dateToInput);
+            
+            if (dateFrom > dateTo) {
+                alert('Start date must be before end date');
+                return;
+            }
+            
+            // Update label
+            var fromStr = dateFrom.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            var toStr = dateTo.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            document.getElementById('periodRangeLabel').textContent = fromStr + ' - ' + toStr;
+            
+            currentPeriodRange = 'custom';
+            
+            // Close dropdown
+            var dropdownEl = document.getElementById('periodRangeDropdown');
+            var dropdown = bootstrap.Dropdown.getInstance(dropdownEl);
+            if (dropdown) dropdown.hide();
+            
+            updatePeriodComparisonChart(dateFrom, dateTo);
+        };
+        
+        function updatePeriodComparisonChart(dateFrom, dateTo) {
+            if (!periodComparisonEl) return;
+            
+            // Format dates for API
+            var dateFromStr = dateFrom.toISOString().split('T')[0];
+            var dateToStr = dateTo.toISOString().split('T')[0];
+            
+            // Fetch data from server
+            var params = new URLSearchParams();
+            params.append('ajax', '1');
+            params.append('date_from', dateFromStr);
+            params.append('date_to', dateToStr);
+            
+            fetch('/admin/analytics?' + params.toString(), {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                var monthlyCostData = data.monthlyCostData || [];
+                buildPeriodComparisonChart(monthlyCostData, dateFrom, dateTo);
+            })
+            .catch(error => {
+                console.error('Error fetching data:', error);
+                // Use default data if fetch fails
+                var monthlyCostData = @json($monthlyCostData ?? []);
+                buildPeriodComparisonChart(monthlyCostData, dateFrom, dateTo);
+            });
+        }
+        
+        function buildPeriodComparisonChart(monthlyCostData, dateFrom, dateTo) {
+            if (!periodComparisonEl) return;
+            
+            // Generate month labels between dateFrom and dateTo
+            var monthLabels = [];
+            var monthKeys = [];
+            var monthCosts = [];
+            var monthCounts = [];
+            
+            var currentMonth = new Date(dateFrom.getFullYear(), dateFrom.getMonth(), 1);
+            var endMonth = new Date(dateTo.getFullYear(), dateTo.getMonth(), 1);
+            
+            while (currentMonth <= endMonth) {
+                var monthKey = currentMonth.toISOString().slice(0, 7); // YYYY-MM
+                var monthLabel = currentMonth.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                
+                monthKeys.push(monthKey);
+                monthLabels.push(monthLabel);
+                monthCosts.push(0);
+                monthCounts.push(0);
+                
+                currentMonth.setMonth(currentMonth.getMonth() + 1);
+            }
+            
+            // Populate data
+            monthlyCostData.forEach(function(item) {
+                var monthIndex = monthKeys.indexOf(item.month);
+                if (monthIndex !== -1) {
+                    monthCosts[monthIndex] = parseFloat(item.total_cost) || 0;
+                    monthCounts[monthIndex] = parseInt(item.count) || 0;
+                }
+            });
+            
+            // Destroy existing chart
+            if (periodComparisonChart) {
+                periodComparisonChart.destroy();
+            }
+            
+            // Create new chart
+            periodComparisonChart = new Chart(periodComparisonEl, {
+                type: 'bar',
+                data: {
+                    labels: monthLabels,
+                    datasets: [{
+                        label: 'Total Cost (₱)',
+                        data: monthCosts,
+                        backgroundColor: '#36A2EB',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(v) {
+                                    return '₱' + v.toLocaleString();
+                                }
+                            }
+                        }
                     },
                     plugins: {
                         tooltip: {
@@ -921,7 +1374,7 @@
                                 },
                                 label: function(context) {
                                     var value = context.parsed.y || 0;
-                                    var repairs = counts[context.dataIndex] || 0;
+                                    var repairs = monthCounts[context.dataIndex] || 0;
                                     var avgCost = repairs > 0 ? (value / repairs) : 0;
                                     return [
                                         'Total Cost: ₱' + value.toLocaleString('en-PH', {minimumFractionDigits: 2}),
@@ -937,57 +1390,175 @@
                             displayColors: true
                         }
                     }
-                } 
+                }
             });
+        }
+        
+        // Initialize with default range (last 6 months)
+        if (periodComparisonEl) {
+            window.setPeriodRange('last6months');
         }
 
         // Doughnut — Status Distribution
         var doughEl = document.getElementById('statusDoughnutChart');
-        if (doughEl && statuses.length > 0) {
-            new Chart(doughEl, { 
-                type: 'doughnut', 
-                data: { 
-                    labels: statuses, 
-                    datasets: [{ 
-                        data: statusCounts, 
-                        backgroundColor: colors, 
-                        borderWidth: 2 
-                    }] 
-                }, 
-                options: { 
-                    responsive: true, 
-                    plugins: { 
-                        legend: { position: 'bottom' },
-                        tooltip: {
-                            callbacks: {
-                                title: function(context) {
-                                    return context[0].label + ' Status';
+        var statusDoughnutChart = null;
+        
+        function buildStatusChart(data) {
+            if (!doughEl) return;
+            
+            var statuses = data.chartStatuses || [];
+            var statusCounts = data.chartStatusCounts || [];
+            
+            if (statusDoughnutChart) {
+                statusDoughnutChart.destroy();
+            }
+            
+            if (statuses.length > 0) {
+                statusDoughnutChart = new Chart(doughEl, { 
+                    type: 'doughnut', 
+                    data: { 
+                        labels: statuses, 
+                        datasets: [{ 
+                            data: statusCounts, 
+                            backgroundColor: colors, 
+                            borderWidth: 2 
+                        }] 
+                    }, 
+                    options: { 
+                        responsive: true, 
+                        plugins: { 
+                            legend: { position: 'bottom' },
+                            tooltip: {
+                                callbacks: {
+                                    title: function(context) {
+                                        return context[0].label + ' Status';
+                                    },
+                                    label: function(context) {
+                                        var value = context.parsed || 0;
+                                        var total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        var percentage = ((value / total) * 100).toFixed(1);
+                                        return [
+                                            'Count: ' + value + ' reports',
+                                            'Percentage: ' + percentage + '%',
+                                            'Total Reports: ' + total
+                                        ];
+                                    }
                                 },
-                                label: function(context) {
-                                    var value = context.parsed || 0;
-                                    var total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    var percentage = ((value / total) * 100).toFixed(1);
-                                    return [
-                                        'Count: ' + value + ' reports',
-                                        'Percentage: ' + percentage + '%',
-                                        'Total Reports: ' + total
-                                    ];
-                                }
-                            },
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            titleFont: { size: 14, weight: 'bold' },
-                            bodyFont: { size: 13 },
-                            padding: 12,
-                            displayColors: true
-                        }
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                titleFont: { size: 14, weight: 'bold' },
+                                bodyFont: { size: 13 },
+                                padding: 12,
+                                displayColors: true
+                            }
+                        } 
                     } 
-                } 
-            });
+                });
+            }
         }
+        
+        // Initialize status chart
+        buildStatusChart({
+            chartStatuses: statuses,
+            chartStatusCounts: statusCounts
+        });
+        
+        // Status date range functions
+        window.setStatusRange = function(range, event) {
+            if (event) event.preventDefault();
+            
+            var labels = {
+                'last7days': 'Last 7 days',
+                'last28days': 'Last 28 days',
+                'last90days': 'Last 90 days',
+                'last6months': 'Last 6 months',
+                'last12months': 'Last 12 months',
+                'thisyear': 'This year',
+                'lastyear': 'Last year'
+            };
+            
+            document.getElementById('statusRangeLabel').textContent = labels[range] || range;
+            
+            var today = new Date();
+            var dateFrom, dateTo;
+            
+            switch(range) {
+                case 'last7days':
+                    dateFrom = new Date(today);
+                    dateFrom.setDate(today.getDate() - 7);
+                    dateTo = today;
+                    break;
+                case 'last28days':
+                    dateFrom = new Date(today);
+                    dateFrom.setDate(today.getDate() - 28);
+                    dateTo = today;
+                    break;
+                case 'last90days':
+                    dateFrom = new Date(today);
+                    dateFrom.setDate(today.getDate() - 90);
+                    dateTo = today;
+                    break;
+                case 'last6months':
+                    dateFrom = new Date(today);
+                    dateFrom.setMonth(today.getMonth() - 6);
+                    dateTo = today;
+                    break;
+                case 'last12months':
+                    dateFrom = new Date(today);
+                    dateFrom.setMonth(today.getMonth() - 12);
+                    dateTo = today;
+                    break;
+                case 'thisyear':
+                    dateFrom = new Date(today.getFullYear(), 0, 1);
+                    dateTo = today;
+                    break;
+                case 'lastyear':
+                    dateFrom = new Date(today.getFullYear() - 1, 0, 1);
+                    dateTo = new Date(today.getFullYear() - 1, 11, 31);
+                    break;
+            }
+            
+            fetchAndUpdateChart('status', dateFrom, dateTo);
+        };
+        
+        window.applyStatusCustomRange = function(event) {
+            if (event) event.preventDefault();
+            
+            var dateFromInput = document.getElementById('statusCustomDateFrom').value;
+            var dateToInput = document.getElementById('statusCustomDateTo').value;
+            
+            if (!dateFromInput || !dateToInput) {
+                alert('Please select both start and end dates');
+                return;
+            }
+            
+            var dateFrom = new Date(dateFromInput);
+            var dateTo = new Date(dateToInput);
+            
+            if (dateFrom > dateTo) {
+                alert('Start date must be before end date');
+                return;
+            }
+            
+            var fromStr = dateFrom.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            var toStr = dateTo.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            document.getElementById('statusRangeLabel').textContent = fromStr + ' - ' + toStr;
+            
+            var dropdownEl = document.getElementById('statusRangeDropdown');
+            var dropdown = bootstrap.Dropdown.getInstance(dropdownEl);
+            if (dropdown) dropdown.hide();
+            
+            fetchAndUpdateChart('status', dateFrom, dateTo);
+        };
 
         // Line — Monthly Trend (per issue type)
         var lineEl = document.getElementById('monthlyTrendChart');
-        if (lineEl) {
+        var monthlyTrendChart = null;
+        
+        function buildTrendChart(data) {
+            if (!lineEl) return;
+            
+            var monthly = data.monthlyStats || [];
+            
             // Build 6-month labels
             var monthLabels = [];
             for (var i = 5; i >= 0; i--) {
@@ -1047,8 +1618,12 @@
                     });
                 }
             };
+            
+            if (monthlyTrendChart) {
+                monthlyTrendChart.destroy();
+            }
 
-            new Chart(lineEl, {
+            monthlyTrendChart = new Chart(lineEl, {
                 type: 'line',
                 plugins: [endLabelPlugin],
                 data: {
@@ -1093,6 +1668,97 @@
                 }
             });
         }
+        
+        // Initialize trend chart
+        buildTrendChart({ monthlyStats: monthly });
+        
+        // Trend date range functions
+        window.setTrendRange = function(range, event) {
+            if (event) event.preventDefault();
+            
+            var labels = {
+                'last7days': 'Last 7 days',
+                'last28days': 'Last 28 days',
+                'last90days': 'Last 90 days',
+                'last6months': 'Last 6 months',
+                'last12months': 'Last 12 months',
+                'thisyear': 'This year',
+                'lastyear': 'Last year'
+            };
+            
+            document.getElementById('trendRangeLabel').textContent = labels[range] || range;
+            
+            var today = new Date();
+            var dateFrom, dateTo;
+            
+            switch(range) {
+                case 'last7days':
+                    dateFrom = new Date(today);
+                    dateFrom.setDate(today.getDate() - 7);
+                    dateTo = today;
+                    break;
+                case 'last28days':
+                    dateFrom = new Date(today);
+                    dateFrom.setDate(today.getDate() - 28);
+                    dateTo = today;
+                    break;
+                case 'last90days':
+                    dateFrom = new Date(today);
+                    dateFrom.setDate(today.getDate() - 90);
+                    dateTo = today;
+                    break;
+                case 'last6months':
+                    dateFrom = new Date(today);
+                    dateFrom.setMonth(today.getMonth() - 6);
+                    dateTo = today;
+                    break;
+                case 'last12months':
+                    dateFrom = new Date(today);
+                    dateFrom.setMonth(today.getMonth() - 12);
+                    dateTo = today;
+                    break;
+                case 'thisyear':
+                    dateFrom = new Date(today.getFullYear(), 0, 1);
+                    dateTo = today;
+                    break;
+                case 'lastyear':
+                    dateFrom = new Date(today.getFullYear() - 1, 0, 1);
+                    dateTo = new Date(today.getFullYear() - 1, 11, 31);
+                    break;
+            }
+            
+            fetchAndUpdateChart('trend', dateFrom, dateTo);
+        };
+        
+        window.applyTrendCustomRange = function(event) {
+            if (event) event.preventDefault();
+            
+            var dateFromInput = document.getElementById('trendCustomDateFrom').value;
+            var dateToInput = document.getElementById('trendCustomDateTo').value;
+            
+            if (!dateFromInput || !dateToInput) {
+                alert('Please select both start and end dates');
+                return;
+            }
+            
+            var dateFrom = new Date(dateFromInput);
+            var dateTo = new Date(dateToInput);
+            
+            if (dateFrom > dateTo) {
+                alert('Start date must be before end date');
+                return;
+            }
+            
+            var fromStr = dateFrom.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            var toStr = dateTo.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            document.getElementById('trendRangeLabel').textContent = fromStr + ' - ' + toStr;
+            
+            var dropdownEl = document.getElementById('trendRangeDropdown');
+            var dropdown = bootstrap.Dropdown.getInstance(dropdownEl);
+            if (dropdown) dropdown.hide();
+            
+            fetchAndUpdateChart('trend', dateFrom, dateTo);
+        };
     }
     buildCharts();
 })();

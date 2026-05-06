@@ -6,8 +6,208 @@ window.modalFilterState = {
     month: '',
     month_from: '',
     month_to: '',
-    year: ''
+    year: '',
+    date_from: '',
+    date_to: ''
 };
+
+// Helper function to generate YouTube-style date range filter HTML
+function generateYouTubeStyleFilter(modalType, exportFunction) {
+    return `
+        <div class="mb-3 p-3 bg-light border-bottom d-flex justify-content-between align-items-center gap-3">
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="${modalType}ModalRangeDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.9rem;">
+                    <i class="fas fa-calendar-alt me-1"></i>
+                    <span id="${modalType}ModalRangeLabel">Last 6 months</span>
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="${modalType}ModalRangeDropdown" style="min-width: 220px;">
+                    <li><a class="dropdown-item" href="#" onclick="setModalRange('${modalType}', 'last7days', event)">Last 7 days</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="setModalRange('${modalType}', 'last28days', event)">Last 28 days</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="setModalRange('${modalType}', 'last90days', event)">Last 90 days</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="setModalRange('${modalType}', 'last6months', event)">Last 6 months</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="setModalRange('${modalType}', 'last12months', event)">Last 12 months</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="setModalRange('${modalType}', 'thisyear', event)">This year</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="setModalRange('${modalType}', 'lastyear', event)">Last year</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li class="px-3 py-2">
+                        <label class="form-label mb-1" style="font-size: 0.75rem; font-weight: 600;">Custom Range</label>
+                        <div class="mb-2">
+                            <input type="date" id="${modalType}ModalCustomDateFrom" class="form-control form-control-sm" style="font-size: 0.75rem;">
+                        </div>
+                        <div class="mb-2">
+                            <input type="date" id="${modalType}ModalCustomDateTo" class="form-control form-control-sm" style="font-size: 0.75rem;">
+                        </div>
+                        <button class="btn btn-primary btn-sm w-100" onclick="applyModalCustomRange('${modalType}', event)" style="font-size: 0.75rem;">Apply</button>
+                    </li>
+                </ul>
+            </div>
+            <button onclick="${exportFunction}()" class="btn btn-danger btn-sm" style="white-space: nowrap; font-size: 0.9rem;">
+                <i class="fas fa-file-pdf me-1"></i>Export PDF
+            </button>
+        </div>
+    `;
+}
+
+// Universal modal date range setter
+window.setModalRange = function(modalType, range, event) {
+    if (event) event.preventDefault();
+    
+    var labels = {
+        'last7days': 'Last 7 days',
+        'last28days': 'Last 28 days',
+        'last90days': 'Last 90 days',
+        'last6months': 'Last 6 months',
+        'last12months': 'Last 12 months',
+        'thisyear': 'This year',
+        'lastyear': 'Last year'
+    };
+    
+    document.getElementById(modalType + 'ModalRangeLabel').textContent = labels[range] || range;
+    
+    var today = new Date();
+    var dateFrom, dateTo;
+    
+    switch(range) {
+        case 'last7days':
+            dateFrom = new Date(today);
+            dateFrom.setDate(today.getDate() - 7);
+            dateTo = today;
+            break;
+        case 'last28days':
+            dateFrom = new Date(today);
+            dateFrom.setDate(today.getDate() - 28);
+            dateTo = today;
+            break;
+        case 'last90days':
+            dateFrom = new Date(today);
+            dateFrom.setDate(today.getDate() - 90);
+            dateTo = today;
+            break;
+        case 'last6months':
+            dateFrom = new Date(today);
+            dateFrom.setMonth(today.getMonth() - 6);
+            dateTo = today;
+            break;
+        case 'last12months':
+            dateFrom = new Date(today);
+            dateFrom.setMonth(today.getMonth() - 12);
+            dateTo = today;
+            break;
+        case 'thisyear':
+            dateFrom = new Date(today.getFullYear(), 0, 1);
+            dateTo = today;
+            break;
+        case 'lastyear':
+            dateFrom = new Date(today.getFullYear() - 1, 0, 1);
+            dateTo = new Date(today.getFullYear() - 1, 11, 31);
+            break;
+    }
+    
+    // Store in global state for export functions
+    window.modalFilterState.date_from = dateFrom.toISOString().split('T')[0];
+    window.modalFilterState.date_to = dateTo.toISOString().split('T')[0];
+    
+    fetchModalData(modalType, dateFrom, dateTo);
+};
+
+// Apply custom date range for modal
+window.applyModalCustomRange = function(modalType, event) {
+    if (event) event.preventDefault();
+    
+    var dateFromInput = document.getElementById(modalType + 'ModalCustomDateFrom').value;
+    var dateToInput = document.getElementById(modalType + 'ModalCustomDateTo').value;
+    
+    if (!dateFromInput || !dateToInput) {
+        alert('Please select both start and end dates');
+        return;
+    }
+    
+    var dateFrom = new Date(dateFromInput);
+    var dateTo = new Date(dateToInput);
+    
+    if (dateFrom > dateTo) {
+        alert('Start date must be before end date');
+        return;
+    }
+    
+    var fromStr = dateFrom.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    var toStr = dateTo.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    document.getElementById(modalType + 'ModalRangeLabel').textContent = fromStr + ' - ' + toStr;
+    
+    var dropdownEl = document.getElementById(modalType + 'ModalRangeDropdown');
+    var dropdown = bootstrap.Dropdown.getInstance(dropdownEl);
+    if (dropdown) dropdown.hide();
+    
+    // Store in global state for export functions
+    window.modalFilterState.date_from = dateFromInput;
+    window.modalFilterState.date_to = dateToInput;
+    
+    fetchModalData(modalType, dateFrom, dateTo);
+};
+
+// Fetch data for modal based on date range
+function fetchModalData(modalType, dateFrom, dateTo) {
+    var dateFromStr = dateFrom.toISOString().split('T')[0];
+    var dateToStr = dateTo.toISOString().split('T')[0];
+    
+    var params = new URLSearchParams();
+    params.append('ajax', '1');
+    params.append('date_from', dateFromStr);
+    params.append('date_to', dateToStr);
+    
+    // Show loading overlay on chart area
+    const chartContainer = document.querySelector('.swal2-html-container canvas')?.parentElement;
+    if (chartContainer) {
+        chartContainer.style.position = 'relative';
+        chartContainer.style.opacity = '0.5';
+    }
+    
+    fetch('/admin/analytics?' + params.toString(), {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        window.chartLocations = data.chartLocations || [];
+        window.chartCounts = data.chartCounts || [];
+        window.chartCosts = data.chartCosts || [];
+        window.chartStatuses = data.chartStatuses || [];
+        window.chartStatusCounts = data.chartStatusCounts || [];
+        window.monthlyStats = data.monthlyStats || [];
+        window.monthlyCostData = data.monthlyCostData || [];
+        window.locationDetailedStats = data.locationStats || [];
+        
+        // Remove loading overlay
+        if (chartContainer) {
+            chartContainer.style.opacity = '1';
+        }
+        
+        // Update the modal content without closing it
+        if (modalType === 'location') {
+            updateLocationModalContent();
+        } else if (modalType === 'cost') {
+            updateCostModalContent();
+        } else if (modalType === 'status') {
+            updateStatusModalContent();
+        } else if (modalType === 'trend') {
+            updateTrendModalContent();
+        } else if (modalType === 'period') {
+            updatePeriodComparisonModalContent();
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching data:', error);
+        
+        // Remove loading overlay
+        if (chartContainer) {
+            chartContainer.style.opacity = '1';
+        }
+        
+        alert('Failed to load filtered data. Please try again.');
+    });
+}
 
 // Show Location Details Modal
 function showLocationDetailsModal(filterType = null) {
@@ -46,86 +246,7 @@ function showLocationDetailsModal(filterType = null) {
         title: '<i class="fas fa-map-marker-alt me-2"></i>Repairs by Location - Detailed Report',
         html: `
             <div style="height: 100%; overflow-y: auto;">
-                <div class="mb-3 p-3 bg-light border-bottom d-flex justify-content-between align-items-center gap-3">
-                    <div class="d-flex gap-2 align-items-end flex-wrap" style="flex: 1;">
-                        <div style="min-width: 120px;">
-                            <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; display: block;">Period</label>
-                            <select id="modal_period" class="form-select form-select-sm" onchange="updateModalFilters('location')">
-                                <option value="">Custom</option>
-                                <option value="monthly">Monthly</option>
-                                <option value="quarterly">Quarterly</option>
-                                <option value="yearly">Yearly</option>
-                            </select>
-                        </div>
-                        <div id="modal_month_group" style="min-width: 120px;">
-                            <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; display: block;">Month</label>
-                            <select id="modal_month" class="form-select form-select-sm" onchange="applyModalFilterFromInputs('location')">
-                                <option value="">All Months</option>
-                                <option value="1">January</option>
-                                <option value="2">February</option>
-                                <option value="3">March</option>
-                                <option value="4">April</option>
-                                <option value="5">May</option>
-                                <option value="6">June</option>
-                                <option value="7">July</option>
-                                <option value="8">August</option>
-                                <option value="9">September</option>
-                                <option value="10">October</option>
-                                <option value="11">November</option>
-                                <option value="12">December</option>
-                            </select>
-                        </div>
-                        <div id="modal_month_from_group" style="min-width: 120px; display: none;">
-                            <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; display: block;">From Month</label>
-                            <select id="modal_month_from" class="form-select form-select-sm" onchange="applyModalFilterFromInputs('location')">
-                                <option value="">Select</option>
-                                <option value="1">January</option>
-                                <option value="2">February</option>
-                                <option value="3">March</option>
-                                <option value="4">April</option>
-                                <option value="5">May</option>
-                                <option value="6">June</option>
-                                <option value="7">July</option>
-                                <option value="8">August</option>
-                                <option value="9">September</option>
-                                <option value="10">October</option>
-                                <option value="11">November</option>
-                                <option value="12">December</option>
-                            </select>
-                        </div>
-                        <div id="modal_month_to_group" style="min-width: 120px; display: none;">
-                            <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; display: block;">To Month</label>
-                            <select id="modal_month_to" class="form-select form-select-sm" onchange="applyModalFilterFromInputs('location')">
-                                <option value="">Select</option>
-                                <option value="1">January</option>
-                                <option value="2">February</option>
-                                <option value="3">March</option>
-                                <option value="4">April</option>
-                                <option value="5">May</option>
-                                <option value="6">June</option>
-                                <option value="7">July</option>
-                                <option value="8">August</option>
-                                <option value="9">September</option>
-                                <option value="10">October</option>
-                                <option value="11">November</option>
-                                <option value="12">December</option>
-                            </select>
-                        </div>
-                        <div style="min-width: 100px;">
-                            <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; display: block;">Year</label>
-                            <select id="modal_year" class="form-select form-select-sm" onchange="applyModalFilterFromInputs('location')">
-                                <option value="">All Years</option>
-                                ${generateYearOptions()}
-                            </select>
-                        </div>
-                        <button class="btn btn-sm btn-secondary" onclick="resetModalFilters('location')" style="padding: 6px 12px;">
-                            <i class="fas fa-times"></i> Reset
-                        </button>
-                    </div>
-                    <button onclick="exportLocationReportToPDF()" class="btn btn-danger btn-sm" style="white-space: nowrap;">
-                        <i class="fas fa-file-pdf me-1"></i>Export PDF
-                    </button>
-                </div>
+                ${generateYouTubeStyleFilter('location', 'exportLocationReportToPDF')}
                 <div style="height: 400px; margin-bottom: 30px; padding: 15px; background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                     <canvas id="modalLocationChart"></canvas>
                 </div>
@@ -239,53 +360,7 @@ function showCostDetailsModal(filterType = null) {
         title: '<i class="fas fa-dollar-sign me-2"></i>Cost by Location - Detailed Report',
         html: `
             <div style="height: 100%; overflow-y: auto;">
-                <div class="mb-3 p-3 bg-light border-bottom d-flex justify-content-between align-items-center gap-3">
-                    <div class="d-flex gap-2 align-items-end flex-wrap" style="flex: 1;">
-                        <div style="min-width: 120px;">
-                            <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; display: block;">Period</label>
-                            <select id="modal_period" class="form-select form-select-sm" onchange="updateModalFilters('cost')">
-                                <option value="" ${state.period === '' ? 'selected' : ''}>Custom</option>
-                                <option value="monthly" ${state.period === 'monthly' ? 'selected' : ''}>Monthly</option>
-                                <option value="quarterly" ${state.period === 'quarterly' ? 'selected' : ''}>Quarterly</option>
-                                <option value="yearly" ${state.period === 'yearly' ? 'selected' : ''}>Yearly</option>
-                            </select>
-                        </div>
-                        <div id="modal_month_group" style="min-width: 120px; ${state.period === 'quarterly' || state.period === 'yearly' ? 'display: none;' : ''}">
-                            <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; display: block;">Month</label>
-                            <select id="modal_month" class="form-select form-select-sm" onchange="applyModalFilterFromInputs('cost')">
-                                <option value="">All Months</option>
-                                ${generateMonthOptions(state.month)}
-                            </select>
-                        </div>
-                        <div id="modal_month_from_group" style="min-width: 120px; ${state.period !== 'quarterly' ? 'display: none;' : ''}">
-                            <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; display: block;">From Month</label>
-                            <select id="modal_month_from" class="form-select form-select-sm" onchange="applyModalFilterFromInputs('cost')">
-                                <option value="">Select</option>
-                                ${generateMonthOptions(state.month_from)}
-                            </select>
-                        </div>
-                        <div id="modal_month_to_group" style="min-width: 120px; ${state.period !== 'quarterly' ? 'display: none;' : ''}">
-                            <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; display: block;">To Month</label>
-                            <select id="modal_month_to" class="form-select form-select-sm" onchange="applyModalFilterFromInputs('cost')">
-                                <option value="">Select</option>
-                                ${generateMonthOptions(state.month_to)}
-                            </select>
-                        </div>
-                        <div style="min-width: 100px;">
-                            <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; display: block;">Year</label>
-                            <select id="modal_year" class="form-select form-select-sm" onchange="applyModalFilterFromInputs('cost')">
-                                <option value="">All Years</option>
-                                ${generateYearOptions(state.year)}
-                            </select>
-                        </div>
-                        <button class="btn btn-sm btn-secondary" onclick="resetModalFilters('cost')" style="padding: 6px 12px;">
-                            <i class="fas fa-times"></i> Reset
-                        </button>
-                    </div>
-                    <button onclick="exportCostReportToPDF()" class="btn btn-danger btn-sm" style="white-space: nowrap;">
-                        <i class="fas fa-file-pdf me-1"></i>Export PDF
-                    </button>
-                </div>
+                ${generateYouTubeStyleFilter('cost', 'exportCostReportToPDF')}
                 <div style="height: 400px; margin-bottom: 30px; padding: 15px; background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                     <canvas id="modalCostChart"></canvas>
                 </div>
@@ -411,53 +486,7 @@ function showStatusDetailsModal(filterType = null) {
         title: '<i class="fas fa-tasks me-2"></i>Status Distribution - Detailed Report',
         html: `
             <div style="height: 100%; overflow-y: auto;">
-                <div class="mb-3 p-3 bg-light border-bottom d-flex justify-content-between align-items-center gap-3">
-                    <div class="d-flex gap-2 align-items-end flex-wrap" style="flex: 1;">
-                        <div style="min-width: 120px;">
-                            <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; display: block;">Period</label>
-                            <select id="modal_period" class="form-select form-select-sm" onchange="updateModalFilters('status')">
-                                <option value="" ${state.period === '' ? 'selected' : ''}>Custom</option>
-                                <option value="monthly" ${state.period === 'monthly' ? 'selected' : ''}>Monthly</option>
-                                <option value="quarterly" ${state.period === 'quarterly' ? 'selected' : ''}>Quarterly</option>
-                                <option value="yearly" ${state.period === 'yearly' ? 'selected' : ''}>Yearly</option>
-                            </select>
-                        </div>
-                        <div id="modal_month_group" style="min-width: 120px; ${state.period === 'quarterly' || state.period === 'yearly' ? 'display: none;' : ''}">
-                            <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; display: block;">Month</label>
-                            <select id="modal_month" class="form-select form-select-sm" onchange="applyModalFilterFromInputs('status')">
-                                <option value="">All Months</option>
-                                ${generateMonthOptions(state.month)}
-                            </select>
-                        </div>
-                        <div id="modal_month_from_group" style="min-width: 120px; ${state.period !== 'quarterly' ? 'display: none;' : ''}">
-                            <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; display: block;">From Month</label>
-                            <select id="modal_month_from" class="form-select form-select-sm" onchange="applyModalFilterFromInputs('status')">
-                                <option value="">Select</option>
-                                ${generateMonthOptions(state.month_from)}
-                            </select>
-                        </div>
-                        <div id="modal_month_to_group" style="min-width: 120px; ${state.period !== 'quarterly' ? 'display: none;' : ''}">
-                            <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; display: block;">To Month</label>
-                            <select id="modal_month_to" class="form-select form-select-sm" onchange="applyModalFilterFromInputs('status')">
-                                <option value="">Select</option>
-                                ${generateMonthOptions(state.month_to)}
-                            </select>
-                        </div>
-                        <div style="min-width: 100px;">
-                            <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; display: block;">Year</label>
-                            <select id="modal_year" class="form-select form-select-sm" onchange="applyModalFilterFromInputs('status')">
-                                <option value="">All Years</option>
-                                ${generateYearOptions(state.year)}
-                            </select>
-                        </div>
-                        <button class="btn btn-sm btn-secondary" onclick="resetModalFilters('status')" style="padding: 6px 12px;">
-                            <i class="fas fa-times"></i> Reset
-                        </button>
-                    </div>
-                    <button onclick="exportStatusReportToPDF()" class="btn btn-danger btn-sm" style="white-space: nowrap;">
-                        <i class="fas fa-file-pdf me-1"></i>Export PDF
-                    </button>
-                </div>
+                ${generateYouTubeStyleFilter('status', 'exportStatusReportToPDF')}
                 <div style="height: 400px; margin-bottom: 30px; padding: 15px; background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                     <canvas id="modalStatusChart"></canvas>
                 </div>
@@ -510,6 +539,205 @@ function showStatusDetailsModal(filterType = null) {
                     maintainAspectRatio: false,
                     plugins: {
                         legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+    });
+}
+
+// Show Period Comparison Modal
+function showPeriodComparisonModal(filterType = null) {
+    // Get last 6 months data
+    const currentDate = new Date();
+    const monthLabels = [];
+    const monthKeys = [];
+    
+    // Generate last 6 months
+    for (let i = 5; i >= 0; i--) {
+        const d = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+        const key = d.toISOString().slice(0, 7); // YYYY-MM format
+        const label = d.toLocaleDateString('en-PH', { month: 'short', year: 'numeric' });
+        monthKeys.push(key);
+        monthLabels.push(label);
+    }
+    
+    // Initialize data arrays
+    const monthCosts = new Array(6).fill(0);
+    const monthCounts = new Array(6).fill(0);
+    
+    // Get monthly cost data from window if available
+    const monthlyCostData = window.monthlyCostData || [];
+    
+    // Populate data from server
+    monthlyCostData.forEach(item => {
+        const monthIndex = monthKeys.indexOf(item.month);
+        if (monthIndex !== -1) {
+            monthCosts[monthIndex] = parseFloat(item.total_cost) || 0;
+            monthCounts[monthIndex] = parseInt(item.count) || 0;
+        }
+    });
+    
+    // Calculate statistics
+    const totalCost = monthCosts.reduce((sum, cost) => sum + cost, 0);
+    const totalCount = monthCounts.reduce((sum, count) => sum + count, 0);
+    const avgCostPerMonth = totalCost / 6;
+    const avgCostPerRepair = totalCount > 0 ? totalCost / totalCount : 0;
+    
+    // Find highest and lowest months
+    let highestIdx = 0, lowestIdx = 0;
+    for (let i = 1; i < 6; i++) {
+        if (monthCosts[i] > monthCosts[highestIdx]) highestIdx = i;
+        if (monthCosts[i] < monthCosts[lowestIdx]) lowestIdx = i;
+    }
+    
+    // Build table rows
+    let tableRows = '';
+    monthLabels.forEach((label, idx) => {
+        const cost = monthCosts[idx];
+        const count = monthCounts[idx];
+        const avgPerRepair = count > 0 ? cost / count : 0;
+        const percentOfTotal = totalCost > 0 ? ((cost / totalCost) * 100).toFixed(1) : 0;
+        
+        let trendIcon = '';
+        if (idx > 0) {
+            const prevCost = monthCosts[idx - 1];
+            if (cost > prevCost) {
+                trendIcon = '<i class="fas fa-arrow-up text-danger"></i>';
+            } else if (cost < prevCost) {
+                trendIcon = '<i class="fas fa-arrow-down text-success"></i>';
+            } else {
+                trendIcon = '<i class="fas fa-minus text-secondary"></i>';
+            }
+        }
+        
+        tableRows += `
+            <tr>
+                <td><strong>${label}</strong></td>
+                <td class="text-center">${count}</td>
+                <td class="text-end">₱${cost.toLocaleString('en-PH', {minimumFractionDigits: 2})}</td>
+                <td class="text-end">₱${avgPerRepair.toLocaleString('en-PH', {minimumFractionDigits: 2})}</td>
+                <td class="text-center">${percentOfTotal}%</td>
+                <td class="text-center">${trendIcon}</td>
+            </tr>
+        `;
+    });
+    
+    // Get current filter state
+    const state = window.modalFilterState;
+    
+    Swal.fire({
+        title: '<i class="fas fa-chart-line me-2"></i>Period Comparison - Detailed Report',
+        html: `
+            <div style="height: 100%; overflow-y: auto;">
+                ${generateYouTubeStyleFilter('period', 'exportPeriodComparisonToPDF')}
+                <div style="height: 400px; margin-bottom: 30px; padding: 15px; background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <canvas id="modalPeriodComparisonChart"></canvas>
+                </div>
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body text-center p-3">
+                                <h6 class="text-muted mb-2">Highest Cost Month</h6>
+                                <h4 class="text-danger mb-2">${monthLabels[highestIdx]}</h4>
+                                <h5 class="mb-0">₱${monthCosts[highestIdx].toLocaleString('en-PH', {minimumFractionDigits: 2})}</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body text-center p-3">
+                                <h6 class="text-muted mb-2">Lowest Cost Month</h6>
+                                <h4 class="text-success mb-2">${monthLabels[lowestIdx]}</h4>
+                                <h5 class="mb-0">₱${monthCosts[lowestIdx].toLocaleString('en-PH', {minimumFractionDigits: 2})}</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body text-center p-3">
+                                <h6 class="text-muted mb-2">Average Cost/Month</h6>
+                                <h4 class="text-primary mb-2">₱${avgCostPerMonth.toLocaleString('en-PH', {minimumFractionDigits: 2})}</h4>
+                                <h5 class="mb-0" style="font-size: 0.9rem;">₱${avgCostPerRepair.toLocaleString('en-PH', {minimumFractionDigits: 2})} per repair</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped table-bordered">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Period</th>
+                                <th class="text-center">Repairs</th>
+                                <th class="text-end">Total Cost</th>
+                                <th class="text-end">Avg per Repair</th>
+                                <th class="text-center">% of Total</th>
+                                <th class="text-center">Trend</th>
+                            </tr>
+                        </thead>
+                        <tbody>${tableRows}</tbody>
+                        <tfoot class="table-secondary fw-bold">
+                            <tr>
+                                <td>TOTAL (6 Months)</td>
+                                <td class="text-center">${totalCount}</td>
+                                <td class="text-end">₱${totalCost.toLocaleString('en-PH', {minimumFractionDigits: 2})}</td>
+                                <td class="text-end">₱${avgCostPerRepair.toLocaleString('en-PH', {minimumFractionDigits: 2})}</td>
+                                <td class="text-center">100%</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        `,
+        width: '85%',
+        heightAuto: false,
+        padding: '0',
+        showCloseButton: true,
+        showConfirmButton: false,
+        customClass: {
+            container: 'swal-analytics-modal',
+            popup: 'swal-wide-popup'
+        },
+        didOpen: () => {
+            const ctx = document.getElementById('modalPeriodComparisonChart');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: monthLabels,
+                    datasets: [{
+                        label: 'Total Cost (₱)',
+                        data: monthCosts,
+                        backgroundColor: '#36A2EB',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(v) { return '₱' + v.toLocaleString(); }
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.parsed.y || 0;
+                                    const repairs = monthCounts[context.dataIndex] || 0;
+                                    const avgCost = repairs > 0 ? (value / repairs) : 0;
+                                    return [
+                                        'Total Cost: ₱' + value.toLocaleString('en-PH', {minimumFractionDigits: 2}),
+                                        'Total Repairs: ' + repairs,
+                                        'Avg Cost: ₱' + avgCost.toLocaleString('en-PH', {minimumFractionDigits: 2})
+                                    ];
+                                }
+                            }
+                        }
                     }
                 }
             });
@@ -621,53 +849,7 @@ function showMonthlyTrendModal(filterType = null) {
         title: '<i class="fas fa-chart-line me-2"></i>Monthly Trend - Detailed Report',
         html: `
             <div style="height: 100%; overflow-y: auto;">
-                <div class="mb-3 p-3 bg-light border-bottom d-flex justify-content-between align-items-center gap-3">
-                    <div class="d-flex gap-2 align-items-end flex-wrap" style="flex: 1;">
-                        <div style="min-width: 120px;">
-                            <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; display: block;">Period</label>
-                            <select id="modal_period" class="form-select form-select-sm" onchange="updateModalFilters('trend')">
-                                <option value="" ${state.period === '' ? 'selected' : ''}>Custom</option>
-                                <option value="monthly" ${state.period === 'monthly' ? 'selected' : ''}>Monthly</option>
-                                <option value="quarterly" ${state.period === 'quarterly' ? 'selected' : ''}>Quarterly</option>
-                                <option value="yearly" ${state.period === 'yearly' ? 'selected' : ''}>Yearly</option>
-                            </select>
-                        </div>
-                        <div id="modal_month_group" style="min-width: 120px; ${state.period === 'quarterly' || state.period === 'yearly' ? 'display: none;' : ''}">
-                            <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; display: block;">Month</label>
-                            <select id="modal_month" class="form-select form-select-sm" onchange="applyModalFilterFromInputs('trend')">
-                                <option value="">All Months</option>
-                                ${generateMonthOptions(state.month)}
-                            </select>
-                        </div>
-                        <div id="modal_month_from_group" style="min-width: 120px; ${state.period !== 'quarterly' ? 'display: none;' : ''}">
-                            <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; display: block;">From Month</label>
-                            <select id="modal_month_from" class="form-select form-select-sm" onchange="applyModalFilterFromInputs('trend')">
-                                <option value="">Select</option>
-                                ${generateMonthOptions(state.month_from)}
-                            </select>
-                        </div>
-                        <div id="modal_month_to_group" style="min-width: 120px; ${state.period !== 'quarterly' ? 'display: none;' : ''}">
-                            <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; display: block;">To Month</label>
-                            <select id="modal_month_to" class="form-select form-select-sm" onchange="applyModalFilterFromInputs('trend')">
-                                <option value="">Select</option>
-                                ${generateMonthOptions(state.month_to)}
-                            </select>
-                        </div>
-                        <div style="min-width: 100px;">
-                            <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; display: block;">Year</label>
-                            <select id="modal_year" class="form-select form-select-sm" onchange="applyModalFilterFromInputs('trend')">
-                                <option value="">All Years</option>
-                                ${generateYearOptions(state.year)}
-                            </select>
-                        </div>
-                        <button class="btn btn-sm btn-secondary" onclick="resetModalFilters('trend')" style="padding: 6px 12px;">
-                            <i class="fas fa-times"></i> Reset
-                        </button>
-                    </div>
-                    <button onclick="exportTrendReportToPDF()" class="btn btn-danger btn-sm" style="white-space: nowrap;">
-                        <i class="fas fa-file-pdf me-1"></i>Export PDF
-                    </button>
-                </div>
+                ${generateYouTubeStyleFilter('trend', 'exportTrendReportToPDF')}
                 <div style="height: 400px; margin-bottom: 30px; padding: 15px; background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                     <canvas id="modalTrendChart"></canvas>
                 </div>
@@ -763,30 +945,15 @@ function showMonthlyTrendModal(filterType = null) {
 function exportLocationReportToPDF() {
     const params = new URLSearchParams();
     
-    // Get filter values from modal state (not from main page)
+    // Get filter values from modal state
     const state = window.modalFilterState || {};
     
     console.log('Export PDF - Modal Filter State:', state); // Debug log
     
-    // Handle different period types
-    if (state.period && state.period !== '') {
-        params.append('period', state.period);
-        
-        // Add period-specific parameters
-        if (state.period === 'monthly') {
-            if (state.month && state.month !== '') params.append('month', state.month);
-            if (state.year && state.year !== '') params.append('year', state.year);
-        } else if (state.period === 'quarterly') {
-            if (state.month_from && state.month_from !== '') params.append('month_from', state.month_from);
-            if (state.month_to && state.month_to !== '') params.append('month_to', state.month_to);
-            if (state.year && state.year !== '') params.append('year', state.year);
-        } else if (state.period === 'yearly') {
-            if (state.year && state.year !== '') params.append('year', state.year);
-        }
-    } else {
-        // Custom period - send individual filter values
-        if (state.month && state.month !== '') params.append('month', state.month);
-        if (state.year && state.year !== '') params.append('year', state.year);
+    // Use date_from and date_to if available (from YouTube-style filter)
+    if (state.date_from && state.date_to) {
+        params.append('date_from', state.date_from);
+        params.append('date_to', state.date_to);
     }
     
     // Open PDF in new window
@@ -859,13 +1026,15 @@ function applyModalFilterFromInputs(modalType) {
     const monthTo = document.getElementById('modal_month_to')?.value || '';
     const year = document.getElementById('modal_year')?.value || '';
     
-    // Save all values to state
+    // Save all values to state (preserve date_from and date_to if they exist)
     window.modalFilterState = {
         period: period,
         month: month,
         month_from: monthFrom,
         month_to: monthTo,
-        year: year
+        year: year,
+        date_from: window.modalFilterState?.date_from || '',
+        date_to: window.modalFilterState?.date_to || ''
     };
     
     let params = new URLSearchParams();
@@ -900,6 +1069,7 @@ function applyModalFilterFromInputs(modalType) {
         window.chartStatuses = data.chartStatuses || [];
         window.chartStatusCounts = data.chartStatusCounts || [];
         window.monthlyStats = data.monthlyStats || [];
+        window.monthlyCostData = data.monthlyCostData || [];
         window.locationDetailedStats = data.locationStats || [];
         
         // Remove loading overlay
@@ -916,6 +1086,8 @@ function applyModalFilterFromInputs(modalType) {
             updateStatusModalContent();
         } else if (modalType === 'trend') {
             updateTrendModalContent();
+        } else if (modalType === 'period') {
+            updatePeriodComparisonModalContent();
         }
     })
     .catch(error => {
@@ -938,7 +1110,9 @@ function resetModalFilters(modalType) {
         month: '',
         month_from: '',
         month_to: '',
-        year: ''
+        year: '',
+        date_from: '',
+        date_to: ''
     };
     
     if (document.getElementById('modal_period')) document.getElementById('modal_period').value = '';
@@ -947,7 +1121,14 @@ function resetModalFilters(modalType) {
     if (document.getElementById('modal_month_to')) document.getElementById('modal_month_to').value = '';
     if (document.getElementById('modal_year')) document.getElementById('modal_year').value = '';
     
-    applyModalFilterFromInputs(modalType);
+    // Reset the label to default
+    const labelElement = document.getElementById(modalType + 'ModalRangeLabel');
+    if (labelElement) {
+        labelElement.textContent = 'Last 6 months';
+    }
+    
+    // Set default range to last 6 months
+    setModalRange(modalType, 'last6months', null);
 }
 
 // Apply modal filter - fetches filtered data via AJAX and updates modal
@@ -996,6 +1177,7 @@ function applyModalFilter(modalType, filterType) {
         window.chartStatuses = data.chartStatuses || [];
         window.chartStatusCounts = data.chartStatusCounts || [];
         window.monthlyStats = data.monthlyStats || [];
+        window.monthlyCostData = data.monthlyCostData || [];
         window.locationDetailedStats = data.locationStats || [];
         
         // Re-render the appropriate modal with new data
@@ -1007,6 +1189,8 @@ function applyModalFilter(modalType, filterType) {
             showStatusDetailsModal(filterType);
         } else if (modalType === 'trend') {
             showMonthlyTrendModal(filterType);
+        } else if (modalType === 'period') {
+            showPeriodComparisonModal(filterType);
         }
     })
     .catch(error => {
@@ -1434,32 +1618,203 @@ function updateTrendModalContent() {
     }
 }
 
+// Update Period Comparison Modal Content (without closing modal)
+function updatePeriodComparisonModalContent() {
+    // Get last 6 months data
+    const currentDate = new Date();
+    const monthLabels = [];
+    const monthKeys = [];
+    
+    // Generate last 6 months
+    for (let i = 5; i >= 0; i--) {
+        const d = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+        const key = d.toISOString().slice(0, 7); // YYYY-MM format
+        const label = d.toLocaleDateString('en-PH', { month: 'short', year: 'numeric' });
+        monthKeys.push(key);
+        monthLabels.push(label);
+    }
+    
+    // Initialize data arrays
+    const monthCosts = new Array(6).fill(0);
+    const monthCounts = new Array(6).fill(0);
+    
+    // Get monthly cost data from window if available
+    const monthlyCostData = window.monthlyCostData || [];
+    
+    // Populate data from server
+    monthlyCostData.forEach(item => {
+        const monthIndex = monthKeys.indexOf(item.month);
+        if (monthIndex !== -1) {
+            monthCosts[monthIndex] = parseFloat(item.total_cost) || 0;
+            monthCounts[monthIndex] = parseInt(item.count) || 0;
+        }
+    });
+    
+    // Calculate statistics
+    const totalCost = monthCosts.reduce((sum, cost) => sum + cost, 0);
+    const totalCount = monthCounts.reduce((sum, count) => sum + count, 0);
+    const avgCostPerMonth = totalCost / 6;
+    const avgCostPerRepair = totalCount > 0 ? totalCost / totalCount : 0;
+    
+    // Find highest and lowest months
+    let highestIdx = 0, lowestIdx = 0;
+    for (let i = 1; i < 6; i++) {
+        if (monthCosts[i] > monthCosts[highestIdx]) highestIdx = i;
+        if (monthCosts[i] < monthCosts[lowestIdx]) lowestIdx = i;
+    }
+    
+    // Update summary cards
+    const modalContainer = document.querySelector('.swal2-html-container');
+    if (modalContainer) {
+        const summaryCards = modalContainer.querySelectorAll('.row.mb-4 .col-md-4');
+        if (summaryCards[0]) {
+            const h4 = summaryCards[0].querySelector('h4');
+            const h5 = summaryCards[0].querySelector('h5');
+            if (h4) h4.textContent = monthLabels[highestIdx];
+            if (h5) h5.textContent = '₱' + monthCosts[highestIdx].toLocaleString('en-PH', {minimumFractionDigits: 2});
+        }
+        if (summaryCards[1]) {
+            const h4 = summaryCards[1].querySelector('h4');
+            const h5 = summaryCards[1].querySelector('h5');
+            if (h4) h4.textContent = monthLabels[lowestIdx];
+            if (h5) h5.textContent = '₱' + monthCosts[lowestIdx].toLocaleString('en-PH', {minimumFractionDigits: 2});
+        }
+        if (summaryCards[2]) {
+            const h4 = summaryCards[2].querySelector('h4');
+            const h5 = summaryCards[2].querySelector('h5');
+            if (h4) h4.textContent = '₱' + avgCostPerMonth.toLocaleString('en-PH', {minimumFractionDigits: 2});
+            if (h5) h5.textContent = '₱' + avgCostPerRepair.toLocaleString('en-PH', {minimumFractionDigits: 2}) + ' per repair';
+        }
+    }
+    
+    // Build table rows
+    let tableRows = '';
+    monthLabels.forEach((label, idx) => {
+        const cost = monthCosts[idx];
+        const count = monthCounts[idx];
+        const avgPerRepair = count > 0 ? cost / count : 0;
+        const percentOfTotal = totalCost > 0 ? ((cost / totalCost) * 100).toFixed(1) : 0;
+        
+        let trendIcon = '';
+        if (idx > 0) {
+            const prevCost = monthCosts[idx - 1];
+            if (cost > prevCost) {
+                trendIcon = '<i class="fas fa-arrow-up text-danger"></i>';
+            } else if (cost < prevCost) {
+                trendIcon = '<i class="fas fa-arrow-down text-success"></i>';
+            } else {
+                trendIcon = '<i class="fas fa-minus text-secondary"></i>';
+            }
+        }
+        
+        tableRows += `
+            <tr>
+                <td><strong>${label}</strong></td>
+                <td class="text-center">${count}</td>
+                <td class="text-end">₱${cost.toLocaleString('en-PH', {minimumFractionDigits: 2})}</td>
+                <td class="text-end">₱${avgPerRepair.toLocaleString('en-PH', {minimumFractionDigits: 2})}</td>
+                <td class="text-center">${percentOfTotal}%</td>
+                <td class="text-center">${trendIcon}</td>
+            </tr>
+        `;
+    });
+    
+    // Add footer row
+    tableRows += `
+        <tr class="table-secondary fw-bold">
+            <td>TOTAL (6 Months)</td>
+            <td class="text-center">${totalCount}</td>
+            <td class="text-end">₱${totalCost.toLocaleString('en-PH', {minimumFractionDigits: 2})}</td>
+            <td class="text-end">₱${avgCostPerRepair.toLocaleString('en-PH', {minimumFractionDigits: 2})}</td>
+            <td class="text-center">100%</td>
+            <td></td>
+        </tr>
+    `;
+    
+    const tbody = modalContainer ? modalContainer.querySelector('.table tbody') : null;
+    const tfoot = modalContainer ? modalContainer.querySelector('.table tfoot') : null;
+    if (tbody) tbody.innerHTML = tableRows.replace(/<tr class="table-secondary.*?<\/tr>/, '');
+    if (tfoot) tfoot.innerHTML = tableRows.match(/<tr class="table-secondary.*?<\/tr>/)?.[0] || '';
+    
+    // Update chart
+    const canvas = document.getElementById('modalPeriodComparisonChart');
+    if (canvas && window.Chart) {
+        const existingChart = Chart.getChart(canvas);
+        if (existingChart) existingChart.destroy();
+        
+        new Chart(canvas, {
+            type: 'bar',
+            data: {
+                labels: monthLabels,
+                datasets: [{
+                    label: 'Total Cost (₱)',
+                    data: monthCosts,
+                    backgroundColor: '#36A2EB',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(v) { return '₱' + v.toLocaleString(); }
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.parsed.y || 0;
+                                const repairs = monthCounts[context.dataIndex] || 0;
+                                const avgCost = repairs > 0 ? (value / repairs) : 0;
+                                return [
+                                    'Total Cost: ₱' + value.toLocaleString('en-PH', {minimumFractionDigits: 2}),
+                                    'Total Repairs: ' + repairs,
+                                    'Avg Cost: ₱' + avgCost.toLocaleString('en-PH', {minimumFractionDigits: 2})
+                                ];
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+}
+
 
 // Export Cost Report to PDF
 function exportCostReportToPDF() {
     const params = new URLSearchParams();
     const state = window.modalFilterState || {};
     
-    if (state.period && state.period !== '') {
-        params.append('period', state.period);
-        
-        if (state.period === 'monthly') {
-            if (state.month && state.month !== '') params.append('month', state.month);
-            if (state.year && state.year !== '') params.append('year', state.year);
-        } else if (state.period === 'quarterly') {
-            if (state.month_from && state.month_from !== '') params.append('month_from', state.month_from);
-            if (state.month_to && state.month_to !== '') params.append('month_to', state.month_to);
-            if (state.year && state.year !== '') params.append('year', state.year);
-        } else if (state.period === 'yearly') {
-            if (state.year && state.year !== '') params.append('year', state.year);
-        }
-    } else {
-        if (state.month && state.month !== '') params.append('month', state.month);
-        if (state.year && state.year !== '') params.append('year', state.year);
+    // Use date_from and date_to if available (from YouTube-style filter)
+    if (state.date_from && state.date_to) {
+        params.append('date_from', state.date_from);
+        params.append('date_to', state.date_to);
     }
     
     const queryString = params.toString();
     const url = queryString ? '/admin/analytics/cost-report-pdf?' + queryString : '/admin/analytics/cost-report-pdf';
+    window.open(url, '_blank');
+}
+
+// Export Period Comparison to PDF
+function exportPeriodComparisonToPDF() {
+    const params = new URLSearchParams();
+    const state = window.modalFilterState || {};
+    
+    // Use date_from and date_to if available (from YouTube-style filter)
+    if (state.date_from && state.date_to) {
+        params.append('date_from', state.date_from);
+        params.append('date_to', state.date_to);
+    }
+    
+    const queryString = params.toString();
+    const url = queryString ? '/admin/analytics/period-comparison-pdf?' + queryString : '/admin/analytics/period-comparison-pdf';
     window.open(url, '_blank');
 }
 
@@ -1468,22 +1823,10 @@ function exportStatusReportToPDF() {
     const params = new URLSearchParams();
     const state = window.modalFilterState || {};
     
-    if (state.period && state.period !== '') {
-        params.append('period', state.period);
-        
-        if (state.period === 'monthly') {
-            if (state.month && state.month !== '') params.append('month', state.month);
-            if (state.year && state.year !== '') params.append('year', state.year);
-        } else if (state.period === 'quarterly') {
-            if (state.month_from && state.month_from !== '') params.append('month_from', state.month_from);
-            if (state.month_to && state.month_to !== '') params.append('month_to', state.month_to);
-            if (state.year && state.year !== '') params.append('year', state.year);
-        } else if (state.period === 'yearly') {
-            if (state.year && state.year !== '') params.append('year', state.year);
-        }
-    } else {
-        if (state.month && state.month !== '') params.append('month', state.month);
-        if (state.year && state.year !== '') params.append('year', state.year);
+    // Use date_from and date_to if available (from YouTube-style filter)
+    if (state.date_from && state.date_to) {
+        params.append('date_from', state.date_from);
+        params.append('date_to', state.date_to);
     }
     
     const queryString = params.toString();
@@ -1496,22 +1839,10 @@ function exportTrendReportToPDF() {
     const params = new URLSearchParams();
     const state = window.modalFilterState || {};
     
-    if (state.period && state.period !== '') {
-        params.append('period', state.period);
-        
-        if (state.period === 'monthly') {
-            if (state.month && state.month !== '') params.append('month', state.month);
-            if (state.year && state.year !== '') params.append('year', state.year);
-        } else if (state.period === 'quarterly') {
-            if (state.month_from && state.month_from !== '') params.append('month_from', state.month_from);
-            if (state.month_to && state.month_to !== '') params.append('month_to', state.month_to);
-            if (state.year && state.year !== '') params.append('year', state.year);
-        } else if (state.period === 'yearly') {
-            if (state.year && state.year !== '') params.append('year', state.year);
-        }
-    } else {
-        if (state.month && state.month !== '') params.append('month', state.month);
-        if (state.year && state.year !== '') params.append('year', state.year);
+    // Use date_from and date_to if available (from YouTube-style filter)
+    if (state.date_from && state.date_to) {
+        params.append('date_from', state.date_from);
+        params.append('date_to', state.date_to);
     }
     
     const queryString = params.toString();
