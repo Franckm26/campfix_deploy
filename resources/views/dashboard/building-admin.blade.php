@@ -308,6 +308,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var monthlyData = @json($monthlyStats ?? []);
         var months = [];
         var categories = {};
+        var statusBreakdown = {}; // Store status breakdown for tooltips
         
         // Extract unique months and categories
         monthlyData.forEach(function(item) {
@@ -316,8 +317,19 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             if (!categories[item.title]) {
                 categories[item.title] = {};
+                statusBreakdown[item.title] = {};
             }
-            categories[item.title][item.month] = item.total_count;
+            if (!categories[item.title][item.month]) {
+                categories[item.title][item.month] = 0;
+                statusBreakdown[item.title][item.month] = {};
+            }
+            categories[item.title][item.month] += item.count;
+            
+            // Store status breakdown
+            if (!statusBreakdown[item.title][item.month][item.status]) {
+                statusBreakdown[item.title][item.month][item.status] = 0;
+            }
+            statusBreakdown[item.title][item.month][item.status] += item.count;
         });
         
         // Sort months chronologically
@@ -347,7 +359,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 borderColor: color.border,
                 backgroundColor: color.bg,
                 tension: 0.4,
-                fill: true
+                fill: true,
+                statusData: statusBreakdown[category] // Attach status breakdown
             });
             colorIndex++;
         }
@@ -371,7 +384,31 @@ document.addEventListener('DOMContentLoaded', function() {
                     },
                     tooltip: {
                         mode: 'index',
-                        intersect: false
+                        intersect: false,
+                        callbacks: {
+                            label: function(ctx) {
+                                var dataset = ctx.dataset;
+                                var month = ctx.label;
+                                var total = ctx.parsed.y;
+                                var statusData = dataset.statusData[month] || {};
+                                
+                                var lines = [dataset.label + ': ' + total + (total === 1 ? ' report' : ' reports')];
+                                
+                                // Add status breakdown if there are multiple statuses
+                                var statuses = Object.keys(statusData);
+                                if (statuses.length > 0) {
+                                    var resolved = statusData['Resolved'] || 0;
+                                    var pending = statusData['Pending'] || 0;
+                                    var inProgress = statusData['In Progress'] || 0;
+                                    
+                                    if (resolved > 0) lines.push('  ✓ Resolved: ' + resolved);
+                                    if (inProgress > 0) lines.push('  ⟳ In Progress: ' + inProgress);
+                                    if (pending > 0) lines.push('  ⏱ Pending: ' + pending);
+                                }
+                                
+                                return lines;
+                            }
+                        }
                     }
                 },
                 scales: {

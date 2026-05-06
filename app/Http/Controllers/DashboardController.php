@@ -84,12 +84,13 @@ class DashboardController extends Controller
             $chartCounts = $locationStats->pluck('count')->toArray();
             $chartCosts = $locationStats->pluck('total_cost')->toArray();
 
-            // Monthly stats for line chart - last 6 months
+            // Monthly stats for line chart - last 6 months (with status breakdown)
             $monthlyStats = Report::where('created_at', '>=', now()->subMonths(6))
                 ->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month")
-                ->selectRaw('title')
-                ->selectRaw('COUNT(*) as total_count')
-                ->groupBy('month', 'title')
+                ->selectRaw("COALESCE(NULLIF(title, ''), LEFT(description, 50)) as title")
+                ->selectRaw('status')
+                ->selectRaw('COUNT(*) as count')
+                ->groupByRaw("month, COALESCE(NULLIF(title, ''), LEFT(description, 50)), status")
                 ->orderBy('month')
                 ->get();
 
