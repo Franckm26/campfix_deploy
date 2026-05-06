@@ -4203,7 +4203,9 @@ class AdminController extends Controller
         $chartStatusCounts = $statusStats->pluck('count')->toArray();
 
         // Monthly stats - apply same filters
-        $monthlyQuery = Report::query();
+        $monthlyQuery = Report::query()
+            ->whereNotNull('title')
+            ->where('title', '!=', '');
         
         // Apply same period filters
         if ($period === 'monthly' && $request->filled('month') && $request->filled('year')) {
