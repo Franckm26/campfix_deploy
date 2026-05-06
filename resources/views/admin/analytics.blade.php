@@ -160,6 +160,11 @@
     position: relative;
     height: 300px;
     width: 100%;
+    padding-bottom: 20px;
+}
+
+.chart-container canvas {
+    max-height: 300px;
 }
 
 .stat-value {
@@ -952,7 +957,7 @@
     window.chartCosts = {!! json_encode($chartCosts ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
     window.chartStatuses = {!! json_encode($chartStatuses ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
     window.chartStatusCounts = {!! json_encode($chartStatusCounts ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
-    window.monthlyStats = {!! json_encode(isset($monthlyStats) ? $monthlyStats->map(fn($s) => ['month' => $s->month, 'title' => $s->title, 'count' => $s->total_count])->values() : [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
+    window.monthlyStats = {!! json_encode(isset($monthlyStats) ? $monthlyStats->map(fn($s) => ['month' => $s->month, 'title' => $s->title, 'status' => $s->status, 'count' => $s->count])->values() : [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
     window.monthlyCostData = {!! json_encode(isset($monthlyCostData) ? $monthlyCostData->map(fn($s) => ['month' => $s->month, 'count' => $s->count, 'total_cost' => $s->total_cost])->values() : [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
     window.locationDetailedStats = {!! json_encode($locationStats ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
 
@@ -961,7 +966,7 @@
     var costs     = {!! json_encode($chartCosts ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
     var statuses  = {!! json_encode($chartStatuses ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
     var statusCounts = {!! json_encode($chartStatusCounts ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
-    var monthly   = {!! json_encode(isset($monthlyStats) ? $monthlyStats->map(fn($s) => ['month' => $s->month, 'title' => $s->title, 'count' => $s->total_count])->values() : [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
+    var monthly   = {!! json_encode(isset($monthlyStats) ? $monthlyStats->map(fn($s) => ['month' => $s->month, 'title' => $s->title, 'status' => $s->status, 'count' => $s->count])->values() : [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
     var locationDetails = {!! json_encode($locationStats ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
 
     var colors = ['#FF6384','#36A2EB','#FFCE56','#4BC0C0','#9966FF','#FF9F40','#C9CBCF','#4BC0C0'];
@@ -1570,11 +1575,26 @@
                 monthLabels.push({ key: key, label: lbl });
             }
 
-            // Group by issue title
+            // Group by issue title and month, keeping status breakdown
             var issueMap = {};
+            var statusBreakdown = {}; // Store status breakdown for tooltips
+            
             monthly.forEach(function(item) {
-                if (!issueMap[item.title]) issueMap[item.title] = {};
-                issueMap[item.title][item.month] = item.count;
+                if (!issueMap[item.title]) {
+                    issueMap[item.title] = {};
+                    statusBreakdown[item.title] = {};
+                }
+                if (!issueMap[item.title][item.month]) {
+                    issueMap[item.title][item.month] = 0;
+                    statusBreakdown[item.title][item.month] = {};
+                }
+                issueMap[item.title][item.month] += item.count;
+                
+                // Store status breakdown
+                if (!statusBreakdown[item.title][item.month][item.status]) {
+                    statusBreakdown[item.title][item.month][item.status] = 0;
+                }
+                statusBreakdown[item.title][item.month][item.status] += item.count;
             });
 
             var palette = ['#36A2EB','#FF6384','#FFCE56','#4BC0C0','#9966FF','#FF9F40','#22C55E','#F97316','#7BC8A4','#EC4899'];
@@ -1591,6 +1611,7 @@
                     pointBackgroundColor: palette[idx % palette.length],
                     tension: 0.3,
                     fill: false,
+                    statusData: statusBreakdown[title] // Attach status breakdown to dataset
                 };
             });
 
@@ -1653,14 +1674,49 @@
                             labels: {
                                 usePointStyle: true,
                                 pointStyle: 'circle',
-                                padding: 20,
-                                font: { size: 13, weight: 'bold' }
-                            }
+                                padding: 15,
+                                boxWidth: 12,
+                                boxHeight: 12,
+                                font: { size: 12, weight: 'bold' },
+                                generateLabels: function(chart) {
+                                    const datasets = chart.data.datasets;
+                                    return datasets.map((dataset, i) => ({
+                                        text: dataset.label,
+                                        fillStyle: dataset.borderColor,
+                                        strokeStyle: dataset.borderColor,
+                                        lineWidth: 2,
+                                        hidden: !chart.isDatasetVisible(i),
+                                        index: i,
+                                        pointStyle: 'circle'
+                                    }));
+                                }
+                            },
+                            align: 'center',
+                            maxWidth: 800
                         },
                         tooltip: {
                             callbacks: {
                                 label: function(ctx) {
-                                    return ctx.dataset.label + ': ' + ctx.parsed.y + (ctx.parsed.y === 1 ? ' report' : ' reports');
+                                    var dataset = ctx.dataset;
+                                    var monthKey = monthLabels[ctx.dataIndex].key;
+                                    var total = ctx.parsed.y;
+                                    var statusData = dataset.statusData[monthKey] || {};
+                                    
+                                    var lines = [dataset.label + ': ' + total + (total === 1 ? ' report' : ' reports')];
+                                    
+                                    // Add status breakdown if there are multiple statuses
+                                    var statuses = Object.keys(statusData);
+                                    if (statuses.length > 0) {
+                                        var resolved = statusData['Resolved'] || 0;
+                                        var pending = statusData['Pending'] || 0;
+                                        var inProgress = statusData['In Progress'] || 0;
+                                        
+                                        if (resolved > 0) lines.push('  ✓ Resolved: ' + resolved);
+                                        if (inProgress > 0) lines.push('  ⟳ In Progress: ' + inProgress);
+                                        if (pending > 0) lines.push('  ⏱ Pending: ' + pending);
+                                    }
+                                    
+                                    return lines;
                                 }
                             }
                         }
