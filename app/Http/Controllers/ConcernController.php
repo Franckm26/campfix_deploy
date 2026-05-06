@@ -739,6 +739,51 @@ class ConcernController extends Controller
 
         $concern->update($updateData);
 
+        // Also update the corresponding report to keep them in sync
+        $report = Report::where('concern_id', $concern->id)->first();
+        if ($report) {
+            $reportUpdateData = [
+                'title' => $request->title,
+                'description' => $request->description,
+                'location' => $request->location,
+                'category_id' => $request->category_id,
+                'photo_path' => $imagePath,
+            ];
+
+            // Sync status
+            if (isset($updateData['status'])) {
+                $reportUpdateData['status'] = $updateData['status'];
+            }
+
+            // Sync assigned_to
+            if (isset($updateData['assigned_to'])) {
+                $reportUpdateData['assigned_to'] = $updateData['assigned_to'];
+            }
+
+            // Sync assigned_at
+            if (isset($updateData['assigned_at'])) {
+                $reportUpdateData['assigned_at'] = $updateData['assigned_at'];
+            }
+
+            // Sync resolved_at
+            if (isset($updateData['resolved_at'])) {
+                $reportUpdateData['resolved_at'] = $updateData['resolved_at'];
+            }
+
+            // Sync severity (maps to priority)
+            if (isset($updateData['priority'])) {
+                $reportUpdateData['severity'] = $updateData['priority'];
+            }
+
+            $report->update($reportUpdateData);
+
+            ActivityLog::log(
+                'report_synced',
+                'Report synced with concern update: '.$report->title,
+                $report->id
+            );
+        }
+
         ActivityLog::log(
             'concern_updated',
             'Concern updated: '.$concern->title,
