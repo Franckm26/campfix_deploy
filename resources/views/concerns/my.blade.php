@@ -1357,7 +1357,8 @@ function contextRestore() {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
             }
         }).then(response => response.json())
         .then(data => {
@@ -1387,7 +1388,8 @@ function contextRestoreDeleted() {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
             }
         }).then(response => response.json())
         .then(data => {
@@ -1431,7 +1433,8 @@ function softDeleteConcern(id) {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 }
             }).then(response => response.json())
             .then(data => {
@@ -1461,7 +1464,8 @@ function softDeleteArchivedConcern(id) {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 }
             }).then(response => response.json())
             .then(data => {
@@ -1541,7 +1545,8 @@ function sendFollowUp(id) {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 }
             })
             .then(response => response.json())
@@ -1860,7 +1865,8 @@ function viewConcern(id) {
     fetch('/api/concerns/' + id, {
         headers: {
             'X-CSRF-TOKEN': '{{ csrf_token() }}',
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
         }
     })
     .then(response => {
@@ -1917,7 +1923,7 @@ function viewConcern(id) {
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h4>Concern #${concern.id}</h4>
                     <div>
-                        <span class="badge bg-${priorityClass} me-2">${concern.priority.charAt(0).toUpperCase() + concern.priority.slice(1)} Priority</span>
+                        <span class="badge bg-${priorityClass} me-2">${concern.priority ? (concern.priority.charAt(0).toUpperCase() + concern.priority.slice(1)) : 'Not Set'} Priority</span>
                         <span class="badge bg-${statusClass}">${concern.status}</span>
                     </div>
                 </div>
@@ -2038,7 +2044,7 @@ function editConcern(id) {
         let priorityOptions = '';
         priorities.forEach(pri => {
             const selected = pri === concern.priority ? 'selected' : '';
-            priorityOptions += `<option value="${pri}" ${selected}>${pri.charAt(0).toUpperCase() + pri.slice(1)}</option>`;
+            priorityOptions += `<option value="${pri}" ${selected}>${pri ? (pri.charAt(0).toUpperCase() + pri.slice(1)) : pri}</option>`;
         });
         
         const statuses = ['Pending', 'Assigned', 'In Progress', 'Resolved', 'Closed'];
@@ -2077,46 +2083,36 @@ function editConcern(id) {
             `;
         }
         
-        // Build form fields based on role
+        // Build form fields based on role - but NOT for my-concerns page
+        // Admin fields (status, assign) should only appear in admin concern management, not in my-concerns
         let adminFields = '';
-        if (canAssign) {
-            adminFields = `
-                <div class="mb-3">
-                    <label class="form-label">Status</label>
-                    <select name="status" class="form-select">
-                        ${statusOptions}
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Assign To</label>
-                    <select name="assigned_to" class="form-select">
-                        ${maintenanceOptions}
-                    </select>
-                </div>
-            `;
-        }
+        // Don't show admin fields in my-concerns edit modal
         
         contentDiv.innerHTML = `
             <div class="mb-3">
-                <label class="form-label">Title</label>
-                <input type="text" name="title" class="form-control" value="${concern.title || ''}">
+                <label class="form-label">Location *</label>
+                <select name="location" class="form-select" required>
+                    <option value="" disabled>Select a location</option>
+                    @foreach($facilities->groupBy('type') as $type => $group)
+                        <optgroup label="{{ ucfirst($type) }}">
+                            @foreach($group as $facility)
+                                <option value="{{ $facility->name }}" ${concern.location === '{{ $facility->name }}' ? 'selected' : ''}>{{ $facility->name }}</option>
+                            @endforeach
+                        </optgroup>
+                    @endforeach
+                </select>
             </div>
             <div class="mb-3">
-                <label class="form-label">Location</label>
-                <input type="text" name="location" class="form-control" value="${concern.location}" required>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Category</label>
+                <label class="form-label">Category *</label>
                 <select name="category_id" class="form-select" required>
                     ${categoryOptions}
                 </select>
             </div>
             <div class="mb-3">
-                <label class="form-label">Description</label>
+                <label class="form-label">Description *</label>
                 <textarea name="description" class="form-control" rows="4" required>${concern.description}</textarea>
             </div>
             ${imageHtml}
-            ${adminFields}
         `;
     })
     .catch(error => {
@@ -2183,7 +2179,8 @@ function showArchiveModal(concernId) {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 }
             }).then(response => response.json())
             .then(data => {
@@ -2212,7 +2209,8 @@ function archiveConcern(id) {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 }
             }).then(response => response.json())
             .then(data => {

@@ -762,10 +762,10 @@ class ConcernController extends Controller
         $isOwner = $concern->user_id === $user->id;
         $isAssignedMis = $user->role === 'mis' && $concern->assigned_to === $user->id;
         $isMisUser = $user->role === 'mis';
-        $isAdmin = false;
+        $isAdmin = in_array($user->role, ['mis', 'school_admin', 'building_admin']);
         $editableStatusesForOwner = ['Pending', 'Assigned'];
 
-        if (! $isOwner && ! $isAssignedMis && ! $isMisUser) {
+        if (! $isOwner && ! $isAssignedMis && ! $isMisUser && ! $isAdmin) {
             return response()->json(['error' => 'You cannot edit this concern.'], 403);
         }
 
@@ -831,11 +831,13 @@ class ConcernController extends Controller
         $concern = Concern::findOrFail($id);
         $user = auth()->user();
 
-        // Only owner can archive their own concerns, or MIS can archive any
+        // Owner can archive their own concerns
+        // MIS and Building Admin can archive any concern
         $isOwner = $concern->user_id === $user->id;
         $isMIS = $user->role === 'mis';
+        $isBuildingAdmin = $user->role === 'building_admin';
 
-        if (! $isOwner && ! $isMIS) {
+        if (! $isOwner && ! $isMIS && ! $isBuildingAdmin) {
             if (request()->expectsJson()) {
                 return response()->json(['success' => false, 'error' => 'You cannot archive this concern.']);
             }
@@ -957,11 +959,13 @@ class ConcernController extends Controller
         $concern = Concern::findOrFail($id);
         $user = auth()->user();
 
-        // Only owner can restore their own concerns, or MIS can restore any
+        // Owner can restore their own concerns
+        // MIS and Building Admin can restore any concern
         $isOwner = $concern->user_id === $user->id;
         $isMIS = $user->role === 'mis';
+        $isBuildingAdmin = $user->role === 'building_admin';
 
-        if (! $isOwner && ! $isMIS) {
+        if (! $isOwner && ! $isMIS && ! $isBuildingAdmin) {
             return back()->with('error', 'You cannot restore this concern.');
         }
 
@@ -1003,11 +1007,13 @@ class ConcernController extends Controller
             return back()->with('error', 'Cannot delete assigned concerns that are not resolved. Please wait for resolution or unassign first.');
         }
 
-        // Only owner can soft delete their own concerns, or MIS can soft delete any
+        // Only owner can soft delete their own concerns
+        // MIS and Building Admin can soft delete any concern
         $isOwner = $concern->user_id === $user->id;
         $isMIS = $user->role === 'mis';
+        $isBuildingAdmin = $user->role === 'building_admin';
 
-        if (! $isOwner && ! $isMIS) {
+        if (! $isOwner && ! $isMIS && ! $isBuildingAdmin) {
             if ($request->expectsJson()) {
                 return response()->json(['error' => 'You cannot delete this concern.'], 403);
             }
@@ -1051,11 +1057,13 @@ class ConcernController extends Controller
         $concern = Concern::findOrFail($id);
         $user = auth()->user();
 
-        // Only owner can restore their own deleted concerns, or MIS can restore any
+        // Owner can restore their own deleted concerns
+        // MIS and Building Admin can restore any concern
         $isOwner = $concern->user_id === $user->id;
         $isMIS = $user->role === 'mis';
+        $isBuildingAdmin = $user->role === 'building_admin';
 
-        if (! $isOwner && ! $isMIS) {
+        if (! $isOwner && ! $isMIS && ! $isBuildingAdmin) {
             if ($request->expectsJson()) {
                 return response()->json(['error' => 'You cannot restore this concern.'], 403);
             }
