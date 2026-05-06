@@ -847,7 +847,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.chartStatuses  = {!! json_encode($chartStatuses ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) !!};
     window.chartStatusCounts = {!! json_encode($chartStatusCounts ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) !!};
     window.monthlyData    = {!! json_encode(
-        isset($monthlyStats) ? $monthlyStats->map(fn($s) => ['month' => $s->month, 'title' => $s->title, 'count' => $s->total_count])->values() : [],
+        isset($monthlyStats) ? $monthlyStats->map(fn($s) => ['month' => $s->month, 'title' => $s->title, 'status' => $s->status, 'count' => $s->count])->values() : [],
         JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
     ) !!};
     @endif
@@ -975,11 +975,26 @@ document.addEventListener('DOMContentLoaded', function() {
             monthLabels.push({ key, label });
         }
 
-        // Group data by issue title
+        // Group data by issue title and keep status breakdown
         const issueMap = {};
+        const statusBreakdown = {}; // Store status breakdown for tooltips
+        
         window.monthlyData.forEach(item => {
-            if (!issueMap[item.title]) issueMap[item.title] = {};
-            issueMap[item.title][item.month] = item.count;
+            if (!issueMap[item.title]) {
+                issueMap[item.title] = {};
+                statusBreakdown[item.title] = {};
+            }
+            if (!issueMap[item.title][item.month]) {
+                issueMap[item.title][item.month] = 0;
+                statusBreakdown[item.title][item.month] = {};
+            }
+            issueMap[item.title][item.month] += item.count;
+            
+            // Store status breakdown
+            if (!statusBreakdown[item.title][item.month][item.status]) {
+                statusBreakdown[item.title][item.month][item.status] = 0;
+            }
+            statusBreakdown[item.title][item.month][item.status] += item.count;
         });
 
         // Color palette
@@ -1000,6 +1015,7 @@ document.addEventListener('DOMContentLoaded', function() {
             pointBackgroundColor: palette[idx % palette.length],
             tension: 0.3,
             fill: false,
+            statusData: statusBreakdown[title] // Attach status breakdown
         }));
 
         // Plugin to draw issue name label at the last non-zero point of each line
@@ -1080,7 +1096,28 @@ document.addEventListener('DOMContentLoaded', function() {
                     },
                     tooltip: {
                         callbacks: {
-                            label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y} ${ctx.parsed.y === 1 ? 'report' : 'reports'}`
+                            label: function(ctx) {
+                                const dataset = ctx.dataset;
+                                const monthKey = monthLabels[ctx.dataIndex].key;
+                                const total = ctx.parsed.y;
+                                const statusData = dataset.statusData[monthKey] || {};
+                                
+                                const lines = [dataset.label + ': ' + total + (total === 1 ? ' report' : ' reports')];
+                                
+                                // Add status breakdown if there are multiple statuses
+                                const statuses = Object.keys(statusData);
+                                if (statuses.length > 0) {
+                                    const resolved = statusData['Resolved'] || 0;
+                                    const pending = statusData['Pending'] || 0;
+                                    const inProgress = statusData['In Progress'] || 0;
+                                    
+                                    if (resolved > 0) lines.push('  ✓ Resolved: ' + resolved);
+                                    if (inProgress > 0) lines.push('  ⟳ In Progress: ' + inProgress);
+                                    if (pending > 0) lines.push('  ⏱ Pending: ' + pending);
+                                }
+                                
+                                return lines;
+                            }
                         }
                     }
                 }
@@ -1388,7 +1425,7 @@ function showDeleteModal(type, id, name) {
 }
 
 // Confirm and execute the action
-function confirmDelete() {
+function confirmModalAction() {
     if (currentActionType === 'archive') {
         // Archive action - submit form
         const form = document.createElement('form');
