@@ -231,6 +231,7 @@ class ReportController extends Controller
             $roleDeletedColumn = $user->role.'_deleted';
             $report->update([
                 'is_deleted' => true,
+                'deleted_at' => now(),
                 'archive_folder_id' => $deletedFolder->id,
                 'deleted_by' => $user->id,
                 $roleDeletedColumn => true,

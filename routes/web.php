@@ -127,8 +127,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/save-auto-delete-preference', [AdminController::class, 'saveAutoDeletePreference'])->name('saveAutoDeletePreference');
 
     // Reports
+    // Reports
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
-    Route::get('/reports/deleted', [ReportController::class, 'deleted'])->name('reports.deleted');
     Route::get('/reports/create', [ReportController::class, 'create'])->name('reports.create');
     Route::post('/reports', [ReportController::class, 'store'])->name('reports.store');
     Route::get('/reports/{report}', [ReportController::class, 'show'])->name('reports.show');
@@ -273,13 +273,10 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::delete('/admin/deleted-users', [AdminController::class, 'permanentDeleteAllDeleted'])->name('admin.deletedUsers.permanentDeleteAll');
     Route::delete('/admin/deleted-users/{id}', [AdminController::class, 'permanentDeleteUser'])->name('admin.deletedUsers.permanentDelete');
 
-    // Deleted reports management
-    Route::get('/admin/deleted-reports', [AdminController::class, 'deletedReports'])->name('admin.deletedReports');
-    Route::post('/admin/deleted-reports/auto-delete', [AdminController::class, 'autoDeleteOldReports'])->name('admin.deletedReports.autoDelete');
-    Route::post('/admin/deleted-reports/{id}/restore', [AdminController::class, 'restoreDeletedReport'])->name('admin.deletedReports.restore');
-    Route::post('/admin/deleted-reports/restore-selected', [AdminController::class, 'restoreSelectedDeletedReports'])->name('admin.deletedReports.restoreSelected');
-    Route::delete('/admin/deleted-reports/{id}', [AdminController::class, 'permanentDeleteReport'])->name('admin.deletedReports.permanentDelete');
-    Route::delete('/admin/deleted-reports', [AdminController::class, 'permanentDeleteAllReports'])->name('admin.deletedReports.permanentDeleteAll');
+    // Deleted reports inline actions (for inline deleted view)
+    Route::post('/admin/reports/{id}/restore-deleted', [AdminController::class, 'restoreDeletedReport'])->name('admin.deletedReports.restore');
+    Route::delete('/admin/reports/{id}/permanent-delete', [AdminController::class, 'permanentDeleteReport'])->name('admin.deletedReports.permanentDelete');
+    Route::delete('/admin/reports/permanent-delete-all', [AdminController::class, 'permanentDeleteAllReports'])->name('admin.deletedReports.permanentDeleteAll');
 
     // Archive concerns (admin can archive any concern)
     Route::post('/admin/concerns/{id}/archive', [AdminController::class, 'archiveConcern'])->name('admin.concerns.archive');

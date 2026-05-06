@@ -764,7 +764,7 @@ class AdminController extends Controller
             $days = $request->get('days', $user->reports_auto_delete_days ?? 15);
 
             $deletedReports = Report::where('is_deleted', true)
-                ->where('deleted_at', '<=', now()->subDays($days))
+                ->where('updated_at', '>=', now()->subDays($days))
                 ->with(['user', 'category', 'deletedBy'])
                 ->orderBy('updated_at', 'desc')
                 ->get();
@@ -870,17 +870,15 @@ class AdminController extends Controller
             $chartStatuses = $statusStats->pluck('status')->toArray();
             $chartStatusCounts = $statusStats->pluck('count')->toArray();
 
-            // Per-issue monthly trend - last 6 months
-            $monthlyStats = Concern::where('status', 'Resolved')
-                ->whereNotNull('title')
-                ->where('title', '!=', '')
-                ->where('created_at', '>=', now()->subMonths(6))
+            // Per-issue monthly trend - last 6 months (with status breakdown)
+            $monthlyStats = Concern::where('created_at', '>=', now()->subMonths(6))
                 ->when($request->filled('date_from'), fn($q) => $q->whereDate('created_at', '>=', $request->input('date_from')))
                 ->when($request->filled('date_to'),   fn($q) => $q->whereDate('created_at', '<=', $request->input('date_to')))
                 ->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month")
-                ->selectRaw('title')
-                ->selectRaw('COUNT(*) as total_count')
-                ->groupBy('month', 'title')
+                ->selectRaw("COALESCE(NULLIF(title, ''), LEFT(description, 50)) as title")
+                ->selectRaw('status')
+                ->selectRaw('COUNT(*) as count')
+                ->groupByRaw("month, COALESCE(NULLIF(title, ''), LEFT(description, 50)), status")
                 ->orderBy('month')
                 ->get();
 
@@ -1208,15 +1206,13 @@ class AdminController extends Controller
                 ->orderBy('total_count', 'desc')
                 ->get();
 
-            // Per-issue monthly trend - last 6 months
-            $monthlyStats = Concern::where('status', 'Resolved')
-                ->whereNotNull('title')
-                ->where('title', '!=', '')
-                ->where('created_at', '>=', now()->subMonths(6))
+            // Per-issue monthly trend - last 6 months (with status breakdown)
+            $monthlyStats = Concern::where('created_at', '>=', now()->subMonths(6))
                 ->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month")
-                ->selectRaw('title')
-                ->selectRaw('COUNT(*) as total_count')
-                ->groupBy('month', 'title')
+                ->selectRaw("COALESCE(NULLIF(title, ''), LEFT(description, 50)) as title")
+                ->selectRaw('status')
+                ->selectRaw('COUNT(*) as count')
+                ->groupByRaw("month, COALESCE(NULLIF(title, ''), LEFT(description, 50)), status")
                 ->orderBy('month')
                 ->get();
 
@@ -4203,9 +4199,7 @@ class AdminController extends Controller
         $chartStatusCounts = $statusStats->pluck('count')->toArray();
 
         // Monthly stats - apply same filters
-        $monthlyQuery = Report::query()
-            ->whereNotNull('title')
-            ->where('title', '!=', '');
+        $monthlyQuery = Report::query();
         
         // Apply same period filters
         if ($period === 'monthly' && $request->filled('month') && $request->filled('year')) {
@@ -4266,9 +4260,10 @@ class AdminController extends Controller
         }
         
         $monthlyStats = $monthlyQuery->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month")
-            ->selectRaw('title')
-            ->selectRaw('COUNT(*) as total_count')
-            ->groupBy('month', 'title')
+            ->selectRaw("COALESCE(NULLIF(title, ''), LEFT(description, 50)) as title")
+            ->selectRaw('status')
+            ->selectRaw('COUNT(*) as count')
+            ->groupByRaw("month, COALESCE(NULLIF(title, ''), LEFT(description, 50)), status")
             ->orderBy('month')
             ->get();
 
@@ -4359,7 +4354,8 @@ class AdminController extends Controller
                 'monthlyStats' => $monthlyStats->map(fn($s) => [
                     'month' => $s->month,
                     'title' => $s->title,
-                    'count' => $s->total_count
+                    'status' => $s->status,
+                    'count' => $s->count
                 ])->values(),
                 'monthlyCostData' => $monthlyCostData->map(fn($s) => [
                     'month' => $s->month,
