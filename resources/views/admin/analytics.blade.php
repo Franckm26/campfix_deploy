@@ -65,11 +65,15 @@
 }
 
 .swal2-popup .table th {
-    padding: 0.75rem !important;
+    padding: 0.7rem 0.5rem !important;
+    font-size: 0.9rem !important;
 }
 
 .swal2-popup .table td {
-    padding: 0.6rem !important;
+    padding: 0.6rem 0.5rem !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    font-size: 0.9rem !important;
 }
 
 .swal2-popup .card {
@@ -271,8 +275,9 @@
     background: #28a745;
     color: white;
     padding: 4px 10px;
-    border-radius: 15px;
-    font-size: 0.85rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    white-space: nowrap;
 }
 
 .count-badge {
@@ -327,44 +332,68 @@
         </div>
     </div>
 
-    <!-- Export Button and Date Range Filter -->
+    <!-- Export Button, Room Filter, and Date Range Filter -->
     <div class="mb-3 d-flex justify-content-between align-items-center">
-        <div class="dropdown">
-            <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="mainAnalyticsRangeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="fas fa-calendar-alt me-2"></i>
-                <span id="mainAnalyticsRangeLabel">
-                    @if(request('date_from') && request('date_to'))
-                        {{ \Carbon\Carbon::parse(request('date_from'))->format('M d, Y') }} - {{ \Carbon\Carbon::parse(request('date_to'))->format('M d, Y') }}
-                    @elseif(request('period') == 'monthly' && request('month') && request('year'))
-                        {{ \Carbon\Carbon::create()->month(request('month'))->format('F') }} {{ request('year') }}
-                    @elseif(request('period') == 'yearly' && request('year'))
-                        Year {{ request('year') }}
-                    @else
-                        All Time
-                    @endif
-                </span>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-start" aria-labelledby="mainAnalyticsRangeDropdown" style="min-width: 250px;">
-                <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRange('last7days', event)">Last 7 days</a></li>
-                <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRange('last28days', event)">Last 28 days</a></li>
-                <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRange('last90days', event)">Last 90 days</a></li>
-                <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRange('last6months', event)">Last 6 months</a></li>
-                <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRange('last12months', event)">Last 12 months</a></li>
-                <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRange('thisyear', event)">This year</a></li>
-                <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRange('lastyear', event)">Last year</a></li>
-                <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRange('alltime', event)">All time</a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li class="px-3 py-2">
-                    <label class="form-label mb-1" style="font-size: 0.85rem; font-weight: 600;">Custom Range</label>
-                    <div class="mb-2">
-                        <input type="date" id="mainAnalyticsCustomDateFrom" class="form-control form-control-sm" style="font-size: 0.85rem;">
-                    </div>
-                    <div class="mb-2">
-                        <input type="date" id="mainAnalyticsCustomDateTo" class="form-control form-control-sm" style="font-size: 0.85rem;">
-                    </div>
-                    <button class="btn btn-primary btn-sm w-100" onclick="applyMainAnalyticsCustomRange(event)" style="font-size: 0.85rem;">Apply</button>
-                </li>
-            </ul>
+        <div class="d-flex gap-2">
+            <!-- Room Filter -->
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="mainAnalyticsRoomDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-door-open me-2"></i>
+                    <span id="mainAnalyticsRoomLabel">
+                        @if(request('room_filter'))
+                            {{ request('room_filter') }}
+                        @else
+                            All Rooms
+                        @endif
+                    </span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-start" aria-labelledby="mainAnalyticsRoomDropdown" style="max-height: 300px; overflow-y: auto;">
+                    <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRoom('all', event)">All Rooms</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    @foreach($combinedLocationStats ?? [] as $stat)
+                    <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRoom('{{ addslashes($stat['location']) }}', event)">{{ $stat['location'] }}</a></li>
+                    @endforeach
+                </ul>
+            </div>
+            
+            <!-- Date Range Filter -->
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="mainAnalyticsRangeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-calendar-alt me-2"></i>
+                    <span id="mainAnalyticsRangeLabel">
+                        @if(request('date_from') && request('date_to'))
+                            {{ \Carbon\Carbon::parse(request('date_from'))->format('M d, Y') }} - {{ \Carbon\Carbon::parse(request('date_to'))->format('M d, Y') }}
+                        @elseif(request('period') == 'monthly' && request('month') && request('year'))
+                            {{ \Carbon\Carbon::create()->month(request('month'))->format('F') }} {{ request('year') }}
+                        @elseif(request('period') == 'yearly' && request('year'))
+                            Year {{ request('year') }}
+                        @else
+                            All Time
+                        @endif
+                    </span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-start" aria-labelledby="mainAnalyticsRangeDropdown" style="min-width: 250px;">
+                    <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRange('last7days', event)">Last 7 days</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRange('last28days', event)">Last 28 days</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRange('last90days', event)">Last 90 days</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRange('last6months', event)">Last 6 months</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRange('last12months', event)">Last 12 months</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRange('thisyear', event)">This year</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRange('lastyear', event)">Last year</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRange('alltime', event)">All time</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li class="px-3 py-2">
+                        <label class="form-label mb-1" style="font-size: 0.85rem; font-weight: 600;">Custom Range</label>
+                        <div class="mb-2">
+                            <input type="date" id="mainAnalyticsCustomDateFrom" class="form-control form-control-sm" style="font-size: 0.85rem;">
+                        </div>
+                        <div class="mb-2">
+                            <input type="date" id="mainAnalyticsCustomDateTo" class="form-control form-control-sm" style="font-size: 0.85rem;">
+                        </div>
+                        <button class="btn btn-primary btn-sm w-100" onclick="applyMainAnalyticsCustomRange(event)" style="font-size: 0.85rem;">Apply</button>
+                    </li>
+                </ul>
+            </div>
         </div>
         <a href="{{ route('admin.analytics.export-pdf') }}?{{ http_build_query(request()->all()) }}" class="btn btn-danger" target="_blank">
             <i class="fas fa-file-pdf"></i> Export to PDF
@@ -372,6 +401,24 @@
     </div>
 
     <script>
+    // Main Analytics Room Filter Function
+    window.setMainAnalyticsRoom = function(room, event) {
+        if (event) event.preventDefault();
+        
+        var url = new URL(window.location.href);
+        
+        if (room === 'all') {
+            // Remove room filter
+            url.searchParams.delete('room_filter');
+        } else {
+            // Set room filter
+            url.searchParams.set('room_filter', room);
+        }
+        
+        // Reload the page with new parameters
+        window.location.href = url.toString();
+    };
+    
     // Main Analytics Date Range Functions
     window.setMainAnalyticsRange = function(range, event) {
         if (event) event.preventDefault();
@@ -390,7 +437,7 @@
         url.searchParams.delete('date_to');
         
         if (range === 'alltime') {
-            // No parameters needed for all time
+            // No parameters needed for all time - reload page without date filters
             window.location.href = url.toString();
             return;
         }
@@ -438,6 +485,7 @@
         url.searchParams.set('date_from', dateFromStr);
         url.searchParams.set('date_to', dateToStr);
         
+        // Reload the page with new parameters
         window.location.href = url.toString();
     };
     
@@ -482,7 +530,7 @@
             <div class="analytics-card">
                 <div class="analytics-header">
                     <div class="analytics-title">
-                        <i class="fas fa-chart-pie"></i> Repairs by Location
+                        <i class="fas fa-chart-pie"></i> Repairs Breakdown
                         <small class="text-muted" style="font-size: 0.7rem; font-weight: normal;">(Click for details)</small>
                     </div>
                     <div class="analytics-actions">
@@ -499,6 +547,7 @@
                                 <li><a class="dropdown-item" href="#" onclick="setLocationRange('last12months', event)">Last 12 months</a></li>
                                 <li><a class="dropdown-item" href="#" onclick="setLocationRange('thisyear', event)">This year</a></li>
                                 <li><a class="dropdown-item" href="#" onclick="setLocationRange('lastyear', event)">Last year</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setLocationRange('alltime', event)">All time</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li class="px-3 py-2">
                                     <label class="form-label mb-1" style="font-size: 0.75rem; font-weight: 600;">Custom Range</label>
@@ -514,6 +563,25 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- Category Breakdown Metrics -->
+                <div class="row mb-3">
+                    @php
+                        $topCategories = $costByCategory->take(3);
+                    @endphp
+                    @foreach($topCategories as $index => $category)
+                    <div class="col-4">
+                        <div class="text-center p-2" style="background: {{ ['#f0f4ff', '#fff8f0', '#f0fff4'][$index] }}; border-radius: 8px; border-left: 3px solid {{ ['#667eea', '#f39c12', '#27ae60'][$index] }};">
+                            <div style="font-size: 0.7rem; color: #666; margin-bottom: 4px;">{{ $category['category'] }}</div>
+                            <div style="font-size: 1.1rem; font-weight: bold; color: {{ ['#667eea', '#f39c12', '#27ae60'][$index] }};">
+                                ₱{{ number_format($category['total_cost'], 0) }}
+                            </div>
+                            <div style="font-size: 0.65rem; color: #888;">{{ $category['count'] }} tickets • {{ number_format($category['percentage'], 1) }}%</div>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+                
                 <div class="chart-container" style="cursor: pointer;" onclick="showLocationDetailsModal()">
                     <canvas id="locationPieChart"></canvas>
                 </div>
@@ -540,6 +608,7 @@
                                 <li><a class="dropdown-item" href="#" onclick="setPeriodRange('last12months', event)">Last 12 months</a></li>
                                 <li><a class="dropdown-item" href="#" onclick="setPeriodRange('thisyear', event)">This year</a></li>
                                 <li><a class="dropdown-item" href="#" onclick="setPeriodRange('lastyear', event)">Last year</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setPeriodRange('allyears', event)">All years</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li class="px-3 py-2">
                                     <label class="form-label mb-1" style="font-size: 0.75rem; font-weight: 600;">Custom Range</label>
@@ -568,7 +637,7 @@
             <div class="analytics-card">
                 <div class="analytics-header">
                     <div class="analytics-title">
-                        <i class="fas fa-chart-pie"></i> Status Distribution
+                        <i class="fas fa-chart-pie"></i> Status Distribution & Response Time
                         <small class="text-muted" style="font-size: 0.7rem; font-weight: normal;">(Click for details)</small>
                     </div>
                     <div class="analytics-actions">
@@ -585,6 +654,7 @@
                                 <li><a class="dropdown-item" href="#" onclick="setStatusRange('last12months', event)">Last 12 months</a></li>
                                 <li><a class="dropdown-item" href="#" onclick="setStatusRange('thisyear', event)">This year</a></li>
                                 <li><a class="dropdown-item" href="#" onclick="setStatusRange('lastyear', event)">Last year</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setStatusRange('alltime', event)">All time</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li class="px-3 py-2">
                                     <label class="form-label mb-1" style="font-size: 0.75rem; font-weight: 600;">Custom Range</label>
@@ -600,6 +670,53 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- Response Time Metrics -->
+                <div class="row mb-3">
+                    <div class="col-4">
+                        <div class="text-center p-2" style="background: #f0f7ff; border-radius: 8px; border-left: 3px solid #3498db;">
+                            <div style="font-size: 0.7rem; color: #666; margin-bottom: 4px;">Submit to Assign</div>
+                            <div style="font-size: 1.2rem; font-weight: bold; color: #3498db;">
+                                @php
+                                    $totalSeconds = floor($avgSubmittedToAssigned * 3600);
+                                    $hours = floor($totalSeconds / 3600);
+                                    $minutes = floor(($totalSeconds % 3600) / 60);
+                                    $seconds = $totalSeconds % 60;
+                                    echo sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
+                                @endphp
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="text-center p-2" style="background: #fff8f0; border-radius: 8px; border-left: 3px solid #f39c12;">
+                            <div style="font-size: 0.7rem; color: #666; margin-bottom: 4px;">Assign to Resolve</div>
+                            <div style="font-size: 1.2rem; font-weight: bold; color: #f39c12;">
+                                @php
+                                    $totalSeconds = floor($avgAssignedToResolved * 3600);
+                                    $hours = floor($totalSeconds / 3600);
+                                    $minutes = floor(($totalSeconds % 3600) / 60);
+                                    $seconds = $totalSeconds % 60;
+                                    echo sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
+                                @endphp
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="text-center p-2" style="background: #f0fff4; border-radius: 8px; border-left: 3px solid #27ae60;">
+                            <div style="font-size: 0.7rem; color: #666; margin-bottom: 4px;">Total Time</div>
+                            <div style="font-size: 1.2rem; font-weight: bold; color: #27ae60;">
+                                @php
+                                    $totalSeconds = floor($avgTotalTime * 3600);
+                                    $hours = floor($totalSeconds / 3600);
+                                    $minutes = floor(($totalSeconds % 3600) / 60);
+                                    $seconds = $totalSeconds % 60;
+                                    echo sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
+                                @endphp
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="chart-container" style="cursor: pointer;" onclick="showStatusDetailsModal()">
                     <canvas id="statusDoughnutChart"></canvas>
                 </div>
@@ -626,6 +743,7 @@
                                 <li><a class="dropdown-item" href="#" onclick="setTrendRange('last12months', event)">Last 12 months</a></li>
                                 <li><a class="dropdown-item" href="#" onclick="setTrendRange('thisyear', event)">This year</a></li>
                                 <li><a class="dropdown-item" href="#" onclick="setTrendRange('lastyear', event)">Last year</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setTrendRange('alltime', event)">All time</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li class="px-3 py-2">
                                     <label class="form-label mb-1" style="font-size: 0.75rem; font-weight: 600;">Custom Range</label>
@@ -654,8 +772,65 @@
             <div class="analytics-title">
                 <i class="fas fa-map-marker-alt"></i> Combined Cost by Location (All Tickets)
             </div>
+            <div class="analytics-actions d-flex gap-2">
+                <!-- Export PDF Button -->
+                <a href="{{ route('admin.analytics.combined-location-pdf') }}?{{ http_build_query(request()->all()) }}" 
+                   class="btn btn-sm btn-danger" target="_blank" style="font-size: 0.85rem;">
+                    <i class="fas fa-file-pdf me-1"></i> Export PDF
+                </a>
+                
+                <!-- Room Filter -->
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="locationTableRoomDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.85rem;">
+                        <i class="fas fa-door-open me-1"></i>
+                        <span id="locationTableRoomLabel">All Rooms</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="locationTableRoomDropdown" style="max-height: 300px; overflow-y: auto;">
+                        <li><a class="dropdown-item" href="#" onclick="filterLocationTable('all', event)">All Rooms</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        @foreach($combinedLocationStats ?? [] as $stat)
+                        <li><a class="dropdown-item" href="#" onclick="filterLocationTable('{{ addslashes($stat['location']) }}', event)">{{ $stat['location'] }}</a></li>
+                        @endforeach
+                    </ul>
+                </div>
+                
+                <!-- Date Range Filter -->
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="locationTableRangeDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.85rem;">
+                        <i class="fas fa-calendar-alt me-1"></i>
+                        <span id="locationTableRangeLabel">
+                            @if(request('date_from') && request('date_to'))
+                                {{ \Carbon\Carbon::parse(request('date_from'))->format('M d') }} - {{ \Carbon\Carbon::parse(request('date_to'))->format('M d, Y') }}
+                            @else
+                                All Time
+                            @endif
+                        </span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="locationTableRangeDropdown" style="min-width: 250px;">
+                        <li><a class="dropdown-item" href="#" onclick="setLocationTableRange('last7days', event)">Last 7 days</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setLocationTableRange('last28days', event)">Last 28 days</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setLocationTableRange('last90days', event)">Last 90 days</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setLocationTableRange('last6months', event)">Last 6 months</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setLocationTableRange('last12months', event)">Last 12 months</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setLocationTableRange('thisyear', event)">This year</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setLocationTableRange('lastyear', event)">Last year</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setLocationTableRange('alltime', event)">All time</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li class="px-3 py-2">
+                            <label class="form-label mb-1" style="font-size: 0.85rem; font-weight: 600;">Custom Range</label>
+                            <div class="mb-2">
+                                <input type="date" id="locationTableCustomDateFrom" class="form-control form-control-sm" style="font-size: 0.85rem;">
+                            </div>
+                            <div class="mb-2">
+                                <input type="date" id="locationTableCustomDateTo" class="form-control form-control-sm" style="font-size: 0.85rem;">
+                            </div>
+                            <button class="btn btn-primary btn-sm w-100" onclick="applyLocationTableCustomRange(event)" style="font-size: 0.85rem;">Apply</button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
         </div>
-        <table class="analytics-table">
+        <table class="analytics-table" id="locationCostTable">
             <thead>
                 <tr>
                     <th>Location</th>
@@ -666,8 +841,12 @@
             </thead>
             <tbody>
                 @forelse($combinedLocationStats ?? [] as $stat)
-                <tr>
-                    <td>{{ $stat['location'] }}</td>
+                <tr style="cursor: pointer; transition: all 0.2s;" 
+                    data-location="{{ $stat['location'] }}"
+                    onclick="showLocationTicketsModal('{{ addslashes($stat['location']) }}', {{ $stat['total_count'] }}, {{ $stat['total_cost'] }})"
+                    onmouseover="this.style.backgroundColor='#f0f4ff'"
+                    onmouseout="this.style.backgroundColor=''">
+                    <td><strong>{{ $stat['location'] }}</strong></td>
                     <td><span class="count-badge">{{ $stat['total_count'] }}</span></td>
                     <td><span class="cost-badge">₱{{ number_format($stat['total_cost'], 2) }}</span></td>
                     <td>₱{{ number_format($stat['total_count'] > 0 ? $stat['total_cost'] / $stat['total_count'] : 0, 2) }}</td>
@@ -679,44 +858,6 @@
                 @endforelse
             </tbody>
         </table>
-    </div>
-
-    <!-- Repair/Damage Details -->
-    <div class="analytics-card">
-        <div class="analytics-header">
-            <div class="analytics-title">
-                <i class="fas fa-list"></i> Reports Details
-            </div>
-        </div>
-        
-        @if($reports->count() > 0)
-        <div class="table-responsive">
-            <table class="analytics-table">
-                <thead>
-                    <tr>
-                        <th>Location</th>
-                        <th>Damage</th>
-                        <th>Date and Time Fixed</th>
-                        <th>Repair Cost</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($reports as $report)
-                    <tr>
-                        <td>{{ $report->location }}</td>
-                        <td>{{ $report->damaged_part ?? 'N/A' }}</td>
-                        <td>{{ $report->resolved_at ? \Carbon\Carbon::parse($report->resolved_at)->format('M d, Y g:i A') : 'Not Fixed' }}</td>
-                        <td><span class="cost-badge">₱{{ number_format($report->cost ?? 0, 2) }}</span></td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-        @else
-        <div class="alert-info">
-            <i class="fas fa-info-circle"></i> No reports with location and date fixed data found for the selected period.
-        </div>
-        @endif
     </div>
 
     <!-- ── TREND ALERTS ─────────────────────────────────────────────── -->
@@ -943,6 +1084,97 @@
             </div>
         </div>
     </div>
+
+    <!-- ========== ADVANCED ANALYTICS SECTION ========== -->
+    <div class="row mb-4 mt-5">
+        <div class="col-12">
+            <h3 style="color: #667eea; font-weight: 700; border-bottom: 3px solid #667eea; padding-bottom: 10px; margin-bottom: 30px;">
+                <i class="fas fa-chart-line"></i> Advanced Analytics
+            </h3>
+        </div>
+    </div>
+
+    <!-- Staff Performance Metrics -->
+    <div class="analytics-card">
+        <div class="analytics-header">
+            <div class="analytics-title">
+                <i class="fas fa-users"></i> Staff Performance Metrics
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Staff Member</th>
+                        <th class="text-center">Tickets Resolved</th>
+                        <th class="text-end">Total Cost</th>
+                        <th class="text-end">Avg Resolution Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($staffPerformance as $staff)
+                    <tr>
+                        <td><strong>{{ $staff['staff_name'] }}</strong></td>
+                        <td class="text-center">
+                            <span class="badge bg-success">{{ $staff['tickets_resolved'] }}</span>
+                        </td>
+                        <td class="text-end">PHP {{ number_format($staff['total_cost'], 2) }}</td>
+                        <td class="text-end">{{ $staff['avg_resolution_time'] }} hrs</td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="4" class="text-center text-muted">No data available</td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Cost Trend Analysis -->
+    <div class="analytics-card">
+        <div class="analytics-header">
+            <div class="analytics-title">
+                <i class="fas fa-chart-area"></i> Cost Trend Analysis (Last 6 Months)
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                <canvas id="costTrendChart" height="80"></canvas>
+            </div>
+        </div>
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Month</th>
+                                <th class="text-center">Tickets</th>
+                                <th class="text-end">Total Cost</th>
+                                <th class="text-end">Avg Cost</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($costTrendData as $trend)
+                            <tr>
+                                <td><strong>{{ $trend['month'] }}</strong></td>
+                                <td class="text-center">{{ $trend['count'] }}</td>
+                                <td class="text-end">PHP {{ number_format($trend['total_cost'], 2) }}</td>
+                                <td class="text-end">PHP {{ number_format($trend['avg_cost'], 2) }}</td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="4" class="text-center text-muted">No data available</td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 @endsection
 
@@ -956,9 +1188,14 @@
     window.chartCosts = {!! json_encode($chartCosts ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
     window.chartStatuses = {!! json_encode($chartStatuses ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
     window.chartStatusCounts = {!! json_encode($chartStatusCounts ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
+    window.statusReportIds = {!! json_encode($statusReportIds ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
     window.monthlyStats = {!! json_encode(isset($monthlyStats) ? $monthlyStats->map(fn($s) => ['month' => $s->month, 'title' => $s->title, 'status' => $s->status, 'count' => $s->count])->values() : [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
     window.monthlyCostData = {!! json_encode(isset($monthlyCostData) ? $monthlyCostData->map(fn($s) => ['month' => $s->month, 'count' => $s->count, 'total_cost' => $s->total_cost])->values() : [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
-    window.locationDetailedStats = {!! json_encode($locationStats ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
+    window.locationDetailedStats = {!! json_encode($locationStatsDetailed ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
+    window.responseTimeStats = {!! json_encode($responseTimeStats ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
+    window.avgSubmittedToAssigned = {{ $avgSubmittedToAssigned ?? 0 }};
+    window.avgAssignedToResolved = {{ $avgAssignedToResolved ?? 0 }};
+    window.avgTotalTime = {{ $avgTotalTime ?? 0 }};
 
     var locations = window.chartLocations;
     var counts    = {!! json_encode($chartCounts ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
@@ -973,9 +1210,18 @@
     function buildCharts() {
         if (typeof Chart === 'undefined') { setTimeout(buildCharts, 100); return; }
 
-        // Pie — Repairs by Location
+        // Pie — Repairs by Location (with Category metrics above)
         var pieEl = document.getElementById('locationPieChart');
         var locationPieChart = null;
+        
+        // Store category data globally for modal use
+        window.categoryData = {
+            categories: @json($costByCategory->pluck('category')),
+            counts: @json($costByCategory->pluck('count')),
+            costs: @json($costByCategory->pluck('total_cost')),
+            avgCosts: @json($costByCategory->pluck('avg_cost')),
+            percentages: @json($costByCategory->pluck('percentage'))
+        };
         
         function buildLocationChart(data) {
             if (!pieEl) return;
@@ -1059,7 +1305,8 @@
                 'last6months': 'Last 6 months',
                 'last12months': 'Last 12 months',
                 'thisyear': 'This year',
-                'lastyear': 'Last year'
+                'lastyear': 'Last year',
+                'alltime': 'All time'
             };
             
             document.getElementById('locationRangeLabel').textContent = labels[range] || range;
@@ -1100,6 +1347,11 @@
                 case 'lastyear':
                     dateFrom = new Date(today.getFullYear() - 1, 0, 1);
                     dateTo = new Date(today.getFullYear() - 1, 11, 31);
+                    break;
+                case 'alltime':
+                    // Get all data from the beginning (2020 or earliest data)
+                    dateFrom = new Date(2020, 0, 1);
+                    dateTo = today;
                     break;
             }
             
@@ -1160,7 +1412,7 @@
                 window.chartStatusCounts = data.chartStatusCounts || [];
                 window.monthlyStats = data.monthlyStats || [];
                 window.monthlyCostData = data.monthlyCostData || [];
-                window.locationDetailedStats = data.locationStats || [];
+                window.locationDetailedStats = data.locationStatsDetailed || [];
                 
                 if (chartType === 'location') {
                     buildLocationChart(data);
@@ -1193,7 +1445,9 @@
                 'last6months': 'Last 6 months',
                 'last12months': 'Last 12 months',
                 'thisyear': 'This year',
-                'lastyear': 'Last year'
+                'lastyear': 'Last year',
+                'allyears': 'All years',
+                'alltime': 'All time'
             };
             
             document.getElementById('periodRangeLabel').textContent = labels[range] || range;
@@ -1235,6 +1489,16 @@
                 case 'lastyear':
                     dateFrom = new Date(today.getFullYear() - 1, 0, 1);
                     dateTo = new Date(today.getFullYear() - 1, 11, 31);
+                    break;
+                case 'allyears':
+                    // Get all data from the beginning (2020 or earliest data)
+                    dateFrom = new Date(2020, 0, 1);
+                    dateTo = today;
+                    break;
+                case 'alltime':
+                    // Get all data from the beginning (2020 or earliest data)
+                    dateFrom = new Date(2020, 0, 1);
+                    dateTo = today;
                     break;
             }
             
@@ -1310,35 +1574,62 @@
         function buildPeriodComparisonChart(monthlyCostData, dateFrom, dateTo) {
             if (!periodComparisonEl) return;
             
-            // Generate month labels between dateFrom and dateTo
-            var monthLabels = [];
-            var monthKeys = [];
-            var monthCosts = [];
-            var monthCounts = [];
+            // Check if we're in "All years" mode (range spans multiple years)
+            var yearSpan = dateTo.getFullYear() - dateFrom.getFullYear();
+            var isAllYears = currentPeriodRange === 'allyears' || yearSpan > 2;
             
-            var currentMonth = new Date(dateFrom.getFullYear(), dateFrom.getMonth(), 1);
-            var endMonth = new Date(dateTo.getFullYear(), dateTo.getMonth(), 1);
+            var labels = [];
+            var keys = [];
+            var costs = [];
+            var counts = [];
             
-            while (currentMonth <= endMonth) {
-                var monthKey = currentMonth.toISOString().slice(0, 7); // YYYY-MM
-                var monthLabel = currentMonth.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+            if (isAllYears) {
+                // Group by year for "All years" view
+                var startYear = dateFrom.getFullYear();
+                var endYear = dateTo.getFullYear();
                 
-                monthKeys.push(monthKey);
-                monthLabels.push(monthLabel);
-                monthCosts.push(0);
-                monthCounts.push(0);
-                
-                currentMonth.setMonth(currentMonth.getMonth() + 1);
-            }
-            
-            // Populate data
-            monthlyCostData.forEach(function(item) {
-                var monthIndex = monthKeys.indexOf(item.month);
-                if (monthIndex !== -1) {
-                    monthCosts[monthIndex] = parseFloat(item.total_cost) || 0;
-                    monthCounts[monthIndex] = parseInt(item.count) || 0;
+                for (var year = startYear; year <= endYear; year++) {
+                    keys.push(year.toString());
+                    labels.push(year.toString());
+                    costs.push(0);
+                    counts.push(0);
                 }
-            });
+                
+                // Aggregate monthly data into yearly data
+                monthlyCostData.forEach(function(item) {
+                    var itemYear = item.month.substring(0, 4); // Extract year from YYYY-MM
+                    var yearIndex = keys.indexOf(itemYear);
+                    if (yearIndex !== -1) {
+                        costs[yearIndex] += parseFloat(item.total_cost) || 0;
+                        counts[yearIndex] += parseInt(item.count) || 0;
+                    }
+                });
+            } else {
+                // Group by month for other views
+                var currentMonth = new Date(dateFrom.getFullYear(), dateFrom.getMonth(), 1);
+                var endMonth = new Date(dateTo.getFullYear(), dateTo.getMonth(), 1);
+                
+                while (currentMonth <= endMonth) {
+                    var monthKey = currentMonth.toISOString().slice(0, 7); // YYYY-MM
+                    var monthLabel = currentMonth.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                    
+                    keys.push(monthKey);
+                    labels.push(monthLabel);
+                    costs.push(0);
+                    counts.push(0);
+                    
+                    currentMonth.setMonth(currentMonth.getMonth() + 1);
+                }
+                
+                // Populate data
+                monthlyCostData.forEach(function(item) {
+                    var monthIndex = keys.indexOf(item.month);
+                    if (monthIndex !== -1) {
+                        costs[monthIndex] = parseFloat(item.total_cost) || 0;
+                        counts[monthIndex] = parseInt(item.count) || 0;
+                    }
+                });
+            }
             
             // Destroy existing chart
             if (periodComparisonChart) {
@@ -1349,10 +1640,10 @@
             periodComparisonChart = new Chart(periodComparisonEl, {
                 type: 'bar',
                 data: {
-                    labels: monthLabels,
+                    labels: labels,
                     datasets: [{
                         label: 'Total Cost (₱)',
-                        data: monthCosts,
+                        data: costs,
                         backgroundColor: '#36A2EB',
                         borderWidth: 1
                     }]
@@ -1378,7 +1669,7 @@
                                 },
                                 label: function(context) {
                                     var value = context.parsed.y || 0;
-                                    var repairs = monthCounts[context.dataIndex] || 0;
+                                    var repairs = counts[context.dataIndex] || 0;
                                     var avgCost = repairs > 0 ? (value / repairs) : 0;
                                     return [
                                         'Total Cost: ₱' + value.toLocaleString('en-PH', {minimumFractionDigits: 2}),
@@ -1398,10 +1689,25 @@
             });
         }
         
-        // Initialize with default range (last 6 months)
-        if (periodComparisonEl) {
-            window.setPeriodRange('last6months');
-        }
+        // Initialize Period Comparison chart on page load
+        // Determine the date range from URL parameters or use default (all time)
+        (function() {
+            var urlParams = new URLSearchParams(window.location.search);
+            var dateFrom = urlParams.get('date_from');
+            var dateTo = urlParams.get('date_to');
+            
+            if (dateFrom && dateTo) {
+                // Use the date range from URL
+                var fromDate = new Date(dateFrom);
+                var toDate = new Date(dateTo);
+                updatePeriodComparisonChart(fromDate, toDate);
+            } else {
+                // No date filter = All time (from 2020 to now)
+                var today = new Date();
+                var allTimeFrom = new Date(2020, 0, 1);
+                updatePeriodComparisonChart(allTimeFrom, today);
+            }
+        })();
 
         // Doughnut — Status Distribution
         var doughEl = document.getElementById('statusDoughnutChart');
@@ -1477,7 +1783,8 @@
                 'last6months': 'Last 6 months',
                 'last12months': 'Last 12 months',
                 'thisyear': 'This year',
-                'lastyear': 'Last year'
+                'lastyear': 'Last year',
+                'alltime': 'All time'
             };
             
             document.getElementById('statusRangeLabel').textContent = labels[range] || range;
@@ -1518,6 +1825,11 @@
                 case 'lastyear':
                     dateFrom = new Date(today.getFullYear() - 1, 0, 1);
                     dateTo = new Date(today.getFullYear() - 1, 11, 31);
+                    break;
+                case 'alltime':
+                    // Get all data from the beginning (2020 or earliest data)
+                    dateFrom = new Date(2020, 0, 1);
+                    dateTo = today;
                     break;
             }
             
@@ -1725,7 +2037,8 @@
                 'last6months': 'Last 6 months',
                 'last12months': 'Last 12 months',
                 'thisyear': 'This year',
-                'lastyear': 'Last year'
+                'lastyear': 'Last year',
+                'alltime': 'All time'
             };
             
             document.getElementById('trendRangeLabel').textContent = labels[range] || range;
@@ -1767,6 +2080,11 @@
                     dateFrom = new Date(today.getFullYear() - 1, 0, 1);
                     dateTo = new Date(today.getFullYear() - 1, 11, 31);
                     break;
+                case 'alltime':
+                    // Get all data from the beginning (2020 or earliest data)
+                    dateFrom = new Date(2020, 0, 1);
+                    dateTo = today;
+                    break;
             }
             
             fetchAndUpdateChart('trend', dateFrom, dateTo);
@@ -1803,6 +2121,34 @@
         };
     }
     buildCharts();
+    
+    // Sync individual chart filters with the main filter on page load
+    // This reads the URL parameters and sets all chart filters accordingly
+    (function() {
+        var urlParams = new URLSearchParams(window.location.search);
+        var dateFrom = urlParams.get('date_from');
+        var dateTo = urlParams.get('date_to');
+        
+        if (dateFrom && dateTo) {
+            // Custom date range - update all chart labels
+            var fromDate = new Date(dateFrom);
+            var toDate = new Date(dateTo);
+            var fromStr = fromDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            var toStr = toDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            var rangeLabel = fromStr + ' - ' + toStr;
+            
+            document.getElementById('locationRangeLabel').textContent = rangeLabel;
+            document.getElementById('periodRangeLabel').textContent = rangeLabel;
+            document.getElementById('statusRangeLabel').textContent = rangeLabel;
+            document.getElementById('trendRangeLabel').textContent = rangeLabel;
+        } else {
+            // No date filter = All time
+            document.getElementById('locationRangeLabel').textContent = 'All time';
+            document.getElementById('periodRangeLabel').textContent = 'All time';
+            document.getElementById('statusRangeLabel').textContent = 'All time';
+            document.getElementById('trendRangeLabel').textContent = 'All time';
+        }
+    })();
 })();
 
 // Show Cost Trend Modal function
@@ -1841,6 +2187,540 @@ function showCostTrendModal(alert) {
     new bootstrap.Modal(document.getElementById('costTrendModal')).show();
 }
 
+// Show Location Tickets Modal function
+function showLocationTicketsModal(location, totalCount, totalCost) {
+    // Show loading state
+    Swal.fire({
+        title: 'Loading...',
+        html: 'Fetching ticket details...',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+    
+    // Build URL with current filters
+    const urlParams = new URLSearchParams(window.location.search);
+    urlParams.set('location_filter', location);
+    urlParams.set('ajax', '1');
+    
+    const baseUrl = '{{ route("admin.analytics") }}';
+    const fetchUrl = baseUrl + '?' + urlParams.toString();
+    
+    // Fetch tickets for this location via AJAX
+    fetch(fetchUrl)
+        .then(response => {
+            console.log('Response status:', response.status);
+            console.log('Fetch URL:', fetchUrl);
+            if (!response.ok) {
+                throw new Error('HTTP error! status: ' + response.status);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Received data:', data);
+            console.log('Tickets count:', data.tickets ? data.tickets.length : 0);
+            console.log('Debug info:', data.debug);
+            
+            const tickets = data.tickets || [];
+            
+            let tableRows = '';
+            if (tickets.length > 0) {
+                console.log('First ticket:', tickets[0]);
+                tickets.forEach(ticket => {
+                    // Handle different status formats
+                    const status = (ticket.status || '').toLowerCase();
+                    const statusBadge = status === 'resolved' 
+                        ? '<span class="badge bg-success">Resolved</span>' 
+                        : status === 'in_progress' || status === 'in progress'
+                        ? '<span class="badge bg-warning">In Progress</span>'
+                        : status === 'pending'
+                        ? '<span class="badge bg-secondary">Pending</span>'
+                        : '<span class="badge bg-info">' + ticket.status + '</span>';
+                    
+                    const cost = ticket.cost ? '₱' + parseFloat(ticket.cost).toLocaleString('en-PH', {minimumFractionDigits:2}) : 'N/A';
+                    const resolvedDate = ticket.resolved_at 
+                        ? new Date(ticket.resolved_at).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'})
+                        : 'Not Fixed';
+                    
+                    const damagePart = ticket.damaged_part || 'N/A';
+                    const issue = ticket.title || 'N/A';
+                    // Format ticket ID with leading zeros (e.g., #0019)
+                    const ticketId = ticket.id ? '#' + String(ticket.id).padStart(4, '0') : 'N/A';
+                    
+                    tableRows += '<tr>' +
+                        '<td class="text-center" style="width: 80px; font-size: 0.85rem;"><strong>' + ticketId + '</strong></td>' +
+                        '<td style="width: 150px; font-size: 0.9rem;">' + damagePart + '</td>' +
+                        '<td style="width: 180px; font-size: 0.9rem;">' + issue + '</td>' +
+                        '<td class="text-center" style="width: 100px;">' + statusBadge + '</td>' +
+                        '<td class="text-center" style="width: 150px; font-size: 0.85rem;">' + resolvedDate + '</td>' +
+                        '<td class="text-end" style="width: 110px;"><span class="cost-badge">' + cost + '</span></td>' +
+                        '</tr>';
+                });
+            } else {
+                tableRows = '<tr><td colspan="6" class="text-center text-muted">No tickets found for this location</td></tr>';
+            }
+            
+            const avgCost = totalCount > 0 ? (totalCost / totalCount).toFixed(2) : '0.00';
+            
+            Swal.fire({
+                title: '<i class="fas fa-map-marker-alt me-2"></i>' + location,
+                html: '<div style="text-align: left;">' +
+                    '<div class="row mb-4">' +
+                        '<div class="col-4">' +
+                            '<div class="card border-primary">' +
+                                '<div class="card-body text-center">' +
+                                    '<h3 class="text-primary mb-0">' + totalCount + '</h3>' +
+                                    '<small class="text-muted">Total Tickets</small>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="col-4">' +
+                            '<div class="card border-success">' +
+                                '<div class="card-body text-center">' +
+                                    '<h3 class="text-success mb-0">₱' + parseFloat(totalCost).toLocaleString('en-PH', {minimumFractionDigits:2}) + '</h3>' +
+                                    '<small class="text-muted">Total Cost</small>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="col-4">' +
+                            '<div class="card border-info">' +
+                                '<div class="card-body text-center">' +
+                                    '<h3 class="text-info mb-0">₱' + parseFloat(avgCost).toLocaleString('en-PH', {minimumFractionDigits:2}) + '</h3>' +
+                                    '<small class="text-muted">Avg per Ticket</small>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<h5 class="mb-3"><i class="fas fa-list me-2"></i>Ticket Details</h5>' +
+                    '<div class="table-responsive" style="max-height: 400px; overflow-y: auto;">' +
+                        '<table class="table table-hover table-sm" style="table-layout: fixed; width: 100%;">' +
+                            '<thead class="table-light sticky-top">' +
+                                '<tr>' +
+                                    '<th class="text-center" style="width: 80px; font-size: 0.85rem;">Ticket #</th>' +
+                                    '<th style="width: 150px; font-size: 0.9rem;">Damaged Part</th>' +
+                                    '<th style="width: 180px; font-size: 0.9rem;">Issue</th>' +
+                                    '<th class="text-center" style="width: 100px; font-size: 0.9rem;">Status</th>' +
+                                    '<th class="text-center" style="width: 150px; font-size: 0.85rem;">Date Fixed</th>' +
+                                    '<th class="text-end" style="width: 110px; font-size: 0.9rem;">Cost</th>' +
+                                '</tr>' +
+                            '</thead>' +
+                            '<tbody>' +
+                                tableRows +
+                            '</tbody>' +
+                        '</table>' +
+                    '</div>' +
+                '</div>',
+                width: '900px',
+                showCloseButton: true,
+                showConfirmButton: false,
+                customClass: {
+                    popup: 'swal-wide-popup',
+                    container: 'swal-analytics-modal'
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching location tickets:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to load ticket details. Please try again.',
+                confirmButtonColor: '#667eea'
+            });
+        });
+}
+
+// Location Table Filter Functions
+function filterLocationTable(room, event) {
+    if (event) event.preventDefault();
+    
+    const table = document.getElementById('locationCostTable');
+    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+    
+    // Update label
+    document.getElementById('locationTableRoomLabel').textContent = room === 'all' ? 'All Rooms' : room;
+    
+    // Filter rows
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const location = row.getAttribute('data-location');
+        
+        if (room === 'all' || location === room) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    }
+}
+
+function setLocationTableRange(range, event) {
+    if (event) event.preventDefault();
+    
+    const today = new Date();
+    let dateFrom, dateTo;
+    const url = new URL(window.location.href);
+    
+    // Clear existing date parameters
+    url.searchParams.delete('period');
+    url.searchParams.delete('month');
+    url.searchParams.delete('month_from');
+    url.searchParams.delete('month_to');
+    url.searchParams.delete('year');
+    url.searchParams.delete('date_from');
+    url.searchParams.delete('date_to');
+    
+    if (range === 'alltime') {
+        window.location.href = url.toString();
+        return;
+    }
+    
+    switch(range) {
+        case 'last7days':
+            dateFrom = new Date(today);
+            dateFrom.setDate(today.getDate() - 7);
+            dateTo = today;
+            break;
+        case 'last28days':
+            dateFrom = new Date(today);
+            dateFrom.setDate(today.getDate() - 28);
+            dateTo = today;
+            break;
+        case 'last90days':
+            dateFrom = new Date(today);
+            dateFrom.setDate(today.getDate() - 90);
+            dateTo = today;
+            break;
+        case 'last6months':
+            dateFrom = new Date(today);
+            dateFrom.setMonth(today.getMonth() - 6);
+            dateTo = today;
+            break;
+        case 'last12months':
+            dateFrom = new Date(today);
+            dateFrom.setMonth(today.getMonth() - 12);
+            dateTo = today;
+            break;
+        case 'thisyear':
+            dateFrom = new Date(today.getFullYear(), 0, 1);
+            dateTo = today;
+            break;
+        case 'lastyear':
+            dateFrom = new Date(today.getFullYear() - 1, 0, 1);
+            dateTo = new Date(today.getFullYear() - 1, 11, 31);
+            break;
+    }
+    
+    const dateFromStr = dateFrom.toISOString().split('T')[0];
+    const dateToStr = dateTo.toISOString().split('T')[0];
+    
+    url.searchParams.set('date_from', dateFromStr);
+    url.searchParams.set('date_to', dateToStr);
+    
+    window.location.href = url.toString();
+}
+
+function applyLocationTableCustomRange(event) {
+    if (event) event.preventDefault();
+    
+    const dateFromInput = document.getElementById('locationTableCustomDateFrom').value;
+    const dateToInput = document.getElementById('locationTableCustomDateTo').value;
+    
+    if (!dateFromInput || !dateToInput) {
+        alert('Please select both start and end dates');
+        return;
+    }
+    
+    const dateFrom = new Date(dateFromInput);
+    const dateTo = new Date(dateToInput);
+    
+    if (dateFrom > dateTo) {
+        alert('Start date must be before end date');
+        return;
+    }
+    
+    const url = new URL(window.location.href);
+    
+    // Clear existing date parameters
+    url.searchParams.delete('period');
+    url.searchParams.delete('month');
+    url.searchParams.delete('month_from');
+    url.searchParams.delete('month_to');
+    url.searchParams.delete('year');
+    
+    url.searchParams.set('date_from', dateFromInput);
+    url.searchParams.set('date_to', dateToInput);
+    
+    window.location.href = url.toString();
+}
+
 // Modal functions are now loaded from analytics-modals.js (SweetAlert2 versions)
+
+// ========== ADVANCED ANALYTICS CHARTS ==========
+
+// Cost Trend Chart
+const costTrendCtx = document.getElementById('costTrendChart');
+if (costTrendCtx) {
+    new Chart(costTrendCtx, {
+        type: 'line',
+        data: {
+            labels: {!! json_encode($costTrendData->pluck('month')) !!},
+            datasets: [
+                {
+                    label: 'Total Cost',
+                    data: {!! json_encode($costTrendData->pluck('total_cost')) !!},
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                },
+                {
+                    label: 'Ticket Count',
+                    data: {!! json_encode($costTrendData->pluck('count')) !!},
+                    borderColor: '#f39c12',
+                    backgroundColor: 'rgba(243, 156, 18, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    yAxisID: 'y1'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            plugins: {
+                legend: { position: 'top' }
+            },
+            scales: {
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: { display: true, text: 'Cost (PHP)' }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    title: { display: true, text: 'Ticket Count' },
+                    grid: { drawOnChartArea: false }
+                }
+            }
+        }
+    });
+}
+
+// Status Distribution & Response Time Modal
+function showStatusDetailsModal() {
+    const responseTimeData = @json($responseTimeStats);
+    
+    // Build response time table with timestamps and HH:MM:SS format
+    let responseTimeTable = '<div class="table-responsive mt-3"><table class="table table-sm table-hover" style="table-layout: fixed; width: 100%;"><thead class="table-light"><tr><th style="width: 140px;">Ticket / Issue</th><th style="width: 90px;">Location</th><th style="width: 130px;">Created</th><th style="width: 130px;">Assigned</th><th style="width: 130px;">Resolved</th><th style="width: 90px;">Submit to Assign</th><th style="width: 90px;">Assign to Resolve</th><th style="width: 70px;">Total</th><th style="width: 90px;">Staff</th></tr></thead><tbody>';
+    
+    responseTimeData.forEach(function(item) {
+        const ticketIssue = '#' + String(item.id).padStart(4, '0') + ' - ' + item.title;
+        responseTimeTable += '<tr>' +
+            '<td style="font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="' + ticketIssue + '">' + ticketIssue + '</td>' +
+            '<td style="font-size: 0.8rem;">' + item.location + '</td>' +
+            '<td style="font-size: 0.7rem;">' + item.created_at + '</td>' +
+            '<td style="font-size: 0.7rem;">' + item.assigned_at + '</td>' +
+            '<td style="font-size: 0.7rem;">' + item.resolved_at + '</td>' +
+            '<td style="font-size: 0.8rem;">' + item.submitted_to_assigned_formatted + '</td>' +
+            '<td style="font-size: 0.8rem;">' + item.assigned_to_resolved_formatted + '</td>' +
+            '<td style="font-size: 0.85rem;"><strong>' + item.total_time_formatted + '</strong></td>' +
+            '<td style="font-size: 0.8rem;">' + item.assigned_to_name + '</td>' +
+            '</tr>';
+    });
+    
+    responseTimeTable += '</tbody></table></div>';
+    
+    // Build status distribution table
+    const statuses = @json($chartStatuses);
+    const statusCounts = @json($chartStatusCounts);
+    const statusReportIds = @json($statusReportIds);
+    
+    console.log('Status Distribution Data:', { statuses, statusCounts, statusReportIds });
+    
+    // Define the desired order
+    const statusOrder = ['Pending', 'Assigned', 'In Progress', 'Resolved'];
+    const itemsPerPage = 5; // Show 5 tickets initially
+    
+    let statusTable = '<div class="table-responsive mt-3"><table class="table table-sm table-hover"><thead class="table-light"><tr><th>Status</th><th class="text-center">Count</th><th>Issue</th></tr></thead><tbody>';
+    
+    // Sort statuses according to the defined order
+    statusOrder.forEach(function(orderedStatus) {
+        const index = statuses.indexOf(orderedStatus);
+        if (index !== -1) {
+            const status = statuses[index];
+            const issuesString = statusReportIds[status] || 'N/A';
+            const issuesArray = issuesString.split(', ');
+            
+            let issuesList = '<div id="issues-' + status.replace(/\s+/g, '-') + '">';
+            
+            // Show first 5 items
+            issuesArray.slice(0, itemsPerPage).forEach(function(issue) {
+                issuesList += '<div style="padding: 2px 0; font-size: 0.85rem;">' + issue + '</div>';
+            });
+            
+            // Hidden items
+            if (issuesArray.length > itemsPerPage) {
+                issuesList += '<div id="hidden-issues-' + status.replace(/\s+/g, '-') + '" style="display: none;">';
+                issuesArray.slice(itemsPerPage).forEach(function(issue) {
+                    issuesList += '<div style="padding: 2px 0; font-size: 0.85rem;">' + issue + '</div>';
+                });
+                issuesList += '</div>';
+                
+                // Show More button
+                issuesList += '<button class="btn btn-sm btn-link p-0 mt-1" onclick="toggleIssues(\'' + status.replace(/\s+/g, '-') + '\')" id="toggle-btn-' + status.replace(/\s+/g, '-') + '" style="font-size: 0.8rem;">Show More (' + (issuesArray.length - itemsPerPage) + ')</button>';
+            }
+            
+            issuesList += '</div>';
+            
+            statusTable += '<tr>' +
+                '<td><strong>' + status + '</strong></td>' +
+                '<td class="text-center"><span class="badge bg-primary">' + statusCounts[index] + '</span></td>' +
+                '<td>' + issuesList + '</td>' +
+                '</tr>';
+        }
+    });
+    
+    statusTable += '</tbody></table></div>';
+    
+    // Add toggle function
+    window.toggleIssues = function(statusId) {
+        const hiddenDiv = document.getElementById('hidden-issues-' + statusId);
+        const toggleBtn = document.getElementById('toggle-btn-' + statusId);
+        
+        if (hiddenDiv.style.display === 'none') {
+            hiddenDiv.style.display = 'block';
+            toggleBtn.textContent = 'Show Less';
+        } else {
+            hiddenDiv.style.display = 'none';
+            const hiddenCount = hiddenDiv.querySelectorAll('div').length;
+            toggleBtn.textContent = 'Show More (' + hiddenCount + ')';
+        }
+    };
+    
+    // Export Status PDF function
+    window.exportStatusPDF = function() {
+        const url = new URL(window.location.href);
+        const dateFrom = url.searchParams.get('date_from');
+        const dateTo = url.searchParams.get('date_to');
+        
+        let pdfUrl = '{{ route("admin.analytics.status-pdf") }}';
+        const params = new URLSearchParams();
+        
+        if (dateFrom) params.append('date_from', dateFrom);
+        if (dateTo) params.append('date_to', dateTo);
+        
+        if (params.toString()) {
+            pdfUrl += '?' + params.toString();
+        }
+        
+        window.open(pdfUrl, '_blank');
+    };
+    
+    Swal.fire({
+        title: '<i class="fas fa-chart-pie me-2"></i>Status Distribution & Response Time Analysis',
+        html: `
+            <div style="height: 100%; overflow-y: auto;">
+                <div class="mb-3 p-3 bg-light border-bottom d-flex justify-content-between align-items-center gap-3">
+                    <div class="d-flex gap-2">
+                        <!-- Room Filter -->
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="statusModalRoomDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.9rem;">
+                                <i class="fas fa-door-open me-1"></i>
+                                <span id="statusModalRoomLabel">All Rooms</span>
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="statusModalRoomDropdown" style="max-height: 300px; overflow-y: auto;">
+                                <li><a class="dropdown-item" href="#" onclick="setModalRoomFilter('status', 'all', event)">All Rooms</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                @foreach($combinedLocationStats ?? [] as $stat)
+                                <li><a class="dropdown-item" href="#" onclick="setModalRoomFilter('status', '{{ addslashes($stat['location']) }}', event)">{{ $stat['location'] }}</a></li>
+                                @endforeach
+                            </ul>
+                        </div>
+                        
+                        <!-- Date Range Filter -->
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="statusModalRangeDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.9rem;">
+                                <i class="fas fa-calendar-alt me-1"></i>
+                                <span id="statusModalRangeLabel">Last 6 months</span>
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="statusModalRangeDropdown" style="min-width: 220px;">
+                                <li><a class="dropdown-item" href="#" onclick="setModalRange('status', 'last7days', event)">Last 7 days</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setModalRange('status', 'last28days', event)">Last 28 days</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setModalRange('status', 'last90days', event)">Last 90 days</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setModalRange('status', 'last6months', event)">Last 6 months</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setModalRange('status', 'last12months', event)">Last 12 months</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setModalRange('status', 'thisyear', event)">This year</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setModalRange('status', 'lastyear', event)">Last year</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setModalRange('status', 'allyears', event)">All years</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li class="px-3 py-2">
+                                    <label class="form-label mb-1" style="font-size: 0.75rem; font-weight: 600;">Custom Range</label>
+                                    <div class="mb-2">
+                                        <input type="date" id="statusModalCustomDateFrom" class="form-control form-control-sm" style="font-size: 0.75rem;">
+                                    </div>
+                                    <div class="mb-2">
+                                        <input type="date" id="statusModalCustomDateTo" class="form-control form-control-sm" style="font-size: 0.75rem;">
+                                    </div>
+                                    <button class="btn btn-primary btn-sm w-100" onclick="applyModalCustomRange('status', event)" style="font-size: 0.75rem;">Apply</button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <button onclick="exportStatusPDF()" class="btn btn-danger btn-sm" style="white-space: nowrap; font-size: 0.9rem;">
+                        <i class="fas fa-file-pdf me-1"></i>Export PDF
+                    </button>
+                </div>
+                <h5 class="mt-3 mb-3" style="color: #667eea;"><i class="fas fa-chart-pie"></i> Status Distribution</h5>
+                ` + statusTable + `
+                <h5 class="mt-4 mb-3" style="color: #667eea;"><i class="fas fa-clock"></i> Response Time Details</h5>
+                <div class="row mb-3">
+                    <div class="col-4 text-center">
+                        <div style="background: #f0f7ff; padding: 15px; border-radius: 8px; border-left: 3px solid #3498db;">
+                            <div style="font-size: 0.8rem; color: #666;">Avg Submit to Assign</div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #3498db;">
+                                @php
+                                    $totalSeconds = floor($avgSubmittedToAssigned * 3600);
+                                    $hours = floor($totalSeconds / 3600);
+                                    $minutes = floor(($totalSeconds % 3600) / 60);
+                                    $seconds = $totalSeconds % 60;
+                                    echo sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
+                                @endphp
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-4 text-center">
+                        <div style="background: #fff8f0; padding: 15px; border-radius: 8px; border-left: 3px solid #f39c12;">` +
+                        '<div style="font-size: 0.8rem; color: #666;">Avg Assign to Resolve</div>' +
+                        '<div style="font-size: 1.5rem; font-weight: bold; color: #f39c12;">@php $totalSeconds = floor($avgAssignedToResolved * 3600); $hours = floor($totalSeconds / 3600); $minutes = floor(($totalSeconds % 3600) / 60); $seconds = $totalSeconds % 60; echo sprintf("%02d:%02d:%02d", $hours, $minutes, $seconds); @endphp</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="col-4 text-center">' +
+                    '<div style="background: #f0fff4; padding: 15px; border-radius: 8px; border-left: 3px solid #27ae60;">' +
+                        '<div style="font-size: 0.8rem; color: #666;">Avg Total Time</div>' +
+                        '<div style="font-size: 1.5rem; font-weight: bold; color: #27ae60;">@php $totalSeconds = floor($avgTotalTime * 3600); $hours = floor($totalSeconds / 3600); $minutes = floor(($totalSeconds % 3600) / 60); $seconds = $totalSeconds % 60; echo sprintf("%02d:%02d:%02d", $hours, $minutes, $seconds); @endphp</div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>' +
+            responseTimeTable +
+            '</div>',
+        width: '95%',
+        showCloseButton: true,
+        showConfirmButton: false,
+        customClass: {
+            popup: 'swal-wide-popup',
+            htmlContainer: 'swal2-html-container'
+        }
+    });
+}
+
 </script>
 @endsection
+

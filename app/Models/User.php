@@ -179,9 +179,9 @@ class User extends Authenticatable implements JWTSubject
     {
         $map = [
             'mis' => [
-                'concerns', 'reports', 'events', 'users',
+                'concerns', 'events', 'users',
                 'users_create', 'users_archive', 'users_lock', 'users_unlock', 'users_edit', 'users_delete',
-                'module_access', 'categories', 'logs', 'analytics', 'mis_tasks', 'settings',
+                'module_access', 'categories', 'logs', 'mis_tasks', 'settings',
             ],
             'school_admin' => [
                 'concerns', 'reports', 'events', 'analytics', 'settings',

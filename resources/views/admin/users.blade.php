@@ -1105,24 +1105,28 @@
                         <span class="import-step-dot active" id="dot1">1</span>
                         <div class="flex-grow-1" style="height:2px;background:#dee2e6"></div>
                         <span class="import-step-dot" id="dot2">2</span>
-                        <div class="flex-grow-1" style="height:2px;background:#dee2e6"></div>
-                        <span class="import-step-dot" id="dot3">3</span>
                     </div>
 
                     {{-- Step 1: Role selection --}}
                     <div id="importStep1">
                         <p class="text-muted mb-3">Select the type of users you are importing:</p>
                         <div class="row g-3">
-                            <div class="col-6">
+                            <div class="col-4">
                                 <div class="import-role-card border rounded p-3 text-center" onclick="selectImportRole('student')" style="cursor:pointer;transition:all .2s">
                                     <i class="fas fa-user-graduate fa-2x text-primary mb-2"></i>
                                     <div class="fw-semibold">Student</div>
                                 </div>
                             </div>
-                            <div class="col-6">
+                            <div class="col-4">
                                 <div class="import-role-card border rounded p-3 text-center" onclick="selectImportRole('faculty')" style="cursor:pointer;transition:all .2s">
                                     <i class="fas fa-chalkboard-teacher fa-2x text-success mb-2"></i>
                                     <div class="fw-semibold">Faculty</div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="import-role-card border rounded p-3 text-center" onclick="selectImportRole('staff')" style="cursor:pointer;transition:all .2s">
+                                    <i class="fas fa-user-tie fa-2x text-info mb-2"></i>
+                                    <div class="fw-semibold">Staff</div>
                                 </div>
                             </div>
                         </div>
@@ -1147,10 +1151,15 @@
                         <div class="mb-3">
                             <label class="form-label fw-semibold">CSV / XLSX File</label>
                             <input type="file" name="file" id="importFileInput" class="form-control" accept=".csv,.txt,.xlsx" required>
+                            <small class="text-muted" id="staffImportNote" style="display:none">
+                                <i class="fas fa-info-circle text-info"></i> <strong>Staff Import:</strong> 
+                                If your CSV has a "STAFF" column (column 7), roles will be automatically assigned based on position 
+                                (MIS, School Administrator, Building Administrator, etc.).
+                            </small>
                         </div>
                         <div class="d-flex justify-content-end">
-                            <button type="button" class="btn btn-primary" onclick="importGoTo(3)">
-                                Next: Set Access <i class="fas fa-arrow-right ms-1"></i>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-upload me-1"></i> Import Users
                             </button>
                         </div>
                     </div>
@@ -1248,49 +1257,53 @@
 const importRoleDefaults = {
     student: ['concerns','settings'],
     faculty: ['events','concerns','settings'],
+    staff: ['events','concerns','settings'], // Default for staff, will be overridden by specific role
+    mis: ['concerns','events','users','users_create','users_archive','users_lock','users_unlock','users_edit','users_delete','module_access','categories','logs','mis_tasks','settings'],
+    school_admin: ['concerns','reports','events','analytics','settings'],
+    building_admin: ['concerns','reports','events','analytics','settings'],
+    academic_head: ['events','settings'],
+    program_head: ['events','settings'],
+    principal_assistant: ['events','settings'],
+    maintenance: ['reports','concerns','settings'],
 };
 
 function selectImportRole(role) {
     document.getElementById('importRoleInput').value = role;
     document.getElementById('importRoleLabel').textContent = role.charAt(0).toUpperCase() + role.slice(1);
-    document.getElementById('importRoleLabel').className = 'badge fs-6 ' + (role === 'student' ? 'bg-primary' : 'bg-success');
-    // Pre-apply role defaults to import permissions
-    applyImportRoleDefaults(role);
+    
+    // Set badge color based on role
+    let badgeClass = 'badge fs-6 ';
+    if (role === 'student') badgeClass += 'bg-primary';
+    else if (role === 'faculty') badgeClass += 'bg-success';
+    else if (role === 'staff') badgeClass += 'bg-info';
+    document.getElementById('importRoleLabel').className = badgeClass;
+    
+    // Show/hide staff import note
+    const staffImportNote = document.getElementById('staffImportNote');
+    if (staffImportNote) {
+        if (role === 'staff') {
+            staffImportNote.style.display = 'block';
+        } else {
+            staffImportNote.style.display = 'none';
+        }
+    }
+    
+    // Go to step 2
     importGoTo(2);
 }
 
-function applyImportRoleDefaults(role) {
-    const defaults = importRoleDefaults[role] || ['settings'];
-    document.querySelectorAll('#importModal input[name="import_permissions[]"]').forEach(cb => {
-        cb.checked = defaults.includes(cb.value);
-    });
-    // Show/hide sub-permission sections
-    toggleSubPerms('import', 'users', defaults.includes('users'));
-}
-
 function importGoTo(step) {
-    // Validate step 2 requires a file
-    if (step === 3) {
-        const fileInput = document.getElementById('importFileInput');
-        if (!fileInput || !fileInput.files.length) {
-            fileInput.classList.add('is-invalid');
-            fileInput.focus();
-            return;
-        }
-        fileInput.classList.remove('is-invalid');
-    }
-
     document.getElementById('importStep1').style.display = step === 1 ? 'block' : 'none';
     document.getElementById('importStep2').style.display = step === 2 ? 'block' : 'none';
-    document.getElementById('importStep3').style.display = step === 3 ? 'block' : 'none';
-    document.getElementById('importSubmitBtn').style.display = step === 3 ? 'inline-block' : 'none';
 
     // Update step dots
-    ['dot1','dot2','dot3'].forEach((id, i) => {
+    ['dot1','dot2'].forEach((id, i) => {
         const dot = document.getElementById(id);
-        dot.classList.remove('active','done');
-        if (i + 1 < step) dot.classList.add('done');
-        else if (i + 1 === step) dot.classList.add('active');
+        if (dot) {
+            dot.classList.remove('active','done');
+            if (i + 1 < step) dot.classList.add('done');
+            else if (i + 1 === step) dot.classList.add('active');
+        }
     });
 }
 
@@ -1305,7 +1318,7 @@ function selectAllImportPerms(checked) {
 }
 
 // Reset modal when closed
-document.getElementById('importModal').addEventListener('hidden.bs.modal', function () {
+document.getElementById('importModal')?.addEventListener('hidden.bs.modal', function () {
     importGoTo(1);
     const fi = document.querySelector('#importModal input[type=file]');
     if (fi) { fi.value = ''; fi.classList.remove('is-invalid'); }
@@ -1503,7 +1516,7 @@ window.selectedUserId = null;
 
 // ── Role default permissions map (mirrors User::defaultPermissions) ──
 const roleDefaults = {
-    mis:                  ['concerns','reports','events','users','users_archive','users_lock','users_unlock','users_edit','users_delete','module_access','categories','logs','analytics','archive','mis_tasks','settings'],
+    mis:                  ['concerns','events','users','users_create','users_archive','users_lock','users_unlock','users_edit','users_delete','module_access','categories','logs','mis_tasks','settings'],
     school_admin:         ['concerns','reports','events','analytics','settings'],
     building_admin:       ['concerns','reports','events','analytics','settings'],
     academic_head:        ['events','settings'],

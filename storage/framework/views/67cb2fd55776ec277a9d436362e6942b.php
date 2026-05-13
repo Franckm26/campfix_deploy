@@ -1,3 +1,5 @@
+﻿
+
 <?php $__env->startSection('styles'); ?>
 <link href="<?php echo e(asset('css/admin.css')); ?>" rel="stylesheet">
 <?php $__env->stopSection(); ?>
@@ -235,6 +237,7 @@
                     <thead>
                         <tr>
                             <th class="checkbox-col"><input type="checkbox" id="selectAllReports" onclick="toggleAllReports(this)"></th>
+                            <th class="ticket-col" style="width: 60px; max-width: 60px; min-width: 60px; white-space: nowrap; text-align: center;">Ticket</th>
                             <th>Issue</th>
                             <th>Category</th>
                             <th>Location</th>
@@ -250,6 +253,7 @@
                         <?php $__empty_1 = true; $__currentLoopData = $reports; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $report): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                             <tr data-id="<?php echo e($report->id); ?>">
                                 <td class="checkbox-col"><input type="checkbox" class="report-checkbox" value="<?php echo e($report->id); ?>"></td>
+                                <td class="ticket-col" style="width: 60px; max-width: 60px; min-width: 60px; white-space: nowrap; text-align: center; padding: 4px;">#<?php echo e(str_pad($report->id, 4, '0', STR_PAD_LEFT)); ?></td>
                                 <td><?php echo e($report->title ?? \Illuminate\Support\Str::limit($report->description, 40)); ?></td>
                                         <td><?php echo e($report->category->name ?? 'N/A'); ?></td>
                                         <td><?php echo e($report->location); ?></td>
@@ -270,7 +274,7 @@
                                             </span>
                                         </td>
                                         <td>
-                                            <?php echo e($report->user->name ?? 'Unknown'); ?>
+                                            <?php echo e($report->reported_by_name ?? ($report->user ? $report->user->name : 'Unknown')); ?>
 
                                         </td>
                                         <td><?php echo e($report->created_at->format('M d, Y')); ?></td>
@@ -312,7 +316,7 @@
                                     </tr>
                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                             <tr>
-                                <td colspan="10" class="text-center">No reports found</td>
+                                <td colspan="11" class="text-center">No reports found</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
@@ -338,6 +342,8 @@
                     <table class="table table-hover" style="display: table !important;">
                         <thead>
                             <tr>
+                                <th class="checkbox-col"><input type="checkbox" id="selectAllResolvedReports" onclick="toggleAllResolvedReports(this)"></th>
+                                <th class="ticket-col" style="width: 60px; max-width: 60px; min-width: 60px; white-space: nowrap; text-align: center;">Ticket</th>
                                 <th>Issue</th>
                                 <th>Category</th>
                                 <th>Location</th>
@@ -352,6 +358,8 @@
                         <tbody>
                             <?php $__currentLoopData = $resolvedReports; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $report): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                 <tr data-id="<?php echo e($report->id); ?>">
+                                    <td class="checkbox-col"><input type="checkbox" class="resolved-report-checkbox" value="<?php echo e($report->id); ?>"></td>
+                                    <td class="ticket-col" style="width: 60px; max-width: 60px; min-width: 60px; white-space: nowrap; text-align: center; padding: 4px;">#<?php echo e(str_pad($report->id, 4, '0', STR_PAD_LEFT)); ?></td>
                                     <td><?php echo e($report->title ?? \Illuminate\Support\Str::limit($report->description, 40)); ?></td>
                                     <td><?php echo e($report->category->name ?? 'N/A'); ?></td>
                                     <td><?php echo e($report->location); ?></td>
@@ -363,10 +371,10 @@
 
                                         </span>
                                     </td>
-                                    <td><?php echo e($report->user->name ?? 'Unknown'); ?></td>
+                                    <td><?php echo e($report->reported_by_name ?? ($report->user ? $report->user->name : 'Unknown')); ?></td>
                                     <td><?php echo e($report->created_at->format('M d, Y')); ?></td>
                                     <td><?php echo e($report->resolved_at ? $report->resolved_at->format('M d, Y g:i A') : '-'); ?></td>
-                                    <td>₱<?php echo e(number_format($report->cost ?? 0, 2)); ?></td>
+                                    <td>PHP<?php echo e(number_format($report->cost ?? 0, 2)); ?></td>
                                     <td>
                                         <div class="btn-group" role="group">
                                             <button type="button" class="btn btn-sm btn-info" onclick="viewReport(<?php echo e($report->id); ?>)" title="View">
@@ -416,6 +424,7 @@
                             <table class="table table-hover" style="display: table !important;">
                                 <thead>
                                     <tr>
+                                        <th class="ticket-col" style="width: 60px; max-width: 60px; min-width: 60px; white-space: nowrap; text-align: center;">Ticket</th>
                                         <th>Issue</th>
                                         <th>Category</th>
                                         <th>Location</th>
@@ -430,6 +439,7 @@
                                 <tbody>
                                     <?php $__currentLoopData = $archivedConcerns; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $concern): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                         <tr data-id="<?php echo e($concern->id); ?>">
+                                            <td class="ticket-col" style="width: 60px; max-width: 60px; min-width: 60px; white-space: nowrap; text-align: center; padding: 4px;">#<?php echo e(str_pad($concern->id, 4, '0', STR_PAD_LEFT)); ?></td>
                                             <td><?php echo e($concern->title ?? \Illuminate\Support\Str::limit($concern->description, 40)); ?></td>
                                             <td><?php echo e($concern->categoryRelation->name ?? 'N/A'); ?></td>
                                             <td><?php echo e($concern->location); ?></td>
@@ -572,6 +582,7 @@
                         <thead>
                             <tr>
                                 <th style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" id="deletedReportsSelectAll" onchange="deletedReportsToggleSelectAll()"></th>
+                                <th class="ticket-col" style="width: 60px; max-width: 60px; min-width: 60px; white-space: nowrap; text-align: center;">Ticket</th>
                                 <th>Issue</th>
                                 <th>Category</th>
                                 <th>Location</th>
@@ -587,7 +598,8 @@
                             <?php $__empty_1 = true; $__currentLoopData = $deletedReports; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $report): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                                 <tr data-id="<?php echo e($report->id); ?>">
                                     <td style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" class="deleted-report-checkbox" value="<?php echo e($report->id); ?>" onchange="deletedReportsUpdateSelectedCount()"></td>
-                                    <td>Report #<?php echo e($report->id); ?></td>
+                                    <td class="ticket-col" style="width: 60px; max-width: 60px; min-width: 60px; white-space: nowrap; text-align: center; padding: 4px;">#<?php echo e(str_pad($report->id, 4, '0', STR_PAD_LEFT)); ?></td>
+                                    <td><?php echo e($report->title ?? \Illuminate\Support\Str::limit($report->description, 40)); ?></td>
                                     <td><?php echo e($report->categoryRelation ? $report->categoryRelation->name : 'N/A'); ?></td>
                                     <td><?php echo e($report->location); ?></td>
                                     <td>
@@ -620,9 +632,9 @@
 
                                         </span>
                                     </td>
-                                    <td><?php echo e($report->user ? $report->user->name : 'Unknown'); ?></td>
+                                    <td><?php echo e($report->reported_by_name ?? ($report->user ? $report->user->name : 'Unknown')); ?></td>
                                     <td><?php echo e($report->updated_at->format('M d, Y h:i A')); ?></td>
-                                    <td><?php echo e($report->user ? $report->user->name : 'System'); ?></td>
+                                    <td><?php echo e($report->deletedBy ? $report->deletedBy->name : 'System'); ?></td>
                                     <td>
                                         <div class="action-icons">
                                             <form action="<?php echo e(route('admin.deletedReports.restore', $report->id)); ?>" method="POST" class="d-inline">
@@ -667,7 +679,7 @@
                                 </div>
                             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                                 <tr>
-                                    <td colspan="11" class="text-center p-4">
+                                    <td colspan="12" class="text-center p-4">
                                         <div class="alert alert-info mb-0">
                                             <i class="fas fa-check-circle fa-2x d-block mb-3"></i>
                                             <h5>No Deleted Concerns</h5>
@@ -788,6 +800,30 @@
 }
 </style>
 
+<style>
+/* Ticket column styling - minimal width, centered - OVERRIDE admin.css */
+.ticket-col {
+    width: 60px !important;
+    max-width: 60px !important;
+    min-width: 60px !important;
+    white-space: nowrap !important;
+    text-align: center !important;
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+    font-size: 0.9em !important;
+    overflow: hidden !important;
+}
+
+/* Override the nth-child rules from admin.css for ticket column */
+.table th.ticket-col,
+.table td.ticket-col {
+    width: 60px !important;
+    min-width: 60px !important;
+    max-width: 60px !important;
+}
+</style>
+</style>
+
 <?php $__env->startSection('scripts'); ?>
 <script>
 <?php if(isset($groupedReports)): ?>
@@ -801,7 +837,7 @@ function showRoomDetails(location) {
     if (window.groupedReports[location]) {
         window.groupedReports[location].forEach(function(report) {
             var dateFixed = report.resolved_at ? new Date(report.resolved_at).toLocaleDateString('en-US', {month: 'short', day: '2-digit', year: 'numeric'}) + ' ' + new Date(report.resolved_at).toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'}) : 'Not Fixed';
-            details += '<tr><td>' + report.location + '</td><td>' + (report.damaged_part || 'N/A') + '</td><td>' + dateFixed + '</td><td>₱' + (report.cost ? parseFloat(report.cost).toFixed(2) : '0.00') + '</td></tr>';
+            details += '<tr><td>' + report.location + '</td><td>' + (report.damaged_part || 'N/A') + '</td><td>' + dateFixed + '</td><td>PHP' + (report.cost ? parseFloat(report.cost).toFixed(2) : '0.00') + '</td></tr>';
         });
     }
     document.getElementById('roomDetailsBody').innerHTML = '<table class="table table-striped"><thead><tr><th>Location</th><th>Damage</th><th>Date Fixed</th><th>Cost</th></tr></thead><tbody>' + details + '</tbody></table>';
@@ -843,7 +879,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.chartStatuses  = <?php echo json_encode($chartStatuses ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
     window.chartStatusCounts = <?php echo json_encode($chartStatusCounts ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
     window.monthlyData    = <?php echo json_encode(
-        isset($monthlyStats) ? $monthlyStats->map(fn($s) => ['month' => $s->month, 'title' => $s->title, 'count' => $s->total_count])->values() : [],
+        isset($monthlyStats) ? $monthlyStats->map(fn($s) => ['month' => $s->month, 'title' => $s->title, 'status' => $s->status, 'count' => $s->count])->values() : [],
         JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
     ); ?>;
     <?php endif; ?>
@@ -891,7 +927,7 @@ document.addEventListener('DOMContentLoaded', function() {
             data: {
                 labels: window.chartLocations,
                 datasets: [{
-                    label: 'Total Cost (₱)',
+                    label: 'Total Cost (PHP‚±)',
                     data: window.chartCosts,
                     backgroundColor: '#36A2EB',
                     borderColor: '#36A2EB',
@@ -905,7 +941,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         beginAtZero: true,
                         ticks: {
                             callback: function(value) {
-                                return '₱' + value.toLocaleString();
+                                return 'PHP‚±' + value.toLocaleString();
                             }
                         }
                     }
@@ -914,7 +950,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     tooltip: {
                         callbacks: {
                             label: function(context) {
-                                return '₱' + context.parsed.y.toLocaleString();
+                                return 'PHP‚±' + context.parsed.y.toLocaleString();
                             }
                         }
                     }
@@ -957,7 +993,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Line Chart for Monthly Trend — one line per issue type
+    // Line Chart for Monthly Trend PHP€” one line per issue type
     const monthlyTrendCtx = document.getElementById('monthlyTrendChart');
     if (monthlyTrendCtx) {
         // Build 6-month label range
@@ -971,11 +1007,26 @@ document.addEventListener('DOMContentLoaded', function() {
             monthLabels.push({ key, label });
         }
 
-        // Group data by issue title
+        // Group data by issue title and keep status breakdown
         const issueMap = {};
+        const statusBreakdown = {}; // Store status breakdown for tooltips
+        
         window.monthlyData.forEach(item => {
-            if (!issueMap[item.title]) issueMap[item.title] = {};
-            issueMap[item.title][item.month] = item.count;
+            if (!issueMap[item.title]) {
+                issueMap[item.title] = {};
+                statusBreakdown[item.title] = {};
+            }
+            if (!issueMap[item.title][item.month]) {
+                issueMap[item.title][item.month] = 0;
+                statusBreakdown[item.title][item.month] = {};
+            }
+            issueMap[item.title][item.month] += item.count;
+            
+            // Store status breakdown
+            if (!statusBreakdown[item.title][item.month][item.status]) {
+                statusBreakdown[item.title][item.month][item.status] = 0;
+            }
+            statusBreakdown[item.title][item.month][item.status] += item.count;
         });
 
         // Color palette
@@ -996,6 +1047,7 @@ document.addEventListener('DOMContentLoaded', function() {
             pointBackgroundColor: palette[idx % palette.length],
             tension: 0.3,
             fill: false,
+            statusData: statusBreakdown[title] // Attach status breakdown
         }));
 
         // Plugin to draw issue name label at the last non-zero point of each line
@@ -1076,7 +1128,28 @@ document.addEventListener('DOMContentLoaded', function() {
                     },
                     tooltip: {
                         callbacks: {
-                            label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y} ${ctx.parsed.y === 1 ? 'report' : 'reports'}`
+                            label: function(ctx) {
+                                const dataset = ctx.dataset;
+                                const monthKey = monthLabels[ctx.dataIndex].key;
+                                const total = ctx.parsed.y;
+                                const statusData = dataset.statusData[monthKey] || {};
+                                
+                                const lines = [dataset.label + ': ' + total + (total === 1 ? ' report' : ' reports')];
+                                
+                                // Add status breakdown if there are multiple statuses
+                                const statuses = Object.keys(statusData);
+                                if (statuses.length > 0) {
+                                    const resolved = statusData['Resolved'] || 0;
+                                    const pending = statusData['Pending'] || 0;
+                                    const inProgress = statusData['In Progress'] || 0;
+                                    
+                                    if (resolved > 0) lines.push('  PHPœ“ Resolved: ' + resolved);
+                                    if (inProgress > 0) lines.push('  PHPŸ³ In Progress: ' + inProgress);
+                                    if (pending > 0) lines.push('  PHP± Pending: ' + pending);
+                                }
+                                
+                                return lines;
+                            }
                         }
                     }
                 }
@@ -1384,7 +1457,7 @@ function showDeleteModal(type, id, name) {
 }
 
 // Confirm and execute the action
-function confirmDelete() {
+function confirmModalAction() {
     if (currentActionType === 'archive') {
         // Archive action - submit form
         const form = document.createElement('form');
@@ -1689,19 +1762,41 @@ window.startAssignWizard = async function() {
     const itemId   = reportId || concernId;
     const itemType = reportId ? 'report' : 'concern';
 
+    // First, fetch the report/concern details to check category
+    let reportCategory = null;
+    let isTechnologyCategory = false;
+    
+    try {
+        const detailsRes = await fetch('/api/reports/' + itemId, {
+            headers: { 'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>', 'Accept': 'application/json' },
+            credentials: 'same-origin'
+        });
+        const detailsData = await detailsRes.json();
+        if (detailsData.report && detailsData.report.category) {
+            reportCategory = detailsData.report.category.name;
+            isTechnologyCategory = reportCategory === 'Technology/Internet';
+        }
+    } catch(e) {
+        console.error('Error fetching report details:', e);
+    }
+
+    // Determine which endpoint to use based on category
+    const staffEndpoint = isTechnologyCategory ? '/admin/mis-users' : '/admin/maintenance-users';
+    const staffLabel = isTechnologyCategory ? 'MIS Staff' : 'Maintenance Staff';
+
     // Load staff list
     let staffOptions = '<option value="">Loading...</option>';
     try {
-        const res   = await fetch('/admin/maintenance-users', {
+        const res   = await fetch(staffEndpoint, {
             headers: { 'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>', 'Accept': 'application/json' },
             credentials: 'same-origin'
         });
         const data  = await res.json();
         if (data.users && data.users.length) {
-            staffOptions = '<option value="">-- Select maintenance staff --</option>'
+            staffOptions = `<option value="">-- Select ${staffLabel.toLowerCase()} --</option>`
                 + data.users.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
         } else {
-            staffOptions = '<option value="">No maintenance staff found</option>';
+            staffOptions = `<option value="">No ${staffLabel.toLowerCase()} found</option>`;
         }
     } catch(e) {
         staffOptions = '<option value="">Error loading staff</option>';
@@ -1712,7 +1807,7 @@ window.startAssignWizard = async function() {
         title: `Assign ${itemType.charAt(0).toUpperCase() + itemType.slice(1)}`,
         html: `
             <div class="text-start">
-                <p class="mb-3">Assign to Maintenance Staff</p>
+                <p class="mb-3">Assign to ${staffLabel}</p>
                 <select id="swal-staff-select" class="form-select" style="width:100%;">
                     ${staffOptions}
                 </select>
@@ -1921,7 +2016,7 @@ window.viewReportProgress = async function(id) {
                     </div>
                     <div class="text-start pt-1">
                         <div style="font-weight:600;color:${txtCol};">${s.label}</div>
-                        ${s.detail ? `<div style="font-size:12px;color:#666;">→ ${s.detail}</div>` : ''}
+                        ${s.detail ? `<div style="font-size:12px;color:#666;">PHP†’ ${s.detail}</div>` : ''}
                         ${s.date   ? `<div style="font-size:11px;color:#999;">${s.date}</div>` : ''}
                     </div>
                 </div>`;
@@ -2040,7 +2135,7 @@ async function proceedReportToNextLevel(reportId, newStatus, reportTitle) {
                     <p class="mb-3">Please provide resolution details for "${reportTitle}":</p>
                     
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Cost (₱)</label>
+                        <label class="form-label fw-bold">Cost (PHP‚±)</label>
                         <input type="number" id="swal-cost" class="form-control" placeholder="0.00" step="0.01" min="0">
                         <small class="text-muted">Enter the total cost of repair/replacement</small>
                     </div>
@@ -2219,21 +2314,21 @@ function viewReport(id) {
 
         bodyDiv.innerHTML = '<div class="card">' +
             '<div class="card-header d-flex justify-content-between align-items-center">' +
-                '<h4>Report #' + report.id + '</h4>' +
+                '<h4>Ticket #' + String(report.id).padStart(4, '0') + '</h4>' +
                 '<div class="d-flex align-items-center gap-2"><span class="badge bg-' + severityClass + '">' + report.severity.charAt(0).toUpperCase() + report.severity.slice(1) + ' Priority</span><span class="badge bg-' + statusClass + '">' + report.status + '</span>' + assignBtn + '</div>' +
             '</div>' +
             '<div class="card-body">' +
                 '<h5 class="card-title">' + (report.title || (report.description ? report.description.substring(0, 40) : 'No Title')) + '</h5>' +
                 '<div class="row mb-3">' +
                     '<div class="col-md-6"><p><strong>Category:</strong> ' + (report.category ? report.category.name : 'N/A') + '</p><p><strong>Location:</strong> ' + report.location + '</p></div>' +
-                    '<div class="col-md-6"><p><strong>Reported by:</strong> ' + (report.user ? report.user.name : 'Unknown') + '</p><p><strong>Date:</strong> ' + report.created_at + '</p></div>' +
+                    '<div class="col-md-6"><p><strong>Reported by:</strong> ' + (report.reported_by_name || 'Unknown') + '</p><p><strong>Date:</strong> ' + report.created_at + '</p></div>' +
                 '</div>' +
                 (report.assigned_to ? '<div class="mb-3"><p><strong>Assigned to:</strong> ' + (report.assigned_user_name || 'Unknown') + '</p></div>' : '') +
                 (report.damaged_part ? '<div class="mb-3"><p><strong>Damaged Part:</strong> ' + report.damaged_part + '</p></div>' : '') +
                 '<div class="mb-3"><p><strong>Description:</strong></p><p>' + report.description + '</p></div>' +
                 imageHtml +
                 (report.resolution_notes ? '<div class="mb-3"><p><strong>Resolution Notes:</strong></p><p>' + report.resolution_notes + '</p></div>' : '') +
-                ((report.cost || report.replaced_part) ? '<div class="mb-3"><p><strong>Maintenance Details:</strong></p><div class="row"><div class="col-md-6">' + (report.cost ? '<p><strong>Cost:</strong> ₱' + parseFloat(report.cost).toFixed(2) + '</p>' : '') + '</div><div class="col-md-6">' + (report.replaced_part ? '<p><strong>Replaced With:</strong> ' + report.replaced_part + '</p>' : '') + '</div></div></div>' : '') +
+                ((report.cost || report.replaced_part) ? '<div class="mb-3"><p><strong>Maintenance Details:</strong></p><div class="row"><div class="col-md-6">' + (report.cost ? '<p><strong>Cost:</strong> PHP‚±' + parseFloat(report.cost).toFixed(2) + '</p>' : '') + '</div><div class="col-md-6">' + (report.replaced_part ? '<p><strong>Replaced With:</strong> ' + report.replaced_part + '</p>' : '') + '</div></div></div>' : '') +
             '</div>' +
         '</div>';
     })
@@ -2328,6 +2423,17 @@ function getSelectedReports() {
     const checkboxes = document.querySelectorAll('.report-checkbox:checked');
     return Array.from(checkboxes).map(cb => cb.value);
 }
+
+// Checkbox functions for resolved reports
+function toggleAllResolvedReports(checkbox) {
+    const checkboxes = document.querySelectorAll('.resolved-report-checkbox');
+    checkboxes.forEach(cb => cb.checked = checkbox.checked);
+}
+
+function getSelectedResolvedReports() {
+    const checkboxes = document.querySelectorAll('.resolved-report-checkbox:checked');
+    return Array.from(checkboxes).map(cb => cb.value);
+}
 // View Report from table button
 function viewReport(id) {
     window.currentReportId = id;
@@ -2378,7 +2484,7 @@ function viewReport(id) {
 
         bodyDiv.innerHTML = '<div class="card">' +
             '<div class="card-header d-flex justify-content-between align-items-center">' +
-                '<h4>Report #' + report.id + '</h4>' +
+                '<h4>Ticket #' + String(report.id).padStart(4, '0') + '</h4>' +
                 '<div class="d-flex align-items-center gap-2"><span class="badge bg-' + severityClass + '">' + report.severity.charAt(0).toUpperCase() + report.severity.slice(1) + ' Priority</span>' +
                 '<span class="badge bg-' + statusClass + '">' + report.status + '</span>' + assignBtn2 + '</div>' +
             '</div>' +
@@ -2387,7 +2493,7 @@ function viewReport(id) {
                 '<div class="row mb-3">' +
                     '<div class="col-md-6"><p><strong>Category:</strong> ' + (report.category ? report.category.name : 'N/A') + '</p>' +
                     '<p><strong>Location:</strong> ' + report.location + '</p></div>' +
-                    '<div class="col-md-6"><p><strong>Reported by:</strong> ' + (report.user ? report.user.name : 'Unknown') + '</p>' +
+                    '<div class="col-md-6"><p><strong>Reported by:</strong> ' + (report.reported_by_name || 'Unknown') + '</p>' +
                     '<p><strong>Date:</strong> ' + report.created_at + '</p></div>' +
                 '</div>' +
                 (report.assigned_to ? '<div class="mb-3"><p><strong>Assigned to:</strong> ' + (report.assigned_user_name || 'Unknown') + '</p></div>' : '') +
@@ -2396,7 +2502,7 @@ function viewReport(id) {
                 imageHtml +
                 (report.resolution_notes ? '<div class="mb-3"><p><strong>Resolution Notes:</strong></p><p>' + report.resolution_notes + '</p></div>' : '') +
                 ((report.cost || report.replaced_part) ? '<div class="mb-3"><p><strong>Maintenance Details:</strong></p><div class="row">' +
-                    '<div class="col-md-6">' + (report.cost ? '<p><strong>Cost:</strong> ₱' + parseFloat(report.cost).toFixed(2) + '</p>' : '') + '</div>' +
+                    '<div class="col-md-6">' + (report.cost ? '<p><strong>Cost:</strong> PHP‚±' + parseFloat(report.cost).toFixed(2) + '</p>' : '') + '</div>' +
                     '<div class="col-md-6">' + (report.replaced_part ? '<p><strong>Replaced With:</strong> ' + report.replaced_part + '</p>' : '') + '</div>' +
                 '</div></div>' : '') +
             '</div></div>';

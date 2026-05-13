@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('styles')
 <link href="{{ asset('css/admin.css') }}" rel="stylesheet">
@@ -191,7 +191,7 @@
                                         {{ $report->status }}
                                     </span>
                                 </td>
-                                <td>{{ $report->user->name ?? 'Unknown' }}</td>
+                                <td>{{ $report->reported_by_name ?? 'Unknown' }}</td>
                                 <td>{{ $report->updated_at->format('M d, Y') }}</td>
                                 <td>
                                     <form method="POST" action="{{ route('admin.archive.restore') }}" class="d-inline">

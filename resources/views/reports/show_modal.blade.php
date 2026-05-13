@@ -1,4 +1,4 @@
-<div class="modal-header">
+﻿<div class="modal-header">
     <h5 class="modal-title">Report Details</h5>
     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
 </div>
@@ -27,7 +27,7 @@
                 </div>
                 <div class="col-md-6">
                     <p><strong>Reported:</strong> {{ $report->created_at->format('M d, Y h:i A') }}</p>
-                    <p><strong>Reported by:</strong> {{ $report->user->name ?? 'Unknown' }}</p>
+                    <p><strong>Reported by:</strong> {{ $report->reported_by_name ?? 'Unknown' }}</p>
                 </div>
             </div>
 
@@ -56,7 +56,7 @@
                 <div class="alert alert-info">
                     <h5>Repair Details:</h5>
                     @if($report->cost)
-                        <p><strong>Repair Cost:</strong> ₱{{ number_format($report->cost, 2) }}</p>
+                        <p><strong>Repair Cost:</strong> â‚±{{ number_format($report->cost, 2) }}</p>
                     @endif
                     @if($report->damaged_part)
                         <p><strong>Damaged Part:</strong> {{ $report->damaged_part }}</p>

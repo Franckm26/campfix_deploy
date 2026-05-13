@@ -13,33 +13,58 @@ window.modalFilterState = {
 
 // Helper function to generate YouTube-style date range filter HTML
 function generateYouTubeStyleFilter(modalType, exportFunction) {
+    // Get locations from window variable
+    const locations = window.chartLocations || [];
+    
+    // Build location dropdown items
+    let locationItems = '<li><a class="dropdown-item" href="#" onclick="setModalRoom(\'' + modalType + '\', \'all\', event)">All Rooms</a></li>';
+    if (locations.length > 0) {
+        locationItems += '<li><hr class="dropdown-divider"></li>';
+        locations.forEach(function(location) {
+            const escapedLocation = location.replace(/'/g, "\\'");
+            locationItems += '<li><a class="dropdown-item" href="#" onclick="setModalRoom(\'' + modalType + '\', \'' + escapedLocation + '\', event)">' + location + '</a></li>';
+        });
+    }
+    
     return `
         <div class="mb-3 p-3 bg-light border-bottom d-flex justify-content-between align-items-center gap-3">
-            <div class="dropdown">
-                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="${modalType}ModalRangeDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.9rem;">
-                    <i class="fas fa-calendar-alt me-1"></i>
-                    <span id="${modalType}ModalRangeLabel">Last 6 months</span>
-                </button>
-                <ul class="dropdown-menu" aria-labelledby="${modalType}ModalRangeDropdown" style="min-width: 220px;">
-                    <li><a class="dropdown-item" href="#" onclick="setModalRange('${modalType}', 'last7days', event)">Last 7 days</a></li>
-                    <li><a class="dropdown-item" href="#" onclick="setModalRange('${modalType}', 'last28days', event)">Last 28 days</a></li>
-                    <li><a class="dropdown-item" href="#" onclick="setModalRange('${modalType}', 'last90days', event)">Last 90 days</a></li>
-                    <li><a class="dropdown-item" href="#" onclick="setModalRange('${modalType}', 'last6months', event)">Last 6 months</a></li>
-                    <li><a class="dropdown-item" href="#" onclick="setModalRange('${modalType}', 'last12months', event)">Last 12 months</a></li>
-                    <li><a class="dropdown-item" href="#" onclick="setModalRange('${modalType}', 'thisyear', event)">This year</a></li>
-                    <li><a class="dropdown-item" href="#" onclick="setModalRange('${modalType}', 'lastyear', event)">Last year</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li class="px-3 py-2">
-                        <label class="form-label mb-1" style="font-size: 0.75rem; font-weight: 600;">Custom Range</label>
-                        <div class="mb-2">
-                            <input type="date" id="${modalType}ModalCustomDateFrom" class="form-control form-control-sm" style="font-size: 0.75rem;">
-                        </div>
-                        <div class="mb-2">
-                            <input type="date" id="${modalType}ModalCustomDateTo" class="form-control form-control-sm" style="font-size: 0.75rem;">
-                        </div>
-                        <button class="btn btn-primary btn-sm w-100" onclick="applyModalCustomRange('${modalType}', event)" style="font-size: 0.75rem;">Apply</button>
-                    </li>
-                </ul>
+            <div class="d-flex gap-2">
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="${modalType}ModalRoomDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.9rem;">
+                        <i class="fas fa-door-open me-1"></i>
+                        <span id="${modalType}ModalRoomLabel">All Rooms</span>
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="${modalType}ModalRoomDropdown" style="max-height: 300px; overflow-y: auto; min-width: 200px;">
+                        ${locationItems}
+                    </ul>
+                </div>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="${modalType}ModalRangeDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.9rem;">
+                        <i class="fas fa-calendar-alt me-1"></i>
+                        <span id="${modalType}ModalRangeLabel">Last 6 months</span>
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="${modalType}ModalRangeDropdown" style="min-width: 220px;">
+                        <li><a class="dropdown-item" href="#" onclick="setModalRange('${modalType}', 'last7days', event)">Last 7 days</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setModalRange('${modalType}', 'last28days', event)">Last 28 days</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setModalRange('${modalType}', 'last90days', event)">Last 90 days</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setModalRange('${modalType}', 'last6months', event)">Last 6 months</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setModalRange('${modalType}', 'last12months', event)">Last 12 months</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setModalRange('${modalType}', 'thisyear', event)">This year</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setModalRange('${modalType}', 'lastyear', event)">Last year</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setModalRange('${modalType}', 'allyears', event)">All years</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li class="px-3 py-2">
+                            <label class="form-label mb-1" style="font-size: 0.75rem; font-weight: 600;">Custom Range</label>
+                            <div class="mb-2">
+                                <input type="date" id="${modalType}ModalCustomDateFrom" class="form-control form-control-sm" style="font-size: 0.75rem;">
+                            </div>
+                            <div class="mb-2">
+                                <input type="date" id="${modalType}ModalCustomDateTo" class="form-control form-control-sm" style="font-size: 0.75rem;">
+                            </div>
+                            <button class="btn btn-primary btn-sm w-100" onclick="applyModalCustomRange('${modalType}', event)" style="font-size: 0.75rem;">Apply</button>
+                        </li>
+                    </ul>
+                </div>
             </div>
             <button onclick="${exportFunction}()" class="btn btn-danger btn-sm" style="white-space: nowrap; font-size: 0.9rem;">
                 <i class="fas fa-file-pdf me-1"></i>Export PDF
@@ -47,6 +72,33 @@ function generateYouTubeStyleFilter(modalType, exportFunction) {
         </div>
     `;
 }
+
+// Set room filter for modal
+window.setModalRoom = function(modalType, room, event) {
+    if (event) event.preventDefault();
+    
+    // Update label
+    const label = room === 'all' ? 'All Rooms' : room;
+    document.getElementById(modalType + 'ModalRoomLabel').textContent = label;
+    
+    // Store in global state
+    if (!window.modalFilterState) {
+        window.modalFilterState = {};
+    }
+    window.modalFilterState.room = room;
+    
+    // Get current date range
+    const dateFrom = window.modalFilterState.date_from ? new Date(window.modalFilterState.date_from) : new Date(new Date().setMonth(new Date().getMonth() - 6));
+    const dateTo = window.modalFilterState.date_to ? new Date(window.modalFilterState.date_to) : new Date();
+    
+    // Fetch data with room filter
+    fetchModalData(modalType, dateFrom, dateTo);
+};
+
+// Set room filter for status modal (alias for setModalRoom)
+window.setModalRoomFilter = function(modalType, room, event) {
+    window.setModalRoom(modalType, room, event);
+};
 
 // Universal modal date range setter
 window.setModalRange = function(modalType, range, event) {
@@ -59,7 +111,9 @@ window.setModalRange = function(modalType, range, event) {
         'last6months': 'Last 6 months',
         'last12months': 'Last 12 months',
         'thisyear': 'This year',
-        'lastyear': 'Last year'
+        'lastyear': 'Last year',
+        'allyears': 'All years',
+        'alltime': 'All time'
     };
     
     document.getElementById(modalType + 'ModalRangeLabel').textContent = labels[range] || range;
@@ -100,6 +154,16 @@ window.setModalRange = function(modalType, range, event) {
         case 'lastyear':
             dateFrom = new Date(today.getFullYear() - 1, 0, 1);
             dateTo = new Date(today.getFullYear() - 1, 11, 31);
+            break;
+        case 'allyears':
+            // Get all data from the beginning (2020 or earliest data)
+            dateFrom = new Date(2020, 0, 1);
+            dateTo = today;
+            break;
+        case 'alltime':
+            // Get all data from the beginning (2020 or earliest data)
+            dateFrom = new Date(2020, 0, 1);
+            dateTo = today;
             break;
     }
     
@@ -155,6 +219,11 @@ function fetchModalData(modalType, dateFrom, dateTo) {
     params.append('date_from', dateFromStr);
     params.append('date_to', dateToStr);
     
+    // Add room filter if set
+    if (window.modalFilterState && window.modalFilterState.room && window.modalFilterState.room !== 'all') {
+        params.append('room_filter', window.modalFilterState.room);
+    }
+    
     // Show loading overlay on chart area
     const chartContainer = document.querySelector('.swal2-html-container canvas')?.parentElement;
     if (chartContainer) {
@@ -175,9 +244,25 @@ function fetchModalData(modalType, dateFrom, dateTo) {
         window.chartCosts = data.chartCosts || [];
         window.chartStatuses = data.chartStatuses || [];
         window.chartStatusCounts = data.chartStatusCounts || [];
+        window.statusReportIds = data.statusReportIds || {};
         window.monthlyStats = data.monthlyStats || [];
         window.monthlyCostData = data.monthlyCostData || [];
-        window.locationDetailedStats = data.locationStats || [];
+        window.locationDetailedStats = data.locationStatsDetailed || [];
+        window.responseTimeStats = data.responseTimeStats || [];
+        window.avgSubmittedToAssigned = data.avgSubmittedToAssigned || 0;
+        window.avgAssignedToResolved = data.avgAssignedToResolved || 0;
+        window.avgTotalTime = data.avgTotalTime || 0;
+        
+        // Update category data
+        if (data.costByCategory) {
+            window.categoryData = {
+                categories: data.costByCategory.map(item => item.category),
+                counts: data.costByCategory.map(item => item.count),
+                costs: data.costByCategory.map(item => item.total_cost),
+                avgCosts: data.costByCategory.map(item => item.avg_cost),
+                percentages: data.costByCategory.map(item => item.percentage)
+            };
+        }
         
         // Remove loading overlay
         if (chartContainer) {
@@ -216,26 +301,49 @@ function showLocationDetailsModal(filterType = null) {
     const costs = window.chartCosts || [];
     const detailedStats = window.locationDetailedStats || [];
     
+    // Get category data
+    const categoryData = window.categoryData || {};
+    const categories = categoryData.categories || [];
+    const categoryCounts = categoryData.counts || [];
+    const categoryCosts = categoryData.costs || [];
+    const categoryAvgCosts = categoryData.avgCosts || [];
+    const categoryPercentages = categoryData.percentages || [];
+    
     let totalRepairs = 0;
     let totalCost = 0;
     
-    // Sort detailed stats by count (number of times that specific item was repaired)
-    const sortedStats = [...detailedStats].sort((a, b) => b.count - a.count);
-    
-    sortedStats.forEach((item) => {
-        totalRepairs += parseInt(item.count) || 0;
-        totalCost += parseFloat(item.total_cost) || 0;
+    // Sort detailed stats by location and cost
+    const sortedStats = [...detailedStats].sort((a, b) => {
+        if (a.location !== b.location) {
+            return a.location.localeCompare(b.location);
+        }
+        return (b.cost || 0) - (a.cost || 0);
     });
     
+    totalRepairs = sortedStats.length;
+    sortedStats.forEach((item) => {
+        totalCost += parseFloat(item.cost) || 0;
+    });
+    
+    // Build comprehensive table with Location, Category, Ticket, Issue, Damaged Part, Cost, and Date
     let tableRows = '';
     sortedStats.forEach((item) => {
-        const itemCost = parseFloat(item.total_cost) || 0;
+        const itemCost = parseFloat(item.cost) || 0;
+        const itemCategory = item.category || 'Uncategorized';
+        const ticketNumber = '#' + String(item.id).padStart(4, '0');
+        const issue = item.title || 'N/A';
+        const damagedPart = item.damaged_part || 'N/A';
+        const resolvedDate = item.resolved_at || 'N/A';
+        
         tableRows += `
             <tr>
-                <td><strong>${item.title}</strong></td>
                 <td><strong>${item.location}</strong></td>
-                <td class="text-center"><span class="badge bg-primary">${item.count}</span></td>
+                <td><span class="badge bg-info">${itemCategory}</span></td>
+                <td><span class="badge bg-primary">${ticketNumber}</span></td>
+                <td>${issue}</td>
+                <td>${damagedPart}</td>
                 <td class="text-end">₱${itemCost.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                <td class="text-center" style="font-size: 0.85rem;">${resolvedDate}</td>
             </tr>
         `;
     });
@@ -243,29 +351,206 @@ function showLocationDetailsModal(filterType = null) {
     const filterLabel = getFilterLabel(filterType);
     
     Swal.fire({
-        title: '<i class="fas fa-map-marker-alt me-2"></i>Repairs by Location - Detailed Report',
+        title: '<i class="fas fa-chart-pie me-2"></i>Repairs Breakdown - Detailed Report',
         html: `
             <div style="height: 100%; overflow-y: auto;">
                 ${generateYouTubeStyleFilter('location', 'exportLocationReportToPDF')}
+                
+                <!-- Single Pie Chart -->
+                <div class="mb-4">
+                    <div style="height: 400px; padding: 15px; background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <canvas id="modalLocationChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Summary Statistics -->
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <div class="text-center p-3" style="background: #f0f4ff; border-radius: 8px; border-left: 4px solid #667eea;">
+                            <div style="font-size: 0.8rem; color: #666; margin-bottom: 5px;">Total Locations</div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #667eea;">${locations.length}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center p-3" style="background: #fff8f0; border-radius: 8px; border-left: 4px solid #f39c12;">
+                            <div style="font-size: 0.8rem; color: #666; margin-bottom: 5px;">Total Categories</div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #f39c12;">${categories.length}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center p-3" style="background: #f0fff4; border-radius: 8px; border-left: 4px solid #27ae60;">
+                            <div style="font-size: 0.8rem; color: #666; margin-bottom: 5px;">Total Tickets</div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #27ae60;">${sortedStats.length}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Comprehensive Breakdown Table -->
+                <div class="mb-4">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped table-bordered table-sm" id="comprehensiveReportTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th><i class="fas fa-map-marker-alt me-1"></i>Location</th>
+                                    <th><i class="fas fa-tags me-1"></i>Category</th>
+                                    <th><i class="fas fa-ticket-alt me-1"></i>Ticket #</th>
+                                    <th><i class="fas fa-exclamation-circle me-1"></i>Issue</th>
+                                    <th><i class="fas fa-wrench me-1"></i>Damaged Part</th>
+                                    <th class="text-end"><i class="fas fa-peso-sign me-1"></i>Cost</th>
+                                    <th class="text-center"><i class="fas fa-calendar-check me-1"></i>Date Fixed</th>
+                                </tr>
+                            </thead>
+                            <tbody>${tableRows}</tbody>
+                            <tfoot class="table-secondary fw-bold">
+                                <tr>
+                                    <td colspan="5">TOTAL (${totalRepairs} tickets)</td>
+                                    <td class="text-end">₱${totalCost.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `,
+        width: '90%',
+        heightAuto: false,
+        padding: '0',
+        showCloseButton: true,
+        showConfirmButton: false,
+        customClass: {
+            container: 'swal-analytics-modal',
+            popup: 'swal-wide-popup'
+        },
+        didOpen: () => {
+            // Single Location Pie Chart
+            const locationCtx = document.getElementById('modalLocationChart');
+            new Chart(locationCtx, {
+                type: 'pie',
+                data: {
+                    labels: locations,
+                    datasets: [{
+                        data: counts,
+                        backgroundColor: [
+                            '#FF6384','#36A2EB','#FFCE56','#4BC0C0','#9966FF',
+                            '#FF9F40','#C9CBCF','#667eea','#764ba2','#f093fb',
+                            '#4facfe','#43e97b','#fa709a','#fee140','#30cfd0'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { 
+                            position: 'right',
+                            labels: { 
+                                font: { size: 11 },
+                                padding: 10
+                            } 
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: function(context) {
+                                    return context[0].label;
+                                },
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const cost = costs[context.dataIndex] || 0;
+                                    const percentage = ((value / totalRepairs) * 100).toFixed(1);
+                                    
+                                    return [
+                                        `Repairs: ${value} (${percentage}%)`,
+                                        `Total Cost: ₱${cost.toLocaleString('en-PH', {minimumFractionDigits: 2})}`,
+                                        `Avg Cost: ₱${(cost / value).toLocaleString('en-PH', {minimumFractionDigits: 2})}`
+                                    ];
+                                }
+                            },
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleFont: { size: 13, weight: 'bold' },
+                            bodyFont: { size: 12 },
+                            padding: 12
+                        },
+                        title: {
+                            display: true,
+                            text: 'Repairs Distribution by Location',
+                            font: { size: 16, weight: 'bold' },
+                            padding: { bottom: 20 }
+                        }
+                    }
+                }
+            });
+        }
+    });
+}
+
+// Show Category Details Modal
+function showCategoryDetailsModal(filterType = null) {
+    const categoryData = window.categoryData || {};
+    const categories = categoryData.categories || [];
+    const counts = categoryData.counts || [];
+    const costs = categoryData.costs || [];
+    const avgCosts = categoryData.avgCosts || [];
+    const percentages = categoryData.percentages || [];
+    
+    let totalTickets = 0;
+    let totalCost = 0;
+    
+    // Combine data and sort by total cost
+    const data = categories.map((cat, idx) => ({
+        category: cat,
+        count: counts[idx] || 0,
+        cost: costs[idx] || 0,
+        avgCost: avgCosts[idx] || 0,
+        percentage: percentages[idx] || 0
+    })).sort((a, b) => b.cost - a.cost);
+    
+    data.forEach((item) => {
+        totalTickets += parseInt(item.count) || 0;
+        totalCost += parseFloat(item.cost) || 0;
+    });
+    
+    let tableRows = '';
+    data.forEach((item) => {
+        tableRows += `
+            <tr>
+                <td><strong>${item.category}</strong></td>
+                <td class="text-center"><span class="badge bg-primary">${item.count}</span></td>
+                <td class="text-end">₱${item.cost.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                <td class="text-end">₱${item.avgCost.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                <td class="text-end"><span class="badge bg-info">${item.percentage.toFixed(1)}%</span></td>
+            </tr>
+        `;
+    });
+    
+    Swal.fire({
+        title: '<i class="fas fa-tags me-2"></i>Cost Breakdown by Category - Detailed Report',
+        html: `
+            <div style="height: 100%; overflow-y: auto;">
                 <div style="height: 400px; margin-bottom: 30px; padding: 15px; background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                    <canvas id="modalLocationChart"></canvas>
+                    <canvas id="modalCategoryChart"></canvas>
                 </div>
                 <div class="table-responsive">
-                    <table class="table table-hover table-striped table-bordered" id="locationReportTable">
+                    <table class="table table-hover table-striped table-bordered" id="categoryReportTable">
                         <thead class="table-dark">
                             <tr>
-                                <th>Item Fixed</th>
-                                <th>Location</th>
-                                <th class="text-center">Total Repairs</th>
+                                <th>Category</th>
+                                <th class="text-center">Total Tickets</th>
                                 <th class="text-end">Total Cost</th>
+                                <th class="text-end">Avg Cost</th>
+                                <th class="text-end">Percentage</th>
                             </tr>
                         </thead>
                         <tbody>${tableRows}</tbody>
                         <tfoot class="table-secondary fw-bold">
                             <tr>
-                                <td colspan="2">TOTAL</td>
-                                <td class="text-center">${totalRepairs}</td>
+                                <td>TOTAL</td>
+                                <td class="text-center">${totalTickets}</td>
                                 <td class="text-end">₱${totalCost.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                <td class="text-end">-</td>
+                                <td class="text-end">100%</td>
                             </tr>
                         </tfoot>
                     </table>
@@ -282,14 +567,18 @@ function showLocationDetailsModal(filterType = null) {
             popup: 'swal-wide-popup'
         },
         didOpen: () => {
-            const ctx = document.getElementById('modalLocationChart');
+            const ctx = document.getElementById('modalCategoryChart');
             new Chart(ctx, {
-                type: 'pie',
+                type: 'doughnut',
                 data: {
-                    labels: locations,
+                    labels: categories,
                     datasets: [{
-                        data: counts,
-                        backgroundColor: ['#FF6384','#36A2EB','#FFCE56','#4BC0C0','#9966FF','#FF9F40','#C9CBCF','#4BC0C0'],
+                        data: costs,
+                        backgroundColor: [
+                            '#667eea', '#764ba2', '#f093fb', '#4facfe',
+                            '#43e97b', '#fa709a', '#fee140', '#30cfd0',
+                            '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4'
+                        ],
                         borderWidth: 2
                     }]
                 },
@@ -297,7 +586,27 @@ function showLocationDetailsModal(filterType = null) {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { position: 'bottom' }
+                        legend: { position: 'right' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const index = context.dataIndex;
+                                    const category = categories[index];
+                                    const count = counts[index];
+                                    const cost = costs[index];
+                                    const avgCost = avgCosts[index];
+                                    const percentage = percentages[index];
+                                    
+                                    return [
+                                        `${category}`,
+                                        `Tickets: ${count}`,
+                                        `Total: ₱${cost.toLocaleString('en-PH', {minimumFractionDigits: 2})}`,
+                                        `Avg: ₱${avgCost.toLocaleString('en-PH', {minimumFractionDigits: 2})}`,
+                                        `${percentage.toFixed(1)}%`
+                                    ];
+                                }
+                            }
+                        }
                     }
                 }
             });
@@ -452,41 +761,79 @@ function showCostDetailsModal(filterType = null) {
 function showStatusDetailsModal(filterType = null) {
     const statuses = window.chartStatuses || [];
     const statusCounts = window.chartStatusCounts || [];
+    const statusReportIds = window.statusReportIds || {};
     
-    const totalCount = statusCounts.reduce((sum, count) => sum + count, 0);
+    // Define the desired order
+    const statusOrder = ['Pending', 'Assigned', 'In Progress', 'Resolved'];
+    const itemsPerPage = 5;
     
     let tableRows = '';
-    statuses.forEach((status, idx) => {
-        const count = statusCounts[idx] || 0;
-        const percentage = totalCount > 0 ? ((count / totalCount) * 100).toFixed(1) : 0;
-        
-        let badgeClass = 'bg-secondary';
-        if (status === 'Resolved' || status === 'Completed') badgeClass = 'bg-success';
-        else if (status === 'Pending' || status === 'In Progress') badgeClass = 'bg-warning';
-        else if (status === 'Rejected' || status === 'Cancelled') badgeClass = 'bg-danger';
-        
-        tableRows += `
-            <tr>
-                <td><span class="badge ${badgeClass}">${status}</span></td>
-                <td class="text-center"><strong>${count}</strong></td>
-                <td class="text-center">${percentage}%</td>
-                <td>
-                    <div class="progress" style="height: 25px;">
-                        <div class="progress-bar ${badgeClass}" style="width: ${percentage}%">${percentage}%</div>
-                    </div>
-                </td>
-            </tr>
-        `;
+    statusOrder.forEach(function(orderedStatus) {
+        const index = statuses.indexOf(orderedStatus);
+        if (index !== -1) {
+            const status = statuses[index];
+            const count = statusCounts[index] || 0;
+            const issuesString = statusReportIds[status] || 'N/A';
+            const issuesArray = issuesString.split(', ');
+            
+            let badgeClass = 'bg-secondary';
+            if (status === 'Resolved' || status === 'Completed') badgeClass = 'bg-success';
+            else if (status === 'Pending') badgeClass = 'bg-warning';
+            else if (status === 'Assigned') badgeClass = 'bg-info';
+            else if (status === 'In Progress') badgeClass = 'bg-primary';
+            else if (status === 'Rejected' || status === 'Cancelled') badgeClass = 'bg-danger';
+            
+            let issuesList = '<div id="issues-' + status.replace(/\s+/g, '-') + '">';
+            
+            // Show first 5 items
+            issuesArray.slice(0, itemsPerPage).forEach(function(issue) {
+                issuesList += '<div style="padding: 2px 0; font-size: 0.85rem;">' + issue + '</div>';
+            });
+            
+            // Hidden items
+            if (issuesArray.length > itemsPerPage) {
+                issuesList += '<div id="hidden-issues-' + status.replace(/\s+/g, '-') + '" style="display: none;">';
+                issuesArray.slice(itemsPerPage).forEach(function(issue) {
+                    issuesList += '<div style="padding: 2px 0; font-size: 0.85rem;">' + issue + '</div>';
+                });
+                issuesList += '</div>';
+                issuesList += '<button class="btn btn-sm btn-link p-0 mt-1" onclick="toggleStatusIssues(\'' + status.replace(/\s+/g, '-') + '\')" id="toggle-btn-' + status.replace(/\s+/g, '-') + '" style="font-size: 0.8rem;">Show More (' + (issuesArray.length - itemsPerPage) + ')</button>';
+            }
+            
+            issuesList += '</div>';
+            
+            tableRows += `
+                <tr>
+                    <td><span class="badge ${badgeClass}">${status}</span></td>
+                    <td class="text-center"><strong>${count}</strong></td>
+                    <td>${issuesList}</td>
+                </tr>
+            `;
+        }
     });
     
-    // Get current filter state
-    const state = window.modalFilterState;
+    // Toggle function
+    window.toggleStatusIssues = function(statusId) {
+        const hiddenDiv = document.getElementById('hidden-issues-' + statusId);
+        const toggleBtn = document.getElementById('toggle-btn-' + statusId);
+        
+        if (hiddenDiv && toggleBtn) {
+            if (hiddenDiv.style.display === 'none') {
+                hiddenDiv.style.display = 'block';
+                toggleBtn.textContent = 'Show Less';
+            } else {
+                hiddenDiv.style.display = 'none';
+                const hiddenCount = hiddenDiv.querySelectorAll('div').length;
+                toggleBtn.textContent = 'Show More (' + hiddenCount + ')';
+            }
+        }
+    };
     
     Swal.fire({
         title: '<i class="fas fa-tasks me-2"></i>Status Distribution - Detailed Report',
         html: `
             <div style="height: 100%; overflow-y: auto;">
-                ${generateYouTubeStyleFilter('status', 'exportStatusReportToPDF')}
+                ${generateYouTubeStyleFilter('status', 'exportStatusPDF')}
                 <div style="height: 400px; margin-bottom: 30px; padding: 15px; background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                     <canvas id="modalStatusChart"></canvas>
                 </div>
@@ -496,19 +843,10 @@ function showStatusDetailsModal(filterType = null) {
                             <tr>
                                 <th>Status</th>
                                 <th class="text-center">Count</th>
-                                <th class="text-center">Percentage</th>
-                                <th>Progress</th>
+                                <th>Issue</th>
                             </tr>
                         </thead>
                         <tbody>${tableRows}</tbody>
-                        <tfoot class="table-secondary fw-bold">
-                            <tr>
-                                <td>TOTAL</td>
-                                <td class="text-center">${totalCount}</td>
-                                <td class="text-center">100%</td>
-                                <td></td>
-                            </tr>
-                        </tfoot>
                     </table>
                 </div>
             </div>
@@ -548,60 +886,90 @@ function showStatusDetailsModal(filterType = null) {
 
 // Show Period Comparison Modal
 function showPeriodComparisonModal(filterType = null) {
-    // Get last 6 months data
-    const currentDate = new Date();
-    const monthLabels = [];
-    const monthKeys = [];
+    // Determine if we should use yearly or monthly grouping
+    const state = window.modalFilterState || {};
+    const dateFrom = state.date_from ? new Date(state.date_from) : new Date(new Date().setMonth(new Date().getMonth() - 6));
+    const dateTo = state.date_to ? new Date(state.date_to) : new Date();
+    const yearSpan = dateTo.getFullYear() - dateFrom.getFullYear();
+    const isAllYears = yearSpan > 2;
     
-    // Generate last 6 months
-    for (let i = 5; i >= 0; i--) {
-        const d = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
-        const key = d.toISOString().slice(0, 7); // YYYY-MM format
-        const label = d.toLocaleDateString('en-PH', { month: 'short', year: 'numeric' });
-        monthKeys.push(key);
-        monthLabels.push(label);
-    }
-    
-    // Initialize data arrays
-    const monthCosts = new Array(6).fill(0);
-    const monthCounts = new Array(6).fill(0);
+    let labels = [];
+    let keys = [];
+    let costs = [];
+    let counts = [];
     
     // Get monthly cost data from window if available
     const monthlyCostData = window.monthlyCostData || [];
     
-    // Populate data from server
-    monthlyCostData.forEach(item => {
-        const monthIndex = monthKeys.indexOf(item.month);
-        if (monthIndex !== -1) {
-            monthCosts[monthIndex] = parseFloat(item.total_cost) || 0;
-            monthCounts[monthIndex] = parseInt(item.count) || 0;
+    if (isAllYears) {
+        // Group by year for "All years" view
+        const startYear = dateFrom.getFullYear();
+        const endYear = dateTo.getFullYear();
+        
+        for (let year = startYear; year <= endYear; year++) {
+            keys.push(year.toString());
+            labels.push(year.toString());
+            costs.push(0);
+            counts.push(0);
         }
-    });
+        
+        // Aggregate monthly data into yearly data
+        monthlyCostData.forEach(item => {
+            const itemYear = item.month.substring(0, 4); // Extract year from YYYY-MM
+            const yearIndex = keys.indexOf(itemYear);
+            if (yearIndex !== -1) {
+                costs[yearIndex] += parseFloat(item.total_cost) || 0;
+                counts[yearIndex] += parseInt(item.count) || 0;
+            }
+        });
+    } else {
+        // Group by month for other views (default: last 6 months)
+        const currentDate = new Date();
+        
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+            const key = d.toISOString().slice(0, 7); // YYYY-MM format
+            const label = d.toLocaleDateString('en-PH', { month: 'short', year: 'numeric' });
+            keys.push(key);
+            labels.push(label);
+            costs.push(0);
+            counts.push(0);
+        }
+        
+        // Populate data from server
+        monthlyCostData.forEach(item => {
+            const monthIndex = keys.indexOf(item.month);
+            if (monthIndex !== -1) {
+                costs[monthIndex] = parseFloat(item.total_cost) || 0;
+                counts[monthIndex] = parseInt(item.count) || 0;
+            }
+        });
+    }
     
     // Calculate statistics
-    const totalCost = monthCosts.reduce((sum, cost) => sum + cost, 0);
-    const totalCount = monthCounts.reduce((sum, count) => sum + count, 0);
-    const avgCostPerMonth = totalCost / 6;
+    const totalCost = costs.reduce((sum, cost) => sum + cost, 0);
+    const totalCount = counts.reduce((sum, count) => sum + count, 0);
+    const avgCostPerPeriod = costs.length > 0 ? totalCost / costs.length : 0;
     const avgCostPerRepair = totalCount > 0 ? totalCost / totalCount : 0;
     
-    // Find highest and lowest months
+    // Find highest and lowest periods
     let highestIdx = 0, lowestIdx = 0;
-    for (let i = 1; i < 6; i++) {
-        if (monthCosts[i] > monthCosts[highestIdx]) highestIdx = i;
-        if (monthCosts[i] < monthCosts[lowestIdx]) lowestIdx = i;
+    for (let i = 1; i < costs.length; i++) {
+        if (costs[i] > costs[highestIdx]) highestIdx = i;
+        if (costs[i] < costs[lowestIdx]) lowestIdx = i;
     }
     
     // Build table rows
     let tableRows = '';
-    monthLabels.forEach((label, idx) => {
-        const cost = monthCosts[idx];
-        const count = monthCounts[idx];
+    labels.forEach((label, idx) => {
+        const cost = costs[idx];
+        const count = counts[idx];
         const avgPerRepair = count > 0 ? cost / count : 0;
         const percentOfTotal = totalCost > 0 ? ((cost / totalCost) * 100).toFixed(1) : 0;
         
         let trendIcon = '';
         if (idx > 0) {
-            const prevCost = monthCosts[idx - 1];
+            const prevCost = costs[idx - 1];
             if (cost > prevCost) {
                 trendIcon = '<i class="fas fa-arrow-up text-danger"></i>';
             } else if (cost < prevCost) {
@@ -623,8 +991,10 @@ function showPeriodComparisonModal(filterType = null) {
         `;
     });
     
+    const periodLabel = isAllYears ? 'Years' : (costs.length + ' Months');
+    
     // Get current filter state
-    const state = window.modalFilterState;
+    const state2 = window.modalFilterState;
     
     Swal.fire({
         title: '<i class="fas fa-chart-line me-2"></i>Period Comparison - Detailed Report',
@@ -638,26 +1008,26 @@ function showPeriodComparisonModal(filterType = null) {
                     <div class="col-md-4">
                         <div class="card bg-light">
                             <div class="card-body text-center p-3">
-                                <h6 class="text-muted mb-2">Highest Cost Month</h6>
-                                <h4 class="text-danger mb-2">${monthLabels[highestIdx]}</h4>
-                                <h5 class="mb-0">₱${monthCosts[highestIdx].toLocaleString('en-PH', {minimumFractionDigits: 2})}</h5>
+                                <h6 class="text-muted mb-2">Highest Cost ${isAllYears ? 'Year' : 'Month'}</h6>
+                                <h4 class="text-danger mb-2">${labels[highestIdx]}</h4>
+                                <h5 class="mb-0">₱${costs[highestIdx].toLocaleString('en-PH', {minimumFractionDigits: 2})}</h5>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="card bg-light">
                             <div class="card-body text-center p-3">
-                                <h6 class="text-muted mb-2">Lowest Cost Month</h6>
-                                <h4 class="text-success mb-2">${monthLabels[lowestIdx]}</h4>
-                                <h5 class="mb-0">₱${monthCosts[lowestIdx].toLocaleString('en-PH', {minimumFractionDigits: 2})}</h5>
+                                <h6 class="text-muted mb-2">Lowest Cost ${isAllYears ? 'Year' : 'Month'}</h6>
+                                <h4 class="text-success mb-2">${labels[lowestIdx]}</h4>
+                                <h5 class="mb-0">₱${costs[lowestIdx].toLocaleString('en-PH', {minimumFractionDigits: 2})}</h5>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="card bg-light">
                             <div class="card-body text-center p-3">
-                                <h6 class="text-muted mb-2">Average Cost/Month</h6>
-                                <h4 class="text-primary mb-2">₱${avgCostPerMonth.toLocaleString('en-PH', {minimumFractionDigits: 2})}</h4>
+                                <h6 class="text-muted mb-2">Average Cost/${isAllYears ? 'Year' : 'Month'}</h6>
+                                <h4 class="text-primary mb-2">₱${avgCostPerPeriod.toLocaleString('en-PH', {minimumFractionDigits: 2})}</h4>
                                 <h5 class="mb-0" style="font-size: 0.9rem;">₱${avgCostPerRepair.toLocaleString('en-PH', {minimumFractionDigits: 2})} per repair</h5>
                             </div>
                         </div>
@@ -678,7 +1048,7 @@ function showPeriodComparisonModal(filterType = null) {
                         <tbody>${tableRows}</tbody>
                         <tfoot class="table-secondary fw-bold">
                             <tr>
-                                <td>TOTAL (6 Months)</td>
+                                <td>TOTAL (${periodLabel})</td>
                                 <td class="text-center">${totalCount}</td>
                                 <td class="text-end">₱${totalCost.toLocaleString('en-PH', {minimumFractionDigits: 2})}</td>
                                 <td class="text-end">₱${avgCostPerRepair.toLocaleString('en-PH', {minimumFractionDigits: 2})}</td>
@@ -704,10 +1074,10 @@ function showPeriodComparisonModal(filterType = null) {
             new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: monthLabels,
+                    labels: labels,
                     datasets: [{
                         label: 'Total Cost (₱)',
-                        data: monthCosts,
+                        data: costs,
                         backgroundColor: '#36A2EB',
                         borderWidth: 1
                     }]
@@ -728,7 +1098,7 @@ function showPeriodComparisonModal(filterType = null) {
                             callbacks: {
                                 label: function(context) {
                                     const value = context.parsed.y || 0;
-                                    const repairs = monthCounts[context.dataIndex] || 0;
+                                    const repairs = counts[context.dataIndex] || 0;
                                     const avgCost = repairs > 0 ? (value / repairs) : 0;
                                     return [
                                         'Total Cost: ₱' + value.toLocaleString('en-PH', {minimumFractionDigits: 2}),
@@ -760,7 +1130,7 @@ function showMonthlyTrendModal(filterType = null) {
         monthLabels.push({ key: key, label: lbl });
     }
     
-    // Group by month
+    // Group by month with status breakdown
     const monthData = {};
     monthLabels.forEach(m => {
         monthData[m.key] = { label: m.label, issues: {}, total: 0 };
@@ -769,10 +1139,18 @@ function showMonthlyTrendModal(filterType = null) {
     monthly.forEach(item => {
         if (monthData[item.month]) {
             if (!monthData[item.month].issues[item.title]) {
-                monthData[item.month].issues[item.title] = 0;
+                monthData[item.month].issues[item.title] = {
+                    total: 0,
+                    Pending: 0,
+                    Assigned: 0,
+                    'In Progress': 0,
+                    Resolved: 0
+                };
             }
-            monthData[item.month].issues[item.title] += item.count;
-            monthData[item.month].total += item.count;
+            const count = parseInt(item.count) || 0;
+            monthData[item.month].issues[item.title].total += count;
+            monthData[item.month].issues[item.title][item.status] = (monthData[item.month].issues[item.title][item.status] || 0) + count;
+            monthData[item.month].total += count;
         }
     });
     
@@ -793,28 +1171,26 @@ function showMonthlyTrendModal(filterType = null) {
         }
     });
     
-    // Build table rows
+    // Build table rows with status breakdown
     let tableRows = '';
     Object.entries(monthData).forEach(([key, data]) => {
         if (Object.keys(data.issues).length === 0) {
             tableRows += `
                 <tr>
                     <td><strong>${data.label}</strong></td>
-                    <td colspan="3" class="text-center text-muted">No repairs recorded</td>
+                    <td colspan="5" class="text-center text-muted">No repairs recorded</td>
                 </tr>
             `;
         } else {
-            Object.entries(data.issues).forEach(([issue, count], idx) => {
-                const trend = count > 5 ? '<i class="fas fa-arrow-up text-danger"></i> High' : 
-                             count > 2 ? '<i class="fas fa-minus text-warning"></i> Medium' : 
-                             '<i class="fas fa-arrow-down text-success"></i> Low';
-                
+            Object.entries(data.issues).forEach(([issue, statusData], idx) => {
                 tableRows += `
                     <tr>
                         ${idx === 0 ? `<td rowspan="${Object.keys(data.issues).length}"><strong>${data.label}</strong></td>` : ''}
                         <td>${issue}</td>
-                        <td class="text-center"><span class="badge bg-primary">${count}</span></td>
-                        <td class="text-center">${trend}</td>
+                        <td class="text-center"><span class="badge bg-primary">${statusData.total}</span></td>
+                        <td class="text-center"><span class="badge bg-success">${statusData.Resolved || 0}</span></td>
+                        <td class="text-center"><span class="badge bg-warning">${statusData['In Progress'] || 0}</span></td>
+                        <td class="text-center"><span class="badge bg-secondary">${statusData.Pending || 0}</span></td>
                     </tr>
                 `;
             });
@@ -895,8 +1271,10 @@ function showMonthlyTrendModal(filterType = null) {
                             <tr>
                                 <th>Month</th>
                                 <th>Issue Type</th>
-                                <th class="text-center">Count</th>
-                                <th class="text-center">Trend</th>
+                                <th class="text-center">Total</th>
+                                <th class="text-center">Resolved</th>
+                                <th class="text-center">In Progress</th>
+                                <th class="text-center">Pending</th>
                             </tr>
                         </thead>
                         <tbody>${tableRows}</tbody>
@@ -956,10 +1334,42 @@ function exportLocationReportToPDF() {
         params.append('date_to', state.date_to);
     }
     
+    // Add room filter if set
+    if (state.room && state.room !== 'all') {
+        params.append('room_filter', state.room);
+    }
+    
     // Open PDF in new window
     const queryString = params.toString();
     const url = queryString ? '/admin/analytics/location-report-pdf?' + queryString : '/admin/analytics/location-report-pdf';
     console.log('Export PDF URL:', url); // Debug log
+    window.open(url, '_blank');
+}
+
+// Export Status Distribution & Response Time Report to PDF
+function exportStatusPDF() {
+    const params = new URLSearchParams();
+    
+    // Get filter values from modal state
+    const state = window.modalFilterState || {};
+    
+    console.log('Export Status PDF - Modal Filter State:', state); // Debug log
+    
+    // Use date_from and date_to if available (from YouTube-style filter)
+    if (state.date_from && state.date_to) {
+        params.append('date_from', state.date_from);
+        params.append('date_to', state.date_to);
+    }
+    
+    // Add room filter if set
+    if (state.room && state.room !== 'all') {
+        params.append('room_filter', state.room);
+    }
+    
+    // Open PDF in new window
+    const queryString = params.toString();
+    const url = queryString ? '/admin/analytics/status-distribution-pdf?' + queryString : '/admin/analytics/status-distribution-pdf';
+    console.log('Export Status PDF URL:', url); // Debug log
     window.open(url, '_blank');
 }
 
@@ -1068,9 +1478,14 @@ function applyModalFilterFromInputs(modalType) {
         window.chartCosts = data.chartCosts || [];
         window.chartStatuses = data.chartStatuses || [];
         window.chartStatusCounts = data.chartStatusCounts || [];
+        window.statusReportIds = data.statusReportIds || {};
         window.monthlyStats = data.monthlyStats || [];
         window.monthlyCostData = data.monthlyCostData || [];
         window.locationDetailedStats = data.locationStats || [];
+        window.responseTimeStats = data.responseTimeStats || [];
+        window.avgSubmittedToAssigned = data.avgSubmittedToAssigned || 0;
+        window.avgAssignedToResolved = data.avgAssignedToResolved || 0;
+        window.avgTotalTime = data.avgTotalTime || 0;
         
         // Remove loading overlay
         if (chartContainer) {
@@ -1176,9 +1591,14 @@ function applyModalFilter(modalType, filterType) {
         window.chartCosts = data.chartCosts || [];
         window.chartStatuses = data.chartStatuses || [];
         window.chartStatusCounts = data.chartStatusCounts || [];
+        window.statusReportIds = data.statusReportIds || {};
         window.monthlyStats = data.monthlyStats || [];
         window.monthlyCostData = data.monthlyCostData || [];
         window.locationDetailedStats = data.locationStats || [];
+        window.responseTimeStats = data.responseTimeStats || [];
+        window.avgSubmittedToAssigned = data.avgSubmittedToAssigned || 0;
+        window.avgAssignedToResolved = data.avgAssignedToResolved || 0;
+        window.avgTotalTime = data.avgTotalTime || 0;
         
         // Re-render the appropriate modal with new data
         if (modalType === 'location') {
@@ -1224,41 +1644,81 @@ function getFilterLabel(filterType) {
 function updateLocationModalContent() {
     const locations = window.chartLocations || [];
     const counts = window.chartCounts || [];
+    const costs = window.chartCosts || [];
     const detailedStats = window.locationDetailedStats || [];
+    
+    // Get category data
+    const categoryData = window.categoryData || {};
+    const categories = categoryData.categories || [];
     
     let totalRepairs = 0;
     let totalCost = 0;
     
-    const sortedStats = [...detailedStats].sort((a, b) => b.count - a.count);
-    
-    sortedStats.forEach((item) => {
-        totalRepairs += parseInt(item.count) || 0;
-        totalCost += parseFloat(item.total_cost) || 0;
+    // Sort detailed stats by location and cost
+    const sortedStats = [...detailedStats].sort((a, b) => {
+        if (a.location !== b.location) {
+            return a.location.localeCompare(b.location);
+        }
+        return (b.cost || 0) - (a.cost || 0);
     });
     
+    totalRepairs = sortedStats.length;
+    sortedStats.forEach((item) => {
+        totalCost += parseFloat(item.cost) || 0;
+    });
+    
+    // Build comprehensive table with Location, Category, Ticket, Issue, Damaged Part, Cost, and Date
     let tableRows = '';
     sortedStats.forEach((item) => {
-        const itemCost = parseFloat(item.total_cost) || 0;
+        const itemCost = parseFloat(item.cost) || 0;
+        const itemCategory = item.category || 'Uncategorized';
+        const ticketNumber = '#' + String(item.id).padStart(4, '0');
+        const issue = item.title || 'N/A';
+        const damagedPart = item.damaged_part || 'N/A';
+        const resolvedDate = item.resolved_at || 'N/A';
+        
         tableRows += `
             <tr>
-                <td><strong>${item.title}</strong></td>
                 <td><strong>${item.location}</strong></td>
-                <td class="text-center"><span class="badge bg-primary">${item.count}</span></td>
+                <td><span class="badge bg-info">${itemCategory}</span></td>
+                <td><span class="badge bg-primary">${ticketNumber}</span></td>
+                <td>${issue}</td>
+                <td>${damagedPart}</td>
                 <td class="text-end">₱${itemCost.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                <td class="text-center" style="font-size: 0.85rem;">${resolvedDate}</td>
             </tr>
         `;
     });
     
+    // Update summary statistics
+    const modalContainer = document.querySelector('.swal2-html-container');
+    if (modalContainer) {
+        const summaryCards = modalContainer.querySelectorAll('.row.mb-3 .col-md-4');
+        if (summaryCards.length >= 3) {
+            // Update Total Locations
+            const locationsValue = summaryCards[0].querySelector('div[style*="font-size: 1.5rem"]');
+            if (locationsValue) locationsValue.textContent = locations.length;
+            
+            // Update Total Categories
+            const categoriesValue = summaryCards[1].querySelector('div[style*="font-size: 1.5rem"]');
+            if (categoriesValue) categoriesValue.textContent = categories.length;
+            
+            // Update Total Tickets
+            const ticketsValue = summaryCards[2].querySelector('div[style*="font-size: 1.5rem"]');
+            if (ticketsValue) ticketsValue.textContent = sortedStats.length;
+        }
+    }
+    
     // Update table
-    const tbody = document.querySelector('#locationReportTable tbody');
-    const tfoot = document.querySelector('#locationReportTable tfoot');
+    const tbody = document.querySelector('#comprehensiveReportTable tbody');
+    const tfoot = document.querySelector('#comprehensiveReportTable tfoot');
     if (tbody) tbody.innerHTML = tableRows;
     if (tfoot) {
         tfoot.innerHTML = `
             <tr>
-                <td colspan="2">TOTAL</td>
-                <td class="text-center">${totalRepairs}</td>
+                <td colspan="5">TOTAL (${totalRepairs} tickets)</td>
                 <td class="text-end">₱${totalCost.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                <td></td>
             </tr>
         `;
     }
@@ -1277,7 +1737,11 @@ function updateLocationModalContent() {
                 labels: locations,
                 datasets: [{
                     data: counts,
-                    backgroundColor: ['#FF6384','#36A2EB','#FFCE56','#4BC0C0','#9966FF','#FF9F40','#C9CBCF','#4BC0C0'],
+                    backgroundColor: [
+                        '#FF6384','#36A2EB','#FFCE56','#4BC0C0','#9966FF',
+                        '#FF9F40','#C9CBCF','#667eea','#764ba2','#f093fb',
+                        '#4facfe','#43e97b','#fa709a','#fee140','#30cfd0'
+                    ],
                     borderWidth: 2
                 }]
             },
@@ -1285,7 +1749,42 @@ function updateLocationModalContent() {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { position: 'bottom' }
+                    legend: { 
+                        position: 'right',
+                        labels: { 
+                            font: { size: 11 },
+                            padding: 10
+                        } 
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: function(context) {
+                                return context[0].label;
+                            },
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                const cost = costs[context.dataIndex] || 0;
+                                const percentage = ((value / totalRepairs) * 100).toFixed(1);
+                                
+                                return [
+                                    `Repairs: ${value} (${percentage}%)`,
+                                    `Total Cost: ₱${cost.toLocaleString('en-PH', {minimumFractionDigits: 2})}`,
+                                    `Avg Cost: ₱${(cost / value).toLocaleString('en-PH', {minimumFractionDigits: 2})}`
+                                ];
+                            }
+                        },
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleFont: { size: 13, weight: 'bold' },
+                        bodyFont: { size: 12 },
+                        padding: 12
+                    },
+                    title: {
+                        display: true,
+                        text: 'Repairs Distribution by Location',
+                        font: { size: 16, weight: 'bold' },
+                        padding: { bottom: 20 }
+                    }
                 }
             }
         });
@@ -1398,48 +1897,62 @@ function updateCostModalContent() {
 function updateStatusModalContent() {
     const statuses = window.chartStatuses || [];
     const statusCounts = window.chartStatusCounts || [];
-    const totalCount = statusCounts.reduce((sum, count) => sum + count, 0);
+    const statusReportIds = window.statusReportIds || {};
+    
+    // Define the desired order
+    const statusOrder = ['Pending', 'Assigned', 'In Progress', 'Resolved'];
+    const itemsPerPage = 5;
     
     let tableRows = '';
-    statuses.forEach((status, idx) => {
-        const count = statusCounts[idx] || 0;
-        const percentage = totalCount > 0 ? ((count / totalCount) * 100).toFixed(1) : 0;
-        
-        let badgeClass = 'bg-secondary';
-        if (status === 'Resolved' || status === 'Completed') badgeClass = 'bg-success';
-        else if (status === 'Pending' || status === 'In Progress') badgeClass = 'bg-warning';
-        else if (status === 'Rejected' || status === 'Cancelled') badgeClass = 'bg-danger';
-        
-        tableRows += `
-            <tr>
-                <td><span class="badge ${badgeClass}">${status}</span></td>
-                <td class="text-center"><strong>${count}</strong></td>
-                <td class="text-center">${percentage}%</td>
-                <td>
-                    <div class="progress" style="height: 25px;">
-                        <div class="progress-bar ${badgeClass}" style="width: ${percentage}%">${percentage}%</div>
-                    </div>
-                </td>
-            </tr>
-        `;
+    statusOrder.forEach(function(orderedStatus) {
+        const index = statuses.indexOf(orderedStatus);
+        if (index !== -1) {
+            const status = statuses[index];
+            const count = statusCounts[index] || 0;
+            const issuesString = statusReportIds[status] || 'N/A';
+            const issuesArray = issuesString.split(', ');
+            
+            let badgeClass = 'bg-secondary';
+            if (status === 'Resolved' || status === 'Completed') badgeClass = 'bg-success';
+            else if (status === 'Pending') badgeClass = 'bg-warning';
+            else if (status === 'Assigned') badgeClass = 'bg-info';
+            else if (status === 'In Progress') badgeClass = 'bg-primary';
+            else if (status === 'Rejected' || status === 'Cancelled') badgeClass = 'bg-danger';
+            
+            let issuesList = '<div id="issues-' + status.replace(/\s+/g, '-') + '">';
+            
+            // Show first 5 items
+            issuesArray.slice(0, itemsPerPage).forEach(function(issue) {
+                issuesList += '<div style="padding: 2px 0; font-size: 0.85rem;">' + issue + '</div>';
+            });
+            
+            // Hidden items
+            if (issuesArray.length > itemsPerPage) {
+                issuesList += '<div id="hidden-issues-' + status.replace(/\s+/g, '-') + '" style="display: none;">';
+                issuesArray.slice(itemsPerPage).forEach(function(issue) {
+                    issuesList += '<div style="padding: 2px 0; font-size: 0.85rem;">' + issue + '</div>';
+                });
+                issuesList += '</div>';
+                issuesList += '<button class="btn btn-sm btn-link p-0 mt-1" onclick="toggleStatusIssues(\'' + status.replace(/\s+/g, '-') + '\')" id="toggle-btn-' + status.replace(/\s+/g, '-') + '" style="font-size: 0.8rem;">Show More (' + (issuesArray.length - itemsPerPage) + ')</button>';
+            }
+            
+            issuesList += '</div>';
+            
+            tableRows += `
+                <tr>
+                    <td><span class="badge ${badgeClass}">${status}</span></td>
+                    <td class="text-center"><strong>${count}</strong></td>
+                    <td>${issuesList}</td>
+                </tr>
+            `;
+        }
     });
     
     // Update table - use more specific selector within the modal
     const modalContainer = document.querySelector('.swal2-html-container');
     const tbody = modalContainer ? modalContainer.querySelector('.table-responsive .table tbody') : null;
-    const tfoot = modalContainer ? modalContainer.querySelector('.table-responsive .table tfoot') : null;
     
     if (tbody) tbody.innerHTML = tableRows;
-    if (tfoot) {
-        tfoot.innerHTML = `
-            <tr>
-                <td>TOTAL</td>
-                <td class="text-center">${totalCount}</td>
-                <td class="text-center">100%</td>
-                <td></td>
-            </tr>
-        `;
-    }
     
     // Update chart
     const canvas = document.getElementById('modalStatusChart');
@@ -1466,6 +1979,53 @@ function updateStatusModalContent() {
             }
         });
     }
+    
+    // Update Response Time Details section
+    const responseTimeStats = window.responseTimeStats || [];
+    const avgSubmittedToAssigned = window.avgSubmittedToAssigned || 0;
+    const avgAssignedToResolved = window.avgAssignedToResolved || 0;
+    const avgTotalTime = window.avgTotalTime || 0;
+    
+    // Convert hours to HH:MM:SS format
+    const formatHoursToTime = function(hours) {
+        const totalSeconds = Math.floor(hours * 3600);
+        const h = Math.floor(totalSeconds / 3600);
+        const m = Math.floor((totalSeconds % 3600) / 60);
+        const s = totalSeconds % 60;
+        return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+    };
+    
+    // Update average metrics
+    const avgMetrics = modalContainer ? modalContainer.querySelectorAll('.row.mb-3 .col-4') : [];
+    if (avgMetrics.length >= 3) {
+        avgMetrics[0].querySelector('div[style*="font-size: 1.5rem"]').textContent = formatHoursToTime(avgSubmittedToAssigned);
+        avgMetrics[1].querySelector('div[style*="font-size: 1.5rem"]').textContent = formatHoursToTime(avgAssignedToResolved);
+        avgMetrics[2].querySelector('div[style*="font-size: 1.5rem"]').textContent = formatHoursToTime(avgTotalTime);
+    }
+    
+    // Update response time table
+    let responseTimeRows = '';
+    responseTimeStats.forEach(function(stat) {
+        const ticketNum = '#' + String(stat.id).padStart(4, '0');
+        responseTimeRows += `
+            <tr>
+                <td>${ticketNum} - ${stat.title}</td>
+                <td>${stat.location}</td>
+                <td style="font-size: 0.85rem;">${stat.created_at}</td>
+                <td style="font-size: 0.85rem;">${stat.assigned_at}</td>
+                <td style="font-size: 0.85rem;">${stat.resolved_at}</td>
+                <td class="text-center">${stat.submitted_to_assigned_formatted}</td>
+                <td class="text-center">${stat.assigned_to_resolved_formatted}</td>
+                <td class="text-center"><strong>${stat.total_time_formatted}</strong></td>
+                <td>${stat.assigned_to_name}</td>
+            </tr>
+        `;
+    });
+    
+    const responseTimeTbody = modalContainer ? modalContainer.querySelectorAll('.table-responsive .table tbody')[1] : null;
+    if (responseTimeTbody) {
+        responseTimeTbody.innerHTML = responseTimeRows;
+    }
 }
 
 // Update Trend Modal Content (without closing modal)
@@ -1483,7 +2043,7 @@ function updateTrendModalContent() {
         monthLabels.push({ key: key, label: lbl });
     }
     
-    // Group by month
+    // Group by month with status breakdown
     const monthData = {};
     monthLabels.forEach(m => {
         monthData[m.key] = { label: m.label, issues: {}, total: 0 };
@@ -1492,10 +2052,18 @@ function updateTrendModalContent() {
     monthly.forEach(item => {
         if (monthData[item.month]) {
             if (!monthData[item.month].issues[item.title]) {
-                monthData[item.month].issues[item.title] = 0;
+                monthData[item.month].issues[item.title] = {
+                    total: 0,
+                    Pending: 0,
+                    Assigned: 0,
+                    'In Progress': 0,
+                    Resolved: 0
+                };
             }
-            monthData[item.month].issues[item.title] += item.count;
-            monthData[item.month].total += item.count;
+            const count = parseInt(item.count) || 0;
+            monthData[item.month].issues[item.title].total += count;
+            monthData[item.month].issues[item.title][item.status] = (monthData[item.month].issues[item.title][item.status] || 0) + count;
+            monthData[item.month].total += count;
         }
     });
     
@@ -1537,28 +2105,26 @@ function updateTrendModalContent() {
         });
     }
     
-    // Update table
+    // Update table with status breakdown
     let tableRows = '';
     Object.entries(monthData).forEach(([key, data]) => {
         if (Object.keys(data.issues).length === 0) {
             tableRows += `
                 <tr>
                     <td><strong>${data.label}</strong></td>
-                    <td colspan="3" class="text-center text-muted">No repairs recorded</td>
+                    <td colspan="5" class="text-center text-muted">No repairs recorded</td>
                 </tr>
             `;
         } else {
-            Object.entries(data.issues).forEach(([issue, count], idx) => {
-                const trend = count > 5 ? '<i class="fas fa-arrow-up text-danger"></i> High' : 
-                             count > 2 ? '<i class="fas fa-minus text-warning"></i> Medium' : 
-                             '<i class="fas fa-arrow-down text-success"></i> Low';
-                
+            Object.entries(data.issues).forEach(([issue, statusData], idx) => {
                 tableRows += `
                     <tr>
                         ${idx === 0 ? `<td rowspan="${Object.keys(data.issues).length}"><strong>${data.label}</strong></td>` : ''}
                         <td>${issue}</td>
-                        <td class="text-center"><span class="badge bg-primary">${count}</span></td>
-                        <td class="text-center">${trend}</td>
+                        <td class="text-center"><span class="badge bg-primary">${statusData.total}</span></td>
+                        <td class="text-center"><span class="badge bg-success">${statusData.Resolved || 0}</span></td>
+                        <td class="text-center"><span class="badge bg-warning">${statusData['In Progress'] || 0}</span></td>
+                        <td class="text-center"><span class="badge bg-secondary">${statusData.Pending || 0}</span></td>
                     </tr>
                 `;
             });
@@ -1620,47 +2186,77 @@ function updateTrendModalContent() {
 
 // Update Period Comparison Modal Content (without closing modal)
 function updatePeriodComparisonModalContent() {
-    // Get last 6 months data
-    const currentDate = new Date();
-    const monthLabels = [];
-    const monthKeys = [];
+    // Determine if we should use yearly or monthly grouping
+    const state = window.modalFilterState || {};
+    const dateFrom = state.date_from ? new Date(state.date_from) : new Date(new Date().setMonth(new Date().getMonth() - 6));
+    const dateTo = state.date_to ? new Date(state.date_to) : new Date();
+    const yearSpan = dateTo.getFullYear() - dateFrom.getFullYear();
+    const isAllYears = yearSpan > 2;
     
-    // Generate last 6 months
-    for (let i = 5; i >= 0; i--) {
-        const d = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
-        const key = d.toISOString().slice(0, 7); // YYYY-MM format
-        const label = d.toLocaleDateString('en-PH', { month: 'short', year: 'numeric' });
-        monthKeys.push(key);
-        monthLabels.push(label);
-    }
-    
-    // Initialize data arrays
-    const monthCosts = new Array(6).fill(0);
-    const monthCounts = new Array(6).fill(0);
+    let labels = [];
+    let keys = [];
+    let costs = [];
+    let counts = [];
     
     // Get monthly cost data from window if available
     const monthlyCostData = window.monthlyCostData || [];
     
-    // Populate data from server
-    monthlyCostData.forEach(item => {
-        const monthIndex = monthKeys.indexOf(item.month);
-        if (monthIndex !== -1) {
-            monthCosts[monthIndex] = parseFloat(item.total_cost) || 0;
-            monthCounts[monthIndex] = parseInt(item.count) || 0;
+    if (isAllYears) {
+        // Group by year for "All years" view
+        const startYear = dateFrom.getFullYear();
+        const endYear = dateTo.getFullYear();
+        
+        for (let year = startYear; year <= endYear; year++) {
+            keys.push(year.toString());
+            labels.push(year.toString());
+            costs.push(0);
+            counts.push(0);
         }
-    });
+        
+        // Aggregate monthly data into yearly data
+        monthlyCostData.forEach(item => {
+            const itemYear = item.month.substring(0, 4); // Extract year from YYYY-MM
+            const yearIndex = keys.indexOf(itemYear);
+            if (yearIndex !== -1) {
+                costs[yearIndex] += parseFloat(item.total_cost) || 0;
+                counts[yearIndex] += parseInt(item.count) || 0;
+            }
+        });
+    } else {
+        // Group by month for other views (default: last 6 months)
+        const currentDate = new Date();
+        
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+            const key = d.toISOString().slice(0, 7); // YYYY-MM format
+            const label = d.toLocaleDateString('en-PH', { month: 'short', year: 'numeric' });
+            keys.push(key);
+            labels.push(label);
+            costs.push(0);
+            counts.push(0);
+        }
+        
+        // Populate data from server
+        monthlyCostData.forEach(item => {
+            const monthIndex = keys.indexOf(item.month);
+            if (monthIndex !== -1) {
+                costs[monthIndex] = parseFloat(item.total_cost) || 0;
+                counts[monthIndex] = parseInt(item.count) || 0;
+            }
+        });
+    }
     
     // Calculate statistics
-    const totalCost = monthCosts.reduce((sum, cost) => sum + cost, 0);
-    const totalCount = monthCounts.reduce((sum, count) => sum + count, 0);
-    const avgCostPerMonth = totalCost / 6;
+    const totalCost = costs.reduce((sum, cost) => sum + cost, 0);
+    const totalCount = counts.reduce((sum, count) => sum + count, 0);
+    const avgCostPerPeriod = costs.length > 0 ? totalCost / costs.length : 0;
     const avgCostPerRepair = totalCount > 0 ? totalCost / totalCount : 0;
     
-    // Find highest and lowest months
+    // Find highest and lowest periods
     let highestIdx = 0, lowestIdx = 0;
-    for (let i = 1; i < 6; i++) {
-        if (monthCosts[i] > monthCosts[highestIdx]) highestIdx = i;
-        if (monthCosts[i] < monthCosts[lowestIdx]) lowestIdx = i;
+    for (let i = 1; i < costs.length; i++) {
+        if (costs[i] > costs[highestIdx]) highestIdx = i;
+        if (costs[i] < costs[lowestIdx]) lowestIdx = i;
     }
     
     // Update summary cards
@@ -1668,36 +2264,42 @@ function updatePeriodComparisonModalContent() {
     if (modalContainer) {
         const summaryCards = modalContainer.querySelectorAll('.row.mb-4 .col-md-4');
         if (summaryCards[0]) {
+            const h6 = summaryCards[0].querySelector('h6');
             const h4 = summaryCards[0].querySelector('h4');
             const h5 = summaryCards[0].querySelector('h5');
-            if (h4) h4.textContent = monthLabels[highestIdx];
-            if (h5) h5.textContent = '₱' + monthCosts[highestIdx].toLocaleString('en-PH', {minimumFractionDigits: 2});
+            if (h6) h6.textContent = `Highest Cost ${isAllYears ? 'Year' : 'Month'}`;
+            if (h4) h4.textContent = labels[highestIdx];
+            if (h5) h5.textContent = '₱' + costs[highestIdx].toLocaleString('en-PH', {minimumFractionDigits: 2});
         }
         if (summaryCards[1]) {
+            const h6 = summaryCards[1].querySelector('h6');
             const h4 = summaryCards[1].querySelector('h4');
             const h5 = summaryCards[1].querySelector('h5');
-            if (h4) h4.textContent = monthLabels[lowestIdx];
-            if (h5) h5.textContent = '₱' + monthCosts[lowestIdx].toLocaleString('en-PH', {minimumFractionDigits: 2});
+            if (h6) h6.textContent = `Lowest Cost ${isAllYears ? 'Year' : 'Month'}`;
+            if (h4) h4.textContent = labels[lowestIdx];
+            if (h5) h5.textContent = '₱' + costs[lowestIdx].toLocaleString('en-PH', {minimumFractionDigits: 2});
         }
         if (summaryCards[2]) {
+            const h6 = summaryCards[2].querySelector('h6');
             const h4 = summaryCards[2].querySelector('h4');
             const h5 = summaryCards[2].querySelector('h5');
-            if (h4) h4.textContent = '₱' + avgCostPerMonth.toLocaleString('en-PH', {minimumFractionDigits: 2});
+            if (h6) h6.textContent = `Average Cost/${isAllYears ? 'Year' : 'Month'}`;
+            if (h4) h4.textContent = '₱' + avgCostPerPeriod.toLocaleString('en-PH', {minimumFractionDigits: 2});
             if (h5) h5.textContent = '₱' + avgCostPerRepair.toLocaleString('en-PH', {minimumFractionDigits: 2}) + ' per repair';
         }
     }
     
     // Build table rows
     let tableRows = '';
-    monthLabels.forEach((label, idx) => {
-        const cost = monthCosts[idx];
-        const count = monthCounts[idx];
+    labels.forEach((label, idx) => {
+        const cost = costs[idx];
+        const count = counts[idx];
         const avgPerRepair = count > 0 ? cost / count : 0;
         const percentOfTotal = totalCost > 0 ? ((cost / totalCost) * 100).toFixed(1) : 0;
         
         let trendIcon = '';
         if (idx > 0) {
-            const prevCost = monthCosts[idx - 1];
+            const prevCost = costs[idx - 1];
             if (cost > prevCost) {
                 trendIcon = '<i class="fas fa-arrow-up text-danger"></i>';
             } else if (cost < prevCost) {
@@ -1719,10 +2321,12 @@ function updatePeriodComparisonModalContent() {
         `;
     });
     
+    const periodLabel = isAllYears ? 'Years' : (costs.length + ' Months');
+    
     // Add footer row
     tableRows += `
         <tr class="table-secondary fw-bold">
-            <td>TOTAL (6 Months)</td>
+            <td>TOTAL (${periodLabel})</td>
             <td class="text-center">${totalCount}</td>
             <td class="text-end">₱${totalCost.toLocaleString('en-PH', {minimumFractionDigits: 2})}</td>
             <td class="text-end">₱${avgCostPerRepair.toLocaleString('en-PH', {minimumFractionDigits: 2})}</td>
@@ -1745,10 +2349,10 @@ function updatePeriodComparisonModalContent() {
         new Chart(canvas, {
             type: 'bar',
             data: {
-                labels: monthLabels,
+                labels: labels,
                 datasets: [{
                     label: 'Total Cost (₱)',
-                    data: monthCosts,
+                    data: costs,
                     backgroundColor: '#36A2EB',
                     borderWidth: 1
                 }]
@@ -1769,7 +2373,7 @@ function updatePeriodComparisonModalContent() {
                         callbacks: {
                             label: function(context) {
                                 const value = context.parsed.y || 0;
-                                const repairs = monthCounts[context.dataIndex] || 0;
+                                const repairs = counts[context.dataIndex] || 0;
                                 const avgCost = repairs > 0 ? (value / repairs) : 0;
                                 return [
                                     'Total Cost: ₱' + value.toLocaleString('en-PH', {minimumFractionDigits: 2}),

@@ -124,11 +124,11 @@
             <div class="analytics-card">
                 <div class="analytics-header">
                     <div class="analytics-title">
-                        <i class="fas fa-chart-bar"></i> Cost by Location
+                        <i class="fas fa-chart-line"></i> Period Comparison
                     </div>
                 </div>
                 <div class="chart-container" style="height: 200px;">
-                    <canvas id="locationBarChart"></canvas>
+                    <canvas id="periodComparisonChart"></canvas>
                 </div>
             </div>
         </div>
@@ -278,17 +278,38 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Location Bar Chart (Cost by Location)
-    var locationBarCtx = document.getElementById('locationBarChart');
-    if (locationBarCtx) {
-        new Chart(locationBarCtx, {
+    // Period Comparison Chart
+    var periodComparisonCtx = document.getElementById('periodComparisonChart');
+    if (periodComparisonCtx) {
+        // Process monthly stats data for period comparison
+        var monthlyData = <?php echo json_encode($monthlyStats ?? [], 15, 512) ?>;
+        var monthsMap = {};
+        var totalCounts = [];
+        
+        // Group by month and sum all counts
+        monthlyData.forEach(function(item) {
+            if (!monthsMap[item.month]) {
+                monthsMap[item.month] = 0;
+            }
+            monthsMap[item.month] += item.count;
+        });
+        
+        // Convert to arrays and sort
+        var months = Object.keys(monthsMap).sort();
+        var counts = months.map(function(month) {
+            return monthsMap[month];
+        });
+        
+        new Chart(periodComparisonCtx, {
             type: 'bar',
             data: {
-                labels: <?php echo json_encode($chartLocations ?? [], 15, 512) ?>,
+                labels: months,
                 datasets: [{
-                    label: 'Total Cost',
-                    data: <?php echo json_encode($chartCosts ?? [], 15, 512) ?>,
-                    backgroundColor: '#36A2EB'
+                    label: 'Total Reports',
+                    data: counts,
+                    backgroundColor: '#36A2EB',
+                    borderColor: '#2E8BC0',
+                    borderWidth: 1
                 }]
             },
             options: {
@@ -296,7 +317,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 maintainAspectRatio: false,
                 scales: {
                     y: {
-                        beginAtZero: true
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
                     }
                 }
             }
@@ -310,6 +339,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var monthlyData = <?php echo json_encode($monthlyStats ?? [], 15, 512) ?>;
         var months = [];
         var categories = {};
+        var statusBreakdown = {}; // Store status breakdown for tooltips
         
         // Extract unique months and categories
         monthlyData.forEach(function(item) {
@@ -318,8 +348,19 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             if (!categories[item.title]) {
                 categories[item.title] = {};
+                statusBreakdown[item.title] = {};
             }
-            categories[item.title][item.month] = item.total_count;
+            if (!categories[item.title][item.month]) {
+                categories[item.title][item.month] = 0;
+                statusBreakdown[item.title][item.month] = {};
+            }
+            categories[item.title][item.month] += item.count;
+            
+            // Store status breakdown
+            if (!statusBreakdown[item.title][item.month][item.status]) {
+                statusBreakdown[item.title][item.month][item.status] = 0;
+            }
+            statusBreakdown[item.title][item.month][item.status] += item.count;
         });
         
         // Sort months chronologically
@@ -349,7 +390,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 borderColor: color.border,
                 backgroundColor: color.bg,
                 tension: 0.4,
-                fill: true
+                fill: true,
+                statusData: statusBreakdown[category] // Attach status breakdown
             });
             colorIndex++;
         }
@@ -373,7 +415,31 @@ document.addEventListener('DOMContentLoaded', function() {
                     },
                     tooltip: {
                         mode: 'index',
-                        intersect: false
+                        intersect: false,
+                        callbacks: {
+                            label: function(ctx) {
+                                var dataset = ctx.dataset;
+                                var month = ctx.label;
+                                var total = ctx.parsed.y;
+                                var statusData = dataset.statusData[month] || {};
+                                
+                                var lines = [dataset.label + ': ' + total + (total === 1 ? ' report' : ' reports')];
+                                
+                                // Add status breakdown if there are multiple statuses
+                                var statuses = Object.keys(statusData);
+                                if (statuses.length > 0) {
+                                    var resolved = statusData['Resolved'] || 0;
+                                    var pending = statusData['Pending'] || 0;
+                                    var inProgress = statusData['In Progress'] || 0;
+                                    
+                                    if (resolved > 0) lines.push('  ✓ Resolved: ' + resolved);
+                                    if (inProgress > 0) lines.push('  ⟳ In Progress: ' + inProgress);
+                                    if (pending > 0) lines.push('  ⏱ Pending: ' + pending);
+                                }
+                                
+                                return lines;
+                            }
+                        }
                     }
                 },
                 scales: {

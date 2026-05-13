@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-    <title>Analytics Report</title>
+    <title>Combined Cost by Location Report</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -108,7 +108,7 @@
         
         .summary-item {
             display: table-cell;
-            width: 25%;
+            width: 33.33%;
             text-align: center;
             padding: 10px;
         }
@@ -173,8 +173,16 @@
             background: white;
         }
         
-        .page-break {
-            page-break-after: always;
+        /* Add bottom margin to body to prevent content from overlapping footer */
+        body {
+            margin-bottom: 60px;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-style: italic;
         }
     </style>
 </head>
@@ -204,8 +212,8 @@
 
     <!-- Report Title -->
     <div class="report-title">
-        <h2>Analytics Report</h2>
-        <p>Cost Tracking & Repair/Damage Analysis</p>
+        <h2>Combined Cost by Location Report</h2>
+        <p>Detailed Breakdown by Location with Ticket Information</p>
         <p><strong>Period:</strong> {{ $dateRange }}</p>
         <p><strong>Generated:</strong> {{ now()->format('F d, Y h:i A') }}</p>
     </div>
@@ -215,146 +223,70 @@
         <h3>Summary Statistics</h3>
         <div class="summary-grid">
             <div class="summary-item">
-                <span class="summary-value">{{ $totalConcerns }}</span>
-                <span class="summary-label">Total Repairs/Damages</span>
-            </div>
-            <div class="summary-item">
-                <span class="summary-value">{{ $uniqueLocations }}</span>
-                <span class="summary-label">Unique Locations</span>
+                <span class="summary-value">{{ number_format($totalTickets) }}</span>
+                <span class="summary-label">Total Tickets</span>
             </div>
             <div class="summary-item">
                 <span class="summary-value">PHP {{ number_format($totalCost, 2) }}</span>
                 <span class="summary-label">Total Cost</span>
             </div>
             <div class="summary-item">
-                <span class="summary-value">PHP {{ number_format($avgCost, 2) }}</span>
-                <span class="summary-label">Average Cost per Repair</span>
+                <span class="summary-value">PHP {{ number_format($avgCostPerTicket, 2) }}</span>
+                <span class="summary-label">Average Cost per Ticket</span>
             </div>
         </div>
     </div>
 
-    <!-- 1. Repairs Breakdown by Location -->
-    <h3 style="margin-top: 20px; color: #003087; border-bottom: 2px solid #003087; padding-bottom: 5px;">1. Repairs Breakdown by Location</h3>
+    <!-- Combined Cost by Location Table -->
+    <h3 style="margin-top: 20px; color: #003087; border-bottom: 2px solid #003087; padding-bottom: 5px;">Combined Cost by Location</h3>
+    
+    @if($combinedLocationStats->count() > 0)
     <table>
         <thead>
             <tr>
-                <th style="width: 15%;">Location</th>
-                <th style="width: 15%;">Category</th>
-                <th style="width: 10%;">Ticket #</th>
-                <th style="width: 25%;">Issue</th>
-                <th style="width: 15%;">Damaged Part</th>
-                <th style="width: 10%;" class="text-right">Cost</th>
-                <th style="width: 10%;">Date Fixed</th>
+                <th style="width: 18%;">Location</th>
+                <th style="width: 30%;">Damaged Parts (Tickets)</th>
+                <th style="width: 15%;">Date Fixed</th>
+                <th style="width: 10%;" class="text-center">Total Tickets</th>
+                <th style="width: 15%;" class="text-right">Total Cost</th>
+                <th style="width: 12%;" class="text-right">Avg Cost</th>
             </tr>
         </thead>
         <tbody>
-            @forelse($locationStatsDetailed as $stat)
+            @foreach($combinedLocationStats as $stat)
             <tr>
-                <td>{{ $stat['location'] }}</td>
-                <td>{{ $stat['category'] }}</td>
-                <td class="text-center">#{{ str_pad($stat['id'], 4, '0', STR_PAD_LEFT) }}</td>
-                <td>{{ $stat['title'] }}</td>
-                <td>{{ $stat['damaged_part'] }}</td>
-                <td class="text-right">PHP {{ number_format($stat['cost'], 2) }}</td>
-                <td>{{ $stat['resolved_at'] }}</td>
+                <td style="vertical-align: top;"><strong>{{ $stat['location'] }}</strong></td>
+                <td style="font-size: 10px;">
+                    @foreach($stat['tickets'] as $ticket)
+                        <div style="margin-bottom: 3px;">
+                            <strong>{{ $ticket['ticket_number'] }}</strong>: {{ $ticket['damaged_part'] }} 
+                            <span style="color: #28a745; font-weight: bold;">(PHP {{ number_format($ticket['cost'], 2) }})</span>
+                        </div>
+                    @endforeach
+                </td>
+                <td style="font-size: 10px; vertical-align: top;">
+                    @foreach($stat['tickets'] as $ticket)
+                        <div style="margin-bottom: 3px;">
+                            {{ $ticket['date_fixed'] }}
+                        </div>
+                    @endforeach
+                </td>
+                <td class="text-center" style="vertical-align: top;">
+                    <strong>{{ $stat['total_count'] }}</strong>
+                </td>
+                <td class="text-right" style="vertical-align: top;">
+                    <strong>PHP {{ number_format($stat['total_cost'], 2) }}</strong>
+                </td>
+                <td class="text-right" style="vertical-align: top;">PHP {{ number_format($stat['avg_cost'], 2) }}</td>
             </tr>
-            @empty
-            <tr>
-                <td colspan="7" class="text-center">No data available</td>
-            </tr>
-            @endforelse
+            @endforeach
         </tbody>
     </table>
-
-    <!-- Page Break -->
-    <div class="page-break"></div>
-
-    <!-- 2. Cost Breakdown by Category -->
-    <h3 style="margin-top: 20px; color: #003087; border-bottom: 2px solid #003087; padding-bottom: 5px;">2. Cost Breakdown by Category</h3>
-    <table>
-        <thead>
-            <tr>
-                <th style="width: 5%;">#</th>
-                <th style="width: 35%;">Category</th>
-                <th style="width: 15%;" class="text-center">Count</th>
-                <th style="width: 20%;" class="text-right">Total Cost</th>
-                <th style="width: 15%;" class="text-right">Avg Cost</th>
-                <th style="width: 10%;" class="text-right">%</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse($costByCategory as $index => $stat)
-            <tr>
-                <td class="text-center">{{ $index + 1 }}</td>
-                <td>{{ $stat['category'] }}</td>
-                <td class="text-center">{{ $stat['count'] }}</td>
-                <td class="text-right">PHP {{ number_format($stat['total_cost'], 2) }}</td>
-                <td class="text-right">PHP {{ number_format($stat['avg_cost'], 2) }}</td>
-                <td class="text-right">{{ number_format($stat['percentage'], 1) }}%</td>
-            </tr>
-            @empty
-            <tr>
-                <td colspan="6" class="text-center">No data available</td>
-            </tr>
-            @endforelse
-        </tbody>
-        @if($costByCategory->count() > 0)
-        <tfoot>
-            <tr style="background: #f0f0f0; font-weight: bold;">
-                <td colspan="3" class="text-right" style="padding: 10px;">TOTAL:</td>
-                <td class="text-right" style="padding: 10px;">PHP {{ number_format($costByCategory->sum('total_cost'), 2) }}</td>
-                <td colspan="2"></td>
-            </tr>
-        </tfoot>
-        @endif
-    </table>
-
-    <!-- 3. Status Distribution -->
-    <h3 style="margin-top: 30px; color: #003087; border-bottom: 2px solid #003087; padding-bottom: 5px;">3. Status Distribution</h3>
-    <table>
-        <thead>
-            <tr>
-                <th style="width: 10%;">#</th>
-                <th style="width: 60%;">Status</th>
-                <th style="width: 30%;" class="text-center">Count</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse($statusStats as $index => $stat)
-            <tr>
-                <td class="text-center">{{ $index + 1 }}</td>
-                <td>{{ $stat->status }}</td>
-                <td class="text-center">{{ $stat->count }}</td>
-            </tr>
-            @empty
-            <tr>
-                <td colspan="3" class="text-center">No data available</td>
-            </tr>
-            @endforelse
-        </tbody>
-    </table>
-
-    <!-- Page Break -->
-    <div class="page-break"></div>
-
-    <!-- 4. Response Time Analysis -->
-    <h3 style="margin-top: 20px; color: #003087; border-bottom: 2px solid #003087; padding-bottom: 5px;">4. Response Time Analysis</h3>
-    <div class="summary-section">
-        <div class="summary-grid">
-            <div class="summary-item">
-                <span class="summary-value">{{ number_format($avgSubmittedToAssigned, 2) }}h</span>
-                <span class="summary-label">Avg Submit → Assign</span>
-            </div>
-            <div class="summary-item">
-                <span class="summary-value">{{ number_format($avgAssignedToResolved, 2) }}h</span>
-                <span class="summary-label">Avg Assign → Resolve</span>
-            </div>
-            <div class="summary-item">
-                <span class="summary-value">{{ number_format($avgTotalTime, 2) }}h</span>
-                <span class="summary-label">Avg Total Time</span>
-            </div>
-        </div>
+    @else
+    <div class="no-data">
+        <p>No data available for the selected date range.</p>
     </div>
+    @endif
 
     <!-- Footer -->
     <div class="footer">

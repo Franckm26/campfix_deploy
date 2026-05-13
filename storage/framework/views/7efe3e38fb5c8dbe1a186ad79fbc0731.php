@@ -2,6 +2,28 @@
 
 <?php $__env->startSection('styles'); ?>
 <link href="<?php echo e(asset('css/admin.css')); ?>" rel="stylesheet">
+<style>
+/* Ticket column styling - minimal width, centered - OVERRIDE admin.css */
+.ticket-col {
+    width: 60px !important;
+    max-width: 60px !important;
+    min-width: 60px !important;
+    white-space: nowrap !important;
+    text-align: center !important;
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+    font-size: 0.9em !important;
+    overflow: hidden !important;
+}
+
+/* Override the nth-child rules from admin.css for ticket column */
+.table th.ticket-col,
+.table td.ticket-col {
+    width: 60px !important;
+    min-width: 60px !important;
+    max-width: 60px !important;
+}
+</style>
 <?php $__env->stopSection(); ?>
 
 <?php $__env->startSection('page_title'); ?>
@@ -172,6 +194,7 @@
                                 <thead>
                                     <tr>
                                         <th style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" id="selectAllActive" onchange="toggleSelectAll('active')"></th>
+                                        <th class="ticket-col" style="width: 60px; max-width: 60px; min-width: 60px; white-space: nowrap; text-align: center;">Ticket</th>
                                         <th style="width:100px;white-space:nowrap;">Issue</th>
                                         <th>Category</th>
                                         <th>Location</th>
@@ -188,6 +211,7 @@
                                     <?php $__currentLoopData = $concerns; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $concern): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                         <tr data-id="<?php echo e($concern->id); ?>" data-view="active">
                                             <td style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" class="active-checkbox" value="<?php echo e($concern->id); ?>" onchange="updateActiveBulkActions()"></td>
+                                            <td class="ticket-col" style="width: 60px; max-width: 60px; min-width: 60px; white-space: nowrap; text-align: center; padding: 4px;">#<?php echo e(str_pad($concern->id, 4, '0', STR_PAD_LEFT)); ?></td>
                                             <td style="width:100px;max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                                                 <a href="#" onclick="event.preventDefault(); viewConcern(<?php echo e($concern->id); ?>);">
                                                     <?php echo e($concern->title ?? \Illuminate\Support\Str::limit($concern->description, 40)); ?>
@@ -346,6 +370,7 @@
                                 <thead>
                                     <tr>
                                         <th style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" id="selectAllResolved" onchange="toggleSelectAll('resolved')"></th>
+                                        <th class="ticket-col" style="width: 60px; max-width: 60px; min-width: 60px; white-space: nowrap; text-align: center;">Ticket</th>
                                         <th style="width:100px;white-space:nowrap;">Issue</th>
                                         <th>Category</th>
                                         <th>Location</th>
@@ -361,6 +386,7 @@
                                     <?php $__currentLoopData = $resolvedConcerns; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $concern): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                         <tr data-id="<?php echo e($concern->id); ?>" data-view="resolved">
                                             <td style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" class="resolved-checkbox" value="<?php echo e($concern->id); ?>" onchange="updateResolvedBulkActions()"></td>
+                                            <td class="ticket-col" style="width: 60px; max-width: 60px; min-width: 60px; white-space: nowrap; text-align: center; padding: 4px;">#<?php echo e(str_pad($concern->id, 4, '0', STR_PAD_LEFT)); ?></td>
                                             <td style="width:100px;max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                                                 <a href="#" onclick="event.preventDefault(); viewConcern(<?php echo e($concern->id); ?>);">
                                                     <?php echo e($concern->title ?? \Illuminate\Support\Str::limit($concern->description, 40)); ?>
@@ -494,6 +520,7 @@
                                 <thead>
                                     <tr>
                                         <th style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" id="selectAllArchive" onchange="toggleSelectAll('archive')"></th>
+                                        <th class="ticket-col" style="width: 60px; max-width: 60px; min-width: 60px; white-space: nowrap; text-align: center;">Ticket</th>
                                         <th style="width:100px;white-space:nowrap;">Issue</th>
                                         <th>Category</th>
                                         <th>Location</th>
@@ -508,6 +535,7 @@
                                     <?php $__currentLoopData = $archivedConcerns; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $concern): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                         <tr data-id="<?php echo e($concern->id); ?>" data-view="archive">
                                             <td style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" class="archive-checkbox" value="<?php echo e($concern->id); ?>" onchange="updateArchiveBulkActions()"></td>
+                                            <td class="ticket-col" style="width: 60px; max-width: 60px; min-width: 60px; white-space: nowrap; text-align: center; padding: 4px;">#<?php echo e(str_pad($concern->id, 4, '0', STR_PAD_LEFT)); ?></td>
                                             <td style="width:100px;max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                                                 <a href="#" onclick="event.preventDefault(); viewConcern(<?php echo e($concern->id); ?>);">
                                                     <?php echo e($concern->title ?? \Illuminate\Support\Str::limit($concern->description, 40)); ?>
@@ -674,6 +702,7 @@
                                 <thead>
                                     <tr>
                                         <th style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" id="selectAllDeleted" onchange="toggleSelectAll('deleted')"></th>
+                                        <th class="ticket-col" style="width: 60px; max-width: 60px; min-width: 60px; white-space: nowrap; text-align: center;">Ticket</th>
                                         <th style="width:100px;white-space:nowrap;">Issue</th>
                                         <th>Category</th>
                                         <th>Location</th>
@@ -688,6 +717,7 @@
                                     <?php $__currentLoopData = $deletedConcerns; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $concern): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                         <tr data-id="<?php echo e($concern->id); ?>" data-view="deleted">
                                             <td style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" class="deleted-checkbox" value="<?php echo e($concern->id); ?>" onchange="updateDeletedBulkActions()"></td>
+                                            <td class="ticket-col" style="width: 60px; max-width: 60px; min-width: 60px; white-space: nowrap; text-align: center; padding: 4px;">#<?php echo e(str_pad($concern->id, 4, '0', STR_PAD_LEFT)); ?></td>
                                             <td style="width:100px;max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                                                 <a href="#" onclick="event.preventDefault(); viewConcern(<?php echo e($concern->id); ?>);">
                                                     <?php echo e($concern->title ?? \Illuminate\Support\Str::limit($concern->description, 40)); ?>
@@ -1361,7 +1391,8 @@ function contextRestore() {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>',
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
             }
         }).then(response => response.json())
         .then(data => {
@@ -1391,7 +1422,8 @@ function contextRestoreDeleted() {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>',
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
             }
         }).then(response => response.json())
         .then(data => {
@@ -1435,7 +1467,8 @@ function softDeleteConcern(id) {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>',
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 }
             }).then(response => response.json())
             .then(data => {
@@ -1465,7 +1498,8 @@ function softDeleteArchivedConcern(id) {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>',
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 }
             }).then(response => response.json())
             .then(data => {
@@ -1545,7 +1579,8 @@ function sendFollowUp(id) {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>',
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 }
             })
             .then(response => response.json())
@@ -1864,7 +1899,8 @@ function viewConcern(id) {
     fetch('/api/concerns/' + id, {
         headers: {
             'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>',
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
         }
     })
     .then(response => {
@@ -1919,9 +1955,9 @@ function viewConcern(id) {
         contentDiv.innerHTML = `
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h4>Concern #${concern.id}</h4>
+                    <h4>Ticket #${String(concern.id).padStart(4, '0')}</h4>
                     <div>
-                        <span class="badge bg-${priorityClass} me-2">${concern.priority.charAt(0).toUpperCase() + concern.priority.slice(1)} Priority</span>
+                        <span class="badge bg-${priorityClass} me-2">${concern.priority ? (concern.priority.charAt(0).toUpperCase() + concern.priority.slice(1)) : 'Not Set'} Priority</span>
                         <span class="badge bg-${statusClass}">${concern.status}</span>
                     </div>
                 </div>
@@ -2042,7 +2078,7 @@ function editConcern(id) {
         let priorityOptions = '';
         priorities.forEach(pri => {
             const selected = pri === concern.priority ? 'selected' : '';
-            priorityOptions += `<option value="${pri}" ${selected}>${pri.charAt(0).toUpperCase() + pri.slice(1)}</option>`;
+            priorityOptions += `<option value="${pri}" ${selected}>${pri ? (pri.charAt(0).toUpperCase() + pri.slice(1)) : pri}</option>`;
         });
         
         const statuses = ['Pending', 'Assigned', 'In Progress', 'Resolved', 'Closed'];
@@ -2081,46 +2117,36 @@ function editConcern(id) {
             `;
         }
         
-        // Build form fields based on role
+        // Build form fields based on role - but NOT for my-concerns page
+        // Admin fields (status, assign) should only appear in admin concern management, not in my-concerns
         let adminFields = '';
-        if (canAssign) {
-            adminFields = `
-                <div class="mb-3">
-                    <label class="form-label">Status</label>
-                    <select name="status" class="form-select">
-                        ${statusOptions}
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Assign To</label>
-                    <select name="assigned_to" class="form-select">
-                        ${maintenanceOptions}
-                    </select>
-                </div>
-            `;
-        }
+        // Don't show admin fields in my-concerns edit modal
         
         contentDiv.innerHTML = `
             <div class="mb-3">
-                <label class="form-label">Title</label>
-                <input type="text" name="title" class="form-control" value="${concern.title || ''}">
+                <label class="form-label">Location *</label>
+                <select name="location" class="form-select" required>
+                    <option value="" disabled>Select a location</option>
+                    <?php $__currentLoopData = $facilities->groupBy('type'); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $type => $group): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <optgroup label="<?php echo e(ucfirst($type)); ?>">
+                            <?php $__currentLoopData = $group; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $facility): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <option value="<?php echo e($facility->name); ?>" ${concern.location === '<?php echo e($facility->name); ?>' ? 'selected' : ''}><?php echo e($facility->name); ?></option>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                        </optgroup>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                </select>
             </div>
             <div class="mb-3">
-                <label class="form-label">Location</label>
-                <input type="text" name="location" class="form-control" value="${concern.location}" required>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Category</label>
+                <label class="form-label">Category *</label>
                 <select name="category_id" class="form-select" required>
                     ${categoryOptions}
                 </select>
             </div>
             <div class="mb-3">
-                <label class="form-label">Description</label>
+                <label class="form-label">Description *</label>
                 <textarea name="description" class="form-control" rows="4" required>${concern.description}</textarea>
             </div>
             ${imageHtml}
-            ${adminFields}
         `;
     })
     .catch(error => {
@@ -2146,7 +2172,8 @@ if (editConcernForm) {
             method: 'POST',
             body: formData,
             headers: {
-                'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>'
+                'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>',
+                'Accept': 'application/json'
             }
         })
         .then(response => response.json())
@@ -2187,7 +2214,8 @@ function showArchiveModal(concernId) {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>',
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 }
             }).then(response => response.json())
             .then(data => {
@@ -2216,7 +2244,8 @@ function archiveConcern(id) {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>',
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 }
             }).then(response => response.json())
             .then(data => {

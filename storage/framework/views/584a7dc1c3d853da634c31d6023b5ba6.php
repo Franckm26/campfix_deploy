@@ -11,6 +11,7 @@
             color: #333;
             margin: 0;
             padding: 20px;
+            padding-bottom: 80px;
         }
         
         /* Letterhead */
@@ -107,7 +108,7 @@
         
         .summary-item {
             display: table-cell;
-            width: 33.33%;
+            width: 25%;
             text-align: center;
             padding: 10px;
         }
@@ -160,12 +161,16 @@
         }
         
         .footer {
-            margin-top: 30px;
-            padding-top: 10px;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 10px 20px;
             border-top: 1px solid #ddd;
             text-align: center;
             font-size: 9px;
             color: #666;
+            background: white;
         }
         
         .page-break {
@@ -214,6 +219,10 @@
                 <span class="summary-label">Total Repairs/Damages</span>
             </div>
             <div class="summary-item">
+                <span class="summary-value"><?php echo e($uniqueLocations); ?></span>
+                <span class="summary-label">Unique Locations</span>
+            </div>
+            <div class="summary-item">
                 <span class="summary-value">PHP <?php echo e(number_format($totalCost, 2)); ?></span>
                 <span class="summary-label">Total Cost</span>
             </div>
@@ -224,30 +233,34 @@
         </div>
     </div>
 
-    <!-- 1. Location Details -->
-    <h3 style="margin-top: 20px; color: #003087; border-bottom: 2px solid #003087; padding-bottom: 5px;">1. Repairs by Location</h3>
+    <!-- 1. Repairs Breakdown by Location -->
+    <h3 style="margin-top: 20px; color: #003087; border-bottom: 2px solid #003087; padding-bottom: 5px;">1. Repairs Breakdown by Location</h3>
     <table>
         <thead>
             <tr>
-                <th style="width: 5%;">#</th>
-                <th style="width: 30%;">Location</th>
-                <th style="width: 35%;">Item Fixed</th>
-                <th style="width: 15%;" class="text-center">Count</th>
-                <th style="width: 15%;" class="text-right">Total Cost</th>
+                <th style="width: 15%;">Location</th>
+                <th style="width: 15%;">Category</th>
+                <th style="width: 10%;">Ticket #</th>
+                <th style="width: 25%;">Issue</th>
+                <th style="width: 15%;">Damaged Part</th>
+                <th style="width: 10%;" class="text-right">Cost</th>
+                <th style="width: 10%;">Date Fixed</th>
             </tr>
         </thead>
         <tbody>
-            <?php $__empty_1 = true; $__currentLoopData = $locationStats; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $stat): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+            <?php $__empty_1 = true; $__currentLoopData = $locationStatsDetailed; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $stat): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
             <tr>
-                <td class="text-center"><?php echo e($index + 1); ?></td>
-                <td><?php echo e($stat->location); ?></td>
-                <td><?php echo e($stat->title); ?></td>
-                <td class="text-center"><?php echo e($stat->count); ?></td>
-                <td class="text-right">PHP <?php echo e(number_format($stat->total_cost, 2)); ?></td>
+                <td><?php echo e($stat['location']); ?></td>
+                <td><?php echo e($stat['category']); ?></td>
+                <td class="text-center">#<?php echo e(str_pad($stat['id'], 4, '0', STR_PAD_LEFT)); ?></td>
+                <td><?php echo e($stat['title']); ?></td>
+                <td><?php echo e($stat['damaged_part']); ?></td>
+                <td class="text-right">PHP <?php echo e(number_format($stat['cost'], 2)); ?></td>
+                <td><?php echo e($stat['resolved_at']); ?></td>
             </tr>
             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
             <tr>
-                <td colspan="5" class="text-center">No data available</td>
+                <td colspan="7" class="text-center">No data available</td>
             </tr>
             <?php endif; ?>
         </tbody>
@@ -256,39 +269,41 @@
     <!-- Page Break -->
     <div class="page-break"></div>
 
-    <!-- 2. Cost Breakdown by Issue Type -->
-    <h3 style="margin-top: 20px; color: #003087; border-bottom: 2px solid #003087; padding-bottom: 5px;">2. Cost Breakdown by Issue Type</h3>
+    <!-- 2. Cost Breakdown by Category -->
+    <h3 style="margin-top: 20px; color: #003087; border-bottom: 2px solid #003087; padding-bottom: 5px;">2. Cost Breakdown by Category</h3>
     <table>
         <thead>
             <tr>
                 <th style="width: 5%;">#</th>
-                <th style="width: 40%;">Issue Type</th>
+                <th style="width: 35%;">Category</th>
                 <th style="width: 15%;" class="text-center">Count</th>
                 <th style="width: 20%;" class="text-right">Total Cost</th>
-                <th style="width: 20%;" class="text-right">Avg Cost</th>
+                <th style="width: 15%;" class="text-right">Avg Cost</th>
+                <th style="width: 10%;" class="text-right">%</th>
             </tr>
         </thead>
         <tbody>
-            <?php $__empty_1 = true; $__currentLoopData = $costStats; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $stat): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+            <?php $__empty_1 = true; $__currentLoopData = $costByCategory; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $stat): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
             <tr>
                 <td class="text-center"><?php echo e($index + 1); ?></td>
-                <td><?php echo e($stat->title); ?></td>
-                <td class="text-center"><?php echo e($stat->count); ?></td>
-                <td class="text-right">PHP <?php echo e(number_format($stat->total_cost, 2)); ?></td>
-                <td class="text-right">PHP <?php echo e(number_format($stat->avg_cost, 2)); ?></td>
+                <td><?php echo e($stat['category']); ?></td>
+                <td class="text-center"><?php echo e($stat['count']); ?></td>
+                <td class="text-right">PHP <?php echo e(number_format($stat['total_cost'], 2)); ?></td>
+                <td class="text-right">PHP <?php echo e(number_format($stat['avg_cost'], 2)); ?></td>
+                <td class="text-right"><?php echo e(number_format($stat['percentage'], 1)); ?>%</td>
             </tr>
             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
             <tr>
-                <td colspan="5" class="text-center">No data available</td>
+                <td colspan="6" class="text-center">No data available</td>
             </tr>
             <?php endif; ?>
         </tbody>
-        <?php if($costStats->count() > 0): ?>
+        <?php if($costByCategory->count() > 0): ?>
         <tfoot>
             <tr style="background: #f0f0f0; font-weight: bold;">
                 <td colspan="3" class="text-right" style="padding: 10px;">TOTAL:</td>
-                <td class="text-right" style="padding: 10px;">PHP <?php echo e(number_format($totalCost, 2)); ?></td>
-                <td></td>
+                <td class="text-right" style="padding: 10px;">PHP <?php echo e(number_format($costByCategory->sum('total_cost'), 2)); ?></td>
+                <td colspan="2"></td>
             </tr>
         </tfoot>
         <?php endif; ?>
@@ -322,32 +337,24 @@
     <!-- Page Break -->
     <div class="page-break"></div>
 
-    <!-- 4. Monthly Trend (Last 6 Months) -->
-    <h3 style="margin-top: 20px; color: #003087; border-bottom: 2px solid #003087; padding-bottom: 5px;">4. Monthly Trend (Last 6 Months)</h3>
-    <table>
-        <thead>
-            <tr>
-                <th style="width: 30%;">Month</th>
-                <th style="width: 50%;">Issue Type</th>
-                <th style="width: 20%;" class="text-center">Count</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php $__empty_1 = true; $__currentLoopData = $trendData; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $row): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
-            <tr>
-                <?php if($row['is_first_row']): ?>
-                    <td rowspan="<?php echo e($row['rowspan']); ?>" style="vertical-align: middle; font-weight: bold;"><?php echo e($row['month_label']); ?></td>
-                <?php endif; ?>
-                <td><?php echo e($row['issue_type']); ?></td>
-                <td class="text-center"><?php echo e($row['count']); ?></td>
-            </tr>
-            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
-            <tr>
-                <td colspan="3" class="text-center">No data available</td>
-            </tr>
-            <?php endif; ?>
-        </tbody>
-    </table>
+    <!-- 4. Response Time Analysis -->
+    <h3 style="margin-top: 20px; color: #003087; border-bottom: 2px solid #003087; padding-bottom: 5px;">4. Response Time Analysis</h3>
+    <div class="summary-section">
+        <div class="summary-grid">
+            <div class="summary-item">
+                <span class="summary-value"><?php echo e(number_format($avgSubmittedToAssigned, 2)); ?>h</span>
+                <span class="summary-label">Avg Submit → Assign</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-value"><?php echo e(number_format($avgAssignedToResolved, 2)); ?>h</span>
+                <span class="summary-label">Avg Assign → Resolve</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-value"><?php echo e(number_format($avgTotalTime, 2)); ?>h</span>
+                <span class="summary-label">Avg Total Time</span>
+            </div>
+        </div>
+    </div>
 
     <!-- Footer -->
     <div class="footer">

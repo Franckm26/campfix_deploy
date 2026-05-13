@@ -161,6 +161,9 @@ Route::middleware('auth')->group(function () {
 
     // API: Get maintenance users for assignment
     Route::get('/admin/maintenance-users', [AdminController::class, 'getMaintenanceUsers']);
+    
+    // API: Get MIS users for assignment
+    Route::get('/admin/mis-users', [AdminController::class, 'getMisUsers']);
 });
 
 /* FACULTY - Event Requests */
@@ -330,8 +333,10 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/analytics/export', [AdminController::class, 'exportAnalytics'])->name('admin.analytics.export');
     Route::get('/admin/analytics/export-pdf', [AdminController::class, 'exportAnalyticsPDF'])->name('admin.analytics.export-pdf');
     Route::get('/admin/analytics/location-report-pdf', [AdminController::class, 'locationReportPDF'])->name('admin.analytics.location-report-pdf');
+    Route::get('/admin/analytics/combined-location-pdf', [AdminController::class, 'combinedLocationPDF'])->name('admin.analytics.combined-location-pdf');
     Route::get('/admin/analytics/cost-report-pdf', [AdminController::class, 'costReportPDF'])->name('admin.analytics.cost-report-pdf');
     Route::get('/admin/analytics/status-report-pdf', [AdminController::class, 'statusReportPDF'])->name('admin.analytics.status-report-pdf');
+    Route::get('/admin/analytics/status-distribution-pdf', [AdminController::class, 'statusDistributionPDF'])->name('admin.analytics.status-pdf');
     Route::get('/admin/analytics/trend-report-pdf', [AdminController::class, 'trendReportPDF'])->name('admin.analytics.trend-report-pdf');
     Route::get('/admin/analytics/period-comparison-pdf', [AdminController::class, 'periodComparisonPDF'])->name('admin.analytics.period-comparison-pdf');
     Route::post('/admin/concern/{id}/cost', [AdminController::class, 'updateCost'])->name('admin.concern.updateCost');

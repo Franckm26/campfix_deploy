@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('content')
 <div class="container-fluid px-3">
@@ -25,7 +25,7 @@
                         </div>
                         <div class="col-md-6">
                             <p><strong>Reported:</strong> {{ $report->created_at->format('M d, Y h:i A') }}</p>
-                            <p><strong>Reported by:</strong> {{ $report->user->name ?? 'Unknown' }}</p>
+                            <p><strong>Reported by:</strong> {{ $report->reported_by_name ?? 'Unknown' }}</p>
                         </div>
                     </div>
 

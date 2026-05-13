@@ -621,6 +621,19 @@ class AdminController extends Controller
     }
 
     /**
+     * Get list of MIS staff for assignment dropdown
+     */
+    public function getMisUsers()
+    {
+        $misUsers = User::where('role', 'mis')
+            ->select('id', 'name')
+            ->orderBy('name')
+            ->get();
+
+        return response()->json(['users' => $misUsers]);
+    }
+
+    /**
      * Send notification to concern requester when it's resolved
      */
     private function sendConcernResolvedNotification(Concern $concern, User $resolvedBy): void
@@ -3242,7 +3255,7 @@ class AdminController extends Controller
 
         $request->validate([
             'file'         => 'required',
-            'default_role' => 'required|in:student,faculty',
+            'default_role' => 'required|in:student,faculty,staff',
             'file_format'  => 'required|in:masterlist,standard',
         ]);
 
@@ -3251,12 +3264,6 @@ class AdminController extends Controller
         $folderName   = $request->input('archive_folder_name', '2025-2026');
         $extension    = strtolower($request->file('file')->getClientOriginalExtension());
         $filePath     = $request->file('file')->getRealPath();
-
-        // Resolve permissions for imported users
-        // If custom permissions were submitted, use them; otherwise fall back to role defaults
-        $importPermissions = $request->has('import_use_custom_permissions')
-            ? $request->input('import_permissions', [])
-            : \App\Models\User::defaultPermissions($defaultRole);
 
         // Build flat array of rows
         $allRows = [];
@@ -3306,14 +3313,17 @@ class AdminController extends Controller
                 continue;
             }
             if ($isMasterlist) {
-                if ($defaultRole === 'faculty') {
+                if ($defaultRole === 'faculty' || $defaultRole === 'staff') {
                     if (count($row) < 6) {
                         $skippedRows[] = "Row {$rowIndex}: too few columns (".count($row).")";
                         continue;
                     }
 
-                    $empNumber = preg_replace('/\s+/', '', $row[5]);
-                    if (! preg_match('/^NVS\d+/i', $empNumber)) {
+                    // For staff, employee number is optional (can be empty)
+                    $empNumber = isset($row[5]) ? preg_replace('/\s+/', '', $row[5]) : '';
+                    
+                    // Only validate employee number if it's not empty
+                    if (!empty($empNumber) && ! preg_match('/^NVS\d+/i', $empNumber)) {
                         $skippedRows[] = "Row {$rowIndex}: emp number '{$empNumber}' doesn't match NVS pattern";
                         continue;
                     }
@@ -3332,8 +3342,46 @@ class AdminController extends Controller
                     $firstNameClean = ucfirst(strtolower(preg_replace('/[^a-zA-Z]/', '', $firstName)));
                     $password       = $lastNameClean . '_' . $firstNameClean . '_' . now()->year;
 
-                    $studentId  = $empNumber;
-                    $role       = 'faculty';
+                    // Student ID can be null for staff
+                    $studentId  = !empty($empNumber) ? $empNumber : null;
+                    
+                    // For staff imports, check if there's a STAFF column (column 6) to determine role
+                    if ($defaultRole === 'staff' && isset($row[6]) && !empty(trim($row[6]))) {
+                        $staffPosition = strtolower(trim($row[6]));
+                        
+                        // Map staff positions to system roles
+                        $roleMapping = [
+                            'mis' => 'mis',
+                            'school administrator' => 'school_admin',
+                            'building administrator' => 'building_admin',
+                            'academic head' => 'academic_head',
+                            'program head' => 'program_head',
+                            'principal assistant' => 'principal_assistant',
+                            'maintenance' => 'maintenance',
+                            // Default other positions to faculty-like access
+                            'registrar' => 'faculty',
+                            'library assistant' => 'faculty',
+                            'records assistant' => 'faculty',
+                            'cashier' => 'faculty',
+                            'admissions officer' => 'faculty',
+                            'hr' => 'faculty',
+                            'laboratory custodian' => 'maintenance',
+                            'communications officer' => 'faculty',
+                            'nurse' => 'faculty',
+                            'd.o' => 'faculty',
+                            'purchasing and asset mgt. officer' => 'faculty',
+                            'apo' => 'faculty',
+                            'accounting assistant' => 'faculty',
+                            'sao' => 'faculty',
+                            'guidance associate' => 'faculty',
+                        ];
+                        
+                        $role = $roleMapping[$staffPosition] ?? 'faculty';
+                    } else {
+                        // Default to faculty if no STAFF column or empty
+                        $role = 'faculty';
+                    }
+                    
                     $department = null;
                     $level      = null;
 
@@ -3386,8 +3434,10 @@ class AdminController extends Controller
                     $skippedRows[] = "Row {$rowIndex}: invalid email '{$email}'";
                     continue;
                 }
-                if (! in_array($role, ['student', 'faculty', 'maintenance', 'mis'])) {
-                    $role = $defaultRole;
+                // Validate role - for staff imports, will be overridden by CSV column
+                $validRoles = ['student', 'faculty', 'maintenance', 'mis', 'school_admin', 'building_admin', 'academic_head', 'program_head', 'principal_assistant'];
+                if (! in_array($role, $validRoles)) {
+                    $role = $defaultRole === 'staff' ? 'faculty' : $defaultRole;
                 }
             }
 
@@ -3414,12 +3464,13 @@ class AdminController extends Controller
                 'level'                 => $level,
                 'force_password_change' => true,
                 'archive_folder_id'     => $archiveFolder->id,
-                'is_archived'           => true,
+                'is_archived'           => false, // Changed to false so users appear in Active Users
                 'is_deleted'            => false,
                 'failed_login_attempts' => 0,
                 'otp_attempts'          => 0,
                 'is_admin'              => false,
-                'permissions'           => json_encode($importPermissions),
+                // Always use role-specific default permissions
+                'permissions'           => json_encode(\App\Models\User::defaultPermissions($role)),
                 'created_at'            => now(),
                 'updated_at'            => now(),
             ];
@@ -4003,10 +4054,68 @@ class AdminController extends Controller
     // Analytics - Location-based repair/damage analytics
     public function analytics(Request $request)
     {
+        // Handle AJAX request for location tickets FIRST - before any other processing
+        if ($request->has('location_filter') && $request->input('ajax') == '1') {
+            $location = $request->input('location_filter');
+            
+            \Log::info('AJAX Request for location tickets', [
+                'location' => $location,
+                'all_params' => $request->all()
+            ]);
+            
+            if ($location) {
+                $query = Report::where('location', $location);
+                
+                // Apply date filters if present
+                if ($request->filled('date_from')) {
+                    $query->whereDate('created_at', '>=', $request->input('date_from'));
+                }
+                if ($request->filled('date_to')) {
+                    $query->whereDate('created_at', '<=', $request->input('date_to'));
+                }
+                
+                $tickets = $query->orderBy('created_at', 'desc')
+                    ->get()
+                    ->map(function($ticket) {
+                        return [
+                            'id' => $ticket->id,
+                            'damaged_part' => $ticket->damaged_part,
+                            'title' => $ticket->title,
+                            'status' => $ticket->status,
+                            'cost' => $ticket->cost,
+                            'resolved_at' => $ticket->resolved_at,
+                            'created_at' => $ticket->created_at,
+                        ];
+                    });
+                
+                \Log::info('Returning tickets', [
+                    'count' => $tickets->count(),
+                    'tickets' => $tickets->toArray()
+                ]);
+                
+                return response()->json([
+                    'success' => true,
+                    'tickets' => $tickets,
+                    'count' => $tickets->count()
+                ]);
+            }
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'No location specified',
+                'tickets' => []
+            ]);
+        }
+        
         // Base query: resolved reports with location
         $baseQuery = Report::whereNotNull('location')
             ->where('location', '!=', '')
             ->where('status', 'Resolved');
+
+        // Apply room filter if provided
+        if ($request->filled('room_filter')) {
+            $baseQuery->where('location', $request->input('room_filter'));
+        }
 
         // Apply filters based on period selection
         $period = $request->input('period');
@@ -4076,7 +4185,28 @@ class AdminController extends Controller
         $totalConcerns = (clone $baseQuery)->count();
         $totalCost     = (clone $baseQuery)->sum('cost') ?? 0;
 
-        // Location stats with individual items
+        // Location stats with individual items - for detailed modal
+        $locationStatsDetailed = (clone $baseQuery)
+            ->with('category')
+            ->select('id', 'location', 'title', 'damaged_part', 'category_id', 'cost', 'resolved_at')
+            ->whereNotNull('title')
+            ->where('title', '!=', '')
+            ->orderBy('location')
+            ->orderByDesc('cost')
+            ->get()
+            ->map(function ($stat) {
+                return [
+                    'id' => $stat->id,
+                    'location' => $stat->location,
+                    'title' => $stat->title,
+                    'damaged_part' => $stat->damaged_part ?: 'N/A',
+                    'category' => $stat->category ? $stat->category->name : 'Uncategorized',
+                    'cost' => $stat->cost ?? 0,
+                    'resolved_at' => $stat->resolved_at ? $stat->resolved_at->format('M d, Y') : 'N/A',
+                ];
+            });
+        
+        // Location stats grouped - for existing modals and displays
         $locationStats = (clone $baseQuery)
             ->select('location', 'title')
             ->selectRaw('COUNT(*) as count')
@@ -4136,6 +4266,11 @@ class AdminController extends Controller
 
         // Status distribution - use same filters as baseQuery
         $statusQuery = Report::select('status');
+        
+        // Apply room filter if provided
+        if ($request->filled('room_filter')) {
+            $statusQuery->where('location', $request->input('room_filter'));
+        }
         
         // Apply same period filters
         if ($period === 'monthly' && $request->filled('month') && $request->filled('year')) {
@@ -4197,9 +4332,157 @@ class AdminController extends Controller
 
         $chartStatuses = $statusStats->pluck('status')->toArray();
         $chartStatusCounts = $statusStats->pluck('count')->toArray();
+        
+        // Get report IDs with titles grouped by status for the modal
+        $statusReportIds = [];
+        foreach ($chartStatuses as $status) {
+            $query = Report::where('status', $status);
+            
+            // Apply room filter if provided
+            if ($request->filled('room_filter')) {
+                $query->where('location', $request->input('room_filter'));
+            }
+            
+            // Apply same filters as statusQuery
+            if ($period === 'monthly' && $request->filled('month') && $request->filled('year')) {
+                $query->whereMonth('created_at', $request->input('month'))
+                      ->whereYear('created_at', $request->input('year'));
+            } elseif ($period === 'quarterly' && $request->filled('month_from') && $request->filled('month_to')) {
+                $monthFrom = (int) $request->input('month_from');
+                $monthTo = (int) $request->input('month_to');
+                
+                if ($request->filled('year')) {
+                    $year = (int) $request->input('year');
+                    
+                    if ($monthFrom <= $monthTo) {
+                        $query->whereYear('created_at', $year)
+                              ->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom])
+                              ->whereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                    } else {
+                        $query->where(function($q) use ($year, $monthFrom, $monthTo) {
+                            $q->where(function($q1) use ($year, $monthFrom) {
+                                $q1->whereYear('created_at', $year)
+                                   ->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom]);
+                            })->orWhere(function($q2) use ($year, $monthTo) {
+                                $q2->whereYear('created_at', $year + 1)
+                                   ->whereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                            });
+                        });
+                    }
+                } else {
+                    if ($monthFrom <= $monthTo) {
+                        $query->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom])
+                              ->whereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                    } else {
+                        $query->where(function($q) use ($monthFrom, $monthTo) {
+                            $q->whereRaw('EXTRACT(MONTH FROM created_at) >= ?', [$monthFrom])
+                              ->orWhereRaw('EXTRACT(MONTH FROM created_at) <= ?', [$monthTo]);
+                        });
+                    }
+                }
+            } elseif ($period === 'yearly' && $request->filled('year')) {
+                $query->whereYear('created_at', $request->input('year'));
+            } else {
+                if ($request->filled('month')) {
+                    $query->whereMonth('created_at', $request->input('month'));
+                }
+                if ($request->filled('year')) {
+                    $query->whereYear('created_at', $request->input('year'));
+                }
+                if ($request->filled('date_from')) {
+                    $query->whereDate('created_at', '>=', $request->input('date_from'));
+                }
+                if ($request->filled('date_to')) {
+                    $query->whereDate('created_at', '<=', $request->input('date_to'));
+                }
+            }
+            
+            $reports = $query->select('id', 'title')->get();
+            
+            $formattedReports = [];
+            foreach ($reports as $report) {
+                $ticketNum = '#' . str_pad($report->id, 4, '0', STR_PAD_LEFT);
+                $title = $report->title ? substr($report->title, 0, 30) : 'N/A';
+                if (strlen($report->title ?? '') > 30) {
+                    $title .= '...';
+                }
+                $formattedReports[] = $ticketNum . ' - ' . $title;
+            }
+            
+            $statusReportIds[$status] = implode(', ', $formattedReports);
+        }
+        
+        \Log::info('Status Report IDs:', ['statusReportIds' => $statusReportIds, 'period' => $period, 'date_from' => $request->input('date_from'), 'date_to' => $request->input('date_to')]);
+
+        // ========== RESPONSE TIME ANALYSIS (must be before AJAX response) ==========
+        
+        try {
+            // 1. Response Time Analysis
+            $responseTimeStats = Report::whereNotNull('assigned_at')
+                ->whereNotNull('resolved_at')
+                ->where('is_deleted', false)
+                ->when($request->filled('room_filter'), fn($q) => $q->where('location', $request->input('room_filter')))
+                ->when($request->filled('date_from'), fn($q) => $q->whereDate('created_at', '>=', $request->input('date_from')))
+                ->when($request->filled('date_to'), fn($q) => $q->whereDate('created_at', '<=', $request->input('date_to')))
+                ->get()
+                ->map(function($report) {
+                    // Calculate time differences in seconds
+                    $submittedToAssignedSeconds = $report->created_at->diffInSeconds($report->assigned_at, false);
+                    $assignedToResolvedSeconds = $report->assigned_at->diffInSeconds($report->resolved_at, false);
+                    $totalTimeSeconds = $report->created_at->diffInSeconds($report->resolved_at, false);
+                    
+                    // Convert to HH:MM:SS format
+                    $formatTime = function($seconds) {
+                        if ($seconds < 0) return '00:00:00';
+                        $hours = floor($seconds / 3600);
+                        $minutes = floor(($seconds % 3600) / 60);
+                        $secs = $seconds % 60;
+                        return sprintf('%02d:%02d:%02d', $hours, $minutes, $secs);
+                    };
+                    
+                    return [
+                        'id' => $report->id,
+                        'title' => $report->title ?? 'N/A',
+                        'location' => $report->location,
+                        'submitted_to_assigned' => $submittedToAssignedSeconds,
+                        'assigned_to_resolved' => $assignedToResolvedSeconds,
+                        'total_time' => $totalTimeSeconds,
+                        'submitted_to_assigned_formatted' => $formatTime($submittedToAssignedSeconds),
+                        'assigned_to_resolved_formatted' => $formatTime($assignedToResolvedSeconds),
+                        'total_time_formatted' => $formatTime($totalTimeSeconds),
+                        'assigned_to_name' => optional($report->assignedTo)->name ?? 'N/A',
+                        'created_at' => $report->created_at->format('Y-m-d H:i:s'),
+                        'assigned_at' => $report->assigned_at->format('Y-m-d H:i:s'),
+                        'resolved_at' => $report->resolved_at->format('Y-m-d H:i:s'),
+                    ];
+                })
+                ->filter(function($item) {
+                    // Filter out records with invalid date sequences (negative values)
+                    return $item['submitted_to_assigned'] >= 0 
+                        && $item['assigned_to_resolved'] >= 0 
+                        && $item['total_time'] >= 0;
+                })
+                ->values();
+
+            // Calculate averages in hours for display
+            $avgSubmittedToAssigned = $responseTimeStats->avg('submitted_to_assigned') / 3600 ?? 0;
+            $avgAssignedToResolved = $responseTimeStats->avg('assigned_to_resolved') / 3600 ?? 0;
+            $avgTotalTime = $responseTimeStats->avg('total_time') / 3600 ?? 0;
+        } catch (\Exception $e) {
+            \Log::error('Response Time Analysis Error: ' . $e->getMessage());
+            $responseTimeStats = collect();
+            $avgSubmittedToAssigned = 0;
+            $avgAssignedToResolved = 0;
+            $avgTotalTime = 0;
+        }
 
         // Monthly stats - apply same filters
         $monthlyQuery = Report::query();
+        
+        // Apply room filter if provided
+        if ($request->filled('room_filter')) {
+            $monthlyQuery->where('location', $request->input('room_filter'));
+        }
         
         // Apply same period filters
         if ($period === 'monthly' && $request->filled('month') && $request->filled('year')) {
@@ -4343,6 +4626,41 @@ class AdminController extends Controller
         }
         $trendAlerts = $trendAlerts->sortByDesc('recent')->values();
 
+        // ========== ADVANCED ANALYTICS (Calculate before AJAX response) ==========
+        
+        try {
+            // 2. Cost by Category Analysis
+            $costByCategory = Report::with('category')
+                ->whereNotNull('category_id')
+                ->where('is_deleted', false)
+                ->whereNotNull('resolved_at')
+                ->when($request->filled('room_filter'), fn($q) => $q->where('location', $request->input('room_filter')))
+                ->when($request->filled('date_from'), fn($q) => $q->whereDate('created_at', '>=', $request->input('date_from')))
+                ->when($request->filled('date_to'), fn($q) => $q->whereDate('created_at', '<=', $request->input('date_to')))
+                ->get()
+                ->groupBy('category.name')
+                ->map(function($group, $categoryName) {
+                    return [
+                        'category' => $categoryName ?: 'Uncategorized',
+                        'count' => $group->count(),
+                        'total_cost' => $group->sum('cost') ?? 0,
+                        'avg_cost' => $group->avg('cost') ?? 0,
+                        'percentage' => 0, // Will calculate after
+                    ];
+                })
+                ->sortByDesc('total_cost')
+                ->values();
+
+            $totalCategoryCost = $costByCategory->sum('total_cost');
+            $costByCategory = $costByCategory->map(function($item) use ($totalCategoryCost) {
+                $item['percentage'] = $totalCategoryCost > 0 ? ($item['total_cost'] / $totalCategoryCost) * 100 : 0;
+                return $item;
+            });
+        } catch (\Exception $e) {
+            \Log::error('Cost by Category Analysis Error: ' . $e->getMessage());
+            $costByCategory = collect();
+        }
+
         // Handle AJAX requests - return JSON data
         if ($request->ajax() || $request->input('ajax')) {
             return response()->json([
@@ -4351,6 +4669,7 @@ class AdminController extends Controller
                 'chartCosts' => $chartCosts,
                 'chartStatuses' => $chartStatuses,
                 'chartStatusCounts' => $chartStatusCounts,
+                'statusReportIds' => $statusReportIds,
                 'monthlyStats' => $monthlyStats->map(fn($s) => [
                     'month' => $s->month,
                     'title' => $s->title,
@@ -4363,13 +4682,77 @@ class AdminController extends Controller
                     'total_cost' => $s->total_cost
                 ])->values(),
                 'locationStats' => $locationStats,
+                'locationStatsDetailed' => $locationStatsDetailed,
+                'responseTimeStats' => $responseTimeStats ?? collect(),
+                'avgSubmittedToAssigned' => $avgSubmittedToAssigned ?? 0,
+                'avgAssignedToResolved' => $avgAssignedToResolved ?? 0,
+                'avgTotalTime' => $avgTotalTime ?? 0,
+                'costByCategory' => $costByCategory,
             ]);
+        }
+
+        try {
+            // 3. Staff Performance Metrics
+            $staffPerformance = Report::with('assignedTo')
+                ->whereNotNull('assigned_to')
+                ->whereNotNull('resolved_at')
+                ->where('is_deleted', false)
+                ->when($request->filled('date_from'), fn($q) => $q->whereDate('created_at', '>=', $request->input('date_from')))
+                ->when($request->filled('date_to'), fn($q) => $q->whereDate('created_at', '<=', $request->input('date_to')))
+                ->get()
+                ->groupBy('assigned_to')
+                ->map(function($group) {
+                    $staff = $group->first()->assignedTo;
+                    $avgResolutionTime = $group->map(function($report) {
+                        return $report->assigned_at && $report->resolved_at 
+                            ? $report->assigned_at->diffInHours($report->resolved_at) 
+                            : 0;
+                    })->avg();
+
+                    return [
+                        'staff_id' => $staff ? $staff->id : null,
+                        'staff_name' => $staff ? $staff->name : 'Unknown',
+                        'tickets_resolved' => $group->count(),
+                        'total_cost' => $group->sum('cost') ?? 0,
+                        'avg_resolution_time' => round($avgResolutionTime, 1),
+                    ];
+                })
+                ->sortByDesc('tickets_resolved')
+                ->values();
+        } catch (\Exception $e) {
+            \Log::error('Staff Performance Analysis Error: ' . $e->getMessage());
+            $staffPerformance = collect();
+        }
+
+        try {
+            // 4. Cost Trend Analysis (Last 6 Months)
+            $costTrendData = Report::whereNotNull('resolved_at')
+                ->where('is_deleted', false)
+                ->where('resolved_at', '>=', now()->subMonths(6))
+                ->get()
+                ->groupBy(function($report) {
+                    return $report->resolved_at->format('Y-m');
+                })
+                ->map(function($group, $month) {
+                    return [
+                        'month' => \Carbon\Carbon::parse($month . '-01')->format('M Y'),
+                        'count' => $group->count(),
+                        'total_cost' => $group->sum('cost') ?? 0,
+                        'avg_cost' => $group->avg('cost') ?? 0,
+                    ];
+                })
+                ->sortKeys()
+                ->values();
+        } catch (\Exception $e) {
+            \Log::error('Cost Trend Analysis Error: ' . $e->getMessage());
+            $costTrendData = collect();
         }
 
         return view('admin.analytics', compact(
             'totalConcerns',
             'totalCost',
             'locationStats',
+            'locationStatsDetailed',
             'combinedLocationStats',
             'reports',
             'chartLocations',
@@ -4377,9 +4760,18 @@ class AdminController extends Controller
             'chartCosts',
             'chartStatuses',
             'chartStatusCounts',
+            'statusReportIds',
             'monthlyStats',
             'monthlyCostData',
-            'trendAlerts'
+            'trendAlerts',
+            // New Advanced Analytics
+            'responseTimeStats',
+            'avgSubmittedToAssigned',
+            'avgAssignedToResolved',
+            'avgTotalTime',
+            'costByCategory',
+            'staffPerformance',
+            'costTrendData'
         ));
     }
 
@@ -4391,6 +4783,11 @@ class AdminController extends Controller
             $baseQuery = Report::whereNotNull('location')
                 ->where('location', '!=', '')
                 ->where('status', 'Resolved');
+
+            // Apply room filter if provided
+            if ($request->filled('room_filter')) {
+                $baseQuery->where('location', $request->input('room_filter'));
+            }
 
             // Apply filters based on period selection
             $period = $request->input('period');
@@ -4448,19 +4845,33 @@ class AdminController extends Controller
                 }
             }
 
-            // Get detailed location stats with individual items
-            $locationStats = (clone $baseQuery)
-                ->select('location', 'title')
-                ->selectRaw('COUNT(*) as count')
-                ->selectRaw('SUM(COALESCE(cost, 0)) as total_cost')
+            // Get detailed location stats with individual ticket items
+            $locationStatsDetailed = (clone $baseQuery)
+                ->with('category')
+                ->select('id', 'location', 'title', 'damaged_part', 'category_id', 'cost', 'resolved_at')
                 ->whereNotNull('title')
                 ->where('title', '!=', '')
-                ->groupBy('location', 'title')
-                ->orderByDesc('count')
-                ->get();
+                ->orderBy('location')
+                ->orderByDesc('cost')
+                ->get()
+                ->map(function ($stat) {
+                    return [
+                        'id' => $stat->id,
+                        'location' => $stat->location,
+                        'title' => $stat->title,
+                        'damaged_part' => $stat->damaged_part ?: 'N/A',
+                        'category' => $stat->category ? $stat->category->name : 'Uncategorized',
+                        'cost' => $stat->cost ?? 0,
+                        'resolved_at' => $stat->resolved_at ? $stat->resolved_at->format('M d, Y') : 'N/A',
+                    ];
+                });
 
-            $totalRepairs = $locationStats->sum('count');
-            $totalCost = $locationStats->sum('total_cost');
+            $totalRepairs = $locationStatsDetailed->count();
+            $totalCost = $locationStatsDetailed->sum('cost');
+            
+            // Get unique locations and categories count
+            $uniqueLocations = $locationStatsDetailed->pluck('location')->unique()->count();
+            $uniqueCategories = $locationStatsDetailed->pluck('category')->unique()->count();
             
             // Build date range string
             $dateRange = '';
@@ -4492,11 +4903,18 @@ class AdminController extends Controller
                 }
                 $dateRange = !empty($parts) ? implode(' ', $parts) : 'All Time';
             }
+            
+            // Add room filter to date range if present
+            if ($request->filled('room_filter')) {
+                $dateRange .= ' - Room: ' . $request->input('room_filter');
+            }
 
             $pdf = \PDF::loadView('admin.analytics-location-pdf', compact(
-                'locationStats',
+                'locationStatsDetailed',
                 'totalRepairs',
                 'totalCost',
+                'uniqueLocations',
+                'uniqueCategories',
                 'dateRange'
             ));
 
@@ -4769,6 +5187,162 @@ class AdminController extends Controller
             return $pdf->stream('status-report-' . now()->format('Y-m-d') . '.pdf');
         } catch (\Exception $e) {
             \Log::error('Status PDF Generation Error: ' . $e->getMessage());
+            return back()->with('error', 'Failed to generate PDF: ' . $e->getMessage());
+        }
+    }
+
+    // Export Status Distribution & Response Time to PDF
+    public function statusDistributionPDF(Request $request)
+    {
+        try {
+            // Apply date filters
+            $query = Report::query();
+            
+            // Apply room filter if provided
+            if ($request->filled('room_filter')) {
+                $query->where('location', $request->input('room_filter'));
+            }
+            
+            if ($request->filled('date_from')) {
+                $query->whereDate('created_at', '>=', $request->input('date_from'));
+            }
+            if ($request->filled('date_to')) {
+                $query->whereDate('created_at', '<=', $request->input('date_to'));
+            }
+            
+            // Get status distribution with ticket details
+            $statusData = [];
+            $statuses = ['Pending', 'Assigned', 'In Progress', 'Resolved'];
+            $totalTickets = 0;
+            
+            foreach ($statuses as $status) {
+                $reports = (clone $query)->where('status', $status)
+                    ->select('id', 'title')
+                    ->get();
+                
+                if ($reports->count() > 0) {
+                    $tickets = [];
+                    foreach ($reports as $report) {
+                        $ticketNum = '#' . str_pad($report->id, 4, '0', STR_PAD_LEFT);
+                        $title = $report->title ? substr($report->title, 0, 50) : 'N/A';
+                        if (strlen($report->title ?? '') > 50) {
+                            $title .= '...';
+                        }
+                        $tickets[] = $ticketNum . ' - ' . $title;
+                    }
+                    
+                    $statusData[] = [
+                        'status' => $status,
+                        'count' => $reports->count(),
+                        'tickets' => $tickets
+                    ];
+                    
+                    $totalTickets += $reports->count();
+                }
+            }
+            
+            // Get response time data
+            $responseTimeStats = (clone $query)
+                ->whereNotNull('assigned_at')
+                ->whereNotNull('resolved_at')
+                ->get()
+                ->map(function($report) {
+                    $submittedToAssigned = $report->created_at->diffInSeconds($report->assigned_at);
+                    $assignedToResolved = $report->assigned_at->diffInSeconds($report->resolved_at);
+                    $totalTime = $report->created_at->diffInSeconds($report->resolved_at);
+                    
+                    $formatTime = function($seconds) {
+                        if ($seconds < 0) return '00:00:00';
+                        $hours = floor($seconds / 3600);
+                        $minutes = floor(($seconds % 3600) / 60);
+                        $secs = $seconds % 60;
+                        return sprintf('%02d:%02d:%02d', $hours, $minutes, $secs);
+                    };
+                    
+                    return [
+                        'id' => '#' . str_pad($report->id, 4, '0', STR_PAD_LEFT),
+                        'title' => substr($report->title ?? 'N/A', 0, 30),
+                        'location' => $report->location,
+                        'submitted_to_assigned' => $formatTime($submittedToAssigned),
+                        'assigned_to_resolved' => $formatTime($assignedToResolved),
+                        'total_time' => $formatTime($totalTime),
+                        'staff' => optional($report->assignedTo)->name ?? 'N/A',
+                    ];
+                })
+                ->filter(function($item) {
+                    // Filter out invalid times
+                    return $item['submitted_to_assigned'] !== '00:00:00' && 
+                           $item['assigned_to_resolved'] !== '00:00:00';
+                })
+                ->values();
+            
+            // Calculate average response times
+            $avgSubmittedToAssigned = '00:00:00';
+            $avgAssignedToResolved = '00:00:00';
+            $avgTotalTime = '00:00:00';
+            
+            if ($responseTimeStats->count() > 0) {
+                $totalSubmittedToAssigned = 0;
+                $totalAssignedToResolved = 0;
+                $totalTimeSum = 0;
+                
+                foreach ($responseTimeStats as $stat) {
+                    list($h, $m, $s) = explode(':', $stat['submitted_to_assigned']);
+                    $totalSubmittedToAssigned += ($h * 3600) + ($m * 60) + $s;
+                    
+                    list($h, $m, $s) = explode(':', $stat['assigned_to_resolved']);
+                    $totalAssignedToResolved += ($h * 3600) + ($m * 60) + $s;
+                    
+                    list($h, $m, $s) = explode(':', $stat['total_time']);
+                    $totalTimeSum += ($h * 3600) + ($m * 60) + $s;
+                }
+                
+                $count = $responseTimeStats->count();
+                $avgSubmittedToAssigned = sprintf('%02d:%02d:%02d', 
+                    floor($totalSubmittedToAssigned / $count / 3600),
+                    floor(($totalSubmittedToAssigned / $count % 3600) / 60),
+                    $totalSubmittedToAssigned / $count % 60
+                );
+                $avgAssignedToResolved = sprintf('%02d:%02d:%02d',
+                    floor($totalAssignedToResolved / $count / 3600),
+                    floor(($totalAssignedToResolved / $count % 3600) / 60),
+                    $totalAssignedToResolved / $count % 60
+                );
+                $avgTotalTime = sprintf('%02d:%02d:%02d',
+                    floor($totalTimeSum / $count / 3600),
+                    floor(($totalTimeSum / $count % 3600) / 60),
+                    $totalTimeSum / $count % 60
+                );
+            }
+            
+            $dateRange = '';
+            if ($request->filled('date_from') && $request->filled('date_to')) {
+                $dateRange = \Carbon\Carbon::parse($request->input('date_from'))->format('M d, Y') . ' - ' . 
+                            \Carbon\Carbon::parse($request->input('date_to'))->format('M d, Y');
+            } else {
+                $dateRange = 'All Time';
+            }
+            
+            // Add room filter to date range if present
+            if ($request->filled('room_filter')) {
+                $dateRange .= ' - Room: ' . $request->input('room_filter');
+            }
+            
+            $pdf = \PDF::loadView('admin.analytics-status-distribution-pdf', compact(
+                'statusData',
+                'responseTimeStats',
+                'totalTickets',
+                'avgSubmittedToAssigned',
+                'avgAssignedToResolved',
+                'avgTotalTime',
+                'dateRange'
+            ));
+            
+            return $pdf->stream('status-distribution-report-' . now()->format('Y-m-d') . '.pdf');
+            
+        } catch (\Exception $e) {
+            \Log::error('Status Distribution PDF Error: ' . $e->getMessage());
+            \Log::error('Request params: ' . json_encode($request->all()));
             return back()->with('error', 'Failed to generate PDF: ' . $e->getMessage());
         }
     }
@@ -5093,6 +5667,68 @@ class AdminController extends Controller
         }
     }
 
+    // Export Combined Location Cost Report to PDF
+    public function combinedLocationPDF(Request $request)
+    {
+        try {
+            // Get all reports grouped by location with ticket details
+            $query = Report::whereNotNull('location')
+                ->where('location', '!=', '')
+                ->when($request->filled('date_from'), fn($q) => $q->whereDate('created_at', '>=', $request->input('date_from')))
+                ->when($request->filled('date_to'),   fn($q) => $q->whereDate('created_at', '<=', $request->input('date_to')))
+                ->orderBy('location')
+                ->get();
+
+            // Group by location and collect damaged parts with ticket numbers
+            $combinedLocationStats = $query->groupBy('location')->map(function ($reports, $location) {
+                $tickets = $reports->map(function ($report) {
+                    return [
+                        'ticket_number' => '#' . str_pad($report->id, 4, '0', STR_PAD_LEFT),
+                        'damaged_part' => $report->damaged_part ?: 'N/A',
+                        'cost' => $report->cost ?? 0,
+                        'date_fixed' => $report->resolved_at ? \Carbon\Carbon::parse($report->resolved_at)->format('M d, Y') : 'N/A',
+                    ];
+                });
+
+                $totalCost = $reports->sum('cost');
+                $totalCount = $reports->count();
+
+                return [
+                    'location' => $location,
+                    'total_count' => $totalCount,
+                    'total_cost' => $totalCost,
+                    'avg_cost' => $totalCount > 0 ? ($totalCost / $totalCount) : 0,
+                    'tickets' => $tickets,
+                ];
+            })->values();
+
+            // Calculate totals
+            $totalTickets = $combinedLocationStats->sum('total_count');
+            $totalCost = $combinedLocationStats->sum('total_cost');
+            $avgCostPerTicket = $totalTickets > 0 ? ($totalCost / $totalTickets) : 0;
+
+            // Date range for display
+            $dateRange = 'All Time';
+            if ($request->filled('date_from') && $request->filled('date_to')) {
+                $dateRange = \Carbon\Carbon::parse($request->input('date_from'))->format('M d, Y') . ' - ' . 
+                            \Carbon\Carbon::parse($request->input('date_to'))->format('M d, Y');
+            }
+
+            $pdf = \PDF::loadView('admin.combined-location-pdf', compact(
+                'combinedLocationStats',
+                'totalTickets',
+                'totalCost',
+                'avgCostPerTicket',
+                'dateRange'
+            ));
+
+            return $pdf->stream('combined-location-report-' . now()->format('Y-m-d') . '.pdf');
+        } catch (\Exception $e) {
+            \Log::error('Combined Location PDF Generation Error: ' . $e->getMessage());
+            return back()->with('error', 'Failed to generate PDF: ' . $e->getMessage());
+        }
+    }
+
     // Export Complete Analytics to PDF
     public function exportAnalyticsPDF(Request $request)
     {
@@ -5101,6 +5737,11 @@ class AdminController extends Controller
             $baseQuery = Report::whereNotNull('location')
                 ->where('location', '!=', '')
                 ->where('status', 'Resolved');
+
+            // Apply room filter if provided
+            if ($request->filled('room_filter')) {
+                $baseQuery->where('location', $request->input('room_filter'));
+            }
 
             // Apply filters based on period selection
             $period = $request->input('period');
@@ -5162,34 +5803,66 @@ class AdminController extends Controller
             $totalConcerns = (clone $baseQuery)->count();
             $totalCost     = (clone $baseQuery)->sum('cost') ?? 0;
             $avgCost = $totalConcerns > 0 ? $totalCost / $totalConcerns : 0;
+            $uniqueLocations = (clone $baseQuery)->distinct('location')->count('location');
 
-            // 1. Location stats with individual items (for Location Details modal)
-            $locationStats = (clone $baseQuery)
-                ->select('location', 'title')
-                ->selectRaw('COUNT(*) as count')
-                ->selectRaw('SUM(COALESCE(cost, 0)) as total_cost')
+            // 1. Repairs Breakdown - Location stats with detailed tickets
+            $locationStatsDetailed = (clone $baseQuery)
+                ->with('category')
+                ->select('id', 'location', 'title', 'damaged_part', 'category_id', 'cost', 'resolved_at')
                 ->whereNotNull('title')
                 ->where('title', '!=', '')
-                ->groupBy('location', 'title')
-                ->orderByDesc('count')
-                ->get();
+                ->orderBy('location')
+                ->orderByDesc('cost')
+                ->get()
+                ->map(function ($stat) {
+                    return [
+                        'id' => $stat->id,
+                        'location' => $stat->location,
+                        'title' => $stat->title,
+                        'damaged_part' => $stat->damaged_part ?: 'N/A',
+                        'category' => $stat->category ? $stat->category->name : 'Uncategorized',
+                        'cost' => $stat->cost ?? 0,
+                        'resolved_at' => $stat->resolved_at ? $stat->resolved_at->format('M d, Y') : 'N/A',
+                    ];
+                });
 
-            // 2. Cost breakdown by title (for Cost Details modal)
-            $costStats = (clone $baseQuery)
-                ->select('title')
-                ->selectRaw('COUNT(*) as count')
-                ->selectRaw('SUM(COALESCE(cost, 0)) as total_cost')
-                ->selectRaw('AVG(COALESCE(cost, 0)) as avg_cost')
-                ->whereNotNull('title')
-                ->where('title', '!=', '')
-                ->groupBy('title')
-                ->orderByDesc('total_cost')
-                ->get();
+            // 2. Cost by Category Analysis
+            $costByCategory = Report::with('category')
+                ->whereNotNull('category_id')
+                ->where('is_deleted', false)
+                ->whereNotNull('resolved_at')
+                ->when($request->filled('room_filter'), fn($q) => $q->where('location', $request->input('room_filter')))
+                ->when($request->filled('date_from'), fn($q) => $q->whereDate('created_at', '>=', $request->input('date_from')))
+                ->when($request->filled('date_to'), fn($q) => $q->whereDate('created_at', '<=', $request->input('date_to')))
+                ->get()
+                ->groupBy('category.name')
+                ->map(function($group, $categoryName) {
+                    return [
+                        'category' => $categoryName ?: 'Uncategorized',
+                        'count' => $group->count(),
+                        'total_cost' => $group->sum('cost') ?? 0,
+                        'avg_cost' => $group->avg('cost') ?? 0,
+                        'percentage' => 0,
+                    ];
+                })
+                ->sortByDesc('total_cost')
+                ->values();
 
-            // 3. Status distribution (for Status modal)
+            $totalCategoryCost = $costByCategory->sum('total_cost');
+            $costByCategory = $costByCategory->map(function($item) use ($totalCategoryCost) {
+                $item['percentage'] = $totalCategoryCost > 0 ? ($item['total_cost'] / $totalCategoryCost) * 100 : 0;
+                return $item;
+            });
+
+            // 3. Status distribution
             $statusQuery = Report::select('status');
             
-            // Apply same period filters to status query
+            // Apply room filter if provided
+            if ($request->filled('room_filter')) {
+                $statusQuery->where('location', $request->input('room_filter'));
+            }
+            
+            // Apply same period filters
             if ($period === 'monthly' && $request->filled('month') && $request->filled('year')) {
                 $statusQuery->whereMonth('created_at', $request->input('month'))
                            ->whereYear('created_at', $request->input('year'));
@@ -5215,6 +5888,12 @@ class AdminController extends Controller
                 if ($request->filled('year')) {
                     $statusQuery->whereYear('created_at', $request->input('year'));
                 }
+                if ($request->filled('date_from')) {
+                    $statusQuery->whereDate('created_at', '>=', $request->input('date_from'));
+                }
+                if ($request->filled('date_to')) {
+                    $statusQuery->whereDate('created_at', '<=', $request->input('date_to'));
+                }
             }
             
             $statusStats = $statusQuery
@@ -5222,62 +5901,42 @@ class AdminController extends Controller
                 ->groupBy('status')
                 ->get();
 
-            // 4. Monthly trend data (for Trend modal)
-            $monthlyData = (clone $baseQuery)
-                ->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month")
-                ->selectRaw('title')
-                ->selectRaw('COUNT(*) as count')
-                ->whereNotNull('title')
-                ->where('title', '!=', '')
-                ->groupBy('month', 'title')
-                ->orderBy('month')
-                ->get();
-
-            // Build 6-month labels
-            $monthLabels = [];
-            for ($i = 5; $i >= 0; $i--) {
-                $date = now()->subMonths($i);
-                $key = $date->format('Y-m');
-                $label = $date->format('M Y');
-                $monthLabels[$key] = ['label' => $label, 'issues' => []];
-            }
-
-            // Group data by month
-            foreach ($monthlyData as $item) {
-                if (isset($monthLabels[$item->month])) {
-                    if (!isset($monthLabels[$item->month]['issues'][$item->title])) {
-                        $monthLabels[$item->month]['issues'][$item->title] = 0;
-                    }
-                    $monthLabels[$item->month]['issues'][$item->title] += $item->count;
-                }
-            }
-
-            // Build trend table data
-            $trendData = [];
-            foreach ($monthLabels as $key => $data) {
-                if (empty($data['issues'])) {
-                    $trendData[] = [
-                        'is_first_row' => true,
-                        'rowspan' => 1,
-                        'month_label' => $data['label'],
-                        'issue_type' => 'No issues',
-                        'count' => 0
+            // 4. Response Time Analysis
+            $responseTimeStats = Report::whereNotNull('assigned_at')
+                ->whereNotNull('resolved_at')
+                ->where('is_deleted', false)
+                ->when($request->filled('room_filter'), fn($q) => $q->where('location', $request->input('room_filter')))
+                ->when($request->filled('date_from'), fn($q) => $q->whereDate('created_at', '>=', $request->input('date_from')))
+                ->when($request->filled('date_to'), fn($q) => $q->whereDate('created_at', '<=', $request->input('date_to')))
+                ->get()
+                ->map(function($report) {
+                    $submittedToAssignedSeconds = $report->created_at->diffInSeconds($report->assigned_at, false);
+                    $assignedToResolvedSeconds = $report->assigned_at->diffInSeconds($report->resolved_at, false);
+                    $totalTimeSeconds = $report->created_at->diffInSeconds($report->resolved_at, false);
+                    
+                    $formatTime = function($seconds) {
+                        if ($seconds < 0) return '00:00:00';
+                        $hours = floor($seconds / 3600);
+                        $minutes = floor(($seconds % 3600) / 60);
+                        $secs = $seconds % 60;
+                        return sprintf('%02d:%02d:%02d', $hours, $minutes, $secs);
+                    };
+                    
+                    return [
+                        'submitted_to_assigned' => $submittedToAssignedSeconds,
+                        'assigned_to_resolved' => $assignedToResolvedSeconds,
+                        'total_time' => $totalTimeSeconds,
                     ];
-                } else {
-                    $isFirst = true;
-                    $rowspan = count($data['issues']);
-                    foreach ($data['issues'] as $issue => $count) {
-                        $trendData[] = [
-                            'is_first_row' => $isFirst,
-                            'rowspan' => $rowspan,
-                            'month_label' => $data['label'],
-                            'issue_type' => $issue,
-                            'count' => $count
-                        ];
-                        $isFirst = false;
-                    }
-                }
-            }
+                })
+                ->filter(function($item) {
+                    return $item['submitted_to_assigned'] >= 0 
+                        && $item['assigned_to_resolved'] >= 0 
+                        && $item['total_time'] >= 0;
+                });
+
+            $avgSubmittedToAssigned = $responseTimeStats->avg('submitted_to_assigned') / 3600 ?? 0;
+            $avgAssignedToResolved = $responseTimeStats->avg('assigned_to_resolved') / 3600 ?? 0;
+            $avgTotalTime = $responseTimeStats->avg('total_time') / 3600 ?? 0;
 
             // Build date range string
             $dateRange = '';
@@ -5302,19 +5961,28 @@ class AdminController extends Controller
                     $parts[] = $request->input('year');
                 }
                 if ($request->filled('date_from') && $request->filled('date_to')) {
-                    $parts[] = $request->input('date_from') . ' to ' . $request->input('date_to');
+                    $parts[] = \Carbon\Carbon::parse($request->input('date_from'))->format('M d, Y') . ' - ' . 
+                              \Carbon\Carbon::parse($request->input('date_to'))->format('M d, Y');
                 }
                 $dateRange = !empty($parts) ? implode(' ', $parts) : 'All Time';
+            }
+            
+            // Add room filter to date range if present
+            if ($request->filled('room_filter')) {
+                $dateRange .= ' - Room: ' . $request->input('room_filter');
             }
 
             $pdf = \PDF::loadView('admin.analytics-main-pdf', compact(
                 'totalConcerns',
                 'totalCost',
                 'avgCost',
-                'locationStats',
-                'costStats',
+                'uniqueLocations',
+                'locationStatsDetailed',
+                'costByCategory',
                 'statusStats',
-                'trendData',
+                'avgSubmittedToAssigned',
+                'avgAssignedToResolved',
+                'avgTotalTime',
                 'dateRange'
             ));
 

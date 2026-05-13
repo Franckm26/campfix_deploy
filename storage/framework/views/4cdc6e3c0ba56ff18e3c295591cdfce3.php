@@ -1,7 +1,7 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: DejaVu Sans, sans-serif; font-size: 12px; color: #1e293b; background: #fff; }
@@ -164,7 +164,7 @@
         </div>
         <div class="info-col">
             <div class="info-label">Total Repair Cost</div>
-            <div class="info-value">₱<?php echo e(number_format($resolvedReports->sum('cost'), 2)); ?></div>
+            <div class="info-value">PHP <?php echo e(number_format($resolvedReports->sum('cost'), 2)); ?></div>
         </div>
     </div>
 
@@ -184,7 +184,7 @@
     
     <?php if($resolvedReports->count() > 0): ?>
     <div style="font-size:14px; font-weight:700; color:#16a34a; margin-bottom:12px; margin-top:20px; text-transform:uppercase; letter-spacing:0.05em;">
-        ✓ Resolved Reports (<?php echo e($resolvedReports->count()); ?>)
+        âœ“ Resolved Reports (<?php echo e($resolvedReports->count()); ?>)
     </div>
     <table>
         <thead>
@@ -215,9 +215,9 @@
                 <td><?php echo e($report->category->name ?? 'N/A'); ?></td>
                 <td><?php echo e($report->location); ?></td>
                 <td><span class="badge <?php echo e($priorityClass); ?>"><?php echo e(ucfirst($report->severity)); ?></span></td>
-                <td><?php echo e($report->user->name ?? 'Unknown'); ?></td>
+                <td><?php echo e($report->reported_by_name ?? 'Unknown'); ?></td>
                 <td><?php echo e($report->created_at->format('M d, Y')); ?></td>
-                <td><?php echo e($report->cost ? '₱'.number_format($report->cost, 2) : '-'); ?></td>
+                <td><?php echo e($report->cost ? 'PHP '.number_format($report->cost, 2) : '-'); ?></td>
             </tr>
             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
         </tbody>
@@ -227,7 +227,7 @@
     
     <?php if($viewType !== 'resolved' && $inProgressReports->count() > 0): ?>
     <div style="font-size:14px; font-weight:700; color:#d97706; margin-bottom:12px; margin-top:20px; text-transform:uppercase; letter-spacing:0.05em;">
-        ⚙ In Progress Reports (<?php echo e($inProgressReports->count()); ?>)
+        âš™ In Progress Reports (<?php echo e($inProgressReports->count()); ?>)
     </div>
     <table>
         <thead>
@@ -258,7 +258,7 @@
                 <td><?php echo e($report->category->name ?? 'N/A'); ?></td>
                 <td><?php echo e($report->location); ?></td>
                 <td><span class="badge <?php echo e($priorityClass); ?>"><?php echo e(ucfirst($report->severity)); ?></span></td>
-                <td><?php echo e($report->user->name ?? 'Unknown'); ?></td>
+                <td><?php echo e($report->reported_by_name ?? 'Unknown'); ?></td>
                 <td><?php echo e($report->created_at->format('M d, Y')); ?></td>
                 <td><?php echo e($report->assignedTo->name ?? 'Unassigned'); ?></td>
             </tr>
@@ -270,7 +270,7 @@
     
     <?php if($viewType !== 'resolved' && $pendingReports->count() > 0): ?>
     <div style="font-size:14px; font-weight:700; color:#64748b; margin-bottom:12px; margin-top:20px; text-transform:uppercase; letter-spacing:0.05em;">
-        ⏳ Pending Reports (<?php echo e($pendingReports->count()); ?>)
+        â³ Pending Reports (<?php echo e($pendingReports->count()); ?>)
     </div>
     <table>
         <thead>
@@ -300,7 +300,7 @@
                 <td><?php echo e($report->category->name ?? 'N/A'); ?></td>
                 <td><?php echo e($report->location); ?></td>
                 <td><span class="badge <?php echo e($priorityClass); ?>"><?php echo e(ucfirst($report->severity)); ?></span></td>
-                <td><?php echo e($report->user->name ?? 'Unknown'); ?></td>
+                <td><?php echo e($report->reported_by_name ?? 'Unknown'); ?></td>
                 <td><?php echo e($report->created_at->format('M d, Y')); ?></td>
             </tr>
             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
@@ -311,7 +311,7 @@
     
     <?php if($viewType !== 'resolved' && $assignedReports->count() > 0): ?>
     <div style="font-size:14px; font-weight:700; color:#1d4ed8; margin-bottom:12px; margin-top:20px; text-transform:uppercase; letter-spacing:0.05em;">
-        📋 Assigned Reports (<?php echo e($assignedReports->count()); ?>)
+        ðŸ“‹ Assigned Reports (<?php echo e($assignedReports->count()); ?>)
     </div>
     <table>
         <thead>
@@ -342,7 +342,7 @@
                 <td><?php echo e($report->category->name ?? 'N/A'); ?></td>
                 <td><?php echo e($report->location); ?></td>
                 <td><span class="badge <?php echo e($priorityClass); ?>"><?php echo e(ucfirst($report->severity)); ?></span></td>
-                <td><?php echo e($report->user->name ?? 'Unknown'); ?></td>
+                <td><?php echo e($report->reported_by_name ?? 'Unknown'); ?></td>
                 <td><?php echo e($report->created_at->format('M d, Y')); ?></td>
                 <td><?php echo e($report->assignedTo->name ?? 'Unassigned'); ?></td>
             </tr>
@@ -362,18 +362,18 @@
             </div>
             <div class="totals-row">
                 <div class="totals-label">Total Repair Cost</div>
-                <div class="totals-value">₱<?php echo e(number_format($resolvedReports->sum('cost'), 2)); ?></div>
+                <div class="totals-value">PHP <?php echo e(number_format($resolvedReports->sum('cost'), 2)); ?></div>
             </div>
             <div class="totals-row">
                 <div class="totals-label">Avg Cost per Repair</div>
                 <div class="totals-value">
-                    ₱<?php echo e($resolvedReports->count() > 0 ? number_format($resolvedReports->sum('cost') / $resolvedReports->count(), 2) : '0.00'); ?>
+                    PHP <?php echo e($resolvedReports->count() > 0 ? number_format($resolvedReports->sum('cost') / $resolvedReports->count(), 2) : '0.00'); ?>
 
                 </div>
             </div>
             <div class="totals-row totals-total">
                 <div class="totals-label">Grand Total Cost</div>
-                <div class="totals-value">₱<?php echo e(number_format($resolvedReports->sum('cost'), 2)); ?></div>
+                <div class="totals-value">PHP <?php echo e(number_format($resolvedReports->sum('cost'), 2)); ?></div>
             </div>
         </div>
     </div>
@@ -401,8 +401,8 @@
                 <td style="font-weight:600;"><?php echo e($row['issue']); ?></td>
                 <td><?php echo e($row['location']); ?></td>
                 <td style="text-align:center;"><?php echo e($row['count']); ?></td>
-                <td style="text-align:right; font-weight:600;">₱<?php echo e(number_format($row['total_cost'], 2)); ?></td>
-                <td style="text-align:right;">₱<?php echo e(number_format($row['avg_cost'], 2)); ?></td>
+                <td style="text-align:right; font-weight:600;">PHP <?php echo e(number_format($row['total_cost'], 2)); ?></td>
+                <td style="text-align:right;">PHP <?php echo e(number_format($row['avg_cost'], 2)); ?></td>
             </tr>
             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
         </tbody>
@@ -421,7 +421,7 @@
             </div>
             <div class="totals-row totals-total">
                 <div class="totals-label">Grand Total Cost</div>
-                <div class="totals-value">₱<?php echo e(number_format($costByRoom->sum('total_cost'), 2)); ?></div>
+                <div class="totals-value">PHP <?php echo e(number_format($costByRoom->sum('total_cost'), 2)); ?></div>
             </div>
         </div>
     </div>
@@ -429,7 +429,7 @@
 
     
     <div class="footer">
-        <div class="footer-left">CampFix — STI College Novaliches &bull; </div>
+        <div class="footer-left">CampFix â€” STI College Novaliches &bull; </div>
         <div class="footer-right">Page 1 of 1 &bull; <?php echo e(now()->format('Y')); ?></div>
     </div>
 

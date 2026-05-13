@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-    <title>Cost Report - <?php echo e($dateRange); ?></title>
+    <title>Period Comparison Report - <?php echo e($dateRange); ?></title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -146,17 +146,12 @@
             color: #333;
             font-size: 13px;
         }
-        .badge {
-            padding: 4px 8px;
-            border-radius: 3px;
-            font-size: 10px;
-            font-weight: bold;
-            color: white;
+        .trend-icon {
+            font-size: 12px;
         }
-        .badge-danger { background-color: #dc3545; }
-        .badge-warning { background-color: #ffc107; color: #000; }
-        .badge-info { background-color: #17a2b8; }
-        .badge-success { background-color: #28a745; }
+        .trend-up { color: #dc3545; }
+        .trend-down { color: #28a745; }
+        .trend-neutral { color: #6c757d; }
     </style>
 </head>
 <body>
@@ -184,7 +179,7 @@
     </div>
 
     <div class="header">
-        <h1>Cost by Location - Detailed Report</h1>
+        <h1>Period Comparison - Detailed Report</h1>
         <h2>CampFix Analytics</h2>
     </div>
 
@@ -196,45 +191,61 @@
     <div class="summary-box">
         <h3>Summary</h3>
         <div class="summary-item">
-            <span class="summary-label">Highest Cost:</span>
-            <span class="summary-value"><?php echo e($highestCost['location'] ?? 'N/A'); ?> - PHP <?php echo e(number_format($highestCost['cost'] ?? 0, 2)); ?></span>
+            <span class="summary-label">Highest Cost Month:</span>
+            <span class="summary-value"><?php echo e($monthLabels[$highestIdx] ?? 'N/A'); ?> - PHP <?php echo e(number_format($monthCosts[$highestIdx] ?? 0, 2)); ?></span>
         </div>
         <div class="summary-item">
-            <span class="summary-label">Lowest Cost:</span>
-            <span class="summary-value"><?php echo e($lowestCost['location'] ?? 'N/A'); ?> - PHP <?php echo e(number_format($lowestCost['cost'] ?? 0, 2)); ?></span>
+            <span class="summary-label">Lowest Cost Month:</span>
+            <span class="summary-value"><?php echo e($monthLabels[$lowestIdx] ?? 'N/A'); ?> - PHP <?php echo e(number_format($monthCosts[$lowestIdx] ?? 0, 2)); ?></span>
         </div>
         <div class="summary-item">
-            <span class="summary-label">Average Cost:</span>
-            <span class="summary-value">PHP <?php echo e(number_format($avgCost, 2)); ?></span>
+            <span class="summary-label">Average Cost/Month:</span>
+            <span class="summary-value">PHP <?php echo e(number_format($avgCostPerMonth, 2)); ?></span>
         </div>
     </div>
 
     <table>
         <thead>
             <tr>
-                <th>Location</th>
+                <th>Period</th>
                 <th class="text-center">Repairs</th>
                 <th class="text-end">Total Cost</th>
                 <th class="text-end">Avg per Repair</th>
-                <th class="text-center">Cost Level</th>
+                <th class="text-center">% of Total</th>
+                <th class="text-center">Trend</th>
             </tr>
         </thead>
         <tbody>
-            <?php $__empty_1 = true; $__currentLoopData = $costData; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+            <?php $__empty_1 = true; $__currentLoopData = $periodData; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
             <tr>
-                <td><strong><?php echo e($item['location']); ?></strong></td>
+                <td><strong><?php echo e($item['label']); ?></strong></td>
                 <td class="text-center"><?php echo e($item['count']); ?></td>
                 <td class="text-end">PHP <?php echo e(number_format($item['cost'], 2)); ?></td>
                 <td class="text-end">PHP <?php echo e(number_format($item['avg_per_repair'], 2)); ?></td>
+                <td class="text-center"><?php echo e(number_format($item['percent'], 1)); ?>%</td>
                 <td class="text-center">
-                    <span class="badge badge-<?php echo e($item['badge_class']); ?>"><?php echo e($item['cost_level']); ?></span>
+                    <?php if($item['trend'] === 'up'): ?>
+                        <span class="trend-icon trend-up">▲</span>
+                    <?php elseif($item['trend'] === 'down'): ?>
+                        <span class="trend-icon trend-down">▼</span>
+                    <?php elseif($item['trend'] === 'neutral'): ?>
+                        <span class="trend-icon trend-neutral">—</span>
+                    <?php endif; ?>
                 </td>
             </tr>
             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
             <tr>
-                <td colspan="5" class="text-center">No data available for the selected period</td>
+                <td colspan="6" class="text-center">No data available for the selected period</td>
             </tr>
             <?php endif; ?>
+            <tr class="footer-row">
+                <td><strong>TOTAL</strong></td>
+                <td class="text-center"><strong><?php echo e($totalCount); ?></strong></td>
+                <td class="text-end"><strong>PHP <?php echo e(number_format($totalCost, 2)); ?></strong></td>
+                <td class="text-end"><strong>PHP <?php echo e(number_format($avgCostPerRepair, 2)); ?></strong></td>
+                <td class="text-center"><strong>100%</strong></td>
+                <td></td>
+            </tr>
         </tbody>
     </table>
 
@@ -243,4 +254,4 @@
     </div>
 </body>
 </html>
-<?php /**PATH C:\xampp\htdocs\Campfix\resources\views/admin/analytics-cost-pdf.blade.php ENDPATH**/ ?>
+<?php /**PATH C:\xampp\htdocs\Campfix\resources\views/admin/analytics-period-comparison-pdf.blade.php ENDPATH**/ ?>

@@ -2,6 +2,28 @@
 
 @section('styles')
 <link href="{{ asset('css/admin.css') }}" rel="stylesheet">
+<style>
+/* Ticket column styling - minimal width, centered - OVERRIDE admin.css */
+.ticket-col {
+    width: 60px !important;
+    max-width: 60px !important;
+    min-width: 60px !important;
+    white-space: nowrap !important;
+    text-align: center !important;
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+    font-size: 0.9em !important;
+    overflow: hidden !important;
+}
+
+/* Override the nth-child rules from admin.css for ticket column */
+.table th.ticket-col,
+.table td.ticket-col {
+    width: 60px !important;
+    min-width: 60px !important;
+    max-width: 60px !important;
+}
+</style>
 @endsection
 
 @section('page_title')
@@ -171,6 +193,7 @@
                                 <thead>
                                     <tr>
                                         <th style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" id="selectAllActive" onchange="toggleSelectAll('active')"></th>
+                                        <th class="ticket-col" style="width: 60px; max-width: 60px; min-width: 60px; white-space: nowrap; text-align: center;">Ticket</th>
                                         <th style="width:100px;white-space:nowrap;">Issue</th>
                                         <th>Category</th>
                                         <th>Location</th>
@@ -187,6 +210,7 @@
                                     @foreach($concerns as $concern)
                                         <tr data-id="{{ $concern->id }}" data-view="active">
                                             <td style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" class="active-checkbox" value="{{ $concern->id }}" onchange="updateActiveBulkActions()"></td>
+                                            <td class="ticket-col" style="width: 60px; max-width: 60px; min-width: 60px; white-space: nowrap; text-align: center; padding: 4px;">#{{ str_pad($concern->id, 4, '0', STR_PAD_LEFT) }}</td>
                                             <td style="width:100px;max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                                                 <a href="#" onclick="event.preventDefault(); viewConcern({{ $concern->id }});">
                                                     {{ $concern->title ?? \Illuminate\Support\Str::limit($concern->description, 40) }}
@@ -343,6 +367,7 @@
                                 <thead>
                                     <tr>
                                         <th style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" id="selectAllResolved" onchange="toggleSelectAll('resolved')"></th>
+                                        <th class="ticket-col" style="width: 60px; max-width: 60px; min-width: 60px; white-space: nowrap; text-align: center;">Ticket</th>
                                         <th style="width:100px;white-space:nowrap;">Issue</th>
                                         <th>Category</th>
                                         <th>Location</th>
@@ -358,6 +383,7 @@
                                     @foreach($resolvedConcerns as $concern)
                                         <tr data-id="{{ $concern->id }}" data-view="resolved">
                                             <td style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" class="resolved-checkbox" value="{{ $concern->id }}" onchange="updateResolvedBulkActions()"></td>
+                                            <td class="ticket-col" style="width: 60px; max-width: 60px; min-width: 60px; white-space: nowrap; text-align: center; padding: 4px;">#{{ str_pad($concern->id, 4, '0', STR_PAD_LEFT) }}</td>
                                             <td style="width:100px;max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                                                 <a href="#" onclick="event.preventDefault(); viewConcern({{ $concern->id }});">
                                                     {{ $concern->title ?? \Illuminate\Support\Str::limit($concern->description, 40) }}
@@ -489,6 +515,7 @@
                                 <thead>
                                     <tr>
                                         <th style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" id="selectAllArchive" onchange="toggleSelectAll('archive')"></th>
+                                        <th class="ticket-col" style="width: 60px; max-width: 60px; min-width: 60px; white-space: nowrap; text-align: center;">Ticket</th>
                                         <th style="width:100px;white-space:nowrap;">Issue</th>
                                         <th>Category</th>
                                         <th>Location</th>
@@ -503,6 +530,7 @@
                                     @foreach($archivedConcerns as $concern)
                                         <tr data-id="{{ $concern->id }}" data-view="archive">
                                             <td style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" class="archive-checkbox" value="{{ $concern->id }}" onchange="updateArchiveBulkActions()"></td>
+                                            <td class="ticket-col" style="width: 60px; max-width: 60px; min-width: 60px; white-space: nowrap; text-align: center; padding: 4px;">#{{ str_pad($concern->id, 4, '0', STR_PAD_LEFT) }}</td>
                                             <td style="width:100px;max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                                                 <a href="#" onclick="event.preventDefault(); viewConcern({{ $concern->id }});">
                                                     {{ $concern->title ?? \Illuminate\Support\Str::limit($concern->description, 40) }}
@@ -669,6 +697,7 @@
                                 <thead>
                                     <tr>
                                         <th style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" id="selectAllDeleted" onchange="toggleSelectAll('deleted')"></th>
+                                        <th class="ticket-col" style="width: 60px; max-width: 60px; min-width: 60px; white-space: nowrap; text-align: center;">Ticket</th>
                                         <th style="width:100px;white-space:nowrap;">Issue</th>
                                         <th>Category</th>
                                         <th>Location</th>
@@ -683,6 +712,7 @@
                                     @foreach($deletedConcerns as $concern)
                                         <tr data-id="{{ $concern->id }}" data-view="deleted">
                                             <td style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" class="deleted-checkbox" value="{{ $concern->id }}" onchange="updateDeletedBulkActions()"></td>
+                                            <td class="ticket-col" style="width: 60px; max-width: 60px; min-width: 60px; white-space: nowrap; text-align: center; padding: 4px;">#{{ str_pad($concern->id, 4, '0', STR_PAD_LEFT) }}</td>
                                             <td style="width:100px;max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                                                 <a href="#" onclick="event.preventDefault(); viewConcern({{ $concern->id }});">
                                                     {{ $concern->title ?? \Illuminate\Support\Str::limit($concern->description, 40) }}
@@ -1921,7 +1951,7 @@ function viewConcern(id) {
         contentDiv.innerHTML = `
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h4>Concern #${concern.id}</h4>
+                    <h4>Ticket #${String(concern.id).padStart(4, '0')}</h4>
                     <div>
                         <span class="badge bg-${priorityClass} me-2">${concern.priority ? (concern.priority.charAt(0).toUpperCase() + concern.priority.slice(1)) : 'Not Set'} Priority</span>
                         <span class="badge bg-${statusClass}">${concern.status}</span>

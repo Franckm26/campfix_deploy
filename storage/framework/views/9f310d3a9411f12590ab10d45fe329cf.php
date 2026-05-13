@@ -1,5 +1,3 @@
-
-
 <?php $__env->startSection('page_title'); ?>
 <h2>Analytics</h2>
 <p>Cost Tracking & Repair/Damage Analysis</p>
@@ -65,11 +63,15 @@
 }
 
 .swal2-popup .table th {
-    padding: 0.75rem !important;
+    padding: 0.7rem 0.5rem !important;
+    font-size: 0.9rem !important;
 }
 
 .swal2-popup .table td {
-    padding: 0.6rem !important;
+    padding: 0.6rem 0.5rem !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    font-size: 0.9rem !important;
 }
 
 .swal2-popup .card {
@@ -158,8 +160,12 @@
 
 .chart-container {
     position: relative;
-    height: 300px;
+    height: 350px;
     width: 100%;
+}
+
+.chart-container canvas {
+    max-height: 350px;
 }
 
 .stat-value {
@@ -267,8 +273,9 @@
     background: #28a745;
     color: white;
     padding: 4px 10px;
-    border-radius: 15px;
-    font-size: 0.85rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    white-space: nowrap;
 }
 
 .count-badge {
@@ -323,160 +330,305 @@
         </div>
     </div>
 
-    <!-- Export Button -->
-    <div class="mb-3 text-end">
+    <!-- Export Button, Room Filter, and Date Range Filter -->
+    <div class="mb-3 d-flex justify-content-between align-items-center">
+        <div class="d-flex gap-2">
+            <!-- Room Filter -->
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="mainAnalyticsRoomDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-door-open me-2"></i>
+                    <span id="mainAnalyticsRoomLabel">
+                        <?php if(request('room_filter')): ?>
+                            <?php echo e(request('room_filter')); ?>
+
+                        <?php else: ?>
+                            All Rooms
+                        <?php endif; ?>
+                    </span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-start" aria-labelledby="mainAnalyticsRoomDropdown" style="max-height: 300px; overflow-y: auto;">
+                    <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRoom('all', event)">All Rooms</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <?php $__currentLoopData = $combinedLocationStats ?? []; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $stat): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                    <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRoom('<?php echo e(addslashes($stat['location'])); ?>', event)"><?php echo e($stat['location']); ?></a></li>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                </ul>
+            </div>
+            
+            <!-- Date Range Filter -->
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="mainAnalyticsRangeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-calendar-alt me-2"></i>
+                    <span id="mainAnalyticsRangeLabel">
+                        <?php if(request('date_from') && request('date_to')): ?>
+                            <?php echo e(\Carbon\Carbon::parse(request('date_from'))->format('M d, Y')); ?> - <?php echo e(\Carbon\Carbon::parse(request('date_to'))->format('M d, Y')); ?>
+
+                        <?php elseif(request('period') == 'monthly' && request('month') && request('year')): ?>
+                            <?php echo e(\Carbon\Carbon::create()->month(request('month'))->format('F')); ?> <?php echo e(request('year')); ?>
+
+                        <?php elseif(request('period') == 'yearly' && request('year')): ?>
+                            Year <?php echo e(request('year')); ?>
+
+                        <?php else: ?>
+                            All Time
+                        <?php endif; ?>
+                    </span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-start" aria-labelledby="mainAnalyticsRangeDropdown" style="min-width: 250px;">
+                    <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRange('last7days', event)">Last 7 days</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRange('last28days', event)">Last 28 days</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRange('last90days', event)">Last 90 days</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRange('last6months', event)">Last 6 months</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRange('last12months', event)">Last 12 months</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRange('thisyear', event)">This year</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRange('lastyear', event)">Last year</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="setMainAnalyticsRange('alltime', event)">All time</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li class="px-3 py-2">
+                        <label class="form-label mb-1" style="font-size: 0.85rem; font-weight: 600;">Custom Range</label>
+                        <div class="mb-2">
+                            <input type="date" id="mainAnalyticsCustomDateFrom" class="form-control form-control-sm" style="font-size: 0.85rem;">
+                        </div>
+                        <div class="mb-2">
+                            <input type="date" id="mainAnalyticsCustomDateTo" class="form-control form-control-sm" style="font-size: 0.85rem;">
+                        </div>
+                        <button class="btn btn-primary btn-sm w-100" onclick="applyMainAnalyticsCustomRange(event)" style="font-size: 0.85rem;">Apply</button>
+                    </li>
+                </ul>
+            </div>
+        </div>
         <a href="<?php echo e(route('admin.analytics.export-pdf')); ?>?<?php echo e(http_build_query(request()->all())); ?>" class="btn btn-danger" target="_blank">
             <i class="fas fa-file-pdf"></i> Export to PDF
         </a>
     </div>
 
-    <!-- Filter Section -->
-    <div class="filter-section">
-        <form method="GET" action="<?php echo e(route('admin.analytics')); ?>" id="analyticsFilterForm" class="filter-form">
-            <div class="filter-group">
-                <label for="period">Period</label>
-                <select name="period" id="period" class="form-select" onchange="document.getElementById('analyticsFilterForm').submit()">
-                    <option value="">Custom</option>
-                    <option value="monthly" <?php echo e(request('period') == 'monthly' ? 'selected' : ''); ?>>Monthly</option>
-                    <option value="quarterly" <?php echo e(request('period') == 'quarterly' ? 'selected' : ''); ?>>Quarterly</option>
-                    <option value="yearly" <?php echo e(request('period') == 'yearly' ? 'selected' : ''); ?>>Yearly</option>
-                </select>
-            </div>
-            <div class="filter-group" id="month-group">
-                <label for="month">Month</label>
-                <select name="month" id="month" class="form-select" onchange="document.getElementById('analyticsFilterForm').submit()">
-                    <option value="">All Months</option>
-                    <?php for($m = 1; $m <= 12; $m++): ?>
-                        <option value="<?php echo e($m); ?>" <?php echo e(request('month') == $m ? 'selected' : ''); ?>>
-                            <?php echo e(\Carbon\Carbon::create()->month($m)->format('F')); ?>
-
-                        </option>
-                    <?php endfor; ?>
-                </select>
-            </div>
-            <div class="filter-group" id="month-from-group" style="display: none;">
-                <label for="month_from">From Month</label>
-                <select name="month_from" id="month_from" class="form-select" onchange="document.getElementById('analyticsFilterForm').submit()">
-                    <option value="">Select Month</option>
-                    <?php for($m = 1; $m <= 12; $m++): ?>
-                        <option value="<?php echo e($m); ?>" <?php echo e(request('month_from') == $m ? 'selected' : ''); ?>>
-                            <?php echo e(\Carbon\Carbon::create()->month($m)->format('F')); ?>
-
-                        </option>
-                    <?php endfor; ?>
-                </select>
-            </div>
-            <div class="filter-group" id="month-to-group" style="display: none;">
-                <label for="month_to">To Month</label>
-                <select name="month_to" id="month_to" class="form-select" onchange="document.getElementById('analyticsFilterForm').submit()">
-                    <option value="">Select Month</option>
-                    <?php for($m = 1; $m <= 12; $m++): ?>
-                        <option value="<?php echo e($m); ?>" <?php echo e(request('month_to') == $m ? 'selected' : ''); ?>>
-                            <?php echo e(\Carbon\Carbon::create()->month($m)->format('F')); ?>
-
-                        </option>
-                    <?php endfor; ?>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label for="year">Year</label>
-                <select name="year" id="year" class="form-select" onchange="document.getElementById('analyticsFilterForm').submit()">
-                    <option value="">All Years</option>
-                    <?php for($y = now()->year; $y >= now()->year - 5; $y--): ?>
-                        <option value="<?php echo e($y); ?>" <?php echo e(request('year') == $y ? 'selected' : ''); ?>>
-                            <?php echo e($y); ?>
-
-                        </option>
-                    <?php endfor; ?>
-                </select>
-            </div>
-            <div class="filter-group" id="date-from-group">
-                <label for="date_from">Date From</label>
-                <input type="date" name="date_from" id="date_from" value="<?php echo e(request('date_from')); ?>" onchange="document.getElementById('analyticsFilterForm').submit()">
-            </div>
-            <div class="filter-group" id="date-to-group">
-                <label for="date_to">Date To</label>
-                <input type="date" name="date_to" id="date_to" value="<?php echo e(request('date_to')); ?>" onchange="document.getElementById('analyticsFilterForm').submit()">
-            </div>
-            <div class="filter-group" style="align-self: flex-end;">
-                <a href="<?php echo e(route('admin.analytics')); ?>" class="btn btn-secondary" style="padding: 8px 15px; text-decoration: none; display: inline-block;">
-                    <i class="fas fa-times"></i> Reset
-                </a>
-            </div>
-        </form>
-    </div>
-
     <script>
-    // Handle period selection to show/hide relevant filters
-    document.addEventListener('DOMContentLoaded', function() {
-        const periodSelect = document.getElementById('period');
-        const monthGroup = document.getElementById('month-group');
-        const monthFromGroup = document.getElementById('month-from-group');
-        const monthToGroup = document.getElementById('month-to-group');
-        const dateFromGroup = document.getElementById('date-from-group');
-        const dateToGroup = document.getElementById('date-to-group');
+    // Main Analytics Room Filter Function
+    window.setMainAnalyticsRoom = function(room, event) {
+        if (event) event.preventDefault();
         
-        function updateFilterVisibility() {
-            const period = periodSelect.value;
-            
-            if (period === 'monthly') {
-                monthGroup.style.display = 'flex';
-                monthFromGroup.style.display = 'none';
-                monthToGroup.style.display = 'none';
-                dateFromGroup.style.display = 'none';
-                dateToGroup.style.display = 'none';
-            } else if (period === 'quarterly') {
-                monthGroup.style.display = 'none';
-                monthFromGroup.style.display = 'flex';
-                monthToGroup.style.display = 'flex';
-                dateFromGroup.style.display = 'none';
-                dateToGroup.style.display = 'none';
-            } else if (period === 'yearly') {
-                monthGroup.style.display = 'none';
-                monthFromGroup.style.display = 'none';
-                monthToGroup.style.display = 'none';
-                dateFromGroup.style.display = 'none';
-                dateToGroup.style.display = 'none';
-            } else {
-                // Custom - show all
-                monthGroup.style.display = 'flex';
-                monthFromGroup.style.display = 'none';
-                monthToGroup.style.display = 'none';
-                dateFromGroup.style.display = 'flex';
-                dateToGroup.style.display = 'flex';
-            }
+        var url = new URL(window.location.href);
+        
+        if (room === 'all') {
+            // Remove room filter
+            url.searchParams.delete('room_filter');
+        } else {
+            // Set room filter
+            url.searchParams.set('room_filter', room);
         }
         
-        periodSelect.addEventListener('change', updateFilterVisibility);
-        updateFilterVisibility(); // Initialize on page load
-    });
+        // Reload the page with new parameters
+        window.location.href = url.toString();
+    };
+    
+    // Main Analytics Date Range Functions
+    window.setMainAnalyticsRange = function(range, event) {
+        if (event) event.preventDefault();
+        
+        var today = new Date();
+        var dateFrom, dateTo;
+        var url = new URL(window.location.href);
+        
+        // Clear existing date parameters
+        url.searchParams.delete('period');
+        url.searchParams.delete('month');
+        url.searchParams.delete('month_from');
+        url.searchParams.delete('month_to');
+        url.searchParams.delete('year');
+        url.searchParams.delete('date_from');
+        url.searchParams.delete('date_to');
+        
+        if (range === 'alltime') {
+            // No parameters needed for all time - reload page without date filters
+            window.location.href = url.toString();
+            return;
+        }
+        
+        switch(range) {
+            case 'last7days':
+                dateFrom = new Date(today);
+                dateFrom.setDate(today.getDate() - 7);
+                dateTo = today;
+                break;
+            case 'last28days':
+                dateFrom = new Date(today);
+                dateFrom.setDate(today.getDate() - 28);
+                dateTo = today;
+                break;
+            case 'last90days':
+                dateFrom = new Date(today);
+                dateFrom.setDate(today.getDate() - 90);
+                dateTo = today;
+                break;
+            case 'last6months':
+                dateFrom = new Date(today);
+                dateFrom.setMonth(today.getMonth() - 6);
+                dateTo = today;
+                break;
+            case 'last12months':
+                dateFrom = new Date(today);
+                dateFrom.setMonth(today.getMonth() - 12);
+                dateTo = today;
+                break;
+            case 'thisyear':
+                dateFrom = new Date(today.getFullYear(), 0, 1);
+                dateTo = today;
+                break;
+            case 'lastyear':
+                dateFrom = new Date(today.getFullYear() - 1, 0, 1);
+                dateTo = new Date(today.getFullYear() - 1, 11, 31);
+                break;
+        }
+        
+        // Format dates as YYYY-MM-DD
+        var dateFromStr = dateFrom.toISOString().split('T')[0];
+        var dateToStr = dateTo.toISOString().split('T')[0];
+        
+        url.searchParams.set('date_from', dateFromStr);
+        url.searchParams.set('date_to', dateToStr);
+        
+        // Reload the page with new parameters
+        window.location.href = url.toString();
+    };
+    
+    window.applyMainAnalyticsCustomRange = function(event) {
+        if (event) event.preventDefault();
+        
+        var dateFromInput = document.getElementById('mainAnalyticsCustomDateFrom').value;
+        var dateToInput = document.getElementById('mainAnalyticsCustomDateTo').value;
+        
+        if (!dateFromInput || !dateToInput) {
+            alert('Please select both start and end dates');
+            return;
+        }
+        
+        var dateFrom = new Date(dateFromInput);
+        var dateTo = new Date(dateToInput);
+        
+        if (dateFrom > dateTo) {
+            alert('Start date must be before end date');
+            return;
+        }
+        
+        var url = new URL(window.location.href);
+        
+        // Clear existing date parameters
+        url.searchParams.delete('period');
+        url.searchParams.delete('month');
+        url.searchParams.delete('month_from');
+        url.searchParams.delete('month_to');
+        url.searchParams.delete('year');
+        
+        url.searchParams.set('date_from', dateFromInput);
+        url.searchParams.set('date_to', dateToInput);
+        
+        window.location.href = url.toString();
+    };
     </script>
 
     <!-- Charts Section -->
     <div class="row mb-4">
         <div class="col-md-6">
-            <div class="analytics-card" style="cursor: pointer;" onclick="showLocationDetailsModal()">
+            <div class="analytics-card">
                 <div class="analytics-header">
                     <div class="analytics-title">
-                        <i class="fas fa-chart-pie"></i> Repairs by Location
+                        <i class="fas fa-chart-pie"></i> Repairs Breakdown
                         <small class="text-muted" style="font-size: 0.7rem; font-weight: normal;">(Click for details)</small>
                     </div>
+                    <div class="analytics-actions">
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="locationRangeDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.85rem;">
+                                <i class="fas fa-calendar-alt me-1"></i>
+                                <span id="locationRangeLabel">Last 6 months</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="locationRangeDropdown">
+                                <li><a class="dropdown-item" href="#" onclick="setLocationRange('last7days', event)">Last 7 days</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setLocationRange('last28days', event)">Last 28 days</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setLocationRange('last90days', event)">Last 90 days</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setLocationRange('last6months', event)">Last 6 months</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setLocationRange('last12months', event)">Last 12 months</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setLocationRange('thisyear', event)">This year</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setLocationRange('lastyear', event)">Last year</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setLocationRange('alltime', event)">All time</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li class="px-3 py-2">
+                                    <label class="form-label mb-1" style="font-size: 0.75rem; font-weight: 600;">Custom Range</label>
+                                    <div class="d-flex gap-2 mb-2">
+                                        <input type="date" id="locationCustomDateFrom" class="form-control form-control-sm" style="font-size: 0.75rem;">
+                                    </div>
+                                    <div class="d-flex gap-2 mb-2">
+                                        <input type="date" id="locationCustomDateTo" class="form-control form-control-sm" style="font-size: 0.75rem;">
+                                    </div>
+                                    <button class="btn btn-primary btn-sm w-100" onclick="applyLocationCustomRange(event)" style="font-size: 0.75rem;">Apply</button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
-                <div class="chart-container">
+                
+                <!-- Category Breakdown Metrics -->
+                <div class="row mb-3">
+                    <?php
+                        $topCategories = $costByCategory->take(3);
+                    ?>
+                    <?php $__currentLoopData = $topCategories; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $category): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                    <div class="col-4">
+                        <div class="text-center p-2" style="background: <?php echo e(['#f0f4ff', '#fff8f0', '#f0fff4'][$index]); ?>; border-radius: 8px; border-left: 3px solid <?php echo e(['#667eea', '#f39c12', '#27ae60'][$index]); ?>;">
+                            <div style="font-size: 0.7rem; color: #666; margin-bottom: 4px;"><?php echo e($category['category']); ?></div>
+                            <div style="font-size: 1.1rem; font-weight: bold; color: <?php echo e(['#667eea', '#f39c12', '#27ae60'][$index]); ?>;">
+                                ₱<?php echo e(number_format($category['total_cost'], 0)); ?>
+
+                            </div>
+                            <div style="font-size: 0.65rem; color: #888;"><?php echo e($category['count']); ?> tickets • <?php echo e(number_format($category['percentage'], 1)); ?>%</div>
+                        </div>
+                    </div>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                </div>
+                
+                <div class="chart-container" style="cursor: pointer;" onclick="showLocationDetailsModal()">
                     <canvas id="locationPieChart"></canvas>
                 </div>
             </div>
         </div>
         <div class="col-md-6">
-            <div class="analytics-card" style="cursor: pointer;" onclick="showCostDetailsModal()">
+            <div class="analytics-card">
                 <div class="analytics-header">
                     <div class="analytics-title">
-                        <i class="fas fa-chart-bar"></i> Cost by Location
+                        <i class="fas fa-chart-bar"></i> Period Comparison
                         <small class="text-muted" style="font-size: 0.7rem; font-weight: normal;">(Click for details)</small>
                     </div>
+                    <div class="analytics-actions">
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="periodRangeDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.85rem;">
+                                <i class="fas fa-calendar-alt me-1"></i>
+                                <span id="periodRangeLabel">Last 6 months</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="periodRangeDropdown">
+                                <li><a class="dropdown-item" href="#" onclick="setPeriodRange('last7days', event)">Last 7 days</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setPeriodRange('last28days', event)">Last 28 days</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setPeriodRange('last90days', event)">Last 90 days</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setPeriodRange('last6months', event)">Last 6 months</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setPeriodRange('last12months', event)">Last 12 months</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setPeriodRange('thisyear', event)">This year</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setPeriodRange('lastyear', event)">Last year</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setPeriodRange('allyears', event)">All years</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li class="px-3 py-2">
+                                    <label class="form-label mb-1" style="font-size: 0.75rem; font-weight: 600;">Custom Range</label>
+                                    <div class="d-flex gap-2 mb-2">
+                                        <input type="date" id="customDateFrom" class="form-control form-control-sm" style="font-size: 0.75rem;">
+                                    </div>
+                                    <div class="d-flex gap-2 mb-2">
+                                        <input type="date" id="customDateTo" class="form-control form-control-sm" style="font-size: 0.75rem;">
+                                    </div>
+                                    <button class="btn btn-primary btn-sm w-100" onclick="applyCustomRange(event)" style="font-size: 0.75rem;">Apply</button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
-                <div class="chart-container">
-                    <canvas id="locationBarChart"></canvas>
+                <div class="chart-container" style="cursor: pointer;" onclick="showPeriodComparisonModal()">
+                    <canvas id="periodComparisonChart"></canvas>
                 </div>
             </div>
         </div>
@@ -485,27 +637,132 @@
     <!-- Additional Charts Row -->
     <div class="row mb-4">
         <div class="col-md-6">
-            <div class="analytics-card" style="cursor: pointer;" onclick="showStatusDetailsModal()">
+            <div class="analytics-card">
                 <div class="analytics-header">
                     <div class="analytics-title">
-                        <i class="fas fa-chart-pie"></i> Status Distribution
+                        <i class="fas fa-chart-pie"></i> Status Distribution & Response Time
                         <small class="text-muted" style="font-size: 0.7rem; font-weight: normal;">(Click for details)</small>
                     </div>
+                    <div class="analytics-actions">
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="statusRangeDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.85rem;">
+                                <i class="fas fa-calendar-alt me-1"></i>
+                                <span id="statusRangeLabel">Last 6 months</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="statusRangeDropdown">
+                                <li><a class="dropdown-item" href="#" onclick="setStatusRange('last7days', event)">Last 7 days</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setStatusRange('last28days', event)">Last 28 days</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setStatusRange('last90days', event)">Last 90 days</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setStatusRange('last6months', event)">Last 6 months</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setStatusRange('last12months', event)">Last 12 months</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setStatusRange('thisyear', event)">This year</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setStatusRange('lastyear', event)">Last year</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setStatusRange('alltime', event)">All time</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li class="px-3 py-2">
+                                    <label class="form-label mb-1" style="font-size: 0.75rem; font-weight: 600;">Custom Range</label>
+                                    <div class="d-flex gap-2 mb-2">
+                                        <input type="date" id="statusCustomDateFrom" class="form-control form-control-sm" style="font-size: 0.75rem;">
+                                    </div>
+                                    <div class="d-flex gap-2 mb-2">
+                                        <input type="date" id="statusCustomDateTo" class="form-control form-control-sm" style="font-size: 0.75rem;">
+                                    </div>
+                                    <button class="btn btn-primary btn-sm w-100" onclick="applyStatusCustomRange(event)" style="font-size: 0.75rem;">Apply</button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
-                <div class="chart-container">
+                
+                <!-- Response Time Metrics -->
+                <div class="row mb-3">
+                    <div class="col-4">
+                        <div class="text-center p-2" style="background: #f0f7ff; border-radius: 8px; border-left: 3px solid #3498db;">
+                            <div style="font-size: 0.7rem; color: #666; margin-bottom: 4px;">Submit to Assign</div>
+                            <div style="font-size: 1.2rem; font-weight: bold; color: #3498db;">
+                                <?php
+                                    $totalSeconds = floor($avgSubmittedToAssigned * 3600);
+                                    $hours = floor($totalSeconds / 3600);
+                                    $minutes = floor(($totalSeconds % 3600) / 60);
+                                    $seconds = $totalSeconds % 60;
+                                    echo sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
+                                ?>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="text-center p-2" style="background: #fff8f0; border-radius: 8px; border-left: 3px solid #f39c12;">
+                            <div style="font-size: 0.7rem; color: #666; margin-bottom: 4px;">Assign to Resolve</div>
+                            <div style="font-size: 1.2rem; font-weight: bold; color: #f39c12;">
+                                <?php
+                                    $totalSeconds = floor($avgAssignedToResolved * 3600);
+                                    $hours = floor($totalSeconds / 3600);
+                                    $minutes = floor(($totalSeconds % 3600) / 60);
+                                    $seconds = $totalSeconds % 60;
+                                    echo sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
+                                ?>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="text-center p-2" style="background: #f0fff4; border-radius: 8px; border-left: 3px solid #27ae60;">
+                            <div style="font-size: 0.7rem; color: #666; margin-bottom: 4px;">Total Time</div>
+                            <div style="font-size: 1.2rem; font-weight: bold; color: #27ae60;">
+                                <?php
+                                    $totalSeconds = floor($avgTotalTime * 3600);
+                                    $hours = floor($totalSeconds / 3600);
+                                    $minutes = floor(($totalSeconds % 3600) / 60);
+                                    $seconds = $totalSeconds % 60;
+                                    echo sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
+                                ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chart-container" style="cursor: pointer;" onclick="showStatusDetailsModal()">
                     <canvas id="statusDoughnutChart"></canvas>
                 </div>
             </div>
         </div>
         <div class="col-md-6">
-            <div class="analytics-card" style="cursor: pointer;" onclick="showMonthlyTrendModal()">
+            <div class="analytics-card">
                 <div class="analytics-header">
                     <div class="analytics-title">
                         <i class="fas fa-chart-area"></i> Monthly Trend
                         <small class="text-muted" style="font-size: 0.7rem; font-weight: normal;">(Click for details)</small>
                     </div>
+                    <div class="analytics-actions">
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="trendRangeDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.85rem;">
+                                <i class="fas fa-calendar-alt me-1"></i>
+                                <span id="trendRangeLabel">Last 6 months</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="trendRangeDropdown">
+                                <li><a class="dropdown-item" href="#" onclick="setTrendRange('last7days', event)">Last 7 days</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setTrendRange('last28days', event)">Last 28 days</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setTrendRange('last90days', event)">Last 90 days</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setTrendRange('last6months', event)">Last 6 months</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setTrendRange('last12months', event)">Last 12 months</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setTrendRange('thisyear', event)">This year</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setTrendRange('lastyear', event)">Last year</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setTrendRange('alltime', event)">All time</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li class="px-3 py-2">
+                                    <label class="form-label mb-1" style="font-size: 0.75rem; font-weight: 600;">Custom Range</label>
+                                    <div class="d-flex gap-2 mb-2">
+                                        <input type="date" id="trendCustomDateFrom" class="form-control form-control-sm" style="font-size: 0.75rem;">
+                                    </div>
+                                    <div class="d-flex gap-2 mb-2">
+                                        <input type="date" id="trendCustomDateTo" class="form-control form-control-sm" style="font-size: 0.75rem;">
+                                    </div>
+                                    <button class="btn btn-primary btn-sm w-100" onclick="applyTrendCustomRange(event)" style="font-size: 0.75rem;">Apply</button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
-                <div class="chart-container">
+                <div class="chart-container" style="cursor: pointer;" onclick="showMonthlyTrendModal()">
                     <canvas id="monthlyTrendChart"></canvas>
                 </div>
             </div>
@@ -518,8 +775,66 @@
             <div class="analytics-title">
                 <i class="fas fa-map-marker-alt"></i> Combined Cost by Location (All Tickets)
             </div>
+            <div class="analytics-actions d-flex gap-2">
+                <!-- Export PDF Button -->
+                <a href="<?php echo e(route('admin.analytics.combined-location-pdf')); ?>?<?php echo e(http_build_query(request()->all())); ?>" 
+                   class="btn btn-sm btn-danger" target="_blank" style="font-size: 0.85rem;">
+                    <i class="fas fa-file-pdf me-1"></i> Export PDF
+                </a>
+                
+                <!-- Room Filter -->
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="locationTableRoomDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.85rem;">
+                        <i class="fas fa-door-open me-1"></i>
+                        <span id="locationTableRoomLabel">All Rooms</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="locationTableRoomDropdown" style="max-height: 300px; overflow-y: auto;">
+                        <li><a class="dropdown-item" href="#" onclick="filterLocationTable('all', event)">All Rooms</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <?php $__currentLoopData = $combinedLocationStats ?? []; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $stat): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <li><a class="dropdown-item" href="#" onclick="filterLocationTable('<?php echo e(addslashes($stat['location'])); ?>', event)"><?php echo e($stat['location']); ?></a></li>
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                    </ul>
+                </div>
+                
+                <!-- Date Range Filter -->
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="locationTableRangeDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.85rem;">
+                        <i class="fas fa-calendar-alt me-1"></i>
+                        <span id="locationTableRangeLabel">
+                            <?php if(request('date_from') && request('date_to')): ?>
+                                <?php echo e(\Carbon\Carbon::parse(request('date_from'))->format('M d')); ?> - <?php echo e(\Carbon\Carbon::parse(request('date_to'))->format('M d, Y')); ?>
+
+                            <?php else: ?>
+                                All Time
+                            <?php endif; ?>
+                        </span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="locationTableRangeDropdown" style="min-width: 250px;">
+                        <li><a class="dropdown-item" href="#" onclick="setLocationTableRange('last7days', event)">Last 7 days</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setLocationTableRange('last28days', event)">Last 28 days</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setLocationTableRange('last90days', event)">Last 90 days</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setLocationTableRange('last6months', event)">Last 6 months</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setLocationTableRange('last12months', event)">Last 12 months</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setLocationTableRange('thisyear', event)">This year</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setLocationTableRange('lastyear', event)">Last year</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setLocationTableRange('alltime', event)">All time</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li class="px-3 py-2">
+                            <label class="form-label mb-1" style="font-size: 0.85rem; font-weight: 600;">Custom Range</label>
+                            <div class="mb-2">
+                                <input type="date" id="locationTableCustomDateFrom" class="form-control form-control-sm" style="font-size: 0.85rem;">
+                            </div>
+                            <div class="mb-2">
+                                <input type="date" id="locationTableCustomDateTo" class="form-control form-control-sm" style="font-size: 0.85rem;">
+                            </div>
+                            <button class="btn btn-primary btn-sm w-100" onclick="applyLocationTableCustomRange(event)" style="font-size: 0.85rem;">Apply</button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
         </div>
-        <table class="analytics-table">
+        <table class="analytics-table" id="locationCostTable">
             <thead>
                 <tr>
                     <th>Location</th>
@@ -530,8 +845,12 @@
             </thead>
             <tbody>
                 <?php $__empty_1 = true; $__currentLoopData = $combinedLocationStats ?? []; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $stat): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
-                <tr>
-                    <td><?php echo e($stat['location']); ?></td>
+                <tr style="cursor: pointer; transition: all 0.2s;" 
+                    data-location="<?php echo e($stat['location']); ?>"
+                    onclick="showLocationTicketsModal('<?php echo e(addslashes($stat['location'])); ?>', <?php echo e($stat['total_count']); ?>, <?php echo e($stat['total_cost']); ?>)"
+                    onmouseover="this.style.backgroundColor='#f0f4ff'"
+                    onmouseout="this.style.backgroundColor=''">
+                    <td><strong><?php echo e($stat['location']); ?></strong></td>
                     <td><span class="count-badge"><?php echo e($stat['total_count']); ?></span></td>
                     <td><span class="cost-badge">₱<?php echo e(number_format($stat['total_cost'], 2)); ?></span></td>
                     <td>₱<?php echo e(number_format($stat['total_count'] > 0 ? $stat['total_cost'] / $stat['total_count'] : 0, 2)); ?></td>
@@ -543,44 +862,6 @@
                 <?php endif; ?>
             </tbody>
         </table>
-    </div>
-
-    <!-- Repair/Damage Details -->
-    <div class="analytics-card">
-        <div class="analytics-header">
-            <div class="analytics-title">
-                <i class="fas fa-list"></i> Reports Details
-            </div>
-        </div>
-        
-        <?php if($reports->count() > 0): ?>
-        <div class="table-responsive">
-            <table class="analytics-table">
-                <thead>
-                    <tr>
-                        <th>Location</th>
-                        <th>Damage</th>
-                        <th>Date and Time Fixed</th>
-                        <th>Repair Cost</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php $__currentLoopData = $reports; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $report): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                    <tr>
-                        <td><?php echo e($report->location); ?></td>
-                        <td><?php echo e($report->damaged_part ?? 'N/A'); ?></td>
-                        <td><?php echo e($report->resolved_at ? \Carbon\Carbon::parse($report->resolved_at)->format('M d, Y g:i A') : 'Not Fixed'); ?></td>
-                        <td><span class="cost-badge">₱<?php echo e(number_format($report->cost ?? 0, 2)); ?></span></td>
-                    </tr>
-                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                </tbody>
-            </table>
-        </div>
-        <?php else: ?>
-        <div class="alert-info">
-            <i class="fas fa-info-circle"></i> No reports with location and date fixed data found for the selected period.
-        </div>
-        <?php endif; ?>
     </div>
 
     <!-- ── TREND ALERTS ─────────────────────────────────────────────── -->
@@ -808,6 +1089,97 @@
             </div>
         </div>
     </div>
+
+    <!-- ========== ADVANCED ANALYTICS SECTION ========== -->
+    <div class="row mb-4 mt-5">
+        <div class="col-12">
+            <h3 style="color: #667eea; font-weight: 700; border-bottom: 3px solid #667eea; padding-bottom: 10px; margin-bottom: 30px;">
+                <i class="fas fa-chart-line"></i> Advanced Analytics
+            </h3>
+        </div>
+    </div>
+
+    <!-- Staff Performance Metrics -->
+    <div class="analytics-card">
+        <div class="analytics-header">
+            <div class="analytics-title">
+                <i class="fas fa-users"></i> Staff Performance Metrics
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Staff Member</th>
+                        <th class="text-center">Tickets Resolved</th>
+                        <th class="text-end">Total Cost</th>
+                        <th class="text-end">Avg Resolution Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php $__empty_1 = true; $__currentLoopData = $staffPerformance; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $staff): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                    <tr>
+                        <td><strong><?php echo e($staff['staff_name']); ?></strong></td>
+                        <td class="text-center">
+                            <span class="badge bg-success"><?php echo e($staff['tickets_resolved']); ?></span>
+                        </td>
+                        <td class="text-end">PHP <?php echo e(number_format($staff['total_cost'], 2)); ?></td>
+                        <td class="text-end"><?php echo e($staff['avg_resolution_time']); ?> hrs</td>
+                    </tr>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                    <tr>
+                        <td colspan="4" class="text-center text-muted">No data available</td>
+                    </tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Cost Trend Analysis -->
+    <div class="analytics-card">
+        <div class="analytics-header">
+            <div class="analytics-title">
+                <i class="fas fa-chart-area"></i> Cost Trend Analysis (Last 6 Months)
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                <canvas id="costTrendChart" height="80"></canvas>
+            </div>
+        </div>
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Month</th>
+                                <th class="text-center">Tickets</th>
+                                <th class="text-end">Total Cost</th>
+                                <th class="text-end">Avg Cost</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php $__empty_1 = true; $__currentLoopData = $costTrendData; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $trend): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                            <tr>
+                                <td><strong><?php echo e($trend['month']); ?></strong></td>
+                                <td class="text-center"><?php echo e($trend['count']); ?></td>
+                                <td class="text-end">PHP <?php echo e(number_format($trend['total_cost'], 2)); ?></td>
+                                <td class="text-end">PHP <?php echo e(number_format($trend['avg_cost'], 2)); ?></td>
+                            </tr>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                            <tr>
+                                <td colspan="4" class="text-center text-muted">No data available</td>
+                            </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 <?php $__env->stopSection(); ?>
 
@@ -821,15 +1193,21 @@
     window.chartCosts = <?php echo json_encode($chartCosts ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP); ?>;
     window.chartStatuses = <?php echo json_encode($chartStatuses ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP); ?>;
     window.chartStatusCounts = <?php echo json_encode($chartStatusCounts ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP); ?>;
-    window.monthlyStats = <?php echo json_encode(isset($monthlyStats) ? $monthlyStats->map(fn($s) => ['month' => $s->month, 'title' => $s->title, 'count' => $s->total_count])->values() : [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP); ?>;
-    window.locationDetailedStats = <?php echo json_encode($locationStats ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP); ?>;
+    window.statusReportIds = <?php echo json_encode($statusReportIds ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP); ?>;
+    window.monthlyStats = <?php echo json_encode(isset($monthlyStats) ? $monthlyStats->map(fn($s) => ['month' => $s->month, 'title' => $s->title, 'status' => $s->status, 'count' => $s->count])->values() : [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP); ?>;
+    window.monthlyCostData = <?php echo json_encode(isset($monthlyCostData) ? $monthlyCostData->map(fn($s) => ['month' => $s->month, 'count' => $s->count, 'total_cost' => $s->total_cost])->values() : [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP); ?>;
+    window.locationDetailedStats = <?php echo json_encode($locationStatsDetailed ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP); ?>;
+    window.responseTimeStats = <?php echo json_encode($responseTimeStats ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP); ?>;
+    window.avgSubmittedToAssigned = <?php echo e($avgSubmittedToAssigned ?? 0); ?>;
+    window.avgAssignedToResolved = <?php echo e($avgAssignedToResolved ?? 0); ?>;
+    window.avgTotalTime = <?php echo e($avgTotalTime ?? 0); ?>;
 
     var locations = window.chartLocations;
     var counts    = <?php echo json_encode($chartCounts ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP); ?>;
     var costs     = <?php echo json_encode($chartCosts ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP); ?>;
     var statuses  = <?php echo json_encode($chartStatuses ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP); ?>;
     var statusCounts = <?php echo json_encode($chartStatusCounts ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP); ?>;
-    var monthly   = <?php echo json_encode(isset($monthlyStats) ? $monthlyStats->map(fn($s) => ['month' => $s->month, 'title' => $s->title, 'count' => $s->total_count])->values() : [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP); ?>;
+    var monthly   = <?php echo json_encode(isset($monthlyStats) ? $monthlyStats->map(fn($s) => ['month' => $s->month, 'title' => $s->title, 'status' => $s->status, 'count' => $s->count])->values() : [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP); ?>;
     var locationDetails = <?php echo json_encode($locationStats ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP); ?>;
 
     var colors = ['#FF6384','#36A2EB','#FFCE56','#4BC0C0','#9966FF','#FF9F40','#C9CBCF','#4BC0C0'];
@@ -837,86 +1215,456 @@
     function buildCharts() {
         if (typeof Chart === 'undefined') { setTimeout(buildCharts, 100); return; }
 
-        // Pie — Repairs by Location
+        // Pie — Repairs by Location (with Category metrics above)
         var pieEl = document.getElementById('locationPieChart');
-        if (pieEl && locations.length > 0) {
-            new Chart(pieEl, { 
-                type: 'pie', 
-                data: { 
-                    labels: locations, 
-                    datasets: [{ 
-                        data: counts, 
-                        backgroundColor: colors, 
-                        borderWidth: 2 
-                    }] 
-                }, 
-                options: { 
-                    responsive: true, 
-                    plugins: { 
-                        legend: { position: 'bottom' },
-                        tooltip: {
-                            callbacks: {
-                                title: function(context) {
-                                    return context[0].label;
+        var locationPieChart = null;
+        
+        // Store category data globally for modal use
+        window.categoryData = {
+            categories: <?php echo json_encode($costByCategory->pluck('category'), 15, 512) ?>,
+            counts: <?php echo json_encode($costByCategory->pluck('count'), 15, 512) ?>,
+            costs: <?php echo json_encode($costByCategory->pluck('total_cost'), 15, 512) ?>,
+            avgCosts: <?php echo json_encode($costByCategory->pluck('avg_cost'), 15, 512) ?>,
+            percentages: <?php echo json_encode($costByCategory->pluck('percentage'), 15, 512) ?>
+        };
+        
+        function buildLocationChart(data) {
+            if (!pieEl) return;
+            
+            var locations = data.chartLocations || [];
+            var counts = data.chartCounts || [];
+            var costs = data.chartCosts || [];
+            var locationDetails = data.locationStats || [];
+            
+            if (locationPieChart) {
+                locationPieChart.destroy();
+            }
+            
+            if (locations.length > 0) {
+                locationPieChart = new Chart(pieEl, { 
+                    type: 'pie', 
+                    data: { 
+                        labels: locations, 
+                        datasets: [{ 
+                            data: counts, 
+                            backgroundColor: colors, 
+                            borderWidth: 2 
+                        }] 
+                    }, 
+                    options: { 
+                        responsive: true, 
+                        plugins: { 
+                            legend: { position: 'bottom' },
+                            tooltip: {
+                                callbacks: {
+                                    title: function(context) {
+                                        return context[0].label;
+                                    },
+                                    label: function(context) {
+                                        var location = context.label || '';
+                                        var totalRepairs = context.parsed || 0;
+                                        
+                                        var items = locationDetails.filter(function(item) {
+                                            return item.location === location;
+                                        });
+                                        
+                                        var lines = ['Repairs: ' + totalRepairs];
+                                        
+                                        items.forEach(function(item) {
+                                            lines.push(item.title + ' - ' + item.count);
+                                        });
+                                        
+                                        lines.push('Cost: ₱' + (costs[context.dataIndex] || 0).toLocaleString('en-PH', {minimumFractionDigits: 2}));
+                                        
+                                        return lines;
+                                    }
                                 },
-                                label: function(context) {
-                                    var location = context.label || '';
-                                    var totalRepairs = context.parsed || 0;
-                                    
-                                    // Get item breakdown for this location
-                                    var items = locationDetails.filter(function(item) {
-                                        return item.location === location;
-                                    });
-                                    
-                                    var lines = ['Repairs: ' + totalRepairs];
-                                    
-                                    // Add each item breakdown
-                                    items.forEach(function(item) {
-                                        lines.push(item.title + ' - ' + item.count);
-                                    });
-                                    
-                                    // Add total cost
-                                    lines.push('Cost: ₱' + (costs[context.dataIndex] || 0).toLocaleString('en-PH', {minimumFractionDigits: 2}));
-                                    
-                                    return lines;
-                                }
-                            },
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            titleFont: { size: 14, weight: 'bold' },
-                            bodyFont: { size: 13 },
-                            padding: 12,
-                            displayColors: true
-                        }
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                titleFont: { size: 14, weight: 'bold' },
+                                bodyFont: { size: 13 },
+                                padding: 12,
+                                displayColors: true
+                            }
+                        } 
                     } 
-                } 
+                });
+            }
+        }
+        
+        // Initialize location chart
+        buildLocationChart({
+            chartLocations: locations,
+            chartCounts: counts,
+            chartCosts: costs,
+            locationStats: locationDetails
+        });
+        
+        // Location date range functions
+        window.setLocationRange = function(range, event) {
+            if (event) event.preventDefault();
+            
+            var labels = {
+                'last7days': 'Last 7 days',
+                'last28days': 'Last 28 days',
+                'last90days': 'Last 90 days',
+                'last6months': 'Last 6 months',
+                'last12months': 'Last 12 months',
+                'thisyear': 'This year',
+                'lastyear': 'Last year',
+                'alltime': 'All time'
+            };
+            
+            document.getElementById('locationRangeLabel').textContent = labels[range] || range;
+            
+            var today = new Date();
+            var dateFrom, dateTo;
+            
+            switch(range) {
+                case 'last7days':
+                    dateFrom = new Date(today);
+                    dateFrom.setDate(today.getDate() - 7);
+                    dateTo = today;
+                    break;
+                case 'last28days':
+                    dateFrom = new Date(today);
+                    dateFrom.setDate(today.getDate() - 28);
+                    dateTo = today;
+                    break;
+                case 'last90days':
+                    dateFrom = new Date(today);
+                    dateFrom.setDate(today.getDate() - 90);
+                    dateTo = today;
+                    break;
+                case 'last6months':
+                    dateFrom = new Date(today);
+                    dateFrom.setMonth(today.getMonth() - 6);
+                    dateTo = today;
+                    break;
+                case 'last12months':
+                    dateFrom = new Date(today);
+                    dateFrom.setMonth(today.getMonth() - 12);
+                    dateTo = today;
+                    break;
+                case 'thisyear':
+                    dateFrom = new Date(today.getFullYear(), 0, 1);
+                    dateTo = today;
+                    break;
+                case 'lastyear':
+                    dateFrom = new Date(today.getFullYear() - 1, 0, 1);
+                    dateTo = new Date(today.getFullYear() - 1, 11, 31);
+                    break;
+                case 'alltime':
+                    // Get all data from the beginning (2020 or earliest data)
+                    dateFrom = new Date(2020, 0, 1);
+                    dateTo = today;
+                    break;
+            }
+            
+            fetchAndUpdateChart('location', dateFrom, dateTo);
+        };
+        
+        window.applyLocationCustomRange = function(event) {
+            if (event) event.preventDefault();
+            
+            var dateFromInput = document.getElementById('locationCustomDateFrom').value;
+            var dateToInput = document.getElementById('locationCustomDateTo').value;
+            
+            if (!dateFromInput || !dateToInput) {
+                alert('Please select both start and end dates');
+                return;
+            }
+            
+            var dateFrom = new Date(dateFromInput);
+            var dateTo = new Date(dateToInput);
+            
+            if (dateFrom > dateTo) {
+                alert('Start date must be before end date');
+                return;
+            }
+            
+            var fromStr = dateFrom.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            var toStr = dateTo.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            document.getElementById('locationRangeLabel').textContent = fromStr + ' - ' + toStr;
+            
+            var dropdownEl = document.getElementById('locationRangeDropdown');
+            var dropdown = bootstrap.Dropdown.getInstance(dropdownEl);
+            if (dropdown) dropdown.hide();
+            
+            fetchAndUpdateChart('location', dateFrom, dateTo);
+        };
+        
+        function fetchAndUpdateChart(chartType, dateFrom, dateTo) {
+            var dateFromStr = dateFrom.toISOString().split('T')[0];
+            var dateToStr = dateTo.toISOString().split('T')[0];
+            
+            var params = new URLSearchParams();
+            params.append('ajax', '1');
+            params.append('date_from', dateFromStr);
+            params.append('date_to', dateToStr);
+            
+            fetch('/admin/analytics?' + params.toString(), {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                window.chartLocations = data.chartLocations || [];
+                window.chartCounts = data.chartCounts || [];
+                window.chartCosts = data.chartCosts || [];
+                window.chartStatuses = data.chartStatuses || [];
+                window.chartStatusCounts = data.chartStatusCounts || [];
+                window.monthlyStats = data.monthlyStats || [];
+                window.monthlyCostData = data.monthlyCostData || [];
+                window.locationDetailedStats = data.locationStatsDetailed || [];
+                
+                if (chartType === 'location') {
+                    buildLocationChart(data);
+                } else if (chartType === 'status') {
+                    buildStatusChart(data);
+                } else if (chartType === 'trend') {
+                    buildTrendChart(data);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching data:', error);
             });
         }
 
-        // Bar — Cost by Location
-        var barEl = document.getElementById('locationBarChart');
-        if (barEl && locations.length > 0) {
-            new Chart(barEl, { 
-                type: 'bar', 
-                data: { 
-                    labels: locations, 
-                    datasets: [{ 
-                        label: 'Total Cost (₱)', 
-                        data: costs, 
-                        backgroundColor: '#36A2EB', 
-                        borderWidth: 1 
-                    }] 
-                }, 
-                options: { 
-                    responsive: true, 
-                    scales: { 
-                        y: { 
-                            beginAtZero: true, 
-                            ticks: { 
-                                callback: function(v){ 
-                                    return '₱'+v.toLocaleString(); 
-                                } 
-                            } 
-                        } 
+        // Bar — Period Comparison (YouTube Analytics Style)
+        var periodComparisonEl = document.getElementById('periodComparisonChart');
+        var periodComparisonChart = null;
+        var currentPeriodRange = 'last6months';
+        
+        // Make functions global
+        window.setPeriodRange = function(range, event) {
+            if (event) event.preventDefault();
+            currentPeriodRange = range;
+            
+            // Update label
+            var labels = {
+                'last7days': 'Last 7 days',
+                'last28days': 'Last 28 days',
+                'last90days': 'Last 90 days',
+                'last6months': 'Last 6 months',
+                'last12months': 'Last 12 months',
+                'thisyear': 'This year',
+                'lastyear': 'Last year',
+                'allyears': 'All years',
+                'alltime': 'All time'
+            };
+            
+            document.getElementById('periodRangeLabel').textContent = labels[range] || range;
+            
+            // Calculate date range
+            var today = new Date();
+            var dateFrom, dateTo;
+            
+            switch(range) {
+                case 'last7days':
+                    dateFrom = new Date(today);
+                    dateFrom.setDate(today.getDate() - 7);
+                    dateTo = today;
+                    break;
+                case 'last28days':
+                    dateFrom = new Date(today);
+                    dateFrom.setDate(today.getDate() - 28);
+                    dateTo = today;
+                    break;
+                case 'last90days':
+                    dateFrom = new Date(today);
+                    dateFrom.setDate(today.getDate() - 90);
+                    dateTo = today;
+                    break;
+                case 'last6months':
+                    dateFrom = new Date(today);
+                    dateFrom.setMonth(today.getMonth() - 6);
+                    dateTo = today;
+                    break;
+                case 'last12months':
+                    dateFrom = new Date(today);
+                    dateFrom.setMonth(today.getMonth() - 12);
+                    dateTo = today;
+                    break;
+                case 'thisyear':
+                    dateFrom = new Date(today.getFullYear(), 0, 1);
+                    dateTo = today;
+                    break;
+                case 'lastyear':
+                    dateFrom = new Date(today.getFullYear() - 1, 0, 1);
+                    dateTo = new Date(today.getFullYear() - 1, 11, 31);
+                    break;
+                case 'allyears':
+                    // Get all data from the beginning (2020 or earliest data)
+                    dateFrom = new Date(2020, 0, 1);
+                    dateTo = today;
+                    break;
+                case 'alltime':
+                    // Get all data from the beginning (2020 or earliest data)
+                    dateFrom = new Date(2020, 0, 1);
+                    dateTo = today;
+                    break;
+            }
+            
+            updatePeriodComparisonChart(dateFrom, dateTo);
+        };
+        
+        window.applyCustomRange = function(event) {
+            if (event) event.preventDefault();
+            
+            var dateFromInput = document.getElementById('customDateFrom').value;
+            var dateToInput = document.getElementById('customDateTo').value;
+            
+            if (!dateFromInput || !dateToInput) {
+                alert('Please select both start and end dates');
+                return;
+            }
+            
+            var dateFrom = new Date(dateFromInput);
+            var dateTo = new Date(dateToInput);
+            
+            if (dateFrom > dateTo) {
+                alert('Start date must be before end date');
+                return;
+            }
+            
+            // Update label
+            var fromStr = dateFrom.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            var toStr = dateTo.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            document.getElementById('periodRangeLabel').textContent = fromStr + ' - ' + toStr;
+            
+            currentPeriodRange = 'custom';
+            
+            // Close dropdown
+            var dropdownEl = document.getElementById('periodRangeDropdown');
+            var dropdown = bootstrap.Dropdown.getInstance(dropdownEl);
+            if (dropdown) dropdown.hide();
+            
+            updatePeriodComparisonChart(dateFrom, dateTo);
+        };
+        
+        function updatePeriodComparisonChart(dateFrom, dateTo) {
+            if (!periodComparisonEl) return;
+            
+            // Format dates for API
+            var dateFromStr = dateFrom.toISOString().split('T')[0];
+            var dateToStr = dateTo.toISOString().split('T')[0];
+            
+            // Fetch data from server
+            var params = new URLSearchParams();
+            params.append('ajax', '1');
+            params.append('date_from', dateFromStr);
+            params.append('date_to', dateToStr);
+            
+            fetch('/admin/analytics?' + params.toString(), {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                var monthlyCostData = data.monthlyCostData || [];
+                buildPeriodComparisonChart(monthlyCostData, dateFrom, dateTo);
+            })
+            .catch(error => {
+                console.error('Error fetching data:', error);
+                // Use default data if fetch fails
+                var monthlyCostData = <?php echo json_encode($monthlyCostData ?? [], 15, 512) ?>;
+                buildPeriodComparisonChart(monthlyCostData, dateFrom, dateTo);
+            });
+        }
+        
+        function buildPeriodComparisonChart(monthlyCostData, dateFrom, dateTo) {
+            if (!periodComparisonEl) return;
+            
+            // Check if we're in "All years" mode (range spans multiple years)
+            var yearSpan = dateTo.getFullYear() - dateFrom.getFullYear();
+            var isAllYears = currentPeriodRange === 'allyears' || yearSpan > 2;
+            
+            var labels = [];
+            var keys = [];
+            var costs = [];
+            var counts = [];
+            
+            if (isAllYears) {
+                // Group by year for "All years" view
+                var startYear = dateFrom.getFullYear();
+                var endYear = dateTo.getFullYear();
+                
+                for (var year = startYear; year <= endYear; year++) {
+                    keys.push(year.toString());
+                    labels.push(year.toString());
+                    costs.push(0);
+                    counts.push(0);
+                }
+                
+                // Aggregate monthly data into yearly data
+                monthlyCostData.forEach(function(item) {
+                    var itemYear = item.month.substring(0, 4); // Extract year from YYYY-MM
+                    var yearIndex = keys.indexOf(itemYear);
+                    if (yearIndex !== -1) {
+                        costs[yearIndex] += parseFloat(item.total_cost) || 0;
+                        counts[yearIndex] += parseInt(item.count) || 0;
+                    }
+                });
+            } else {
+                // Group by month for other views
+                var currentMonth = new Date(dateFrom.getFullYear(), dateFrom.getMonth(), 1);
+                var endMonth = new Date(dateTo.getFullYear(), dateTo.getMonth(), 1);
+                
+                while (currentMonth <= endMonth) {
+                    var monthKey = currentMonth.toISOString().slice(0, 7); // YYYY-MM
+                    var monthLabel = currentMonth.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                    
+                    keys.push(monthKey);
+                    labels.push(monthLabel);
+                    costs.push(0);
+                    counts.push(0);
+                    
+                    currentMonth.setMonth(currentMonth.getMonth() + 1);
+                }
+                
+                // Populate data
+                monthlyCostData.forEach(function(item) {
+                    var monthIndex = keys.indexOf(item.month);
+                    if (monthIndex !== -1) {
+                        costs[monthIndex] = parseFloat(item.total_cost) || 0;
+                        counts[monthIndex] = parseInt(item.count) || 0;
+                    }
+                });
+            }
+            
+            // Destroy existing chart
+            if (periodComparisonChart) {
+                periodComparisonChart.destroy();
+            }
+            
+            // Create new chart
+            periodComparisonChart = new Chart(periodComparisonEl, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Total Cost (₱)',
+                        data: costs,
+                        backgroundColor: '#36A2EB',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(v) {
+                                    return '₱' + v.toLocaleString();
+                                }
+                            }
+                        }
                     },
                     plugins: {
                         tooltip: {
@@ -942,57 +1690,196 @@
                             displayColors: true
                         }
                     }
-                } 
+                }
             });
         }
+        
+        // Initialize Period Comparison chart on page load
+        // Determine the date range from URL parameters or use default (all time)
+        (function() {
+            var urlParams = new URLSearchParams(window.location.search);
+            var dateFrom = urlParams.get('date_from');
+            var dateTo = urlParams.get('date_to');
+            
+            if (dateFrom && dateTo) {
+                // Use the date range from URL
+                var fromDate = new Date(dateFrom);
+                var toDate = new Date(dateTo);
+                updatePeriodComparisonChart(fromDate, toDate);
+            } else {
+                // No date filter = All time (from 2020 to now)
+                var today = new Date();
+                var allTimeFrom = new Date(2020, 0, 1);
+                updatePeriodComparisonChart(allTimeFrom, today);
+            }
+        })();
 
         // Doughnut — Status Distribution
         var doughEl = document.getElementById('statusDoughnutChart');
-        if (doughEl && statuses.length > 0) {
-            new Chart(doughEl, { 
-                type: 'doughnut', 
-                data: { 
-                    labels: statuses, 
-                    datasets: [{ 
-                        data: statusCounts, 
-                        backgroundColor: colors, 
-                        borderWidth: 2 
-                    }] 
-                }, 
-                options: { 
-                    responsive: true, 
-                    plugins: { 
-                        legend: { position: 'bottom' },
-                        tooltip: {
-                            callbacks: {
-                                title: function(context) {
-                                    return context[0].label + ' Status';
+        var statusDoughnutChart = null;
+        
+        function buildStatusChart(data) {
+            if (!doughEl) return;
+            
+            var statuses = data.chartStatuses || [];
+            var statusCounts = data.chartStatusCounts || [];
+            
+            if (statusDoughnutChart) {
+                statusDoughnutChart.destroy();
+            }
+            
+            if (statuses.length > 0) {
+                statusDoughnutChart = new Chart(doughEl, { 
+                    type: 'doughnut', 
+                    data: { 
+                        labels: statuses, 
+                        datasets: [{ 
+                            data: statusCounts, 
+                            backgroundColor: colors, 
+                            borderWidth: 2 
+                        }] 
+                    }, 
+                    options: { 
+                        responsive: true, 
+                        plugins: { 
+                            legend: { position: 'bottom' },
+                            tooltip: {
+                                callbacks: {
+                                    title: function(context) {
+                                        return context[0].label + ' Status';
+                                    },
+                                    label: function(context) {
+                                        var value = context.parsed || 0;
+                                        var total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        var percentage = ((value / total) * 100).toFixed(1);
+                                        return [
+                                            'Count: ' + value + ' reports',
+                                            'Percentage: ' + percentage + '%',
+                                            'Total Reports: ' + total
+                                        ];
+                                    }
                                 },
-                                label: function(context) {
-                                    var value = context.parsed || 0;
-                                    var total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    var percentage = ((value / total) * 100).toFixed(1);
-                                    return [
-                                        'Count: ' + value + ' reports',
-                                        'Percentage: ' + percentage + '%',
-                                        'Total Reports: ' + total
-                                    ];
-                                }
-                            },
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            titleFont: { size: 14, weight: 'bold' },
-                            bodyFont: { size: 13 },
-                            padding: 12,
-                            displayColors: true
-                        }
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                titleFont: { size: 14, weight: 'bold' },
+                                bodyFont: { size: 13 },
+                                padding: 12,
+                                displayColors: true
+                            }
+                        } 
                     } 
-                } 
-            });
+                });
+            }
         }
+        
+        // Initialize status chart
+        buildStatusChart({
+            chartStatuses: statuses,
+            chartStatusCounts: statusCounts
+        });
+        
+        // Status date range functions
+        window.setStatusRange = function(range, event) {
+            if (event) event.preventDefault();
+            
+            var labels = {
+                'last7days': 'Last 7 days',
+                'last28days': 'Last 28 days',
+                'last90days': 'Last 90 days',
+                'last6months': 'Last 6 months',
+                'last12months': 'Last 12 months',
+                'thisyear': 'This year',
+                'lastyear': 'Last year',
+                'alltime': 'All time'
+            };
+            
+            document.getElementById('statusRangeLabel').textContent = labels[range] || range;
+            
+            var today = new Date();
+            var dateFrom, dateTo;
+            
+            switch(range) {
+                case 'last7days':
+                    dateFrom = new Date(today);
+                    dateFrom.setDate(today.getDate() - 7);
+                    dateTo = today;
+                    break;
+                case 'last28days':
+                    dateFrom = new Date(today);
+                    dateFrom.setDate(today.getDate() - 28);
+                    dateTo = today;
+                    break;
+                case 'last90days':
+                    dateFrom = new Date(today);
+                    dateFrom.setDate(today.getDate() - 90);
+                    dateTo = today;
+                    break;
+                case 'last6months':
+                    dateFrom = new Date(today);
+                    dateFrom.setMonth(today.getMonth() - 6);
+                    dateTo = today;
+                    break;
+                case 'last12months':
+                    dateFrom = new Date(today);
+                    dateFrom.setMonth(today.getMonth() - 12);
+                    dateTo = today;
+                    break;
+                case 'thisyear':
+                    dateFrom = new Date(today.getFullYear(), 0, 1);
+                    dateTo = today;
+                    break;
+                case 'lastyear':
+                    dateFrom = new Date(today.getFullYear() - 1, 0, 1);
+                    dateTo = new Date(today.getFullYear() - 1, 11, 31);
+                    break;
+                case 'alltime':
+                    // Get all data from the beginning (2020 or earliest data)
+                    dateFrom = new Date(2020, 0, 1);
+                    dateTo = today;
+                    break;
+            }
+            
+            fetchAndUpdateChart('status', dateFrom, dateTo);
+        };
+        
+        window.applyStatusCustomRange = function(event) {
+            if (event) event.preventDefault();
+            
+            var dateFromInput = document.getElementById('statusCustomDateFrom').value;
+            var dateToInput = document.getElementById('statusCustomDateTo').value;
+            
+            if (!dateFromInput || !dateToInput) {
+                alert('Please select both start and end dates');
+                return;
+            }
+            
+            var dateFrom = new Date(dateFromInput);
+            var dateTo = new Date(dateToInput);
+            
+            if (dateFrom > dateTo) {
+                alert('Start date must be before end date');
+                return;
+            }
+            
+            var fromStr = dateFrom.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            var toStr = dateTo.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            document.getElementById('statusRangeLabel').textContent = fromStr + ' - ' + toStr;
+            
+            var dropdownEl = document.getElementById('statusRangeDropdown');
+            var dropdown = bootstrap.Dropdown.getInstance(dropdownEl);
+            if (dropdown) dropdown.hide();
+            
+            fetchAndUpdateChart('status', dateFrom, dateTo);
+        };
 
         // Line — Monthly Trend (per issue type)
         var lineEl = document.getElementById('monthlyTrendChart');
-        if (lineEl) {
+        var monthlyTrendChart = null;
+        
+        function buildTrendChart(data) {
+            if (!lineEl) return;
+            
+            var monthly = data.monthlyStats || [];
+            
             // Build 6-month labels
             var monthLabels = [];
             for (var i = 5; i >= 0; i--) {
@@ -1004,11 +1891,26 @@
                 monthLabels.push({ key: key, label: lbl });
             }
 
-            // Group by issue title
+            // Group by issue title and month, keeping status breakdown
             var issueMap = {};
+            var statusBreakdown = {}; // Store status breakdown for tooltips
+            
             monthly.forEach(function(item) {
-                if (!issueMap[item.title]) issueMap[item.title] = {};
-                issueMap[item.title][item.month] = item.count;
+                if (!issueMap[item.title]) {
+                    issueMap[item.title] = {};
+                    statusBreakdown[item.title] = {};
+                }
+                if (!issueMap[item.title][item.month]) {
+                    issueMap[item.title][item.month] = 0;
+                    statusBreakdown[item.title][item.month] = {};
+                }
+                issueMap[item.title][item.month] += item.count;
+                
+                // Store status breakdown
+                if (!statusBreakdown[item.title][item.month][item.status]) {
+                    statusBreakdown[item.title][item.month][item.status] = 0;
+                }
+                statusBreakdown[item.title][item.month][item.status] += item.count;
             });
 
             var palette = ['#36A2EB','#FF6384','#FFCE56','#4BC0C0','#9966FF','#FF9F40','#22C55E','#F97316','#7BC8A4','#EC4899'];
@@ -1025,6 +1927,7 @@
                     pointBackgroundColor: palette[idx % palette.length],
                     tension: 0.3,
                     fill: false,
+                    statusData: statusBreakdown[title] // Attach status breakdown to dataset
                 };
             });
 
@@ -1052,8 +1955,12 @@
                     });
                 }
             };
+            
+            if (monthlyTrendChart) {
+                monthlyTrendChart.destroy();
+            }
 
-            new Chart(lineEl, {
+            monthlyTrendChart = new Chart(lineEl, {
                 type: 'line',
                 plugins: [endLabelPlugin],
                 data: {
@@ -1062,7 +1969,8 @@
                 },
                 options: {
                     responsive: true,
-                    layout: { padding: { right: 90 } },
+                    maintainAspectRatio: false,
+                    layout: { padding: { right: 90, bottom: 10 } },
                     interaction: { mode: 'index', intersect: false },
                     scales: {
                         x: {
@@ -1083,14 +1991,35 @@
                             labels: {
                                 usePointStyle: true,
                                 pointStyle: 'circle',
-                                padding: 20,
-                                font: { size: 13, weight: 'bold' }
+                                padding: 12,
+                                boxWidth: 10,
+                                boxHeight: 10,
+                                font: { size: 12 }
                             }
                         },
                         tooltip: {
                             callbacks: {
                                 label: function(ctx) {
-                                    return ctx.dataset.label + ': ' + ctx.parsed.y + (ctx.parsed.y === 1 ? ' report' : ' reports');
+                                    var dataset = ctx.dataset;
+                                    var monthKey = monthLabels[ctx.dataIndex].key;
+                                    var total = ctx.parsed.y;
+                                    var statusData = dataset.statusData[monthKey] || {};
+                                    
+                                    var lines = [dataset.label + ': ' + total + (total === 1 ? ' report' : ' reports')];
+                                    
+                                    // Add status breakdown if there are multiple statuses
+                                    var statuses = Object.keys(statusData);
+                                    if (statuses.length > 0) {
+                                        var resolved = statusData['Resolved'] || 0;
+                                        var pending = statusData['Pending'] || 0;
+                                        var inProgress = statusData['In Progress'] || 0;
+                                        
+                                        if (resolved > 0) lines.push('  ✓ Resolved: ' + resolved);
+                                        if (inProgress > 0) lines.push('  ⟳ In Progress: ' + inProgress);
+                                        if (pending > 0) lines.push('  ⏱ Pending: ' + pending);
+                                    }
+                                    
+                                    return lines;
                                 }
                             }
                         }
@@ -1098,8 +2027,133 @@
                 }
             });
         }
+        
+        // Initialize trend chart
+        buildTrendChart({ monthlyStats: monthly });
+        
+        // Trend date range functions
+        window.setTrendRange = function(range, event) {
+            if (event) event.preventDefault();
+            
+            var labels = {
+                'last7days': 'Last 7 days',
+                'last28days': 'Last 28 days',
+                'last90days': 'Last 90 days',
+                'last6months': 'Last 6 months',
+                'last12months': 'Last 12 months',
+                'thisyear': 'This year',
+                'lastyear': 'Last year',
+                'alltime': 'All time'
+            };
+            
+            document.getElementById('trendRangeLabel').textContent = labels[range] || range;
+            
+            var today = new Date();
+            var dateFrom, dateTo;
+            
+            switch(range) {
+                case 'last7days':
+                    dateFrom = new Date(today);
+                    dateFrom.setDate(today.getDate() - 7);
+                    dateTo = today;
+                    break;
+                case 'last28days':
+                    dateFrom = new Date(today);
+                    dateFrom.setDate(today.getDate() - 28);
+                    dateTo = today;
+                    break;
+                case 'last90days':
+                    dateFrom = new Date(today);
+                    dateFrom.setDate(today.getDate() - 90);
+                    dateTo = today;
+                    break;
+                case 'last6months':
+                    dateFrom = new Date(today);
+                    dateFrom.setMonth(today.getMonth() - 6);
+                    dateTo = today;
+                    break;
+                case 'last12months':
+                    dateFrom = new Date(today);
+                    dateFrom.setMonth(today.getMonth() - 12);
+                    dateTo = today;
+                    break;
+                case 'thisyear':
+                    dateFrom = new Date(today.getFullYear(), 0, 1);
+                    dateTo = today;
+                    break;
+                case 'lastyear':
+                    dateFrom = new Date(today.getFullYear() - 1, 0, 1);
+                    dateTo = new Date(today.getFullYear() - 1, 11, 31);
+                    break;
+                case 'alltime':
+                    // Get all data from the beginning (2020 or earliest data)
+                    dateFrom = new Date(2020, 0, 1);
+                    dateTo = today;
+                    break;
+            }
+            
+            fetchAndUpdateChart('trend', dateFrom, dateTo);
+        };
+        
+        window.applyTrendCustomRange = function(event) {
+            if (event) event.preventDefault();
+            
+            var dateFromInput = document.getElementById('trendCustomDateFrom').value;
+            var dateToInput = document.getElementById('trendCustomDateTo').value;
+            
+            if (!dateFromInput || !dateToInput) {
+                alert('Please select both start and end dates');
+                return;
+            }
+            
+            var dateFrom = new Date(dateFromInput);
+            var dateTo = new Date(dateToInput);
+            
+            if (dateFrom > dateTo) {
+                alert('Start date must be before end date');
+                return;
+            }
+            
+            var fromStr = dateFrom.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            var toStr = dateTo.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            document.getElementById('trendRangeLabel').textContent = fromStr + ' - ' + toStr;
+            
+            var dropdownEl = document.getElementById('trendRangeDropdown');
+            var dropdown = bootstrap.Dropdown.getInstance(dropdownEl);
+            if (dropdown) dropdown.hide();
+            
+            fetchAndUpdateChart('trend', dateFrom, dateTo);
+        };
     }
     buildCharts();
+    
+    // Sync individual chart filters with the main filter on page load
+    // This reads the URL parameters and sets all chart filters accordingly
+    (function() {
+        var urlParams = new URLSearchParams(window.location.search);
+        var dateFrom = urlParams.get('date_from');
+        var dateTo = urlParams.get('date_to');
+        
+        if (dateFrom && dateTo) {
+            // Custom date range - update all chart labels
+            var fromDate = new Date(dateFrom);
+            var toDate = new Date(dateTo);
+            var fromStr = fromDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            var toStr = toDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            var rangeLabel = fromStr + ' - ' + toStr;
+            
+            document.getElementById('locationRangeLabel').textContent = rangeLabel;
+            document.getElementById('periodRangeLabel').textContent = rangeLabel;
+            document.getElementById('statusRangeLabel').textContent = rangeLabel;
+            document.getElementById('trendRangeLabel').textContent = rangeLabel;
+        } else {
+            // No date filter = All time
+            document.getElementById('locationRangeLabel').textContent = 'All time';
+            document.getElementById('periodRangeLabel').textContent = 'All time';
+            document.getElementById('statusRangeLabel').textContent = 'All time';
+            document.getElementById('trendRangeLabel').textContent = 'All time';
+        }
+    })();
 })();
 
 // Show Cost Trend Modal function
@@ -1138,8 +2192,542 @@ function showCostTrendModal(alert) {
     new bootstrap.Modal(document.getElementById('costTrendModal')).show();
 }
 
+// Show Location Tickets Modal function
+function showLocationTicketsModal(location, totalCount, totalCost) {
+    // Show loading state
+    Swal.fire({
+        title: 'Loading...',
+        html: 'Fetching ticket details...',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+    
+    // Build URL with current filters
+    const urlParams = new URLSearchParams(window.location.search);
+    urlParams.set('location_filter', location);
+    urlParams.set('ajax', '1');
+    
+    const baseUrl = '<?php echo e(route("admin.analytics")); ?>';
+    const fetchUrl = baseUrl + '?' + urlParams.toString();
+    
+    // Fetch tickets for this location via AJAX
+    fetch(fetchUrl)
+        .then(response => {
+            console.log('Response status:', response.status);
+            console.log('Fetch URL:', fetchUrl);
+            if (!response.ok) {
+                throw new Error('HTTP error! status: ' + response.status);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Received data:', data);
+            console.log('Tickets count:', data.tickets ? data.tickets.length : 0);
+            console.log('Debug info:', data.debug);
+            
+            const tickets = data.tickets || [];
+            
+            let tableRows = '';
+            if (tickets.length > 0) {
+                console.log('First ticket:', tickets[0]);
+                tickets.forEach(ticket => {
+                    // Handle different status formats
+                    const status = (ticket.status || '').toLowerCase();
+                    const statusBadge = status === 'resolved' 
+                        ? '<span class="badge bg-success">Resolved</span>' 
+                        : status === 'in_progress' || status === 'in progress'
+                        ? '<span class="badge bg-warning">In Progress</span>'
+                        : status === 'pending'
+                        ? '<span class="badge bg-secondary">Pending</span>'
+                        : '<span class="badge bg-info">' + ticket.status + '</span>';
+                    
+                    const cost = ticket.cost ? '₱' + parseFloat(ticket.cost).toLocaleString('en-PH', {minimumFractionDigits:2}) : 'N/A';
+                    const resolvedDate = ticket.resolved_at 
+                        ? new Date(ticket.resolved_at).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'})
+                        : 'Not Fixed';
+                    
+                    const damagePart = ticket.damaged_part || 'N/A';
+                    const issue = ticket.title || 'N/A';
+                    // Format ticket ID with leading zeros (e.g., #0019)
+                    const ticketId = ticket.id ? '#' + String(ticket.id).padStart(4, '0') : 'N/A';
+                    
+                    tableRows += '<tr>' +
+                        '<td class="text-center" style="width: 80px; font-size: 0.85rem;"><strong>' + ticketId + '</strong></td>' +
+                        '<td style="width: 150px; font-size: 0.9rem;">' + damagePart + '</td>' +
+                        '<td style="width: 180px; font-size: 0.9rem;">' + issue + '</td>' +
+                        '<td class="text-center" style="width: 100px;">' + statusBadge + '</td>' +
+                        '<td class="text-center" style="width: 150px; font-size: 0.85rem;">' + resolvedDate + '</td>' +
+                        '<td class="text-end" style="width: 110px;"><span class="cost-badge">' + cost + '</span></td>' +
+                        '</tr>';
+                });
+            } else {
+                tableRows = '<tr><td colspan="6" class="text-center text-muted">No tickets found for this location</td></tr>';
+            }
+            
+            const avgCost = totalCount > 0 ? (totalCost / totalCount).toFixed(2) : '0.00';
+            
+            Swal.fire({
+                title: '<i class="fas fa-map-marker-alt me-2"></i>' + location,
+                html: '<div style="text-align: left;">' +
+                    '<div class="row mb-4">' +
+                        '<div class="col-4">' +
+                            '<div class="card border-primary">' +
+                                '<div class="card-body text-center">' +
+                                    '<h3 class="text-primary mb-0">' + totalCount + '</h3>' +
+                                    '<small class="text-muted">Total Tickets</small>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="col-4">' +
+                            '<div class="card border-success">' +
+                                '<div class="card-body text-center">' +
+                                    '<h3 class="text-success mb-0">₱' + parseFloat(totalCost).toLocaleString('en-PH', {minimumFractionDigits:2}) + '</h3>' +
+                                    '<small class="text-muted">Total Cost</small>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="col-4">' +
+                            '<div class="card border-info">' +
+                                '<div class="card-body text-center">' +
+                                    '<h3 class="text-info mb-0">₱' + parseFloat(avgCost).toLocaleString('en-PH', {minimumFractionDigits:2}) + '</h3>' +
+                                    '<small class="text-muted">Avg per Ticket</small>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<h5 class="mb-3"><i class="fas fa-list me-2"></i>Ticket Details</h5>' +
+                    '<div class="table-responsive" style="max-height: 400px; overflow-y: auto;">' +
+                        '<table class="table table-hover table-sm" style="table-layout: fixed; width: 100%;">' +
+                            '<thead class="table-light sticky-top">' +
+                                '<tr>' +
+                                    '<th class="text-center" style="width: 80px; font-size: 0.85rem;">Ticket #</th>' +
+                                    '<th style="width: 150px; font-size: 0.9rem;">Damaged Part</th>' +
+                                    '<th style="width: 180px; font-size: 0.9rem;">Issue</th>' +
+                                    '<th class="text-center" style="width: 100px; font-size: 0.9rem;">Status</th>' +
+                                    '<th class="text-center" style="width: 150px; font-size: 0.85rem;">Date Fixed</th>' +
+                                    '<th class="text-end" style="width: 110px; font-size: 0.9rem;">Cost</th>' +
+                                '</tr>' +
+                            '</thead>' +
+                            '<tbody>' +
+                                tableRows +
+                            '</tbody>' +
+                        '</table>' +
+                    '</div>' +
+                '</div>',
+                width: '900px',
+                showCloseButton: true,
+                showConfirmButton: false,
+                customClass: {
+                    popup: 'swal-wide-popup',
+                    container: 'swal-analytics-modal'
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching location tickets:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to load ticket details. Please try again.',
+                confirmButtonColor: '#667eea'
+            });
+        });
+}
+
+// Location Table Filter Functions
+function filterLocationTable(room, event) {
+    if (event) event.preventDefault();
+    
+    const table = document.getElementById('locationCostTable');
+    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+    
+    // Update label
+    document.getElementById('locationTableRoomLabel').textContent = room === 'all' ? 'All Rooms' : room;
+    
+    // Filter rows
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const location = row.getAttribute('data-location');
+        
+        if (room === 'all' || location === room) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    }
+}
+
+function setLocationTableRange(range, event) {
+    if (event) event.preventDefault();
+    
+    const today = new Date();
+    let dateFrom, dateTo;
+    const url = new URL(window.location.href);
+    
+    // Clear existing date parameters
+    url.searchParams.delete('period');
+    url.searchParams.delete('month');
+    url.searchParams.delete('month_from');
+    url.searchParams.delete('month_to');
+    url.searchParams.delete('year');
+    url.searchParams.delete('date_from');
+    url.searchParams.delete('date_to');
+    
+    if (range === 'alltime') {
+        window.location.href = url.toString();
+        return;
+    }
+    
+    switch(range) {
+        case 'last7days':
+            dateFrom = new Date(today);
+            dateFrom.setDate(today.getDate() - 7);
+            dateTo = today;
+            break;
+        case 'last28days':
+            dateFrom = new Date(today);
+            dateFrom.setDate(today.getDate() - 28);
+            dateTo = today;
+            break;
+        case 'last90days':
+            dateFrom = new Date(today);
+            dateFrom.setDate(today.getDate() - 90);
+            dateTo = today;
+            break;
+        case 'last6months':
+            dateFrom = new Date(today);
+            dateFrom.setMonth(today.getMonth() - 6);
+            dateTo = today;
+            break;
+        case 'last12months':
+            dateFrom = new Date(today);
+            dateFrom.setMonth(today.getMonth() - 12);
+            dateTo = today;
+            break;
+        case 'thisyear':
+            dateFrom = new Date(today.getFullYear(), 0, 1);
+            dateTo = today;
+            break;
+        case 'lastyear':
+            dateFrom = new Date(today.getFullYear() - 1, 0, 1);
+            dateTo = new Date(today.getFullYear() - 1, 11, 31);
+            break;
+    }
+    
+    const dateFromStr = dateFrom.toISOString().split('T')[0];
+    const dateToStr = dateTo.toISOString().split('T')[0];
+    
+    url.searchParams.set('date_from', dateFromStr);
+    url.searchParams.set('date_to', dateToStr);
+    
+    window.location.href = url.toString();
+}
+
+function applyLocationTableCustomRange(event) {
+    if (event) event.preventDefault();
+    
+    const dateFromInput = document.getElementById('locationTableCustomDateFrom').value;
+    const dateToInput = document.getElementById('locationTableCustomDateTo').value;
+    
+    if (!dateFromInput || !dateToInput) {
+        alert('Please select both start and end dates');
+        return;
+    }
+    
+    const dateFrom = new Date(dateFromInput);
+    const dateTo = new Date(dateToInput);
+    
+    if (dateFrom > dateTo) {
+        alert('Start date must be before end date');
+        return;
+    }
+    
+    const url = new URL(window.location.href);
+    
+    // Clear existing date parameters
+    url.searchParams.delete('period');
+    url.searchParams.delete('month');
+    url.searchParams.delete('month_from');
+    url.searchParams.delete('month_to');
+    url.searchParams.delete('year');
+    
+    url.searchParams.set('date_from', dateFromInput);
+    url.searchParams.set('date_to', dateToInput);
+    
+    window.location.href = url.toString();
+}
+
 // Modal functions are now loaded from analytics-modals.js (SweetAlert2 versions)
+
+// ========== ADVANCED ANALYTICS CHARTS ==========
+
+// Cost Trend Chart
+const costTrendCtx = document.getElementById('costTrendChart');
+if (costTrendCtx) {
+    new Chart(costTrendCtx, {
+        type: 'line',
+        data: {
+            labels: <?php echo json_encode($costTrendData->pluck('month')); ?>,
+            datasets: [
+                {
+                    label: 'Total Cost',
+                    data: <?php echo json_encode($costTrendData->pluck('total_cost')); ?>,
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                },
+                {
+                    label: 'Ticket Count',
+                    data: <?php echo json_encode($costTrendData->pluck('count')); ?>,
+                    borderColor: '#f39c12',
+                    backgroundColor: 'rgba(243, 156, 18, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    yAxisID: 'y1'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            plugins: {
+                legend: { position: 'top' }
+            },
+            scales: {
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: { display: true, text: 'Cost (PHP)' }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    title: { display: true, text: 'Ticket Count' },
+                    grid: { drawOnChartArea: false }
+                }
+            }
+        }
+    });
+}
+
+// Status Distribution & Response Time Modal
+function showStatusDetailsModal() {
+    const responseTimeData = <?php echo json_encode($responseTimeStats, 15, 512) ?>;
+    
+    // Build response time table with timestamps and HH:MM:SS format
+    let responseTimeTable = '<div class="table-responsive mt-3"><table class="table table-sm table-hover" style="table-layout: fixed; width: 100%;"><thead class="table-light"><tr><th style="width: 140px;">Ticket / Issue</th><th style="width: 90px;">Location</th><th style="width: 130px;">Created</th><th style="width: 130px;">Assigned</th><th style="width: 130px;">Resolved</th><th style="width: 90px;">Submit to Assign</th><th style="width: 90px;">Assign to Resolve</th><th style="width: 70px;">Total</th><th style="width: 90px;">Staff</th></tr></thead><tbody>';
+    
+    responseTimeData.forEach(function(item) {
+        const ticketIssue = '#' + String(item.id).padStart(4, '0') + ' - ' + item.title;
+        responseTimeTable += '<tr>' +
+            '<td style="font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="' + ticketIssue + '">' + ticketIssue + '</td>' +
+            '<td style="font-size: 0.8rem;">' + item.location + '</td>' +
+            '<td style="font-size: 0.7rem;">' + item.created_at + '</td>' +
+            '<td style="font-size: 0.7rem;">' + item.assigned_at + '</td>' +
+            '<td style="font-size: 0.7rem;">' + item.resolved_at + '</td>' +
+            '<td style="font-size: 0.8rem;">' + item.submitted_to_assigned_formatted + '</td>' +
+            '<td style="font-size: 0.8rem;">' + item.assigned_to_resolved_formatted + '</td>' +
+            '<td style="font-size: 0.85rem;"><strong>' + item.total_time_formatted + '</strong></td>' +
+            '<td style="font-size: 0.8rem;">' + item.assigned_to_name + '</td>' +
+            '</tr>';
+    });
+    
+    responseTimeTable += '</tbody></table></div>';
+    
+    // Build status distribution table
+    const statuses = <?php echo json_encode($chartStatuses, 15, 512) ?>;
+    const statusCounts = <?php echo json_encode($chartStatusCounts, 15, 512) ?>;
+    const statusReportIds = <?php echo json_encode($statusReportIds, 15, 512) ?>;
+    
+    console.log('Status Distribution Data:', { statuses, statusCounts, statusReportIds });
+    
+    // Define the desired order
+    const statusOrder = ['Pending', 'Assigned', 'In Progress', 'Resolved'];
+    const itemsPerPage = 5; // Show 5 tickets initially
+    
+    let statusTable = '<div class="table-responsive mt-3"><table class="table table-sm table-hover"><thead class="table-light"><tr><th>Status</th><th class="text-center">Count</th><th>Issue</th></tr></thead><tbody>';
+    
+    // Sort statuses according to the defined order
+    statusOrder.forEach(function(orderedStatus) {
+        const index = statuses.indexOf(orderedStatus);
+        if (index !== -1) {
+            const status = statuses[index];
+            const issuesString = statusReportIds[status] || 'N/A';
+            const issuesArray = issuesString.split(', ');
+            
+            let issuesList = '<div id="issues-' + status.replace(/\s+/g, '-') + '">';
+            
+            // Show first 5 items
+            issuesArray.slice(0, itemsPerPage).forEach(function(issue) {
+                issuesList += '<div style="padding: 2px 0; font-size: 0.85rem;">' + issue + '</div>';
+            });
+            
+            // Hidden items
+            if (issuesArray.length > itemsPerPage) {
+                issuesList += '<div id="hidden-issues-' + status.replace(/\s+/g, '-') + '" style="display: none;">';
+                issuesArray.slice(itemsPerPage).forEach(function(issue) {
+                    issuesList += '<div style="padding: 2px 0; font-size: 0.85rem;">' + issue + '</div>';
+                });
+                issuesList += '</div>';
+                
+                // Show More button
+                issuesList += '<button class="btn btn-sm btn-link p-0 mt-1" onclick="toggleIssues(\'' + status.replace(/\s+/g, '-') + '\')" id="toggle-btn-' + status.replace(/\s+/g, '-') + '" style="font-size: 0.8rem;">Show More (' + (issuesArray.length - itemsPerPage) + ')</button>';
+            }
+            
+            issuesList += '</div>';
+            
+            statusTable += '<tr>' +
+                '<td><strong>' + status + '</strong></td>' +
+                '<td class="text-center"><span class="badge bg-primary">' + statusCounts[index] + '</span></td>' +
+                '<td>' + issuesList + '</td>' +
+                '</tr>';
+        }
+    });
+    
+    statusTable += '</tbody></table></div>';
+    
+    // Add toggle function
+    window.toggleIssues = function(statusId) {
+        const hiddenDiv = document.getElementById('hidden-issues-' + statusId);
+        const toggleBtn = document.getElementById('toggle-btn-' + statusId);
+        
+        if (hiddenDiv.style.display === 'none') {
+            hiddenDiv.style.display = 'block';
+            toggleBtn.textContent = 'Show Less';
+        } else {
+            hiddenDiv.style.display = 'none';
+            const hiddenCount = hiddenDiv.querySelectorAll('div').length;
+            toggleBtn.textContent = 'Show More (' + hiddenCount + ')';
+        }
+    };
+    
+    // Export Status PDF function
+    window.exportStatusPDF = function() {
+        const url = new URL(window.location.href);
+        const dateFrom = url.searchParams.get('date_from');
+        const dateTo = url.searchParams.get('date_to');
+        
+        let pdfUrl = '<?php echo e(route("admin.analytics.status-pdf")); ?>';
+        const params = new URLSearchParams();
+        
+        if (dateFrom) params.append('date_from', dateFrom);
+        if (dateTo) params.append('date_to', dateTo);
+        
+        if (params.toString()) {
+            pdfUrl += '?' + params.toString();
+        }
+        
+        window.open(pdfUrl, '_blank');
+    };
+    
+    Swal.fire({
+        title: '<i class="fas fa-chart-pie me-2"></i>Status Distribution & Response Time Analysis',
+        html: `
+            <div style="height: 100%; overflow-y: auto;">
+                <div class="mb-3 p-3 bg-light border-bottom d-flex justify-content-between align-items-center gap-3">
+                    <div class="d-flex gap-2">
+                        <!-- Room Filter -->
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="statusModalRoomDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.9rem;">
+                                <i class="fas fa-door-open me-1"></i>
+                                <span id="statusModalRoomLabel">All Rooms</span>
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="statusModalRoomDropdown" style="max-height: 300px; overflow-y: auto;">
+                                <li><a class="dropdown-item" href="#" onclick="setModalRoomFilter('status', 'all', event)">All Rooms</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <?php $__currentLoopData = $combinedLocationStats ?? []; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $stat): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <li><a class="dropdown-item" href="#" onclick="setModalRoomFilter('status', '<?php echo e(addslashes($stat['location'])); ?>', event)"><?php echo e($stat['location']); ?></a></li>
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                            </ul>
+                        </div>
+                        
+                        <!-- Date Range Filter -->
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="statusModalRangeDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.9rem;">
+                                <i class="fas fa-calendar-alt me-1"></i>
+                                <span id="statusModalRangeLabel">Last 6 months</span>
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="statusModalRangeDropdown" style="min-width: 220px;">
+                                <li><a class="dropdown-item" href="#" onclick="setModalRange('status', 'last7days', event)">Last 7 days</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setModalRange('status', 'last28days', event)">Last 28 days</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setModalRange('status', 'last90days', event)">Last 90 days</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setModalRange('status', 'last6months', event)">Last 6 months</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setModalRange('status', 'last12months', event)">Last 12 months</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setModalRange('status', 'thisyear', event)">This year</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setModalRange('status', 'lastyear', event)">Last year</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="setModalRange('status', 'allyears', event)">All years</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li class="px-3 py-2">
+                                    <label class="form-label mb-1" style="font-size: 0.75rem; font-weight: 600;">Custom Range</label>
+                                    <div class="mb-2">
+                                        <input type="date" id="statusModalCustomDateFrom" class="form-control form-control-sm" style="font-size: 0.75rem;">
+                                    </div>
+                                    <div class="mb-2">
+                                        <input type="date" id="statusModalCustomDateTo" class="form-control form-control-sm" style="font-size: 0.75rem;">
+                                    </div>
+                                    <button class="btn btn-primary btn-sm w-100" onclick="applyModalCustomRange('status', event)" style="font-size: 0.75rem;">Apply</button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <button onclick="exportStatusPDF()" class="btn btn-danger btn-sm" style="white-space: nowrap; font-size: 0.9rem;">
+                        <i class="fas fa-file-pdf me-1"></i>Export PDF
+                    </button>
+                </div>
+                <h5 class="mt-3 mb-3" style="color: #667eea;"><i class="fas fa-chart-pie"></i> Status Distribution</h5>
+                ` + statusTable + `
+                <h5 class="mt-4 mb-3" style="color: #667eea;"><i class="fas fa-clock"></i> Response Time Details</h5>
+                <div class="row mb-3">
+                    <div class="col-4 text-center">
+                        <div style="background: #f0f7ff; padding: 15px; border-radius: 8px; border-left: 3px solid #3498db;">
+                            <div style="font-size: 0.8rem; color: #666;">Avg Submit to Assign</div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #3498db;">
+                                <?php
+                                    $totalSeconds = floor($avgSubmittedToAssigned * 3600);
+                                    $hours = floor($totalSeconds / 3600);
+                                    $minutes = floor(($totalSeconds % 3600) / 60);
+                                    $seconds = $totalSeconds % 60;
+                                    echo sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
+                                ?>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-4 text-center">
+                        <div style="background: #fff8f0; padding: 15px; border-radius: 8px; border-left: 3px solid #f39c12;">` +
+                        '<div style="font-size: 0.8rem; color: #666;">Avg Assign to Resolve</div>' +
+                        '<div style="font-size: 1.5rem; font-weight: bold; color: #f39c12;"><?php $totalSeconds = floor($avgAssignedToResolved * 3600); $hours = floor($totalSeconds / 3600); $minutes = floor(($totalSeconds % 3600) / 60); $seconds = $totalSeconds % 60; echo sprintf("%02d:%02d:%02d", $hours, $minutes, $seconds); ?></div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="col-4 text-center">' +
+                    '<div style="background: #f0fff4; padding: 15px; border-radius: 8px; border-left: 3px solid #27ae60;">' +
+                        '<div style="font-size: 0.8rem; color: #666;">Avg Total Time</div>' +
+                        '<div style="font-size: 1.5rem; font-weight: bold; color: #27ae60;"><?php $totalSeconds = floor($avgTotalTime * 3600); $hours = floor($totalSeconds / 3600); $minutes = floor(($totalSeconds % 3600) / 60); $seconds = $totalSeconds % 60; echo sprintf("%02d:%02d:%02d", $hours, $minutes, $seconds); ?></div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>' +
+            responseTimeTable +
+            '</div>',
+        width: '95%',
+        showCloseButton: true,
+        showConfirmButton: false,
+        customClass: {
+            popup: 'swal-wide-popup',
+            htmlContainer: 'swal2-html-container'
+        }
+    });
+}
+
 </script>
 <?php $__env->stopSection(); ?>
+
 
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\Campfix\resources\views/admin/analytics.blade.php ENDPATH**/ ?>

@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-    <title>Location Report - {{ $dateRange }}</title>
+    <title>Status Distribution & Response Time Report - {{ $dateRange }}</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -82,6 +82,41 @@
             color: #666;
             margin-bottom: 15px;
         }
+        .summary-box {
+            background-color: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+        .summary-box h3 {
+            margin: 0 0 8px 0;
+            font-size: 11px;
+            color: #333;
+        }
+        .summary-item {
+            display: inline-block;
+            width: 32%;
+            margin-bottom: 3px;
+            font-size: 9px;
+        }
+        .summary-label {
+            font-weight: bold;
+            color: #666;
+        }
+        .summary-value {
+            color: #333;
+            font-size: 10px;
+        }
+        .section-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: #333;
+            margin-top: 15px;
+            margin-bottom: 8px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 3px;
+        }
         table {
             width: 100%;
             border-collapse: collapse;
@@ -110,10 +145,20 @@
         .text-end {
             text-align: right;
         }
-        .footer-row {
-            background-color: #e9ecef !important;
+        .status-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
             font-weight: bold;
-            font-size: 9px;
+            font-size: 7px;
+        }
+        .badge-pending { background-color: #ffc107; color: #000; }
+        .badge-assigned { background-color: #17a2b8; color: #fff; }
+        .badge-inprogress { background-color: #007bff; color: #fff; }
+        .badge-resolved { background-color: #28a745; color: #fff; }
+        .ticket-list {
+            font-size: 7px;
+            line-height: 1.5;
         }
         .footer {
             margin-top: 20px;
@@ -122,32 +167,6 @@
             color: #666;
             border-top: 1px solid #ddd;
             padding-top: 8px;
-        }
-        .summary-box {
-            background-color: #f8f9fa;
-            border: 2px solid #dee2e6;
-            border-radius: 5px;
-            padding: 10px;
-            margin-bottom: 15px;
-        }
-        .summary-box h3 {
-            margin: 0 0 8px 0;
-            font-size: 11px;
-            color: #333;
-        }
-        .summary-item {
-            display: inline-block;
-            width: 23%;
-            margin-bottom: 3px;
-            font-size: 9px;
-        }
-        .summary-label {
-            font-weight: bold;
-            color: #666;
-        }
-        .summary-value {
-            color: #333;
-            font-size: 10px;
         }
     </style>
 </head>
@@ -176,7 +195,7 @@
     </div>
 
     <div class="header">
-        <h1>Repairs by Location - Detailed Report</h1>
+        <h1>Status Distribution & Response Time Analysis</h1>
         <h2>CampFix Analytics</h2>
     </div>
 
@@ -185,61 +204,85 @@
     </div>
 
     <div class="summary-box">
-        <h3>Summary</h3>
+        <h3>Response Time Summary</h3>
         <div class="summary-item">
-            <span class="summary-label">Total Locations:</span>
-            <span class="summary-value">{{ $uniqueLocations }}</span>
+            <span class="summary-label">Avg Submit to Assign:</span>
+            <span class="summary-value">{{ $avgSubmittedToAssigned }}</span>
         </div>
         <div class="summary-item">
-            <span class="summary-label">Total Categories:</span>
-            <span class="summary-value">{{ $uniqueCategories }}</span>
+            <span class="summary-label">Avg Assign to Resolve:</span>
+            <span class="summary-value">{{ $avgAssignedToResolved }}</span>
         </div>
         <div class="summary-item">
-            <span class="summary-label">Total Tickets:</span>
-            <span class="summary-value">{{ $totalRepairs }}</span>
-        </div>
-        <div class="summary-item">
-            <span class="summary-label">Total Cost:</span>
-            <span class="summary-value">PHP {{ number_format($totalCost, 2) }}</span>
+            <span class="summary-label">Avg Total Time:</span>
+            <span class="summary-value">{{ $avgTotalTime }}</span>
         </div>
     </div>
 
+    <div class="section-title">Status Distribution ({{ $totalTickets }} Total Tickets)</div>
     <table>
         <thead>
             <tr>
-                <th>Location</th>
-                <th>Category</th>
-                <th class="text-center">Ticket #</th>
-                <th>Issue</th>
-                <th>Damaged Part</th>
-                <th class="text-end">Cost</th>
-                <th class="text-center">Date Fixed</th>
+                <th style="width: 15%;">Status</th>
+                <th style="width: 10%;" class="text-center">Count</th>
+                <th style="width: 75%;">Tickets</th>
             </tr>
         </thead>
         <tbody>
-            @forelse($locationStatsDetailed as $stat)
+            @forelse($statusData as $status)
             <tr>
-                <td><strong>{{ $stat['location'] }}</strong></td>
-                <td>{{ $stat['category'] }}</td>
-                <td class="text-center">#{{ str_pad($stat['id'], 4, '0', STR_PAD_LEFT) }}</td>
-                <td>{{ $stat['title'] }}</td>
-                <td>{{ $stat['damaged_part'] }}</td>
-                <td class="text-end">PHP {{ number_format($stat['cost'], 2) }}</td>
-                <td class="text-center">{{ $stat['resolved_at'] }}</td>
+                <td>
+                    <span class="status-badge badge-{{ strtolower(str_replace(' ', '', $status['status'])) }}">
+                        {{ $status['status'] }}
+                    </span>
+                </td>
+                <td class="text-center"><strong>{{ $status['count'] }}</strong></td>
+                <td>
+                    <div class="ticket-list">
+                        @foreach($status['tickets'] as $ticket)
+                            {{ $ticket }}@if(!$loop->last), @endif
+                        @endforeach
+                    </div>
+                </td>
             </tr>
             @empty
             <tr>
-                <td colspan="7" class="text-center">No data available for the selected period</td>
+                <td colspan="3" class="text-center">No data available for the selected period</td>
             </tr>
             @endforelse
         </tbody>
-        <tfoot>
-            <tr class="footer-row">
-                <td colspan="5"><strong>TOTAL ({{ $totalRepairs }} tickets)</strong></td>
-                <td class="text-end"><strong>PHP {{ number_format($totalCost, 2) }}</strong></td>
-                <td></td>
+    </table>
+
+    <div class="section-title">Response Time Details</div>
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 8%;">Ticket #</th>
+                <th style="width: 20%;">Issue</th>
+                <th style="width: 12%;">Location</th>
+                <th style="width: 13%;">Submit→Assign</th>
+                <th style="width: 13%;">Assign→Resolve</th>
+                <th style="width: 12%;">Total Time</th>
+                <th style="width: 12%;">Staff</th>
             </tr>
-        </tfoot>
+        </thead>
+        <tbody>
+            @forelse($responseTimeStats as $data)
+            <tr>
+                <td>{{ $data['id'] }}</td>
+                <td>{{ $data['title'] }}</td>
+                <td>{{ $data['location'] }}</td>
+                <td>{{ $data['submitted_to_assigned'] }}</td>
+                <td>{{ $data['assigned_to_resolved'] }}</td>
+                <td><strong>{{ $data['total_time'] }}</strong></td>
+                <td>{{ $data['staff'] }}</td>
+            </tr>
+            @empty
+            <tr>
+                <td colspan="7" class="text-center">No response time data available</td>
+            </tr>
+            @endforelse
+        </tbody>
     </table>
 
     <div class="footer">

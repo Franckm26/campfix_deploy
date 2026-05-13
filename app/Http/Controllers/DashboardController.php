@@ -158,7 +158,8 @@ class DashboardController extends Controller
             return view('dashboard.principal', compact('pendingEvents', 'approvedEvents', 'totalConcerns', 'pendingConcerns', 'user', 'upcomingEventsList', 'pendingEventsList'));
         }
 
-        if ($user->role === 'faculty') {
+        // Faculty and other staff (maintenance, etc.) - faculty-style dashboard
+        if ($user->role === 'faculty' || $user->role === 'maintenance') {
             // All event requests for the carousel (most recent first, limit 10)
             $myEventRequests = EventRequest::where('user_id', $user->id)
                 ->where('faculty_deleted', false)
