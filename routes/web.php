@@ -333,6 +333,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/analytics/export', [AdminController::class, 'exportAnalytics'])->name('admin.analytics.export');
     Route::get('/admin/analytics/export-pdf', [AdminController::class, 'exportAnalyticsPDF'])->name('admin.analytics.export-pdf');
     Route::get('/admin/analytics/location-report-pdf', [AdminController::class, 'locationReportPDF'])->name('admin.analytics.location-report-pdf');
+    Route::get('/admin/analytics/location-detail-pdf', [AdminController::class, 'locationDetailPDF'])->name('admin.analytics.location-detail-pdf');
     Route::get('/admin/analytics/combined-location-pdf', [AdminController::class, 'combinedLocationPDF'])->name('admin.analytics.combined-location-pdf');
     Route::get('/admin/analytics/cost-report-pdf', [AdminController::class, 'costReportPDF'])->name('admin.analytics.cost-report-pdf');
     Route::get('/admin/analytics/status-report-pdf', [AdminController::class, 'statusReportPDF'])->name('admin.analytics.status-report-pdf');

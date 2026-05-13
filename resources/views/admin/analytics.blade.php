@@ -76,6 +76,48 @@
     font-size: 0.9rem !important;
 }
 
+/* Modal-specific table styles */
+.modal-compact-table {
+    width: 100% !important;
+    table-layout: fixed !important;
+    font-size: 0.75rem !important;
+    margin-bottom: 0 !important;
+}
+
+.modal-compact-table thead {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 10 !important;
+    background: #f8f9fa !important;
+}
+
+.modal-compact-table th {
+    padding: 8px 4px !important;
+    font-size: 0.7rem !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+    border-bottom: 2px solid #dee2e6 !important;
+}
+
+.modal-compact-table td {
+    padding: 6px 4px !important;
+    font-size: 0.7rem !important;
+    vertical-align: middle !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+.modal-compact-table tbody tr:hover {
+    background-color: #f8f9fa !important;
+}
+
+/* Remove table-responsive scroll for modal tables */
+.modal-table-wrapper {
+    overflow: visible !important;
+    max-height: none !important;
+}
+
 .swal2-popup .card {
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     border: none;
@@ -1746,10 +1788,8 @@
                                     label: function(context) {
                                         var value = context.parsed || 0;
                                         var total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                        var percentage = ((value / total) * 100).toFixed(1);
                                         return [
                                             'Count: ' + value + ' reports',
-                                            'Percentage: ' + percentage + '%',
                                             'Total Reports: ' + total
                                         ];
                                     }
@@ -2263,9 +2303,34 @@ function showLocationTicketsModal(location, totalCount, totalCost) {
             
             const avgCost = totalCount > 0 ? (totalCost / totalCount).toFixed(2) : '0.00';
             
+            // Export PDF function for location
+            window.exportLocationPDF = function() {
+                const url = new URL(window.location.href);
+                const dateFrom = url.searchParams.get('date_from');
+                const dateTo = url.searchParams.get('date_to');
+                
+                let pdfUrl = '{{ route("admin.analytics.location-detail-pdf") }}';
+                const params = new URLSearchParams();
+                
+                params.append('location', location);
+                if (dateFrom) params.append('date_from', dateFrom);
+                if (dateTo) params.append('date_to', dateTo);
+                
+                if (params.toString()) {
+                    pdfUrl += '?' + params.toString();
+                }
+                
+                window.open(pdfUrl, '_blank');
+            };
+            
             Swal.fire({
                 title: '<i class="fas fa-map-marker-alt me-2"></i>' + location,
                 html: '<div style="text-align: left;">' +
+                    '<div class="mb-3 d-flex justify-content-end">' +
+                        '<button onclick="exportLocationPDF()" class="btn btn-danger btn-sm">' +
+                            '<i class="fas fa-file-pdf me-1"></i>Export PDF' +
+                        '</button>' +
+                    '</div>' +
                     '<div class="row mb-4">' +
                         '<div class="col-4">' +
                             '<div class="card border-primary">' +
@@ -2519,20 +2584,20 @@ function showStatusDetailsModal() {
     const responseTimeData = @json($responseTimeStats);
     
     // Build response time table with timestamps and HH:MM:SS format
-    let responseTimeTable = '<div class="table-responsive mt-3"><table class="table table-sm table-hover" style="table-layout: fixed; width: 100%;"><thead class="table-light"><tr><th style="width: 140px;">Ticket / Issue</th><th style="width: 90px;">Location</th><th style="width: 130px;">Created</th><th style="width: 130px;">Assigned</th><th style="width: 130px;">Resolved</th><th style="width: 90px;">Submit to Assign</th><th style="width: 90px;">Assign to Resolve</th><th style="width: 70px;">Total</th><th style="width: 90px;">Staff</th></tr></thead><tbody>';
+    let responseTimeTable = '<div class="modal-table-wrapper mt-3"><table class="table table-sm table-hover modal-compact-table"><thead class="table-light"><tr><th style="width: 100px;">Ticket</th><th style="width: 70px;">Room</th><th style="width: 95px;">Created</th><th style="width: 95px;">Assigned</th><th style="width: 95px;">Resolved</th><th style="width: 65px;">Submit→Assign</th><th style="width: 65px;">Assign→Resolve</th><th style="width: 60px;">Total</th><th style="width: 80px;">Staff</th></tr></thead><tbody>';
     
     responseTimeData.forEach(function(item) {
         const ticketIssue = '#' + String(item.id).padStart(4, '0') + ' - ' + item.title;
         responseTimeTable += '<tr>' +
-            '<td style="font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="' + ticketIssue + '">' + ticketIssue + '</td>' +
-            '<td style="font-size: 0.8rem;">' + item.location + '</td>' +
-            '<td style="font-size: 0.7rem;">' + item.created_at + '</td>' +
-            '<td style="font-size: 0.7rem;">' + item.assigned_at + '</td>' +
-            '<td style="font-size: 0.7rem;">' + item.resolved_at + '</td>' +
-            '<td style="font-size: 0.8rem;">' + item.submitted_to_assigned_formatted + '</td>' +
-            '<td style="font-size: 0.8rem;">' + item.assigned_to_resolved_formatted + '</td>' +
-            '<td style="font-size: 0.85rem;"><strong>' + item.total_time_formatted + '</strong></td>' +
-            '<td style="font-size: 0.8rem;">' + item.assigned_to_name + '</td>' +
+            '<td title="' + ticketIssue + '">' + ticketIssue + '</td>' +
+            '<td title="' + item.location + '">' + item.location + '</td>' +
+            '<td>' + item.created_at + '</td>' +
+            '<td>' + item.assigned_at + '</td>' +
+            '<td>' + item.resolved_at + '</td>' +
+            '<td>' + item.submitted_to_assigned_formatted + '</td>' +
+            '<td>' + item.assigned_to_resolved_formatted + '</td>' +
+            '<td><strong>' + item.total_time_formatted + '</strong></td>' +
+            '<td title="' + item.assigned_to_name + '">' + item.assigned_to_name + '</td>' +
             '</tr>';
     });
     
