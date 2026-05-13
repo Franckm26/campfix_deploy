@@ -8,7 +8,8 @@
         "includeFiles": [
           "vendor/**",
           "storage/**",
-          "bootstrap/cache/**"
+          "bootstrap/cache/**",
+          "public/build/**"
         ]
       }
     }
