@@ -204,12 +204,12 @@
 
 .chart-container {
     position: relative;
-    height: 350px;
+    height: 280px;
     width: 100%;
 }
 
 .chart-container canvas {
-    max-height: 350px;
+    max-height: 280px;
 }
 
 .stat-value {
