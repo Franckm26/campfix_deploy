@@ -510,85 +510,109 @@ class AdminController extends Controller
      */
     public function assignReport(Request $request, $id)
     {
-        $report = Report::findOrFail($id);
+        try {
+            $report = Report::findOrFail($id);
 
-        // Check if user is building_admin, school_admin, academic_head, or mis
-        $user = auth()->user();
-        if (!in_array($user->role, ['building_admin', 'school_admin', 'academic_head', 'mis'])) {
-            if ($request->expectsJson()) {
-                return response()->json(['error' => 'You do not have permission to assign reports.'], 403);
-            }
-
-            return back()->with('error', 'You do not have permission to assign reports.');
-        }
-
-        // Determine if assigning to MIS or Maintenance based on category
-        $isTechnologyCategory = $report->category && strtolower(trim($report->category->name)) === 'technology/internet';
-        
-        if ($isTechnologyCategory) {
-            // Validate for MIS user (from users table)
-            $request->validate([
-                'assigned_to' => 'required|exists:users,id',
-                'notes'       => 'nullable|string|max:1000',
-            ]);
-            
-            // Get the MIS user
-            $assignedUser = User::findOrFail($request->input('assigned_to'));
-            
-            // Verify the user is actually MIS
-            if ($assignedUser->role !== 'mis') {
+            // Check if user is building_admin, school_admin, academic_head, or mis
+            $user = auth()->user();
+            if (!in_array($user->role, ['building_admin', 'school_admin', 'academic_head', 'mis'])) {
                 if ($request->expectsJson()) {
-                    return response()->json(['error' => 'Selected user is not a MIS staff member.'], 422);
+                    return response()->json(['error' => 'You do not have permission to assign reports.'], 403);
                 }
-                return back()->with('error', 'Selected user is not a MIS staff member.');
+
+                return back()->with('error', 'You do not have permission to assign reports.');
             }
+
+            // Determine if assigning to MIS or Maintenance based on category
+            $isTechnologyCategory = $report->category && strtolower(trim($report->category->name)) === 'technology/internet';
             
-            $assignedName = $assignedUser->name;
-        } else {
-            // Validate for Maintenance staff (from maintenance_staff table)
-            $request->validate([
-                'assigned_to' => 'required|exists:maintenance_staff,id',
-                'notes'       => 'nullable|string|max:1000',
+            if ($isTechnologyCategory) {
+                // Validate for MIS user (from users table)
+                $request->validate([
+                    'assigned_to' => 'required|exists:users,id',
+                    'notes'       => 'nullable|string|max:1000',
+                ]);
+                
+                // Get the MIS user
+                $assignedUser = User::findOrFail($request->input('assigned_to'));
+                
+                // Verify the user is actually MIS
+                if ($assignedUser->role !== 'mis') {
+                    if ($request->expectsJson()) {
+                        return response()->json(['error' => 'Selected user is not a MIS staff member.'], 422);
+                    }
+                    return back()->with('error', 'Selected user is not a MIS staff member.');
+                }
+                
+                $assignedName = $assignedUser->name;
+            } else {
+                // Validate for Maintenance staff (from maintenance_staff table)
+                $request->validate([
+                    'assigned_to' => 'required|exists:maintenance_staff,id',
+                    'notes'       => 'nullable|string|max:1000',
+                ]);
+                
+                // Get the maintenance staff member
+                $assignedUser = \App\Models\MaintenanceStaff::findOrFail($request->input('assigned_to'));
+                $assignedName = $assignedUser->name;
+            }
+
+            $oldAssignedTo = $report->assigned_to;
+
+            // Update the report - store id in assigned_to
+            $report->assigned_to = $request->input('assigned_to');
+            $report->assigned_at = now();
+            $report->status      = 'Assigned';
+            if ($request->filled('notes')) {
+                $report->notes = $request->input('notes');
+            }
+            $report->save();
+
+            // Sync the corresponding concern
+            $concern = $report->concern;
+            if ($concern && $concern->status === 'Pending') {
+                $concern->assigned_to = $request->input('assigned_to');
+                $concern->assigned_at = now();
+                $concern->status      = 'Assigned';
+                $concern->save();
+            }
+
+            // Log activity for report (wrapped in try-catch to prevent failure if ActivityLog has issues)
+            try {
+                ActivityLog::log(
+                    'report_assigned',
+                    "Report assigned to {$assignedName}",
+                    $report->id,
+                    'report'
+                );
+            } catch (\Exception $logException) {
+                // Log the error but don't fail the assignment
+                \Log::error('Failed to log activity: ' . $logException->getMessage());
+            }
+
+            if ($request->expectsJson()) {
+                return response()->json(['success' => true, 'message' => "Report assigned to {$assignedName} successfully!"]);
+            }
+
+            return back()->with('success', "Report assigned to {$assignedName} successfully!");
+            
+        } catch (\Exception $e) {
+            // Log the full error for debugging
+            \Log::error('Error in assignReport: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'report_id' => $id,
+                'user_id' => auth()->id()
             ]);
             
-            // Get the maintenance staff member
-            $assignedUser = \App\Models\MaintenanceStaff::findOrFail($request->input('assigned_to'));
-            $assignedName = $assignedUser->name;
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Failed to assign report: ' . $e->getMessage()
+                ], 500);
+            }
+            
+            return back()->with('error', 'Failed to assign report. Please try again.');
         }
-
-        $oldAssignedTo = $report->assigned_to;
-
-        // Update the report - store id in assigned_to
-        $report->assigned_to = $request->input('assigned_to');
-        $report->assigned_at = now();
-        $report->status      = 'Assigned';
-        if ($request->filled('notes')) {
-            $report->notes = $request->input('notes');
-        }
-        $report->save();
-
-        // Sync the corresponding concern
-        $concern = $report->concern;
-        if ($concern && $concern->status === 'Pending') {
-            $concern->assigned_to = $request->input('assigned_to');
-            $concern->assigned_at = now();
-            $concern->status      = 'Assigned';
-            $concern->save();
-        }
-
-        // Log activity for report
-        ActivityLog::log(
-            'report_assigned',
-            "Report assigned to {$assignedName}",
-            $report->id,
-            'report'
-        );
-
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => "Report assigned to {$assignedName} successfully!"]);
-        }
-
-        return back()->with('success', "Report assigned to {$assignedName} successfully!");
     }
 
     /**
