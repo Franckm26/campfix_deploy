@@ -468,9 +468,9 @@ class AdminController extends Controller
 
         $concern = Concern::findOrFail($id);
 
-        // Check if user is building_admin only
+        // Check if user is building_admin, school_admin, academic_head, or mis
         $user = auth()->user();
-        if ($user->role !== 'building_admin') {
+        if (!in_array($user->role, ['building_admin', 'school_admin', 'academic_head', 'mis'])) {
             if ($request->expectsJson()) {
                 return response()->json(['error' => 'You do not have permission to assign concerns.'], 403);
             }
@@ -510,16 +510,11 @@ class AdminController extends Controller
      */
     public function assignReport(Request $request, $id)
     {
-        $request->validate([
-            'assigned_to' => 'required|exists:maintenance_staff,id',
-            'notes'       => 'nullable|string|max:1000',
-        ]);
-
         $report = Report::findOrFail($id);
 
-        // Check if user is building_admin only
+        // Check if user is building_admin, school_admin, academic_head, or mis
         $user = auth()->user();
-        if ($user->role !== 'building_admin') {
+        if (!in_array($user->role, ['building_admin', 'school_admin', 'academic_head', 'mis'])) {
             if ($request->expectsJson()) {
                 return response()->json(['error' => 'You do not have permission to assign reports.'], 403);
             }
@@ -527,12 +522,43 @@ class AdminController extends Controller
             return back()->with('error', 'You do not have permission to assign reports.');
         }
 
-        // Get the maintenance staff member
-        $maintenanceStaff = \App\Models\MaintenanceStaff::findOrFail($request->input('assigned_to'));
+        // Determine if assigning to MIS or Maintenance based on category
+        $isTechnologyCategory = $report->category && strtolower(trim($report->category->name)) === 'technology/internet';
+        
+        if ($isTechnologyCategory) {
+            // Validate for MIS user (from users table)
+            $request->validate([
+                'assigned_to' => 'required|exists:users,id',
+                'notes'       => 'nullable|string|max:1000',
+            ]);
+            
+            // Get the MIS user
+            $assignedUser = User::findOrFail($request->input('assigned_to'));
+            
+            // Verify the user is actually MIS
+            if ($assignedUser->role !== 'mis') {
+                if ($request->expectsJson()) {
+                    return response()->json(['error' => 'Selected user is not a MIS staff member.'], 422);
+                }
+                return back()->with('error', 'Selected user is not a MIS staff member.');
+            }
+            
+            $assignedName = $assignedUser->name;
+        } else {
+            // Validate for Maintenance staff (from maintenance_staff table)
+            $request->validate([
+                'assigned_to' => 'required|exists:maintenance_staff,id',
+                'notes'       => 'nullable|string|max:1000',
+            ]);
+            
+            // Get the maintenance staff member
+            $assignedUser = \App\Models\MaintenanceStaff::findOrFail($request->input('assigned_to'));
+            $assignedName = $assignedUser->name;
+        }
 
         $oldAssignedTo = $report->assigned_to;
 
-        // Update the report - store maintenance_staff id in assigned_to
+        // Update the report - store id in assigned_to
         $report->assigned_to = $request->input('assigned_to');
         $report->assigned_at = now();
         $report->status      = 'Assigned';
@@ -553,16 +579,16 @@ class AdminController extends Controller
         // Log activity for report
         ActivityLog::log(
             'report_assigned',
-            "Report assigned to {$maintenanceStaff->name}",
+            "Report assigned to {$assignedName}",
             $report->id,
             'report'
         );
 
         if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => "Report assigned to {$maintenanceStaff->name} successfully!"]);
+            return response()->json(['success' => true, 'message' => "Report assigned to {$assignedName} successfully!"]);
         }
 
-        return back()->with('success', "Report assigned to {$maintenanceStaff->name} successfully!");
+        return back()->with('success', "Report assigned to {$assignedName} successfully!");
     }
 
     /**
@@ -570,7 +596,7 @@ class AdminController extends Controller
      */
     public function setReportPriority(Request $request, $id)
     {
-        $request->validate(['priority' => 'required|in:low,medium,high,urgent']);
+        $request->validate(['priority' => 'required|in:low,medium,high,urgent,safety_hazard']);
 
         $report = Report::findOrFail($id);
 
@@ -578,13 +604,26 @@ class AdminController extends Controller
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
-        // Reports use severity field — store urgent as urgent (not critical)
-        $report->severity = $request->priority; // low, medium, high, urgent
+        // Handle safety_hazard: set severity to urgent and flag as safety hazard
+        if ($request->priority === 'safety_hazard') {
+            $report->severity = 'urgent'; // Set as urgent
+            $report->is_safety_hazard = true; // Flag as safety hazard
+        } else {
+            $report->severity = $request->priority; // low, medium, high, urgent
+            $report->is_safety_hazard = false; // Not a safety hazard
+        }
+        
         $report->save();
 
         // Sync to linked concern
         if ($report->concern) {
-            $report->concern->priority = $request->priority;
+            if ($request->priority === 'safety_hazard') {
+                $report->concern->priority = 'urgent';
+                $report->concern->is_safety_hazard = true;
+            } else {
+                $report->concern->priority = $request->priority;
+                $report->concern->is_safety_hazard = false;
+            }
             $report->concern->save();
         }
 
@@ -593,7 +632,7 @@ class AdminController extends Controller
 
     public function setConcernPriority(Request $request, $id)
     {
-        $request->validate(['priority' => 'required|in:low,medium,high,urgent']);
+        $request->validate(['priority' => 'required|in:low,medium,high,urgent,safety_hazard']);
 
         $concern = Concern::findOrFail($id);
 
@@ -601,7 +640,15 @@ class AdminController extends Controller
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
-        $concern->priority = $request->priority;
+        // Handle safety_hazard: set priority to urgent and flag as safety hazard
+        if ($request->priority === 'safety_hazard') {
+            $concern->priority = 'urgent';
+            $concern->is_safety_hazard = true;
+        } else {
+            $concern->priority = $request->priority;
+            $concern->is_safety_hazard = false;
+        }
+        
         $concern->save();
 
         return response()->json(['success' => true, 'priority' => $request->priority]);
@@ -4603,19 +4650,21 @@ class AdminController extends Controller
             }
         }
         
-        $monthlyStats = $monthlyQuery->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month")
-            ->selectRaw("COALESCE(NULLIF(title, ''), LEFT(description, 50)) as title")
-            ->selectRaw('status')
+        $monthlyStats = $monthlyQuery->selectRaw("TO_CHAR(reports.created_at, 'YYYY-MM') as month")
+            ->selectRaw("COALESCE(NULLIF(reports.title, ''), LEFT(reports.description, 50)) as title")
+            ->selectRaw('reports.status')
             ->selectRaw('COUNT(*) as count')
-            ->groupByRaw("month, COALESCE(NULLIF(title, ''), LEFT(description, 50)), status")
+            ->selectRaw("STRING_AGG(CAST(reports.id AS TEXT), ',' ORDER BY reports.id) as ticket_ids")
+            ->selectRaw("STRING_AGG(COALESCE(NULLIF(reports.damaged_part, ''), 'N/A'), '|' ORDER BY reports.id) as damaged_parts")
+            ->groupByRaw("month, COALESCE(NULLIF(reports.title, ''), LEFT(reports.description, 50)), reports.status")
             ->orderBy('month')
             ->get();
 
         // Monthly cost data for period comparison chart
         $monthlyCostQuery = clone $monthlyQuery;
-        $monthlyCostData = $monthlyCostQuery->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month")
+        $monthlyCostData = $monthlyCostQuery->selectRaw("TO_CHAR(reports.created_at, 'YYYY-MM') as month")
             ->selectRaw('COUNT(*) as count')
-            ->selectRaw('SUM(COALESCE(cost, 0)) as total_cost')
+            ->selectRaw('SUM(COALESCE(reports.cost, 0)) as total_cost')
             ->groupBy('month')
             ->orderBy('month')
             ->get();
@@ -4649,7 +4698,7 @@ class AdminController extends Controller
                 ->where('title', $issue)
                 ->where('status', 'Resolved')
                 ->where('created_at', '>=', now()->subMonths(12))
-                ->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month, COUNT(*) as count, SUM(cost) as cost")
+                ->selectRaw("TO_CHAR(reports.created_at, 'YYYY-MM') as month, COUNT(*) as count, SUM(reports.cost) as cost")
                 ->groupBy('month')
                 ->orderBy('month', 'desc')
                 ->get()
@@ -4797,7 +4846,7 @@ class AdminController extends Controller
                 ->where('title', $issue)
                 ->where('status', 'Resolved')
                 ->where('created_at', '>=', now()->subMonths(12))
-                ->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month, COUNT(*) as count, SUM(cost) as cost")
+                ->selectRaw("TO_CHAR(reports.created_at, 'YYYY-MM') as month, COUNT(*) as count, SUM(reports.cost) as cost")
                 ->groupBy('month')
                 ->orderBy('month', 'desc')
                 ->get()
@@ -5485,7 +5534,7 @@ class AdminController extends Controller
     public function trendReportPDF(Request $request)
     {
         try {
-            $baseQuery = Report::where('status', 'Resolved');
+            $baseQuery = Report::query();
 
             // Apply filters based on period selection
             $period = $request->input('period');
@@ -5529,22 +5578,35 @@ class AdminController extends Controller
             } elseif ($period === 'yearly' && $request->filled('year')) {
                 $baseQuery->whereYear('created_at', $request->input('year'));
             } else {
+                // Default to last 6 months if no specific filters
+                if (!$request->filled('month') && !$request->filled('year') && !$request->filled('date_from') && !$request->filled('date_to')) {
+                    $baseQuery->where('created_at', '>=', now()->subMonths(6));
+                }
                 if ($request->filled('month')) {
                     $baseQuery->whereMonth('created_at', $request->input('month'));
                 }
                 if ($request->filled('year')) {
                     $baseQuery->whereYear('created_at', $request->input('year'));
                 }
+                if ($request->filled('date_from')) {
+                    $baseQuery->whereDate('created_at', '>=', $request->input('date_from'));
+                }
+                if ($request->filled('date_to')) {
+                    $baseQuery->whereDate('created_at', '<=', $request->input('date_to'));
+                }
             }
 
-            // Get monthly trend data (last 6 months)
+            // Get monthly trend data with status breakdown
             $monthlyData = (clone $baseQuery)
-                ->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month")
-                ->selectRaw('title')
+                ->selectRaw("TO_CHAR(reports.created_at, 'YYYY-MM') as month")
+                ->selectRaw("COALESCE(NULLIF(reports.title, ''), LEFT(reports.description, 50)) as title")
+                ->selectRaw('reports.status')
                 ->selectRaw('COUNT(*) as count')
+                ->selectRaw("STRING_AGG(CAST(reports.id AS TEXT), ',' ORDER BY reports.id) as ticket_ids")
+                ->selectRaw("STRING_AGG(COALESCE(NULLIF(reports.damaged_part, ''), 'N/A'), '|' ORDER BY reports.id) as damaged_parts")
                 ->whereNotNull('title')
                 ->where('title', '!=', '')
-                ->groupBy('month', 'title')
+                ->groupByRaw("month, COALESCE(NULLIF(reports.title, ''), LEFT(reports.description, 50)), reports.status")
                 ->orderBy('month')
                 ->get();
 
@@ -5557,13 +5619,33 @@ class AdminController extends Controller
                 $monthLabels[$key] = ['label' => $label, 'issues' => []];
             }
 
-            // Group data by month
+            // Group data by month with status breakdown
             foreach ($monthlyData as $item) {
                 if (isset($monthLabels[$item->month])) {
                     if (!isset($monthLabels[$item->month]['issues'][$item->title])) {
-                        $monthLabels[$item->month]['issues'][$item->title] = 0;
+                        $monthLabels[$item->month]['issues'][$item->title] = [
+                            'total' => 0,
+                            'Pending' => ['count' => 0, 'tickets' => []],
+                            'Assigned' => ['count' => 0, 'tickets' => []],
+                            'In Progress' => ['count' => 0, 'tickets' => []],
+                            'Resolved' => ['count' => 0, 'tickets' => []]
+                        ];
                     }
-                    $monthLabels[$item->month]['issues'][$item->title] += $item->count;
+                    
+                    $count = (int) $item->count;
+                    $ticketIds = $item->ticket_ids ? explode(',', $item->ticket_ids) : [];
+                    $damagedParts = $item->damaged_parts ? explode('|', $item->damaged_parts) : [];
+                    
+                    $monthLabels[$item->month]['issues'][$item->title]['total'] += $count;
+                    $monthLabels[$item->month]['issues'][$item->title][$item->status]['count'] += $count;
+                    
+                    // Store ticket info
+                    foreach ($ticketIds as $idx => $ticketId) {
+                        $monthLabels[$item->month]['issues'][$item->title][$item->status]['tickets'][] = [
+                            'id' => $ticketId,
+                            'damaged_part' => $damagedParts[$idx] ?? 'N/A'
+                        ];
+                    }
                 }
             }
 
@@ -5575,7 +5657,10 @@ class AdminController extends Controller
             $totalCount = 0;
 
             foreach ($monthLabels as $key => $data) {
-                $monthTotal = array_sum($data['issues']);
+                $monthTotal = 0;
+                foreach ($data['issues'] as $issue => $statusData) {
+                    $monthTotal += $statusData['total'];
+                }
                 $totalCount += $monthTotal;
                 
                 if ($monthTotal > $peakCount) {
@@ -5600,22 +5685,24 @@ class AdminController extends Controller
                         'rowspan' => 1,
                         'month_label' => $data['label'],
                         'issue_type' => null,
-                        'count' => 0,
-                        'trend' => ''
+                        'total' => 0,
+                        'resolved' => [],
+                        'in_progress' => [],
+                        'pending' => []
                     ];
                 } else {
                     $isFirst = true;
                     $rowspan = count($data['issues']);
-                    foreach ($data['issues'] as $issue => $count) {
-                        $trend = $count > 5 ? 'High' : ($count > 2 ? 'Medium' : 'Low');
-                        
+                    foreach ($data['issues'] as $issue => $statusData) {
                         $trendData[] = [
                             'is_first_row' => $isFirst,
                             'rowspan' => $rowspan,
                             'month_label' => $data['label'],
                             'issue_type' => $issue,
-                            'count' => $count,
-                            'trend' => $trend
+                            'total' => $statusData['total'],
+                            'resolved' => $statusData['Resolved']['tickets'] ?? [],
+                            'in_progress' => $statusData['In Progress']['tickets'] ?? [],
+                            'pending' => $statusData['Pending']['tickets'] ?? []
                         ];
                         $isFirst = false;
                     }
@@ -5680,9 +5767,9 @@ class AdminController extends Controller
 
             // Get monthly cost data
             $monthlyCostData = (clone $baseQuery)
-                ->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month")
+                ->selectRaw("TO_CHAR(reports.created_at, 'YYYY-MM') as month")
                 ->selectRaw('COUNT(*) as count')
-                ->selectRaw('SUM(COALESCE(cost, 0)) as total_cost')
+                ->selectRaw('SUM(COALESCE(reports.cost, 0)) as total_cost')
                 ->groupBy('month')
                 ->orderBy('month')
                 ->get();
@@ -6279,7 +6366,7 @@ class AdminController extends Controller
                 ->where('title', $issue)
                 ->where('status', 'Resolved')
                 ->where('created_at', '>=', now()->subMonths(12))
-                ->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month, COUNT(*) as count, SUM(cost) as cost")
+                ->selectRaw("TO_CHAR(reports.created_at, 'YYYY-MM') as month, COUNT(*) as count, SUM(reports.cost) as cost")
                 ->groupBy('month')
                 ->orderBy('month', 'desc')
                 ->get()
