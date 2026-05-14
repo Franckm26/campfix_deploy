@@ -4087,16 +4087,26 @@ class AdminController extends Controller
                             'created_at' => $ticket->created_at,
                         ];
                     });
-                
+
+                // Get distinct damage parts from the tickets
+                $damageParts = collect($tickets)->pluck('damaged_part')
+                    ->filter(function($part) {
+                        return $part !== null && $part !== '';
+                    })
+                    ->unique()
+                    ->sort()
+                    ->values();
+
                 \Log::info('Returning tickets', [
                     'count' => $tickets->count(),
                     'tickets' => $tickets->toArray()
                 ]);
-                
+
                 return response()->json([
                     'success' => true,
                     'tickets' => $tickets,
-                    'count' => $tickets->count()
+                    'count' => $tickets->count(),
+                    'damage_parts' => $damageParts
                 ]);
             }
             
@@ -4252,6 +4262,57 @@ class AdminController extends Controller
                     'total_cost' => $stat->total_cost ?? 0,
                 ];
             });
+
+        // Store full list for reference
+        $combinedLocationStatsAll = $combinedLocationStats;
+
+        // Paginate combined location stats (10 per page)
+        $perPageLocation = 10;
+        $currentPageLocation = (int) request()->input('location_page', 1);
+        $totalLocations = $combinedLocationStatsAll->count();
+        $offsetLocation = ($currentPageLocation - 1) * $perPageLocation;
+        $paginatedLocationStats = $combinedLocationStatsAll->slice($offsetLocation, $perPageLocation);
+        $combinedLocationStats = new \Illuminate\Pagination\LengthAwarePaginator(
+            $paginatedLocationStats,
+            $totalLocations,
+            $perPageLocation,
+            $currentPageLocation,
+            ['path' => request()->url(), 'pageName' => 'location_page']
+        );
+
+        // Handle AJAX request for location pagination
+        if ($request->input('ajax') === 'locations') {
+            $locationsHtml = '';
+            foreach ($paginatedLocationStats as $stat) {
+                $avgCost = $stat['total_count'] > 0 ? $stat['total_cost'] / $stat['total_count'] : 0;
+                $location = addslashes($stat['location']);
+                $locationsHtml .= '<tr style="cursor: pointer; transition: all 0.2s;" 
+                    data-location="' . htmlspecialchars($stat['location']) . '"
+                    onclick="showLocationTicketsModal(\'' . $location . '\', ' . $stat['total_count'] . ', ' . $stat['total_cost'] . ')"
+                    onmouseover="this.style.backgroundColor=\'#f0f4ff\'"
+                    onmouseout="this.style.backgroundColor=\'\'">
+                    <td><strong>' . htmlspecialchars($stat['location']) . '</strong></td>
+                    <td><span class="count-badge">' . $stat['total_count'] . '</span></td>
+                    <td><span class="cost-badge">₱' . number_format($stat['total_cost'], 2) . '</span></td>
+                    <td>₱' . number_format($avgCost, 2) . '</td>
+                </tr>';
+            }
+            
+            if (empty($locationsHtml)) {
+                $locationsHtml = '<tr><td colspan="4" class="text-center">No data found</td></tr>';
+            }
+            
+            $paginationHtml = $combinedLocationStats->appends(request()->except('location_page'))->links('pagination::bootstrap-4')->render();
+            $showingText = 'Showing ' . ($combinedLocationStats->firstItem() ?? 0) . ' – ' . ($combinedLocationStats->lastItem() ?? 0) . ' of ' . $combinedLocationStats->total() . ' locations';
+            
+            return response()->json([
+                'success' => true,
+                'locations_html' => $locationsHtml,
+                'pagination_html' => $paginationHtml,
+                'showing_text' => $showingText,
+                'has_pages' => $combinedLocationStats->hasPages()
+            ]);
+        }
 
         // Reports with details
         $reports = (clone $baseQuery)
@@ -4626,6 +4687,139 @@ class AdminController extends Controller
         }
         $trendAlerts = $trendAlerts->sortByDesc('recent')->values();
 
+        // Paginate trend alerts (10 per page)
+        $perPage = 10;
+        $currentPage = request('alerts_page', 1);
+        $total = $trendAlerts->count();
+        $offset = ($currentPage - 1) * $perPage;
+        $paginatedAlerts = $trendAlerts->slice($offset, $perPage);
+        $trendAlerts = new \Illuminate\Pagination\LengthAwarePaginator(
+            $paginatedAlerts,
+            $total,
+            $perPage,
+            $currentPage,
+            ['path' => request()->url(), 'pageName' => 'alerts_page']
+        );
+
+        // Handle AJAX request for alerts pagination
+        if ($request->input('ajax') === 'alerts') {
+            $alertsHtml = '';
+            foreach ($paginatedAlerts as $alert) {
+                $borderColor = $alert['severity'] === 'critical' ? '#ef4444' : ($alert['severity'] === 'warning' ? '#f97316' : '#f59e0b');
+                $bgColor = $alert['severity'] === 'critical' ? '#fef2f2' : ($alert['severity'] === 'warning' ? '#fff7ed' : '#fffbeb');
+                $iconColor = $alert['severity'] === 'critical' ? '#ef4444' : ($alert['severity'] === 'warning' ? '#f97316' : '#f59e0b');
+                $timeAgo = isset($alert['updated_at']) && $alert['updated_at'] ? \Carbon\Carbon::parse($alert['updated_at'])->diffForHumans(null, true, true) : 'recently';
+                $alertJson = htmlspecialchars(json_encode($alert), ENT_QUOTES, 'UTF-8');
+                
+                $alertsHtml .= '<div style="display:flex;align-items:center;gap:14px;padding:14px 16px;border-left:4px solid ' . $borderColor . ';background:' . $bgColor . ';border-radius:8px;margin-bottom:10px;cursor:pointer;" onclick="showCostTrendModal(' . $alertJson . ')">';
+                $alertsHtml .= '<div style="width:36px;height:36px;border-radius:50%;background:' . $iconColor . ';display:flex;align-items:center;justify-content:center;flex-shrink:0;">';
+                $alertsHtml .= '<i class="fas fa-triangle-exclamation" style="color:#fff;font-size:15px;"></i>';
+                $alertsHtml .= '</div>';
+                $alertsHtml .= '<div style="flex:1;">';
+                $alertsHtml .= '<div style="font-weight:700;font-size:.95rem;color:#1e293b;">' . htmlspecialchars($alert['alert_title'] ?? 'Trend Detected') . '</div>';
+                $alertsHtml .= '<div style="font-size:.82rem;color:#64748b;">';
+                if (!empty($alert['top_issue'])) {
+                    $alertsHtml .= htmlspecialchars($alert['top_issue']) . ' on ' . htmlspecialchars($alert['location']);
+                } else {
+                    $alertsHtml .= htmlspecialchars($alert['location']);
+                }
+                $alertsHtml .= '</div>';
+                $alertsHtml .= '</div>';
+                $alertsHtml .= '<div style="font-size:.78rem;color:#94a3b8;white-space:nowrap;">' . $timeAgo . '</div>';
+                $alertsHtml .= '</div>';
+            }
+            
+            if (empty($alertsHtml)) {
+                $alertsHtml = '<div class="text-center py-4 text-muted">No alerts found</div>';
+            }
+            
+            $paginationHtml = $trendAlerts->appends(request()->except('alerts_page'))->links('pagination::bootstrap-4')->render();
+            $showingText = 'Showing ' . ($trendAlerts->firstItem() ?? 0) . ' – ' . ($trendAlerts->lastItem() ?? 0) . ' of ' . $trendAlerts->total() . ' alerts';
+            
+            return response()->json([
+                'success' => true,
+                'alerts_html' => $alertsHtml,
+                'pagination_html' => $paginationHtml,
+                'showing_text' => $showingText,
+                'total_count' => $trendAlerts->total(),
+                'has_pages' => $trendAlerts->hasPages()
+            ]);
+        }
+
+        // Handle AJAX request for detailed alert data (damaged parts breakdown)
+        if ($request->input('ajax') === 'alert_detail') {
+            $location = $request->input('location');
+            $issue = $request->input('issue');
+            
+            if (!$location || !$issue) {
+                return response()->json(['success' => false, 'message' => 'Missing location or issue parameter']);
+            }
+            
+            // Get all resolved reports for this location and issue
+            $reports = Report::where('location', $location)
+                ->where('title', $issue)
+                ->where('status', 'Resolved')
+                ->whereNotNull('resolved_at')
+                ->orderBy('resolved_at', 'desc')
+                ->get();
+            
+            // Group by damaged_part
+            $partBreakdown = [];
+            foreach ($reports as $report) {
+                $part = $report->damaged_part ?: 'Not Specified';
+                
+                if (!isset($partBreakdown[$part])) {
+                    $partBreakdown[$part] = [
+                        'part_name' => $part,
+                        'count' => 0,
+                        'total_cost' => 0,
+                        'tickets' => []
+                    ];
+                }
+                
+                $partBreakdown[$part]['count']++;
+                $partBreakdown[$part]['total_cost'] += $report->cost ?? 0;
+                $partBreakdown[$part]['tickets'][] = [
+                    'ticket_number' => '#' . str_pad($report->id, 4, '0', STR_PAD_LEFT),
+                    'cost' => $report->cost ?? 0,
+                    'date_fixed' => $report->resolved_at ? $report->resolved_at->format('M d, Y h:i A') : 'N/A',
+                    'description' => $report->description ? substr($report->description, 0, 100) : 'N/A'
+                ];
+            }
+            
+            // Sort by count descending
+            usort($partBreakdown, function($a, $b) {
+                return $b['count'] - $a['count'];
+            });
+            
+            // Get monthly breakdown
+            $monthlyCosts = Report::where('location', $location)
+                ->where('title', $issue)
+                ->where('status', 'Resolved')
+                ->where('created_at', '>=', now()->subMonths(12))
+                ->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month, COUNT(*) as count, SUM(cost) as cost")
+                ->groupBy('month')
+                ->orderBy('month', 'desc')
+                ->get()
+                ->map(function($row) {
+                    return [
+                        'month' => \Carbon\Carbon::parse($row->month . '-01')->format('M Y'),
+                        'count' => $row->count,
+                        'cost' => $row->cost ?? 0
+                    ];
+                });
+            
+            return response()->json([
+                'success' => true,
+                'location' => $location,
+                'issue' => $issue,
+                'part_breakdown' => array_values($partBreakdown),
+                'monthly_costs' => $monthlyCosts,
+                'total_repairs' => $reports->count(),
+                'total_cost' => $reports->sum('cost')
+            ]);
+        }
+
         // ========== ADVANCED ANALYTICS (Calculate before AJAX response) ==========
         
         try {
@@ -4691,63 +4885,6 @@ class AdminController extends Controller
             ]);
         }
 
-        try {
-            // 3. Staff Performance Metrics
-            $staffPerformance = Report::with('assignedTo')
-                ->whereNotNull('assigned_to')
-                ->whereNotNull('resolved_at')
-                ->where('is_deleted', false)
-                ->when($request->filled('date_from'), fn($q) => $q->whereDate('created_at', '>=', $request->input('date_from')))
-                ->when($request->filled('date_to'), fn($q) => $q->whereDate('created_at', '<=', $request->input('date_to')))
-                ->get()
-                ->groupBy('assigned_to')
-                ->map(function($group) {
-                    $staff = $group->first()->assignedTo;
-                    $avgResolutionTime = $group->map(function($report) {
-                        return $report->assigned_at && $report->resolved_at 
-                            ? $report->assigned_at->diffInHours($report->resolved_at) 
-                            : 0;
-                    })->avg();
-
-                    return [
-                        'staff_id' => $staff ? $staff->id : null,
-                        'staff_name' => $staff ? $staff->name : 'Unknown',
-                        'tickets_resolved' => $group->count(),
-                        'total_cost' => $group->sum('cost') ?? 0,
-                        'avg_resolution_time' => round($avgResolutionTime, 1),
-                    ];
-                })
-                ->sortByDesc('tickets_resolved')
-                ->values();
-        } catch (\Exception $e) {
-            \Log::error('Staff Performance Analysis Error: ' . $e->getMessage());
-            $staffPerformance = collect();
-        }
-
-        try {
-            // 4. Cost Trend Analysis (Last 6 Months)
-            $costTrendData = Report::whereNotNull('resolved_at')
-                ->where('is_deleted', false)
-                ->where('resolved_at', '>=', now()->subMonths(6))
-                ->get()
-                ->groupBy(function($report) {
-                    return $report->resolved_at->format('Y-m');
-                })
-                ->map(function($group, $month) {
-                    return [
-                        'month' => \Carbon\Carbon::parse($month . '-01')->format('M Y'),
-                        'count' => $group->count(),
-                        'total_cost' => $group->sum('cost') ?? 0,
-                        'avg_cost' => $group->avg('cost') ?? 0,
-                    ];
-                })
-                ->sortKeys()
-                ->values();
-        } catch (\Exception $e) {
-            \Log::error('Cost Trend Analysis Error: ' . $e->getMessage());
-            $costTrendData = collect();
-        }
-
         return view('admin.analytics', compact(
             'totalConcerns',
             'totalCost',
@@ -4764,14 +4901,11 @@ class AdminController extends Controller
             'monthlyStats',
             'monthlyCostData',
             'trendAlerts',
-            // New Advanced Analytics
             'responseTimeStats',
             'avgSubmittedToAssigned',
             'avgAssignedToResolved',
             'avgTotalTime',
-            'costByCategory',
-            'staffPerformance',
-            'costTrendData'
+            'costByCategory'
         ));
     }
 
@@ -5978,6 +6112,92 @@ class AdminController extends Controller
                 $dateRange .= ' | Room: ' . $request->input('room_filter');
             }
 
+            // 6. Trend Alerts with Damaged Parts Breakdown
+            $trendAlertsData = collect();
+            $locationIssues = Report::whereNotNull('location')
+                ->where('location', '!=', '')
+                ->whereNotNull('title')
+                ->where('title', '!=', '')
+                ->when($request->filled('room_filter'), fn($q) => $q->where('location', $request->input('room_filter')))
+                ->when($request->filled('date_from'), fn($q) => $q->whereDate('created_at', '>=', $request->input('date_from')))
+                ->when($request->filled('date_to'), fn($q) => $q->whereDate('created_at', '<=', $request->input('date_to')))
+                ->select('location', 'title')
+                ->distinct()
+                ->get();
+
+            foreach ($locationIssues as $li) {
+                $loc = $li->location;
+                $issue = $li->title;
+                
+                // Get recent count for severity
+                $recent = Report::where('location', $loc)
+                    ->where('title', $issue)
+                    ->where('created_at', '>=', now()->subMonths(3))
+                    ->count();
+                
+                if ($recent < 1) continue;
+                
+                // Determine severity
+                $severity = $recent >= 3 ? 'critical' : ($recent >= 2 ? 'warning' : 'info');
+                $alertTitle = $severity === 'critical' ? 'High Frequency Issue' : ($severity === 'warning' ? 'Recurring Issue' : 'Issue Detected');
+                
+                // Get all resolved reports for this location and issue
+                $reports = Report::where('location', $loc)
+                    ->where('title', $issue)
+                    ->where('status', 'Resolved')
+                    ->whereNotNull('resolved_at')
+                    ->when($request->filled('date_from'), fn($q) => $q->whereDate('created_at', '>=', $request->input('date_from')))
+                    ->when($request->filled('date_to'), fn($q) => $q->whereDate('created_at', '<=', $request->input('date_to')))
+                    ->orderBy('resolved_at', 'desc')
+                    ->get();
+                
+                // Group by damaged_part
+                $partBreakdown = [];
+                foreach ($reports as $report) {
+                    $part = $report->damaged_part ?: 'Not Specified';
+                    
+                    if (!isset($partBreakdown[$part])) {
+                        $partBreakdown[$part] = [
+                            'part_name' => $part,
+                            'count' => 0,
+                            'total_cost' => 0,
+                            'tickets' => []
+                        ];
+                    }
+                    
+                    $partBreakdown[$part]['count']++;
+                    $partBreakdown[$part]['total_cost'] += $report->cost ?? 0;
+                    $partBreakdown[$part]['tickets'][] = [
+                        'ticket_number' => '#' . str_pad($report->id, 4, '0', STR_PAD_LEFT),
+                        'cost' => $report->cost ?? 0,
+                        'date_fixed' => $report->resolved_at ? $report->resolved_at->format('M d, Y h:i A') : 'N/A'
+                    ];
+                }
+                
+                // Sort by count descending
+                usort($partBreakdown, function($a, $b) {
+                    return $b['count'] - $a['count'];
+                });
+                
+                $totalRepairs = $reports->count();
+                $totalCost = $reports->sum('cost');
+                
+                $trendAlertsData->push([
+                    'location' => $loc,
+                    'issue' => $issue,
+                    'severity' => $severity,
+                    'alert_title' => $alertTitle,
+                    'total_repairs' => $totalRepairs,
+                    'total_cost' => $totalCost,
+                    'avg_cost_per_repair' => $totalRepairs > 0 ? $totalCost / $totalRepairs : 0,
+                    'part_breakdown' => $partBreakdown,
+                    'recent_count' => $recent
+                ]);
+            }
+            
+            // Sort by recent count descending and take top 10
+            $trendAlertsData = $trendAlertsData->sortByDesc('recent_count')->take(10)->values();
+
             $pdf = \PDF::loadView('admin.analytics-comprehensive-pdf', compact(
                 'totalConcerns',
                 'totalCost',
@@ -5995,12 +6215,118 @@ class AdminController extends Controller
                 'avgAssignedToResolved',
                 'avgTotalTime',
                 'responseTimeDetails',
-                'dateRange'
+                'dateRange',
+                'trendAlertsData'
             ));
 
             return $pdf->stream('comprehensive-analytics-' . now()->format('Y-m-d') . '.pdf');
         } catch (\Exception $e) {
             \Log::error('Comprehensive Analytics PDF Generation Error: ' . $e->getMessage());
+            return back()->with('error', 'Failed to generate PDF: ' . $e->getMessage());
+        }
+    }
+
+    // Export Alert Detail to PDF
+    public function alertDetailPDF(Request $request)
+    {
+        try {
+            $location = $request->input('location');
+            $issue = $request->input('issue');
+            
+            if (!$location || !$issue) {
+                return back()->with('error', 'Missing location or issue parameter');
+            }
+            
+            // Get all resolved reports for this location and issue
+            $reports = Report::where('location', $location)
+                ->where('title', $issue)
+                ->where('status', 'Resolved')
+                ->whereNotNull('resolved_at')
+                ->orderBy('resolved_at', 'desc')
+                ->get();
+            
+            // Group by damaged_part
+            $partBreakdown = [];
+            foreach ($reports as $report) {
+                $part = $report->damaged_part ?: 'Not Specified';
+                
+                if (!isset($partBreakdown[$part])) {
+                    $partBreakdown[$part] = [
+                        'part_name' => $part,
+                        'count' => 0,
+                        'total_cost' => 0,
+                        'tickets' => []
+                    ];
+                }
+                
+                $partBreakdown[$part]['count']++;
+                $partBreakdown[$part]['total_cost'] += $report->cost ?? 0;
+                $partBreakdown[$part]['tickets'][] = [
+                    'ticket_number' => '#' . str_pad($report->id, 4, '0', STR_PAD_LEFT),
+                    'cost' => $report->cost ?? 0,
+                    'date_fixed' => $report->resolved_at ? $report->resolved_at->format('M d, Y h:i A') : 'N/A',
+                    'description' => $report->description ? substr($report->description, 0, 100) : 'N/A'
+                ];
+            }
+            
+            // Sort by count descending
+            usort($partBreakdown, function($a, $b) {
+                return $b['count'] - $a['count'];
+            });
+            
+            // Get monthly breakdown
+            $monthlyCosts = Report::where('location', $location)
+                ->where('title', $issue)
+                ->where('status', 'Resolved')
+                ->where('created_at', '>=', now()->subMonths(12))
+                ->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month, COUNT(*) as count, SUM(cost) as cost")
+                ->groupBy('month')
+                ->orderBy('month', 'desc')
+                ->get()
+                ->map(function($row) {
+                    return [
+                        'month' => \Carbon\Carbon::parse($row->month . '-01')->format('M Y'),
+                        'count' => $row->count,
+                        'cost' => $row->cost ?? 0
+                    ];
+                });
+            
+            // Calculate summary stats
+            $totalRepairs = $reports->count();
+            $totalCost = $reports->sum('cost');
+            $avgCostPerRepair = $totalRepairs > 0 ? $totalCost / $totalRepairs : 0;
+            
+            // Determine severity
+            $recentCount = Report::where('location', $location)
+                ->where('title', $issue)
+                ->where('created_at', '>=', now()->subMonths(3))
+                ->count();
+            $severity = $recentCount >= 3 ? 'critical' : ($recentCount >= 2 ? 'warning' : 'info');
+            $alertTitle = $severity === 'critical' ? 'High Frequency Issue' : ($severity === 'warning' ? 'Recurring Issue' : 'Issue Detected');
+            
+            // Build date range string
+            $dateRange = 'All Time';
+            if ($request->filled('date_from') && $request->filled('date_to')) {
+                $dateRange = \Carbon\Carbon::parse($request->input('date_from'))->format('M d, Y') . ' - ' . 
+                            \Carbon\Carbon::parse($request->input('date_to'))->format('M d, Y');
+            }
+            
+            $pdf = \PDF::loadView('admin.alert-detail-pdf', compact(
+                'location',
+                'issue',
+                'partBreakdown',
+                'monthlyCosts',
+                'totalRepairs',
+                'totalCost',
+                'avgCostPerRepair',
+                'severity',
+                'alertTitle',
+                'dateRange'
+            ));
+
+            return $pdf->stream('alert-detail-' . str_replace(' ', '-', $location) . '-' . str_replace(' ', '-', $issue) . '-' . now()->format('Y-m-d') . '.pdf');
+        } catch (\Exception $e) {
+            \Log::error('Alert Detail PDF Generation Error: ' . $e->getMessage());
             return back()->with('error', 'Failed to generate PDF: ' . $e->getMessage());
         }
     }

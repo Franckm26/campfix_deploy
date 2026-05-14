@@ -553,6 +553,105 @@
     @endif
     @endif
 
+    <!-- Page Break -->
+    <div class="page-break"></div>
+
+    <!-- 6. Trend Alerts & Issue Analysis -->
+    <h3 class="section-title">6. Trend Alerts & Issue Analysis (Top 10 Critical Issues)</h3>
+    @if(isset($trendAlertsData) && $trendAlertsData->count() > 0)
+        @foreach($trendAlertsData as $index => $alert)
+            <div style="margin-bottom: 25px; page-break-inside: avoid;">
+                <!-- Alert Header -->
+                <div style="padding: 10px 15px; border-radius: 5px; border-left: 5px solid {{ $alert['severity'] === 'critical' ? '#ef4444' : ($alert['severity'] === 'warning' ? '#f97316' : '#f59e0b') }}; background: {{ $alert['severity'] === 'critical' ? '#fef2f2' : ($alert['severity'] === 'warning' ? '#fff7ed' : '#fffbeb') }}; margin-bottom: 10px;">
+                    <div style="font-size: 12px; font-weight: bold; color: #003087; margin-bottom: 3px;">
+                        {{ $index + 1 }}. {{ $alert['alert_title'] }}
+                    </div>
+                    <div style="font-size: 10px; color: #666;">
+                        <strong>Issue:</strong> {{ $alert['issue'] }} | <strong>Location:</strong> {{ $alert['location'] }}
+                    </div>
+                </div>
+
+                <!-- Summary Stats -->
+                <div style="display: table; width: 100%; margin-bottom: 10px;">
+                    <div style="display: table-cell; width: 33.33%; text-align: center; padding: 8px; background: #f8f9fa; border-radius: 3px;">
+                        <div style="font-size: 14px; font-weight: bold; color: #003087;">{{ $alert['total_repairs'] }}</div>
+                        <div style="font-size: 8px; color: #666;">Total Repairs</div>
+                    </div>
+                    <div style="display: table-cell; width: 33.33%; text-align: center; padding: 8px; background: #f8f9fa; border-radius: 3px; margin: 0 5px;">
+                        <div style="font-size: 14px; font-weight: bold; color: #dc3545;">PHP {{ number_format($alert['total_cost'], 2) }}</div>
+                        <div style="font-size: 8px; color: #666;">Total Cost</div>
+                    </div>
+                    <div style="display: table-cell; width: 33.33%; text-align: center; padding: 8px; background: #f8f9fa; border-radius: 3px;">
+                        <div style="font-size: 14px; font-weight: bold; color: #28a745;">PHP {{ number_format($alert['avg_cost_per_repair'], 2) }}</div>
+                        <div style="font-size: 8px; color: #666;">Avg Cost/Repair</div>
+                    </div>
+                </div>
+
+                <!-- Damaged Parts Breakdown -->
+                @if(count($alert['part_breakdown']) > 0)
+                <table style="margin-top: 10px;">
+                    <thead>
+                        <tr>
+                            <th style="width: 25%;">Damaged Part</th>
+                            <th style="width: 12%;" class="text-center">Times Fixed</th>
+                            <th style="width: 18%;" class="text-right">Total Cost</th>
+                            <th style="width: 45%;">Repair Tickets</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($alert['part_breakdown'] as $part)
+                        <tr>
+                            <td style="vertical-align: top;"><strong>{{ $part['part_name'] }}</strong></td>
+                            <td class="text-center" style="vertical-align: top;">
+                                <span style="background: #0d6efd; color: white; padding: 2px 6px; border-radius: 3px; font-weight: bold; font-size: 8px;">
+                                    {{ $part['count'] }}
+                                </span>
+                            </td>
+                            <td class="text-right" style="vertical-align: top;"><strong>PHP {{ number_format($part['total_cost'], 2) }}</strong></td>
+                            <td style="vertical-align: top; font-size: 7px;">
+                                @foreach(array_slice($part['tickets'], 0, 5) as $ticket)
+                                    <div style="padding: 2px 6px; margin-bottom: 2px; background: #f8f9fa; border-radius: 2px; border-left: 2px solid #0d6efd;">
+                                        <strong style="color: #003087;">{{ $ticket['ticket_number'] }}</strong> - 
+                                        <span style="color: #28a745; font-weight: bold;">PHP {{ number_format($ticket['cost'], 2) }}</span>
+                                        <span style="color: #666;"> | {{ $ticket['date_fixed'] }}</span>
+                                    </div>
+                                @endforeach
+                                @if(count($part['tickets']) > 5)
+                                    <div style="font-size: 7px; color: #999; font-style: italic; margin-top: 2px;">
+                                        + {{ count($part['tickets']) - 5 }} more tickets
+                                    </div>
+                                @endif
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+                @endif
+
+                <!-- Recommendations -->
+                <div style="margin-top: 10px; padding: 8px; background: #fffbeb; border-left: 3px solid #f59e0b; border-radius: 3px;">
+                    <div style="font-size: 9px; font-weight: bold; color: #856404; margin-bottom: 3px;">💡 Recommendation:</div>
+                    <div style="font-size: 8px; color: #666; line-height: 1.4;">
+                        @if($alert['severity'] === 'critical')
+                            Consider replacement instead of continued repairs. Conduct root cause analysis and schedule preventive maintenance.
+                        @elseif($alert['severity'] === 'warning')
+                            Monitor repair frequency over the next 3 months. Review maintenance procedures and consider upgrading components.
+                        @else
+                            Continue monitoring this issue for trends. Maintain current maintenance schedule and document procedures.
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            @if(($index + 1) % 2 === 0 && $index + 1 < $trendAlertsData->count())
+                <!-- Page Break after every 2 alerts -->
+                <div class="page-break"></div>
+            @endif
+        @endforeach
+    @else
+    <div class="no-data">No trend alerts detected for the selected period.</div>
+    @endif
+
     <!-- Footer -->
     <div class="footer">
         <p>This is a computer-generated document. No signature is required.</p>

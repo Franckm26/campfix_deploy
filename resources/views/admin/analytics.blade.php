@@ -204,12 +204,12 @@
 
 .chart-container {
     position: relative;
-    height: 280px;
+    height: 350px;
     width: 100%;
 }
 
 .chart-container canvas {
-    max-height: 280px;
+    max-height: 350px;
 }
 
 .stat-value {
@@ -881,7 +881,7 @@
                     <th>Avg Cost per Ticket</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="locationCostTableBody">
                 @forelse($combinedLocationStats ?? [] as $stat)
                 <tr style="cursor: pointer; transition: all 0.2s;" 
                     data-location="{{ $stat['location'] }}"
@@ -900,6 +900,18 @@
                 @endforelse
             </tbody>
         </table>
+        
+        <!-- Pagination for Combined Location Stats -->
+        @if(isset($combinedLocationStats) && method_exists($combinedLocationStats, 'hasPages') && $combinedLocationStats->hasPages())
+        <div class="d-flex justify-content-between align-items-center px-3 py-2 mt-3" id="location-pagination-container">
+            <span class="text-muted" id="location-showing-text">
+                Showing {{ $combinedLocationStats->firstItem() ?? 0 }} – {{ $combinedLocationStats->lastItem() ?? 0 }} of {{ $combinedLocationStats->total() }} locations
+            </span>
+            <div id="location-pagination">
+                {{ $combinedLocationStats->appends(request()->except('location_page'))->links('pagination::bootstrap-4') }}
+            </div>
+        </div>
+        @endif
     </div>
 
     <!-- ── TREND ALERTS ─────────────────────────────────────────────── -->
@@ -908,11 +920,11 @@
         <div class="d-flex justify-content-between align-items-center mb-3">
             <div class="analytics-title" style="font-size:1rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">
                 <i class="fas fa-bell text-danger me-2"></i> Alerts &amp; Notifications
-                <span class="badge bg-danger ms-2">{{ $trendAlerts->count() }}</span>
+                <span class="badge bg-danger ms-2" id="alerts-count">{{ $trendAlerts->total() }}</span>
             </div>
         </div>
 
-        <div class="mb-4">
+        <div class="mb-4" id="alerts-container">
             @foreach($trendAlerts as $alert)
             @php
                 $borderColor = $alert['severity'] === 'critical' ? '#ef4444' : ($alert['severity'] === 'warning' ? '#f97316' : '#f59e0b');
@@ -935,70 +947,18 @@
             </div>
             @endforeach
         </div>
-    </div>
-    @endif
-</div>
 
-<!-- Cost Trend Modal (for alerts) -->
-<div class="modal fade" id="costTrendModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="fas fa-chart-line me-2"></i><span id="ctm_title"></span></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="row mb-3">
-                    <div class="col-6">
-                        <div style="font-size:.8rem;color:#888;">Location</div>
-                        <div style="font-weight:700;" id="ctm_location"></div>
-                    </div>
-                    <div class="col-3">
-                        <div style="font-size:.8rem;color:#888;">Total Repairs</div>
-                        <div style="font-weight:700;color:#3b82f6;" id="ctm_repairs"></div>
-                    </div>
-                    <div class="col-3">
-                        <div style="font-size:.8rem;color:#888;">Cumulative Cost</div>
-                        <div style="font-weight:700;color:#22c55e;" id="ctm_total_cost"></div>
-                    </div>
-                </div>
-                <div class="row mb-3" id="ctm_threshold_row">
-                    <div class="col-6">
-                        <div style="font-size:.8rem;color:#888;">Original Asset Price</div>
-                        <div style="font-weight:700;" id="ctm_threshold"></div>
-                    </div>
-                    <div class="col-6">
-                        <div style="font-size:.8rem;color:#888;">Cost vs Original Price</div>
-                        <div class="progress mt-1" style="height:10px;">
-                            <div class="progress-bar" id="ctm_progress_bar" style="width:0%"></div>
-                        </div>
-                        <div style="font-size:.78rem;color:#888;margin-top:3px;" id="ctm_progress_label"></div>
-                    </div>
-                </div>
-                <hr>
-                <h6 class="mb-3">Monthly Cost Breakdown</h6>
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Month</th>
-                                <th class="text-center">Repairs</th>
-                                <th class="text-end">Cost</th>
-                            </tr>
-                        </thead>
-                        <tbody id="ctm_monthly_rows"></tbody>
-                        <tfoot>
-                            <tr class="table-secondary fw-bold">
-                                <td>Total</td>
-                                <td class="text-center" id="ctm_total_count"></td>
-                                <td class="text-end" id="ctm_total_cost_foot"></td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
+        <!-- Pagination for Alerts -->
+        @if($trendAlerts->hasPages())
+        <div class="d-flex justify-content-between align-items-center px-3 py-2 mt-3" id="alerts-pagination-container">
+            <small class="text-muted" id="alerts-showing-text">Showing {{ $trendAlerts->firstItem() ?? 0 }} – {{ $trendAlerts->lastItem() ?? 0 }} of {{ $trendAlerts->total() }} alerts</small>
+            <div id="alerts-pagination">
+                {{ $trendAlerts->appends(request()->except('alerts_page'))->links('pagination::bootstrap-4') }}
             </div>
         </div>
+        @endif
     </div>
+    @endif
 </div>
 
 <!-- Rooms Modal -->
@@ -1065,157 +1025,6 @@
         </div>
     </div>
 </div>
-
-<!-- Cost Trend Modal -->
-<div class="modal fade" id="costTrendModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="fas fa-chart-line me-2"></i><span id="ctm_title"></span></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="row mb-3">
-                    <div class="col-6">
-                        <div style="font-size:.8rem;color:#888;">Location</div>
-                        <div style="font-weight:700;" id="ctm_location"></div>
-                    </div>
-                    <div class="col-3">
-                        <div style="font-size:.8rem;color:#888;">Total Repairs</div>
-                        <div style="font-weight:700;color:#3b82f6;" id="ctm_repairs"></div>
-                    </div>
-                    <div class="col-3">
-                        <div style="font-size:.8rem;color:#888;">Cumulative Cost</div>
-                        <div style="font-weight:700;color:#22c55e;" id="ctm_total_cost"></div>
-                    </div>
-                </div>
-                <div class="row mb-3" id="ctm_threshold_row">
-                    <div class="col-6">
-                        <div style="font-size:.8rem;color:#888;">Original Asset Price</div>
-                        <div style="font-weight:700;" id="ctm_threshold"></div>
-                    </div>
-                    <div class="col-6">
-                        <div style="font-size:.8rem;color:#888;">Cost vs Original Price</div>
-                        <div class="progress mt-1" style="height:10px;">
-                            <div class="progress-bar" id="ctm_progress_bar" style="width:0%"></div>
-                        </div>
-                        <div style="font-size:.78rem;color:#888;margin-top:3px;" id="ctm_progress_label"></div>
-                    </div>
-                </div>
-                <hr>
-                <h6 class="mb-3">Monthly Cost Breakdown</h6>
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Month</th>
-                                <th class="text-center">Repairs</th>
-                                <th class="text-end">Cost</th>
-                            </tr>
-                        </thead>
-                        <tbody id="ctm_monthly_rows"></tbody>
-                        <tfoot>
-                            <tr class="table-secondary fw-bold">
-                                <td>Total</td>
-                                <td class="text-center" id="ctm_total_count"></td>
-                                <td class="text-end" id="ctm_total_cost_foot"></td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ========== ADVANCED ANALYTICS SECTION ========== -->
-    <div class="row mb-4 mt-5">
-        <div class="col-12">
-            <h3 style="color: #667eea; font-weight: 700; border-bottom: 3px solid #667eea; padding-bottom: 10px; margin-bottom: 30px;">
-                <i class="fas fa-chart-line"></i> Advanced Analytics
-            </h3>
-        </div>
-    </div>
-
-    <!-- Staff Performance Metrics -->
-    <div class="analytics-card">
-        <div class="analytics-header">
-            <div class="analytics-title">
-                <i class="fas fa-users"></i> Staff Performance Metrics
-            </div>
-        </div>
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead class="table-light">
-                    <tr>
-                        <th>Staff Member</th>
-                        <th class="text-center">Tickets Resolved</th>
-                        <th class="text-end">Total Cost</th>
-                        <th class="text-end">Avg Resolution Time</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($staffPerformance as $staff)
-                    <tr>
-                        <td><strong>{{ $staff['staff_name'] }}</strong></td>
-                        <td class="text-center">
-                            <span class="badge bg-success">{{ $staff['tickets_resolved'] }}</span>
-                        </td>
-                        <td class="text-end">PHP {{ number_format($staff['total_cost'], 2) }}</td>
-                        <td class="text-end">{{ $staff['avg_resolution_time'] }} hrs</td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="4" class="text-center text-muted">No data available</td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Cost Trend Analysis -->
-    <div class="analytics-card">
-        <div class="analytics-header">
-            <div class="analytics-title">
-                <i class="fas fa-chart-area"></i> Cost Trend Analysis (Last 6 Months)
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-12">
-                <canvas id="costTrendChart" height="80"></canvas>
-            </div>
-        </div>
-        <div class="row mt-4">
-            <div class="col-12">
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Month</th>
-                                <th class="text-center">Tickets</th>
-                                <th class="text-end">Total Cost</th>
-                                <th class="text-end">Avg Cost</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($costTrendData as $trend)
-                            <tr>
-                                <td><strong>{{ $trend['month'] }}</strong></td>
-                                <td class="text-center">{{ $trend['count'] }}</td>
-                                <td class="text-end">PHP {{ number_format($trend['total_cost'], 2) }}</td>
-                                <td class="text-end">PHP {{ number_format($trend['avg_cost'], 2) }}</td>
-                            </tr>
-                            @empty
-                            <tr>
-                                <td colspan="4" class="text-center text-muted">No data available</td>
-                            </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
 
 </div>
 @endsection
@@ -2191,40 +2000,216 @@
     })();
 })();
 
-// Show Cost Trend Modal function
+// Show Cost Trend Modal function (Enhanced with SweetAlert2)
 function showCostTrendModal(alert) {
-    document.getElementById('ctm_title').textContent = (alert.top_issue || 'Issue') + ' - ' + alert.location;
-    document.getElementById('ctm_location').textContent = alert.location;
-    document.getElementById('ctm_repairs').textContent = alert.recent + ' repair(s)';
-    document.getElementById('ctm_total_cost').textContent = '₱' + parseFloat(alert.all_time_cost).toLocaleString('en-PH', {minimumFractionDigits:2});
-
-    const threshold = parseFloat(alert.replacement_threshold || 0);
-    const allTime   = parseFloat(alert.all_time_cost || 0);
-    const threshRow = document.getElementById('ctm_threshold_row');
-    if (threshold > 0) {
-        threshRow.style.display = '';
-        document.getElementById('ctm_threshold').textContent = '₱' + threshold.toLocaleString('en-PH', {minimumFractionDigits:2});
-        const pct = Math.min(100, Math.round((allTime / threshold) * 100));
-        const bar = document.getElementById('ctm_progress_bar');
-        bar.style.width = pct + '%';
-        bar.className = 'progress-bar ' + (pct >= 100 ? 'bg-danger' : pct >= 80 ? 'bg-warning' : 'bg-success');
-        document.getElementById('ctm_progress_label').textContent = pct + '% of original price used in repairs';
-    } else {
-        threshRow.style.display = 'none';
-    }
-
-    const tbody = document.getElementById('ctm_monthly_rows');
-    tbody.innerHTML = '';
-    let totalCount = 0, totalCost = 0;
-    (alert.monthly_costs || []).forEach(function(row) {
-        totalCount += parseInt(row.count || 0);
-        totalCost  += parseFloat(row.cost || 0);
-        tbody.innerHTML += '<tr><td>' + row.month + '</td><td class="text-center">' + row.count + '</td><td class="text-end">₱' + parseFloat(row.cost).toLocaleString('en-PH', {minimumFractionDigits:2}) + '</td></tr>';
+    // Show loading state
+    Swal.fire({
+        title: 'Loading...',
+        html: 'Fetching detailed breakdown...',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
     });
-    document.getElementById('ctm_total_count').textContent = totalCount;
-    document.getElementById('ctm_total_cost_foot').textContent = '₱' + totalCost.toLocaleString('en-PH', {minimumFractionDigits:2});
+    
+    // Fetch detailed alert data via AJAX
+    const urlParams = new URLSearchParams(window.location.search);
+    urlParams.set('ajax', 'alert_detail');
+    urlParams.set('location', alert.location);
+    urlParams.set('issue', alert.top_issue);
+    
+    const baseUrl = '{{ route("admin.analytics") }}';
+    const fetchUrl = baseUrl + '?' + urlParams.toString();
+    
+    fetch(fetchUrl)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('HTTP error! status: ' + response.status);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (!data.success) {
+                throw new Error(data.message || 'Failed to fetch data');
+            }
+            
+            // Build damaged parts breakdown table
+            let partsTableHtml = '<div style="max-height: 400px; overflow-y: auto; margin-bottom: 20px;">';
+            partsTableHtml += '<table class="table table-sm table-hover" style="font-size: 0.85rem;">';
+            partsTableHtml += '<thead style="position: sticky; top: 0; background: #f8f9fa; z-index: 10;">';
+            partsTableHtml += '<tr><th style="width: 30%;">Damaged Part</th><th style="width: 15%; text-align: center;">Times Fixed</th><th style="width: 20%; text-align: right;">Total Cost</th><th style="width: 35%;">Tickets</th></tr>';
+            partsTableHtml += '</thead><tbody>';
+            
+            if (data.part_breakdown && data.part_breakdown.length > 0) {
+                data.part_breakdown.forEach(function(part) {
+                    partsTableHtml += '<tr>';
+                    partsTableHtml += '<td><strong>' + (part.part_name || 'Not Specified') + '</strong></td>';
+                    partsTableHtml += '<td style="text-align: center;"><span class="badge bg-primary">' + part.count + '</span></td>';
+                    partsTableHtml += '<td style="text-align: right;">₱' + parseFloat(part.total_cost).toLocaleString('en-PH', {minimumFractionDigits:2}) + '</td>';
+                    partsTableHtml += '<td>';
+                    
+                    // Show tickets in a collapsible format
+                    if (part.tickets && part.tickets.length > 0) {
+                        partsTableHtml += '<div style="max-height: 150px; overflow-y: auto; font-size: 0.75rem;">';
+                        part.tickets.forEach(function(ticket) {
+                            partsTableHtml += '<div style="padding: 4px 8px; margin-bottom: 4px; background: #f8f9fa; border-radius: 4px; border-left: 3px solid #0d6efd;">';
+                            partsTableHtml += '<strong>' + ticket.ticket_number + '</strong> - ₱' + parseFloat(ticket.cost).toLocaleString('en-PH', {minimumFractionDigits:2});
+                            partsTableHtml += '<br><small class="text-muted"><i class="fas fa-calendar me-1"></i>' + ticket.date_fixed + '</small>';
+                            partsTableHtml += '</div>';
+                        });
+                        partsTableHtml += '</div>';
+                    } else {
+                        partsTableHtml += '<span class="text-muted">No tickets</span>';
+                    }
+                    
+                    partsTableHtml += '</td>';
+                    partsTableHtml += '</tr>';
+                });
+            } else {
+                partsTableHtml += '<tr><td colspan="4" class="text-center text-muted">No damaged parts data available</td></tr>';
+            }
+            
+            partsTableHtml += '</tbody></table></div>';
+            
+            // Build monthly cost breakdown table
+            let monthlyTableHtml = '<div style="max-height: 300px; overflow-y: auto;">';
+            monthlyTableHtml += '<table class="table table-sm table-striped" style="font-size: 0.85rem;">';
+            monthlyTableHtml += '<thead style="position: sticky; top: 0; background: #f8f9fa; z-index: 10;">';
+            monthlyTableHtml += '<tr><th>Month</th><th style="text-align: center;">Repairs</th><th style="text-align: right;">Cost</th></tr>';
+            monthlyTableHtml += '</thead><tbody>';
+            
+            let totalCount = 0, totalCost = 0;
+            if (data.monthly_costs && data.monthly_costs.length > 0) {
+                data.monthly_costs.forEach(function(row) {
+                    totalCount += parseInt(row.count || 0);
+                    totalCost += parseFloat(row.cost || 0);
+                    monthlyTableHtml += '<tr>';
+                    monthlyTableHtml += '<td>' + row.month + '</td>';
+                    monthlyTableHtml += '<td style="text-align: center;">' + row.count + '</td>';
+                    monthlyTableHtml += '<td style="text-align: right;">₱' + parseFloat(row.cost).toLocaleString('en-PH', {minimumFractionDigits:2}) + '</td>';
+                    monthlyTableHtml += '</tr>';
+                });
+            } else {
+                monthlyTableHtml += '<tr><td colspan="3" class="text-center text-muted">No monthly data available</td></tr>';
+            }
+            
+            monthlyTableHtml += '</tbody>';
+            monthlyTableHtml += '<tfoot style="position: sticky; bottom: 0; background: #f8f9fa; font-weight: bold;">';
+            monthlyTableHtml += '<tr><td>Total</td><td style="text-align: center;">' + totalCount + '</td><td style="text-align: right;">₱' + totalCost.toLocaleString('en-PH', {minimumFractionDigits:2}) + '</td></tr>';
+            monthlyTableHtml += '</tfoot>';
+            monthlyTableHtml += '</table></div>';
+            
+            // Determine severity styling
+            const severity = alert.severity || 'info';
+            const severityColors = {
+                'critical': { bg: '#fef2f2', border: '#ef4444', icon: '#ef4444' },
+                'warning': { bg: '#fff7ed', border: '#f97316', icon: '#f97316' },
+                'info': { bg: '#fffbeb', border: '#f59e0b', icon: '#f59e0b' }
+            };
+            const colors = severityColors[severity] || severityColors['info'];
+            
+            // Build complete modal HTML
+            const modalHtml = `
+                <div style="text-align: left;">
+                    <div style="background: ${colors.bg}; border-left: 4px solid ${colors.border}; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 40px; height: 40px; border-radius: 50%; background: ${colors.icon}; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-triangle-exclamation" style="color: #fff; font-size: 18px;"></i>
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="font-weight: 700; font-size: 1.1rem; color: #1e293b;">${alert.alert_title || 'Trend Detected'}</div>
+                                <div style="font-size: 0.9rem; color: #64748b;"><i class="fas fa-map-marker-alt me-1"></i>${data.location}</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px;">
+                        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; margin-bottom: 5px;">Total Repairs</div>
+                            <div style="font-size: 1.5rem; font-weight: 700; color: #0d6efd;">${data.total_repairs}</div>
+                        </div>
+                        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; margin-bottom: 5px;">Total Cost</div>
+                            <div style="font-size: 1.5rem; font-weight: 700; color: #dc3545;">₱${parseFloat(data.total_cost).toLocaleString('en-PH', {minimumFractionDigits:2})}</div>
+                        </div>
+                        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; margin-bottom: 5px;">Avg Cost/Repair</div>
+                            <div style="font-size: 1.5rem; font-weight: 700; color: #198754;">₱${(data.total_repairs > 0 ? data.total_cost / data.total_repairs : 0).toLocaleString('en-PH', {minimumFractionDigits:2})}</div>
+                        </div>
+                    </div>
+                    
+                    <h5 style="margin-top: 25px; margin-bottom: 15px; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">
+                        <i class="fas fa-tools me-2"></i>Damaged Parts Breakdown
+                    </h5>
+                    ${partsTableHtml}
+                    
+                    <h5 style="margin-top: 25px; margin-bottom: 15px; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">
+                        <i class="fas fa-calendar-alt me-2"></i>Monthly Cost Breakdown (Last 12 Months)
+                    </h5>
+                    ${monthlyTableHtml}
+                </div>
+            `;
+            
+            // Show SweetAlert2 modal with large width
+            Swal.fire({
+                title: '<i class="fas fa-chart-line me-2"></i>' + (data.issue || 'Issue Details'),
+                html: modalHtml,
+                width: '95%',
+                showCloseButton: true,
+                showConfirmButton: true,
+                showDenyButton: true,
+                confirmButtonText: '<i class="fas fa-times me-2"></i>Close',
+                denyButtonText: '<i class="fas fa-file-pdf me-2"></i>Export PDF',
+                confirmButtonColor: '#6c757d',
+                denyButtonColor: '#dc3545',
+                customClass: {
+                    container: 'swal-analytics-modal',
+                    popup: 'swal-wide-popup'
+                }
+            }).then((result) => {
+                if (result.isDenied) {
+                    // Export PDF
+                    exportAlertDetailPDF(data.location, data.issue);
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching alert details:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to load alert details: ' + error.message,
+                confirmButtonText: 'OK'
+            });
+        });
+}
 
-    new bootstrap.Modal(document.getElementById('costTrendModal')).show();
+// Export Alert Detail PDF function
+function exportAlertDetailPDF(location, issue) {
+    // Show loading
+    Swal.fire({
+        title: 'Generating PDF...',
+        html: 'Please wait while we prepare your report.',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+    
+    // Build URL with parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    urlParams.set('location', location);
+    urlParams.set('issue', issue);
+    
+    const exportUrl = '{{ route("admin.analytics.alert-detail-pdf") }}?' + urlParams.toString();
+    
+    // Open PDF in new window
+    window.open(exportUrl, '_blank');
+    
+    // Close loading modal after a short delay
+    setTimeout(() => {
+        Swal.close();
+    }, 1000);
 }
 
 // Show Location Tickets Modal function
@@ -2288,7 +2273,7 @@ function showLocationTicketsModal(location, totalCount, totalCost) {
                     // Format ticket ID with leading zeros (e.g., #0019)
                     const ticketId = ticket.id ? '#' + String(ticket.id).padStart(4, '0') : 'N/A';
                     
-                    tableRows += '<tr>' +
+                    tableRows += '<tr data-damage-part="' + damagePart.replace(/"/g, '&quot;') + '">' +
                         '<td class="text-center" style="width: 80px; font-size: 0.85rem;"><strong>' + ticketId + '</strong></td>' +
                         '<td style="width: 150px; font-size: 0.9rem;">' + damagePart + '</td>' +
                         '<td style="width: 180px; font-size: 0.9rem;">' + issue + '</td>' +
@@ -2323,10 +2308,29 @@ function showLocationTicketsModal(location, totalCount, totalCost) {
                 window.open(pdfUrl, '_blank');
             };
             
+            // Build damage part filter dropdown
+            let damagePartFilterHtml = '<div class="dropdown mb-3">' +
+                '<button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="locationTicketsDamagePartDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.85rem;">' +
+                    '<i class="fas fa-tools me-1"></i>' +
+                    '<span id="locationTicketsDamagePartLabel">All Damage Parts</span>' +
+                '</button>' +
+                '<ul class="dropdown-menu" aria-labelledby="locationTicketsDamagePartDropdown" style="max-height: 200px; overflow-y: auto;">' +
+                    '<li><a class="dropdown-item" href="#" onclick="filterLocationTicketsDamagePart(\'all\', event)">All Damage Parts</a></li>' +
+                    '<li><hr class="dropdown-divider"></li>';
+
+            if (data.damage_parts && data.damage_parts.length > 0) {
+                data.damage_parts.forEach(function(part) {
+                    damagePartFilterHtml += '<li><a class="dropdown-item" href="#" onclick="filterLocationTicketsDamagePart(\'' + part.replace(/'/g, '\\\'') + '\', event)">' + part + '</a></li>';
+                });
+            }
+
+            damagePartFilterHtml += '</ul></div>';
+
             Swal.fire({
                 title: '<i class="fas fa-map-marker-alt me-2"></i>' + location,
                 html: '<div style="text-align: left;">' +
-                    '<div class="mb-3 d-flex justify-content-end">' +
+                    '<div class="mb-3 d-flex justify-content-between align-items-center">' +
+                        damagePartFilterHtml +
                         '<button onclick="exportLocationPDF()" class="btn btn-danger btn-sm">' +
                             '<i class="fas fa-file-pdf me-1"></i>Export PDF' +
                         '</button>' +
@@ -2359,7 +2363,7 @@ function showLocationTicketsModal(location, totalCount, totalCost) {
                     '</div>' +
                     '<h5 class="mb-3"><i class="fas fa-list me-2"></i>Ticket Details</h5>' +
                     '<div class="table-responsive" style="max-height: 400px; overflow-y: auto;">' +
-                        '<table class="table table-hover table-sm" style="table-layout: fixed; width: 100%;">' +
+                        '<table class="table table-hover table-sm" id="locationTicketsTable" style="table-layout: fixed; width: 100%;">' +
                             '<thead class="table-light sticky-top">' +
                                 '<tr>' +
                                     '<th class="text-center" style="width: 80px; font-size: 0.85rem;">Ticket #</th>' +
@@ -2394,6 +2398,33 @@ function showLocationTicketsModal(location, totalCount, totalCost) {
                 confirmButtonColor: '#667eea'
             });
         });
+}
+
+function filterLocationTicketsDamagePart(damagePart, event) {
+    if (event) event.preventDefault();
+
+    const table = document.getElementById('locationTicketsTable');
+    if (!table) return;
+
+    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+    // Update label
+    const label = document.getElementById('locationTicketsDamagePartLabel');
+    if (label) {
+        label.textContent = damagePart === 'all' ? 'All Damage Parts' : damagePart;
+    }
+
+    // Filter rows
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const rowDamagePart = row.getAttribute('data-damage-part');
+
+        if (damagePart === 'all' || rowDamagePart === damagePart) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    }
 }
 
 // Location Table Filter Functions
@@ -2521,70 +2552,12 @@ function applyLocationTableCustomRange(event) {
 
 // Modal functions are now loaded from analytics-modals.js (SweetAlert2 versions)
 
-// ========== ADVANCED ANALYTICS CHARTS ==========
-
-// Cost Trend Chart
-const costTrendCtx = document.getElementById('costTrendChart');
-if (costTrendCtx) {
-    new Chart(costTrendCtx, {
-        type: 'line',
-        data: {
-            labels: {!! json_encode($costTrendData->pluck('month')) !!},
-            datasets: [
-                {
-                    label: 'Total Cost',
-                    data: {!! json_encode($costTrendData->pluck('total_cost')) !!},
-                    borderColor: '#667eea',
-                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                    fill: true,
-                    tension: 0.4
-                },
-                {
-                    label: 'Ticket Count',
-                    data: {!! json_encode($costTrendData->pluck('count')) !!},
-                    borderColor: '#f39c12',
-                    backgroundColor: 'rgba(243, 156, 18, 0.1)',
-                    fill: true,
-                    tension: 0.4,
-                    yAxisID: 'y1'
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            interaction: {
-                mode: 'index',
-                intersect: false
-            },
-            plugins: {
-                legend: { position: 'top' }
-            },
-            scales: {
-                y: {
-                    type: 'linear',
-                    display: true,
-                    position: 'left',
-                    title: { display: true, text: 'Cost (PHP)' }
-                },
-                y1: {
-                    type: 'linear',
-                    display: true,
-                    position: 'right',
-                    title: { display: true, text: 'Ticket Count' },
-                    grid: { drawOnChartArea: false }
-                }
-            }
-        }
-    });
-}
-
 // Status Distribution & Response Time Modal
 function showStatusDetailsModal() {
     const responseTimeData = @json($responseTimeStats);
     
     // Build response time table with timestamps and HH:MM:SS format
-    let responseTimeTable = '<div class="modal-table-wrapper mt-3"><table class="table table-sm table-hover modal-compact-table"><thead class="table-light"><tr><th style="width: 100px;">Ticket</th><th style="width: 70px;">Room</th><th style="width: 95px;">Created</th><th style="width: 95px;">Assigned</th><th style="width: 95px;">Resolved</th><th style="width: 65px;">Submit→Assign</th><th style="width: 65px;">Assign→Resolve</th><th style="width: 60px;">Total</th><th style="width: 80px;">Staff</th></tr></thead><tbody>';
+    let responseTimeTable = '<div class="modal-table-wrapper mt-3"><table class="table table-sm table-hover modal-compact-table"><thead class="table-light"><tr><th style="width: 100px;">Ticket</th><th style="width: 70px;">Room</th><th style="width: 95px;">Created</th><th style="width: 95px;">Assigned</th><th style="width: 95px;">Resolved</th><th style="width: 65px;">Submit to Assign</th><th style="width: 65px;">Assign to Resolve</th><th style="width: 60px;">Total</th><th style="width: 80px;">Staff</th></tr></thead><tbody>';
     
     responseTimeData.forEach(function(item) {
         const ticketIssue = '#' + String(item.id).padStart(4, '0') + ' - ' + item.title;
@@ -2746,35 +2719,7 @@ function showStatusDetailsModal() {
                 <h5 class="mt-3 mb-3" style="color: #667eea;"><i class="fas fa-chart-pie"></i> Status Distribution</h5>
                 ` + statusTable + `
                 <h5 class="mt-4 mb-3" style="color: #667eea;"><i class="fas fa-clock"></i> Response Time Details</h5>
-                <div class="row mb-3">
-                    <div class="col-4 text-center">
-                        <div style="background: #f0f7ff; padding: 15px; border-radius: 8px; border-left: 3px solid #3498db;">
-                            <div style="font-size: 0.8rem; color: #666;">Avg Submit to Assign</div>
-                            <div style="font-size: 1.5rem; font-weight: bold; color: #3498db;">
-                                @php
-                                    $totalSeconds = floor($avgSubmittedToAssigned * 3600);
-                                    $hours = floor($totalSeconds / 3600);
-                                    $minutes = floor(($totalSeconds % 3600) / 60);
-                                    $seconds = $totalSeconds % 60;
-                                    echo sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
-                                @endphp
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-4 text-center">
-                        <div style="background: #fff8f0; padding: 15px; border-radius: 8px; border-left: 3px solid #f39c12;">` +
-                        '<div style="font-size: 0.8rem; color: #666;">Avg Assign to Resolve</div>' +
-                        '<div style="font-size: 1.5rem; font-weight: bold; color: #f39c12;">@php $totalSeconds = floor($avgAssignedToResolved * 3600); $hours = floor($totalSeconds / 3600); $minutes = floor(($totalSeconds % 3600) / 60); $seconds = $totalSeconds % 60; echo sprintf("%02d:%02d:%02d", $hours, $minutes, $seconds); @endphp</div>' +
-                    '</div>' +
-                '</div>' +
-                '<div class="col-4 text-center">' +
-                    '<div style="background: #f0fff4; padding: 15px; border-radius: 8px; border-left: 3px solid #27ae60;">' +
-                        '<div style="font-size: 0.8rem; color: #666;">Avg Total Time</div>' +
-                        '<div style="font-size: 1.5rem; font-weight: bold; color: #27ae60;">@php $totalSeconds = floor($avgTotalTime * 3600); $hours = floor($totalSeconds / 3600); $minutes = floor(($totalSeconds % 3600) / 60); $seconds = $totalSeconds % 60; echo sprintf("%02d:%02d:%02d", $hours, $minutes, $seconds); @endphp</div>' +
-                    '</div>' +
-                '</div>' +
-            '</div>' +
-            responseTimeTable +
+                ` + responseTimeTable +
             '</div>',
         width: '95%',
         showCloseButton: true,
@@ -2785,6 +2730,105 @@ function showStatusDetailsModal() {
         }
     });
 }
+
+// ========== AJAX PAGINATION FOR COMBINED LOCATION STATS ==========
+document.addEventListener('DOMContentLoaded', function() {
+    const locationPaginationContainer = document.getElementById('location-pagination-container');
+    
+    if (locationPaginationContainer) {
+        locationPaginationContainer.addEventListener('click', function(e) {
+            const link = e.target.closest('a[href*="location_page="]');
+            if (!link) return;
+            
+            e.preventDefault();
+            
+            const url = new URL(link.href);
+            const locationPage = url.searchParams.get('location_page');
+            
+            const ajaxUrl = new URL('{{ route("admin.analytics") }}', window.location.origin);
+            ajaxUrl.searchParams.set('ajax', 'locations');
+            ajaxUrl.searchParams.set('location_page', locationPage);
+            
+            const currentUrl = new URL(window.location.href);
+            ['date_from', 'date_to', 'room_filter'].forEach(param => {
+                const value = currentUrl.searchParams.get(param);
+                if (value) ajaxUrl.searchParams.set(param, value);
+            });
+            
+            fetch(ajaxUrl.toString(), {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('locationCostTableBody').innerHTML = data.locations_html;
+                    document.getElementById('location-pagination').innerHTML = data.pagination_html;
+                    document.getElementById('location-showing-text').textContent = data.showing_text;
+                    
+                    const newUrl = new URL(window.location.href);
+                    newUrl.searchParams.set('location_page', locationPage);
+                    window.history.pushState({}, '', newUrl.toString());
+                    
+                    document.getElementById('locationCostTable').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            })
+            .catch(error => console.error('Error loading location pagination:', error));
+        });
+    }
+});
+
+// ========== AJAX PAGINATION FOR ALERTS ==========
+document.addEventListener('DOMContentLoaded', function() {
+    const alertsPaginationContainer = document.getElementById('alerts-pagination-container');
+    
+    if (alertsPaginationContainer) {
+        alertsPaginationContainer.addEventListener('click', function(e) {
+            const link = e.target.closest('a[href*="alerts_page="]');
+            if (!link) return;
+            
+            e.preventDefault();
+            
+            const url = new URL(link.href);
+            const alertsPage = url.searchParams.get('alerts_page');
+            
+            const ajaxUrl = new URL('{{ route("admin.analytics") }}', window.location.origin);
+            ajaxUrl.searchParams.set('ajax', 'alerts');
+            ajaxUrl.searchParams.set('alerts_page', alertsPage);
+            
+            const currentUrl = new URL(window.location.href);
+            ['date_from', 'date_to', 'room_filter'].forEach(param => {
+                const value = currentUrl.searchParams.get(param);
+                if (value) ajaxUrl.searchParams.set(param, value);
+            });
+            
+            fetch(ajaxUrl.toString(), {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('alerts-container').innerHTML = data.alerts_html;
+                    document.getElementById('alerts-pagination').innerHTML = data.pagination_html;
+                    document.getElementById('alerts-showing-text').textContent = data.showing_text;
+                    document.getElementById('alerts-count').textContent = data.total_count;
+                    
+                    const newUrl = new URL(window.location.href);
+                    newUrl.searchParams.set('alerts_page', alertsPage);
+                    window.history.pushState({}, '', newUrl.toString());
+                    
+                    document.getElementById('alerts-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            })
+            .catch(error => console.error('Error loading alerts pagination:', error));
+        });
+    }
+});
 
 </script>
 @endsection
