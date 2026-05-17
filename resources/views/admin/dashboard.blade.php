@@ -322,39 +322,61 @@
 @section('scripts')
 <script>
 function unlockUser(uuid, userId, name) {
-    if (!confirm('Unlock account for ' + name + '?')) return;
+    swalConfirm({
+        title: 'Unlock Account?',
+        text: 'Unlock account for ' + name + '?',
+        icon: 'question',
+        confirmButtonText: 'Yes, Unlock',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Show loading
+            getSwal().fire({
+                title: 'Unlocking...',
+                html: '<div class="spinner-border text-success"></div>',
+                allowOutsideClick: false,
+                showConfirmButton: false
+            });
 
-    fetch('/admin/users/unlock/' + uuid, {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-            'Accept': 'application/json',
-        },
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-            // Remove the row from the modal
-            const row = document.getElementById('locked-row-' + userId);
-            if (row) row.remove();
+            fetch('/admin/users/unlock/' + uuid, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json',
+                },
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    // Remove the row from the modal
+                    const row = document.getElementById('locked-row-' + userId);
+                    if (row) row.remove();
 
-            // Update the counter
-            const remaining = document.querySelectorAll('#lockedModal tbody tr').length;
-            document.querySelector('#lockedModal small').textContent = remaining + ' account(s) require attention';
+                    // Update the counter
+                    const remaining = document.querySelectorAll('#lockedModal tbody tr').length;
+                    document.querySelector('#lockedModal small').textContent = remaining + ' account(s) require attention';
 
-            // Update the stat card
-            const card = document.querySelector('.stat-card.red h3');
-            if (card) card.textContent = remaining;
+                    // Update the stat card
+                    const card = document.querySelector('.stat-card.red h3');
+                    if (card) card.textContent = remaining;
 
-            if (remaining === 0) {
-                document.querySelector('#lockedModal tbody').innerHTML =
-                    '<tr><td colspan="4" class="text-center py-4 text-muted"><i class="fas fa-check-circle text-success me-1"></i>No locked accounts.</td></tr>';
-                const badge = document.querySelector('.stat-card.red small');
-                if (badge) badge.remove();
-            }
+                    if (remaining === 0) {
+                        document.querySelector('#lockedModal tbody').innerHTML =
+                            '<tr><td colspan="4" class="text-center py-4 text-muted"><i class="fas fa-check-circle text-success me-1"></i>No locked accounts.</td></tr>';
+                        const badge = document.querySelector('.stat-card.red small');
+                        if (badge) badge.remove();
+                    }
+
+                    swalToast('Account unlocked successfully!', 'success');
+                } else if (data.error) {
+                    swalAlert(data.error, 'error', 'Error');
+                }
+            })
+            .catch(() => {
+                swalAlert('Failed to unlock. Please try again.', 'error', 'Error');
+            });
         }
-    })
-    .catch(() => alert('Failed to unlock. Please try again.'));
+    });
 }
 
 

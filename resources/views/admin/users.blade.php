@@ -221,9 +221,9 @@
                                         </button>
                                         @endif
                                         @if(auth()->user()->canAccess('users_unlock') && $user->locked_until)
-                                        <form action="{{ route('admin.users.unlock', $user->uuid ?? $user->id) }}" method="POST" class="d-inline">
+                                        <form action="{{ route('admin.users.unlock', $user->uuid ?? $user->id) }}" method="POST" class="d-inline unlock-form">
                                             @csrf
-                                            <button type="submit" class="btn btn-sm btn-success" title="Unlock Account" onclick="return confirm('Unlock account for {{ $user->name }}?')">
+                                            <button type="button" class="btn btn-sm btn-success" title="Unlock Account" onclick="unlockUserAccount(this, '{{ $user->name }}')">
                                                 <i class="fas fa-unlock"></i>
                                             </button>
                                         </form>
@@ -853,9 +853,9 @@
                                     </td>
                                     <td class="text-muted">{{ $lu->updated_at->format('M d, Y h:i A') }}</td>
                                     <td>
-                                        <form action="{{ route('admin.users.unlock', $lu->uuid ?? $lu->id) }}" method="POST" class="d-inline">
+                                        <form action="{{ route('admin.users.unlock', $lu->uuid ?? $lu->id) }}" method="POST" class="d-inline unlock-form">
                                             @csrf
-                                            <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Unlock account for {{ $lu->name }}?')">
+                                            <button type="button" class="btn btn-sm btn-success" onclick="unlockUserAccount(this, '{{ $lu->name }}')">
                                                 <i class="fas fa-unlock"></i>
                                             </button>
                                         </form>
@@ -2237,6 +2237,32 @@ document.addEventListener('click', function(e) {
     target.type  = isText ? 'password' : 'text';
     btn.querySelector('i').className = isText ? 'fas fa-eye' : 'fas fa-eye-slash';
 });
+
+// Unlock user account with SweetAlert
+function unlockUserAccount(button, userName) {
+    const form = button.closest('form');
+    
+    swalConfirm({
+        title: 'Unlock Account?',
+        text: 'Unlock account for ' + userName + '?',
+        icon: 'question',
+        confirmButtonText: 'Yes, Unlock',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Show loading
+            getSwal().fire({
+                title: 'Unlocking...',
+                html: '<div class="spinner-border text-success"></div>',
+                allowOutsideClick: false,
+                showConfirmButton: false
+            });
+            
+            // Submit the form
+            form.submit();
+        }
+    });
+}
 </script>
 @endsection
 

@@ -33,7 +33,8 @@ class AdminController extends Controller
             return redirect()->route('admin.users')->with('error', 'You do not have permission to perform this action.');
         }
 
-        $user = User::hideSuperadmin()->where('uuid', $uuid)->firstOrFail();
+        // Use withoutGlobalScopes to allow unlocking superadmin accounts
+        $user = User::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
 
         $user->update([
             'locked_until' => null,
@@ -4982,6 +4983,271 @@ class AdminController extends Controller
         ));
     }
 
+    // Get Period Breakdown - Individual repairs for a specific period
+    public function getPeriodBreakdown(Request $request)
+    {
+        try {
+            $period = $request->input('period'); // YYYY-MM or YYYY format
+            $location = $request->input('location');
+            $category = $request->input('category');
+            
+            // Base query for all reports (not just resolved with cost)
+            $query = Report::query();
+            
+            // Apply period filter
+            if (strlen($period) === 4) {
+                // Year format (YYYY)
+                $query->whereYear('created_at', $period);
+            } else {
+                // Month format (YYYY-MM)
+                $query->whereRaw("TO_CHAR(created_at, 'YYYY-MM') = ?", [$period]);
+            }
+            
+            // Apply location filter if provided
+            if ($location && $location !== 'all') {
+                $query->where('location', $location);
+            }
+            
+            // Apply category filter if provided
+            if ($category && $category !== 'all') {
+                $query->where('title', $category);
+            }
+            
+            // Get all repairs with relevant details
+            $repairs = $query->select([
+                    'id',
+                    'title',
+                    'location',
+                    'damaged_part',
+                    'cost',
+                    'status',
+                    'created_at'
+                ])
+                ->orderBy('created_at', 'desc')
+                ->get();
+            
+            return response()->json([
+                'success' => true,
+                'repairs' => $repairs
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Period breakdown error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch period breakdown'
+            ], 500);
+        }
+    }
+
+    // Get All Periods Breakdown - Individual repairs across all periods
+    public function getAllPeriodsBreakdown(Request $request)
+    {
+        try {
+            $location = $request->input('location');
+            $category = $request->input('category');
+            $dateFrom = $request->input('date_from');
+            $dateTo = $request->input('date_to');
+            
+            // Base query for all reports
+            $query = Report::query();
+            
+            // Apply date range filters
+            if ($dateFrom) {
+                $query->whereDate('created_at', '>=', $dateFrom);
+            }
+            if ($dateTo) {
+                $query->whereDate('created_at', '<=', $dateTo);
+            }
+            
+            // If no date filters, default to last 6 months
+            if (!$dateFrom && !$dateTo) {
+                $query->where('created_at', '>=', now()->subMonths(6));
+            }
+            
+            // Apply location filter if provided
+            if ($location && $location !== 'all') {
+                $query->where('location', $location);
+            }
+            
+            // Apply category filter if provided
+            if ($category && $category !== 'all') {
+                $query->where('title', $category);
+            }
+            
+            // Get all repairs with relevant details
+            $repairs = $query->select([
+                    'id',
+                    'title',
+                    'location',
+                    'damaged_part',
+                    'cost',
+                    'status',
+                    'created_at'
+                ])
+                ->orderBy('created_at', 'desc')
+                ->get();
+            
+            return response()->json([
+                'success' => true,
+                'repairs' => $repairs
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('All periods breakdown error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch all periods breakdown'
+            ], 500);
+        }
+    }
+
+    // Export Period Breakdown to PDF
+    public function exportPeriodBreakdownPDF(Request $request)
+    {
+        try {
+            $period = $request->input('period');
+            $periodLabel = $request->input('period_label');
+            $location = $request->input('location');
+            $category = $request->input('category');
+            $preview = $request->input('preview', false);
+            
+            // Base query for all reports
+            $query = Report::query();
+            
+            // Apply period filter
+            if (strlen($period) === 4) {
+                $query->whereYear('created_at', $period);
+            } else {
+                $query->whereRaw("TO_CHAR(created_at, 'YYYY-MM') = ?", [$period]);
+            }
+            
+            // Apply location filter if provided
+            if ($location && $location !== 'all') {
+                $query->where('location', $location);
+            }
+            
+            // Apply category filter if provided
+            if ($category && $category !== 'all') {
+                $query->where('title', $category);
+            }
+            
+            // Get repairs
+            $repairs = $query->select([
+                    'id',
+                    'title',
+                    'location',
+                    'damaged_part',
+                    'cost',
+                    'status',
+                    'created_at'
+                ])
+                ->orderBy('created_at', 'desc')
+                ->get();
+            
+            // Calculate statistics
+            $totalRepairs = $repairs->count();
+            $totalCost = $repairs->sum('cost');
+            $repairsWithCost = $repairs->where('cost', '>', 0)->count();
+            $avgCost = $repairsWithCost > 0 ? $totalCost / $repairsWithCost : 0;
+            
+            $pdf = \PDF::loadView('admin.period-breakdown-pdf', compact(
+                'repairs',
+                'periodLabel',
+                'totalRepairs',
+                'totalCost',
+                'avgCost'
+            ));
+            
+            // Stream the PDF to open in browser (like main analytics)
+            return $pdf->stream($periodLabel . '_Repair_Breakdown.pdf');
+            
+        } catch (\Exception $e) {
+            \Log::error('Period breakdown PDF error: ' . $e->getMessage());
+            return back()->with('error', 'Failed to generate PDF');
+        }
+    }
+
+    // Export All Periods Breakdown to PDF
+    public function exportAllPeriodsBreakdownPDF(Request $request)
+    {
+        try {
+            $location = $request->input('location');
+            $category = $request->input('category');
+            $dateFrom = $request->input('date_from');
+            $dateTo = $request->input('date_to');
+            $preview = $request->input('preview', false);
+            
+            // Base query for all reports
+            $query = Report::query();
+            
+            // Apply date range filters
+            if ($dateFrom) {
+                $query->whereDate('created_at', '>=', $dateFrom);
+            }
+            if ($dateTo) {
+                $query->whereDate('created_at', '<=', $dateTo);
+            }
+            
+            // If no date filters, default to last 6 months
+            if (!$dateFrom && !$dateTo) {
+                $query->where('created_at', '>=', now()->subMonths(6));
+            }
+            
+            // Apply location filter if provided
+            if ($location && $location !== 'all') {
+                $query->where('location', $location);
+            }
+            
+            // Apply category filter if provided
+            if ($category && $category !== 'all') {
+                $query->where('title', $category);
+            }
+            
+            // Get repairs
+            $repairs = $query->select([
+                    'id',
+                    'title',
+                    'location',
+                    'damaged_part',
+                    'cost',
+                    'status',
+                    'created_at'
+                ])
+                ->orderBy('created_at', 'desc')
+                ->get();
+            
+            // Calculate statistics
+            $totalRepairs = $repairs->count();
+            $totalCost = $repairs->sum('cost');
+            $repairsWithCost = $repairs->where('cost', '>', 0)->count();
+            $avgCost = $repairsWithCost > 0 ? $totalCost / $repairsWithCost : 0;
+            
+            // Determine period label
+            $periodLabel = 'All Periods';
+            if ($dateFrom && $dateTo) {
+                $periodLabel = \Carbon\Carbon::parse($dateFrom)->format('M d, Y') . ' - ' . \Carbon\Carbon::parse($dateTo)->format('M d, Y');
+            } elseif (!$dateFrom && !$dateTo) {
+                $periodLabel = 'Last 6 Months';
+            }
+            
+            $pdf = \PDF::loadView('admin.period-breakdown-pdf', compact(
+                'repairs',
+                'periodLabel',
+                'totalRepairs',
+                'totalCost',
+                'avgCost'
+            ));
+            
+            // Stream the PDF to open in browser (like main analytics)
+            return $pdf->stream('All_Periods_Repair_Breakdown.pdf');
+            
+        } catch (\Exception $e) {
+            \Log::error('All periods breakdown PDF error: ' . $e->getMessage());
+            return back()->with('error', 'Failed to generate PDF');
+        }
+    }
+
     // Export Location Report to PDF
     public function locationReportPDF(Request $request)
     {
@@ -5852,7 +6118,7 @@ class AdminController extends Controller
                 if ($monthCosts[$i] < $monthCosts[$lowestIdx]) $lowestIdx = $i;
             }
 
-            // Build table data
+            // Build table data with repair breakdown
             $periodData = [];
             foreach ($monthLabels as $idx => $label) {
                 $cost = $monthCosts[$idx];
@@ -5872,13 +6138,37 @@ class AdminController extends Controller
                     }
                 }
 
+                // Get repair breakdown for this period
+                $periodKey = $monthKeys[$idx];
+                $repairs = Report::whereRaw("TO_CHAR(created_at, 'YYYY-MM') = ?", [$periodKey])
+                    ->when($request->filled('date_from') && $request->filled('date_to'), function($q) use ($request) {
+                        $q->whereBetween('created_at', [
+                            $request->input('date_from'),
+                            $request->input('date_to')
+                        ]);
+                    })
+                    ->orderBy('created_at', 'desc')
+                    ->get()
+                    ->map(function($repair) {
+                        return [
+                            'ticket_number' => '#' . str_pad($repair->id, 4, '0', STR_PAD_LEFT),
+                            'date' => $repair->created_at->format('M d, Y'),
+                            'title' => $repair->title ?: 'N/A',
+                            'location' => $repair->location ?: 'N/A',
+                            'status' => $repair->status,
+                            'damaged_part' => $repair->damaged_part ?: 'N/A',
+                            'cost' => $repair->cost ?? 0
+                        ];
+                    });
+
                 $periodData[] = [
                     'label' => $label,
                     'count' => $count,
                     'cost' => $cost,
                     'avg_per_repair' => $avgPerRepair,
                     'percent' => $percentOfTotal,
-                    'trend' => $trend
+                    'trend' => $trend,
+                    'repairs' => $repairs
                 ];
             }
 
@@ -6183,7 +6473,7 @@ class AdminController extends Controller
                 ->orderBy('year')
                 ->get();
 
-            $periodData = $yearlyStats->map(function($stat, $index) use ($yearlyStats) {
+            $periodData = $yearlyStats->map(function($stat, $index) use ($yearlyStats, $request) {
                 $avgPerRepair = $stat->count > 0 ? $stat->total_cost / $stat->count : 0;
                 
                 // Determine trend
@@ -6197,12 +6487,34 @@ class AdminController extends Controller
                     }
                 }
                 
+                // Get repair breakdown for this year
+                $repairs = Report::whereRaw('EXTRACT(YEAR FROM created_at)::integer = ?', [$stat->year])
+                    ->whereNotNull('location')
+                    ->where('location', '!=', '')
+                    ->when($request->filled('room_filter'), fn($q) => $q->where('location', $request->input('room_filter')))
+                    ->when($request->filled('date_from'), fn($q) => $q->whereDate('created_at', '>=', $request->input('date_from')))
+                    ->when($request->filled('date_to'), fn($q) => $q->whereDate('created_at', '<=', $request->input('date_to')))
+                    ->orderBy('created_at', 'desc')
+                    ->get()
+                    ->map(function($repair) {
+                        return [
+                            'ticket_number' => '#' . str_pad($repair->id, 4, '0', STR_PAD_LEFT),
+                            'date' => $repair->created_at->format('M d, Y'),
+                            'title' => $repair->title ?: 'N/A',
+                            'location' => $repair->location ?: 'N/A',
+                            'status' => $repair->status,
+                            'damaged_part' => $repair->damaged_part ?: 'N/A',
+                            'cost' => $repair->cost ?? 0
+                        ];
+                    });
+                
                 return [
                     'label' => 'Year ' . $stat->year,
                     'count' => $stat->count,
                     'cost' => $stat->total_cost ?? 0,
                     'avg_per_repair' => $avgPerRepair,
                     'trend' => $trend,
+                    'repairs' => $repairs
                 ];
             });
 
