@@ -353,7 +353,7 @@
                     </div>
                     <div>
                         @if(in_array($user->role, ['school_admin', 'academic_head', 'program_head', 'principal_assistant']))
-                        <button type="button" class="btn btn-sm btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addEventModal">
+                        <button type="button" class="btn btn-sm btn-primary me-2" data-bs-toggle="modal" data-bs-target="#eventRequestModal">
                             <i class="fas fa-plus"></i> Add Event
                         </button>
                         @endif
@@ -383,7 +383,7 @@
                             <h5 class="text-muted">No Upcoming Events</h5>
                             <p class="text-muted mb-3">There are no approved events scheduled.</p>
                             @if(in_array($user->role, ['school_admin', 'academic_head', 'program_head', 'principal_assistant']))
-                                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addEventModal">
+                                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#eventRequestModal">
                                     <i class="fas fa-plus"></i> Submit Event Request
                                 </button>
                             @else
@@ -399,82 +399,6 @@
     </div>
 </div>
 
-<!-- Add Event Modal -->
-@if(in_array($user->role, ['school_admin', 'academic_head', 'program_head', 'principal_assistant']))
-<div class="modal fade" id="addEventModal" tabindex="-1" aria-labelledby="addEventModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="addEventModalLabel"><i class="fas fa-calendar-plus"></i> Submit Event Request</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form action="{{ route('events.store') }}" method="POST">
-                @csrf
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="modal-title" class="form-label">Event Title *</label>
-                        <input type="text" class="form-control" id="modal-title" name="title" placeholder="e.g., Science Fair 2026, Faculty Meeting" required>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label for="modal-category" class="form-label">Category *</label>
-                            <select class="form-select" id="modal-category" name="category" required>
-                                <option value="">Select category</option>
-                                <option value="Area Use">Area Use</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="modal-priority" class="form-label">Priority</label>
-                            <select class="form-select" id="modal-priority" name="priority">
-                                <option value="low">Low</option>
-                                <option value="medium" selected>Medium</option>
-                                <option value="high">High</option>
-                                <option value="urgent">Urgent</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="modal-department" class="form-label">Department</label>
-                            <select class="form-select" id="modal-department" name="department">
-                                <option value="">Select department</option>
-                                <option value="GE">GE</option>
-                                <option value="ICT">ICT</option>
-                                <option value="Business Management">Business Management</option>
-                                <option value="THM">THM</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="modal-event_date" class="form-label">Date *</label>
-                        <input type="date" class="form-control" id="modal-event_date" name="event_date" min="{{ date('Y-m-d') }}" required>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="modal-start_time" class="form-label">Start Time *</label>
-                            <input type="time" class="form-control" id="modal-start_time" name="start_time" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="modal-end_time" class="form-label">End Time *</label>
-                            <input type="time" class="form-control" id="modal-end_time" name="end_time" required>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="modal-location" class="form-label">Location *</label>
-                        <input type="text" class="form-control" id="modal-location" name="location" placeholder="e.g., Audio Visual Room, Gymnasium, Room 301" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="modal-description" class="form-label">Description *</label>
-                        <textarea class="form-control" id="modal-description" name="description" rows="3" placeholder="Describe the event purpose and details..." required></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Submit for Approval</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-@endif
 @endsection
 
 @section('scripts')

@@ -384,7 +384,14 @@ class ReportController extends Controller
         $canSeeSensitiveFields = in_array($user->role, ['building_admin', 'mis', 'school_admin', 'admin']) || $report->assigned_to === $user->id;
 
         $reportData = $report->toArray();
+        $reportData['reported_by_name'] = $report->user ? $report->user->name : 'Unknown';
         $reportData['assigned_user_name'] = $report->assignedTo ? $report->assignedTo->name : null;
+        
+        // Format dates properly
+        $reportData['created_at'] = $report->created_at ? $report->created_at->format('M d, Y h:i A') : null;
+        $reportData['assigned_at'] = $report->assigned_at ? $report->assigned_at->format('M d, Y h:i A') : null;
+        $reportData['in_progress_at'] = $report->in_progress_at ? $report->in_progress_at->format('M d, Y h:i A') : null;
+        $reportData['resolved_at'] = $report->resolved_at ? $report->resolved_at->format('M d, Y h:i A') : null;
 
         // Remove sensitive fields for unauthorized users
         if (! $canSeeSensitiveFields) {

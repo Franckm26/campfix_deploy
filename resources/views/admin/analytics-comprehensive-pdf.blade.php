@@ -430,6 +430,61 @@
             </tr>
         </tfoot>
     </table>
+
+    {{-- Repair Breakdown for Each Year --}}
+    @foreach($periodData as $item)
+        @if($item['count'] > 0 && isset($item['repairs']) && count($item['repairs']) > 0)
+        <div style="page-break-inside: avoid; margin-top: 25px; margin-bottom: 25px;">
+            <h4 style="font-size: 13px; color: #003087; margin-bottom: 8px; border-bottom: 2px solid #003087; padding-bottom: 4px;">
+                {{ $item['label'] }} - Repair Breakdown ({{ $item['count'] }} repairs)
+            </h4>
+            <table style="font-size: 9px;">
+                <thead>
+                    <tr>
+                        <th style="width: 8%;">Ticket</th>
+                        <th style="width: 11%;">Date</th>
+                        <th style="width: 24%;">Issue</th>
+                        <th style="width: 15%;">Location</th>
+                        <th style="width: 10%;">Status</th>
+                        <th style="width: 20%;">Damaged Part</th>
+                        <th class="text-right" style="width: 12%;">Cost</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($item['repairs'] as $repair)
+                    <tr>
+                        <td>{{ $repair['ticket_number'] }}</td>
+                        <td>{{ $repair['date'] }}</td>
+                        <td>{{ $repair['title'] }}</td>
+                        <td>{{ $repair['location'] }}</td>
+                        <td class="text-center">
+                            @php
+                                $statusColors = [
+                                    'Pending' => '#ffc107',
+                                    'Assigned' => '#17a2b8',
+                                    'In Progress' => '#007bff',
+                                    'Resolved' => '#28a745'
+                                ];
+                                $bgColor = $statusColors[$repair['status']] ?? '#6c757d';
+                            @endphp
+                            <span style="background-color: {{ $bgColor }}; color: white; padding: 2px 5px; border-radius: 3px; font-size: 8px; display: inline-block;">
+                                {{ $repair['status'] }}
+                            </span>
+                        </td>
+                        <td>{{ $repair['damaged_part'] }}</td>
+                        <td class="text-right">{{ $repair['cost'] > 0 ? 'PHP ' . number_format($repair['cost'], 2) : 'N/A' }}</td>
+                    </tr>
+                    @endforeach
+                    <tr style="background: #f0f0f0; font-weight: bold;">
+                        <td colspan="6" class="text-right" style="padding: 6px;"><strong>{{ $item['label'] }} Total:</strong></td>
+                        <td class="text-right" style="padding: 6px;"><strong>PHP {{ number_format($item['cost'], 2) }}</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        @endif
+    @endforeach
+
     @else
     <div class="no-data">No period comparison data available.</div>
     @endif

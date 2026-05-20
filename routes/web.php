@@ -332,6 +332,10 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/analytics', [AdminController::class, 'analytics'])->name('admin.analytics');
     Route::get('/admin/analytics/export', [AdminController::class, 'exportAnalytics'])->name('admin.analytics.export');
     Route::get('/admin/analytics/export-pdf', [AdminController::class, 'exportAnalyticsPDF'])->name('admin.analytics.export-pdf');
+    Route::get('/admin/analytics/period-breakdown', [AdminController::class, 'getPeriodBreakdown'])->name('admin.analytics.period-breakdown');
+    Route::get('/admin/analytics/all-periods-breakdown', [AdminController::class, 'getAllPeriodsBreakdown'])->name('admin.analytics.all-periods-breakdown');
+    Route::get('/admin/analytics/period-breakdown-pdf', [AdminController::class, 'exportPeriodBreakdownPDF'])->name('admin.analytics.period-breakdown-pdf');
+    Route::get('/admin/analytics/all-periods-breakdown-pdf', [AdminController::class, 'exportAllPeriodsBreakdownPDF'])->name('admin.analytics.all-periods-breakdown-pdf');
     Route::get('/admin/analytics/location-report-pdf', [AdminController::class, 'locationReportPDF'])->name('admin.analytics.location-report-pdf');
     Route::get('/admin/analytics/location-detail-pdf', [AdminController::class, 'locationDetailPDF'])->name('admin.analytics.location-detail-pdf');
     Route::get('/admin/analytics/combined-location-pdf', [AdminController::class, 'combinedLocationPDF'])->name('admin.analytics.combined-location-pdf');

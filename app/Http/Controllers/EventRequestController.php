@@ -675,12 +675,12 @@ class EventRequestController extends Controller
         } elseif ($user->isSchoolAdmin() || $user->isAdmin()) {
             // Check if this user has already approved at this level
             if ($eventRequest->hasUserApprovedAtLevel($user->id, 4)) {
-                // Already approved - re-evaluate in case previous logic left it stuck
-                if ($eventRequest->isApprovedByAllSchoolAdmins() && $eventRequest->isApprovedByAllBuildingAdmins() && $eventRequest->isApprovedByAllAcademicHeads() && $eventRequest->isApprovedByAllProgramHeads()) {
+                // Already approved - just ensure it's marked as approved
+                if ($eventRequest->status !== 'Approved') {
                     $eventRequest->status = 'Approved';
                     $eventRequest->approved_by = $user->id;
                     $eventRequest->approved_at = now();
-                    $eventRequest->approval_level = EventRequest::LEVEL_4_SCHOOL_ADMIN;
+                    $eventRequest->approval_level = EventRequest::LEVEL_APPROVED;
                     $eventRequest->save();
                     return back()->with('success', 'Event request fully approved!');
                 }
@@ -699,32 +699,20 @@ class EventRequestController extends Controller
             ];
             $eventRequest->approval_history = $history;
 
-            // Check if ALL School Admins have approved AND all previous levels
-            if ($eventRequest->isApprovedByAllSchoolAdmins() && $eventRequest->isApprovedByAllBuildingAdmins() && $eventRequest->isApprovedByAllAcademicHeads() && $eventRequest->isApprovedByAllProgramHeads()) {
-                $eventRequest->status = 'Approved';
-                $eventRequest->approved_by = $user->id;
-                $eventRequest->approved_at = now();
-                $eventRequest->approval_level = EventRequest::LEVEL_4_SCHOOL_ADMIN;
+            // School Admin approval is FINAL - approve immediately regardless of previous levels
+            $eventRequest->status = 'Approved';
+            $eventRequest->approved_by = $user->id;
+            $eventRequest->approved_at = now();
+            $eventRequest->approval_level = EventRequest::LEVEL_APPROVED;
 
-                ActivityLog::log(
-                    'event_approved',
-                    'Event fully approved by all School Admins: ',
-                    null
-                );
-            } else {
-                // Still waiting for other School Admins to approve
-                $eventRequest->status = 'Pending';
-                $eventRequest->approval_level = EventRequest::LEVEL_3_BUILDING_ADMIN;
-
-                ActivityLog::log(
-                    'event_approved_level_4_partial',
-                    'Event approved by School Admin (waiting for others): ',
-                    null
-                );
-            }
+            ActivityLog::log(
+                'event_approved',
+                'Event fully approved by School Admin: ',
+                null
+            );
 
             // Notify the requester
-            $this->sendApprovalNotification($eventRequest, 4, $eventRequest->status === 'Approved' ? 'Fully Approved' : 'Partially Approved');
+            $this->sendApprovalNotification($eventRequest, 4, 'Fully Approved');
         } else {
             // Fallback for any other role with approval permission
             $eventRequest->status = 'Approved';

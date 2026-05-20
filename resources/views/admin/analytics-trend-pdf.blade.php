@@ -209,8 +209,10 @@
             <tr>
                 <th>Month</th>
                 <th>Issue Type</th>
-                <th class="text-center">Count</th>
-                <th class="text-center">Trend</th>
+                <th class="text-center">Total</th>
+                <th>Resolved</th>
+                <th>In Progress</th>
+                <th>Pending</th>
             </tr>
         </thead>
         <tbody>
@@ -221,15 +223,47 @@
                 @endif
                 @if($item['issue_type'])
                 <td>{{ $item['issue_type'] }}</td>
-                <td class="text-center"><span class="badge">{{ $item['count'] }}</span></td>
-                <td class="text-center">{{ $item['trend'] }}</td>
+                <td class="text-center"><span class="badge">{{ $item['total'] }}</span></td>
+                <td style="font-size: 9px;">
+                    @if(count($item['resolved']) > 0)
+                        @foreach($item['resolved'] as $ticket)
+                            <div style="margin-bottom: 2px;">
+                                #{{ str_pad($ticket['id'], 4, '0', STR_PAD_LEFT) }} {{ $ticket['damaged_part'] }}
+                            </div>
+                        @endforeach
+                    @else
+                        <span class="text-center" style="display: block;">0</span>
+                    @endif
+                </td>
+                <td style="font-size: 9px;">
+                    @if(count($item['in_progress']) > 0)
+                        @foreach($item['in_progress'] as $ticket)
+                            <div style="margin-bottom: 2px;">
+                                #{{ str_pad($ticket['id'], 4, '0', STR_PAD_LEFT) }} {{ $ticket['damaged_part'] }}
+                            </div>
+                        @endforeach
+                    @else
+                        <span class="text-center" style="display: block;">0</span>
+                    @endif
+                </td>
+                <td style="font-size: 9px;">
+                    @if(count($item['pending']) > 0)
+                        @foreach($item['pending'] as $ticket)
+                            <div style="margin-bottom: 2px;">
+                                #{{ str_pad($ticket['id'], 4, '0', STR_PAD_LEFT) }} {{ $ticket['damaged_part'] }}
+                            </div>
+                        @endforeach
+                    @else
+                        <span class="text-center" style="display: block;">0</span>
+                    @endif
+                </td>
                 @else
-                <td colspan="3" class="text-center text-muted">No repairs recorded</td>
+                <td colspan="5" class="text-center text-muted">No repairs recorded</td>
                 @endif
             </tr>
             @empty
             <tr>
-                <td colspan="4" class="text-center">No data available for the selected period</td>
+                <td colspan="6" class="text-center">No data available for the selected period</td>
             </tr>
             @endforelse
         </tbody>

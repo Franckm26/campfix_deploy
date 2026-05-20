@@ -966,6 +966,7 @@ function showPeriodComparisonModal(filterType = null) {
         const count = counts[idx];
         const avgPerRepair = count > 0 ? cost / count : 0;
         const percentOfTotal = totalCost > 0 ? ((cost / totalCost) * 100).toFixed(1) : 0;
+        const periodKey = keys[idx]; // Store the period key (YYYY-MM or YYYY)
         
         let trendIcon = '';
         if (idx > 0) {
@@ -979,8 +980,12 @@ function showPeriodComparisonModal(filterType = null) {
             }
         }
         
+        // Make row clickable if there are repairs
+        const rowClass = count > 0 ? 'cursor-pointer period-breakdown-row' : '';
+        const rowClick = count > 0 ? `onclick="showPeriodBreakdownModal('${periodKey}', '${label}')"` : '';
+        
         tableRows += `
-            <tr>
+            <tr class="${rowClass}" ${rowClick} style="${count > 0 ? 'cursor: pointer;' : ''}">
                 <td><strong>${label}</strong></td>
                 <td class="text-center">${count}</td>
                 <td class="text-end">₱${cost.toLocaleString('en-PH', {minimumFractionDigits: 2})}</td>
@@ -1047,7 +1052,7 @@ function showPeriodComparisonModal(filterType = null) {
                         </thead>
                         <tbody>${tableRows}</tbody>
                         <tfoot class="table-secondary fw-bold">
-                            <tr>
+                            <tr class="cursor-pointer period-breakdown-row" onclick="showAllPeriodsBreakdown()" style="cursor: pointer;">
                                 <td>TOTAL (${periodLabel})</td>
                                 <td class="text-center">${totalCount}</td>
                                 <td class="text-end">₱${totalCost.toLocaleString('en-PH', {minimumFractionDigits: 2})}</td>
@@ -1115,6 +1120,350 @@ function showPeriodComparisonModal(filterType = null) {
     });
 }
 
+// Show Period Breakdown Modal - Shows individual repairs for a specific period
+function showPeriodBreakdownModal(periodKey, periodLabel) {
+    // Get current filter state
+    const state = window.modalFilterState || {};
+    const location = state.location || '';
+    const category = state.category || '';
+    
+    // Build query parameters
+    const params = new URLSearchParams({
+        period: periodKey,
+        location: location,
+        category: category
+    });
+    
+    // Show loading state
+    Swal.fire({
+        title: `<i class="fas fa-spinner fa-spin me-2"></i>Loading ${periodLabel} Breakdown...`,
+        html: '<p class="text-muted">Fetching repair details...</p>',
+        showConfirmButton: false,
+        allowOutsideClick: false
+    });
+    
+    // Fetch breakdown data from server
+    fetch(`/admin/analytics/period-breakdown?${params.toString()}`)
+        .then(response => response.json())
+        .then(data => {
+            if (!data.repairs || data.repairs.length === 0) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'No Repairs Found',
+                    text: `No repair data available for ${periodLabel}`,
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+            
+            // Build table rows for individual repairs
+            let tableRows = '';
+            let totalCost = 0;
+            
+            data.repairs.forEach((repair, idx) => {
+                const cost = parseFloat(repair.cost) || 0;
+                totalCost += cost;
+                const date = new Date(repair.created_at).toLocaleDateString('en-PH', { 
+                    month: 'short', 
+                    day: 'numeric', 
+                    year: 'numeric' 
+                });
+                // Format ticket number from id
+                const ticketNumber = '#' + String(repair.id).padStart(4, '0');
+                
+                // Status badge color
+                const statusColors = {
+                    'Pending': 'warning',
+                    'Assigned': 'info',
+                    'In Progress': 'primary',
+                    'Resolved': 'success'
+                };
+                const statusColor = statusColors[repair.status] || 'secondary';
+                
+                tableRows += `
+                    <tr>
+                        <td>${idx + 1}</td>
+                        <td>${date}</td>
+                        <td>${ticketNumber}</td>
+                        <td>${repair.title || 'N/A'}</td>
+                        <td>${repair.location || 'N/A'}</td>
+                        <td><span class="badge bg-${statusColor}">${repair.status}</span></td>
+                        <td>${repair.damaged_part || 'N/A'}</td>
+                        <td class="text-end">${cost > 0 ? '₱' + cost.toLocaleString('en-PH', {minimumFractionDigits: 2}) : 'N/A'}</td>
+                    </tr>
+                `;
+            });
+            
+            // Show the breakdown modal
+            Swal.fire({
+                title: `<i class="fas fa-list-alt me-2"></i>${periodLabel} - Repair Breakdown`,
+                html: `
+                    <div>
+                        <div class="mb-3 d-flex justify-content-between align-items-center">
+                            <button type="button" class="btn btn-secondary" onclick="Swal.close(); showPeriodComparisonModal();">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Period Comparison
+                            </button>
+                            <button type="button" class="btn btn-danger" onclick="exportPeriodBreakdownPDF('${periodKey}', '${periodLabel}');">
+                                <i class="fas fa-file-pdf me-2"></i>Export PDF
+                            </button>
+                        </div>
+                        <div class="alert alert-info mb-3">
+                            <div class="row text-center">
+                                <div class="col-md-4">
+                                    <h6 class="text-muted mb-1">Total Repairs</h6>
+                                    <h4 class="mb-0">${data.repairs.length}</h4>
+                                </div>
+                                <div class="col-md-4">
+                                    <h6 class="text-muted mb-1">Total Cost</h6>
+                                    <h4 class="mb-0">₱${totalCost.toLocaleString('en-PH', {minimumFractionDigits: 2})}</h4>
+                                </div>
+                                <div class="col-md-4">
+                                    <h6 class="text-muted mb-1">Average Cost</h6>
+                                    <h4 class="mb-0">₱${totalCost > 0 ? (totalCost / data.repairs.filter(r => r.cost > 0).length).toLocaleString('en-PH', {minimumFractionDigits: 2}) : '0.00'}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped table-bordered table-sm">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Date</th>
+                                        <th>Ticket</th>
+                                        <th>Issue</th>
+                                        <th>Location</th>
+                                        <th>Status</th>
+                                        <th>Damaged Part</th>
+                                        <th class="text-end">Cost</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${tableRows}</tbody>
+                                <tfoot class="table-secondary fw-bold">
+                                    <tr>
+                                        <td colspan="7" class="text-end">TOTAL:</td>
+                                        <td class="text-end">₱${totalCost.toLocaleString('en-PH', {minimumFractionDigits: 2})}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                `,
+                width: '90%',
+                showCloseButton: true,
+                showConfirmButton: false,
+                customClass: {
+                    container: 'swal-analytics-modal',
+                    popup: 'swal-wide-popup'
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching period breakdown:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to load repair breakdown. Please try again.',
+                confirmButtonText: 'OK'
+            });
+        });
+}
+
+// Show All Periods Breakdown - Shows all repairs across all periods
+function showAllPeriodsBreakdown() {
+    // Get current filter state
+    const state = window.modalFilterState || {};
+    const location = state.location || '';
+    const category = state.category || '';
+    const dateFrom = state.date_from || '';
+    const dateTo = state.date_to || '';
+    
+    // Build query parameters
+    const params = new URLSearchParams({
+        location: location,
+        category: category,
+        date_from: dateFrom,
+        date_to: dateTo
+    });
+    
+    // Show loading state
+    Swal.fire({
+        title: `<i class="fas fa-spinner fa-spin me-2"></i>Loading All Repairs...`,
+        html: '<p class="text-muted">Fetching all repair details...</p>',
+        showConfirmButton: false,
+        allowOutsideClick: false
+    });
+    
+    // Fetch breakdown data from server
+    fetch(`/admin/analytics/all-periods-breakdown?${params.toString()}`)
+        .then(response => response.json())
+        .then(data => {
+            if (!data.repairs || data.repairs.length === 0) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'No Repairs Found',
+                    text: 'No repair data available for the selected period',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+            
+            // Build table rows for individual repairs
+            let tableRows = '';
+            let totalCost = 0;
+            
+            data.repairs.forEach((repair, idx) => {
+                const cost = parseFloat(repair.cost) || 0;
+                totalCost += cost;
+                const date = new Date(repair.created_at).toLocaleDateString('en-PH', { 
+                    month: 'short', 
+                    day: 'numeric', 
+                    year: 'numeric' 
+                });
+                // Format ticket number from id
+                const ticketNumber = '#' + String(repair.id).padStart(4, '0');
+                
+                // Status badge color
+                const statusColors = {
+                    'Pending': 'warning',
+                    'Assigned': 'info',
+                    'In Progress': 'primary',
+                    'Resolved': 'success'
+                };
+                const statusColor = statusColors[repair.status] || 'secondary';
+                
+                tableRows += `
+                    <tr>
+                        <td>${idx + 1}</td>
+                        <td>${date}</td>
+                        <td>${ticketNumber}</td>
+                        <td>${repair.title || 'N/A'}</td>
+                        <td>${repair.location || 'N/A'}</td>
+                        <td><span class="badge bg-${statusColor}">${repair.status}</span></td>
+                        <td>${repair.damaged_part || 'N/A'}</td>
+                        <td class="text-end">${cost > 0 ? '₱' + cost.toLocaleString('en-PH', {minimumFractionDigits: 2}) : 'N/A'}</td>
+                    </tr>
+                `;
+            });
+            
+            // Show the breakdown modal
+            Swal.fire({
+                title: `<i class="fas fa-list-alt me-2"></i>All Periods - Complete Repair Breakdown`,
+                html: `
+                    <div>
+                        <div class="mb-3 d-flex justify-content-between align-items-center">
+                            <button class="btn btn-secondary btn-sm" onclick="Swal.close(); showPeriodComparisonModal();">
+                                <i class="fas fa-arrow-left me-1"></i> Back to Period Comparison
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="exportAllPeriodsBreakdownPDF()">
+                                <i class="fas fa-file-pdf me-1"></i> Export PDF
+                            </button>
+                        </div>
+                        <div class="alert alert-info mb-3">
+                            <div class="row text-center">
+                                <div class="col-md-4">
+                                    <h6 class="text-muted mb-1">Total Repairs</h6>
+                                    <h4 class="mb-0">${data.repairs.length}</h4>
+                                </div>
+                                <div class="col-md-4">
+                                    <h6 class="text-muted mb-1">Total Cost</h6>
+                                    <h4 class="mb-0">₱${totalCost.toLocaleString('en-PH', {minimumFractionDigits: 2})}</h4>
+                                </div>
+                                <div class="col-md-4">
+                                    <h6 class="text-muted mb-1">Average Cost</h6>
+                                    <h4 class="mb-0">₱${totalCost > 0 ? (totalCost / data.repairs.filter(r => r.cost > 0).length).toLocaleString('en-PH', {minimumFractionDigits: 2}) : '0.00'}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped table-bordered table-sm">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Date</th>
+                                        <th>Ticket</th>
+                                        <th>Issue</th>
+                                        <th>Location</th>
+                                        <th>Status</th>
+                                        <th>Damaged Part</th>
+                                        <th class="text-end">Cost</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${tableRows}</tbody>
+                                <tfoot class="table-secondary fw-bold">
+                                    <tr>
+                                        <td colspan="7" class="text-end">TOTAL:</td>
+                                        <td class="text-end">₱${totalCost.toLocaleString('en-PH', {minimumFractionDigits: 2})}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                `,
+                width: '90%',
+                showCloseButton: true,
+                showConfirmButton: false,
+                customClass: {
+                    container: 'swal-analytics-modal',
+                    popup: 'swal-wide-popup'
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching all periods breakdown:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to load repair breakdown. Please try again.',
+                confirmButtonText: 'OK'
+            });
+        });
+}
+
+// Export Period Breakdown to PDF
+function exportPeriodBreakdownPDF(periodKey, periodLabel) {
+    const state = window.modalFilterState || {};
+    const location = state.location || '';
+    const category = state.category || '';
+    
+    const params = new URLSearchParams({
+        period: periodKey,
+        period_label: periodLabel,
+        location: location,
+        category: category
+    });
+    
+    window.open(`/admin/analytics/period-breakdown-pdf?${params.toString()}`, '_blank');
+}
+
+// Export All Periods Breakdown to PDF
+function exportAllPeriodsBreakdownPDF() {
+    const state = window.modalFilterState || {};
+    const location = state.location || '';
+    const category = state.category || '';
+    const dateFrom = state.date_from || '';
+    const dateTo = state.date_to || '';
+    
+    const params = new URLSearchParams({
+        location: location,
+        category: category,
+        date_from: dateFrom,
+        date_to: dateTo
+    });
+    
+    window.open(`/admin/analytics/all-periods-breakdown-pdf?${params.toString()}`, '_blank');
+}
+
+// View Repair Details - Opens the concern/report detail modal
+function viewRepairDetails(reportId) {
+    // Check if viewConcern function exists (from my.blade.php)
+    if (typeof viewConcern === 'function') {
+        viewConcern(reportId);
+    } else {
+        // Fallback: redirect to the concern page
+        window.location.href = `/concerns/${reportId}`;
+    }
+}
+
 // Show Monthly Trend Modal
 function showMonthlyTrendModal(filterType = null) {
     const monthly = window.monthlyStats || [];
@@ -1141,15 +1490,25 @@ function showMonthlyTrendModal(filterType = null) {
             if (!monthData[item.month].issues[item.title]) {
                 monthData[item.month].issues[item.title] = {
                     total: 0,
-                    Pending: 0,
-                    Assigned: 0,
-                    'In Progress': 0,
-                    Resolved: 0
+                    Pending: { count: 0, tickets: [], damagedParts: [] },
+                    Assigned: { count: 0, tickets: [], damagedParts: [] },
+                    'In Progress': { count: 0, tickets: [], damagedParts: [] },
+                    Resolved: { count: 0, tickets: [], damagedParts: [] }
                 };
             }
             const count = parseInt(item.count) || 0;
+            const ticketIds = item.ticket_ids ? item.ticket_ids.split(',') : [];
+            const damagedParts = item.damaged_parts ? item.damaged_parts.split('|') : [];
+            
             monthData[item.month].issues[item.title].total += count;
-            monthData[item.month].issues[item.title][item.status] = (monthData[item.month].issues[item.title][item.status] || 0) + count;
+            
+            if (!monthData[item.month].issues[item.title][item.status]) {
+                monthData[item.month].issues[item.title][item.status] = { count: 0, tickets: [], damagedParts: [] };
+            }
+            
+            monthData[item.month].issues[item.title][item.status].count += count;
+            monthData[item.month].issues[item.title][item.status].tickets.push(...ticketIds);
+            monthData[item.month].issues[item.title][item.status].damagedParts.push(...damagedParts);
             monthData[item.month].total += count;
         }
     });
@@ -1183,14 +1542,33 @@ function showMonthlyTrendModal(filterType = null) {
             `;
         } else {
             Object.entries(data.issues).forEach(([issue, statusData], idx) => {
+                // Helper function to format ticket list with damage parts
+                const formatTicketList = (statusObj) => {
+                    if (!statusObj || !statusObj.tickets || statusObj.tickets.length === 0) {
+                        return '<span class="badge bg-secondary">0</span>';
+                    }
+                    
+                    const tickets = statusObj.tickets;
+                    const parts = statusObj.damagedParts || [];
+                    const items = tickets.map((ticketId, i) => {
+                        const formattedTicket = '#' + String(ticketId).padStart(4, '0');
+                        const part = parts[i] || 'N/A';
+                        return `${formattedTicket} ${part}`;
+                    });
+                    
+                    return `<div style="text-align: left; max-width: 200px;">
+                        ${items.map(item => `<div style="margin-bottom: 2px; font-size: 0.85em;">${item}</div>`).join('')}
+                    </div>`;
+                };
+                
                 tableRows += `
                     <tr>
                         ${idx === 0 ? `<td rowspan="${Object.keys(data.issues).length}"><strong>${data.label}</strong></td>` : ''}
                         <td>${issue}</td>
                         <td class="text-center"><span class="badge bg-primary">${statusData.total}</span></td>
-                        <td class="text-center"><span class="badge bg-success">${statusData.Resolved || 0}</span></td>
-                        <td class="text-center"><span class="badge bg-warning">${statusData['In Progress'] || 0}</span></td>
-                        <td class="text-center"><span class="badge bg-secondary">${statusData.Pending || 0}</span></td>
+                        <td class="text-center">${formatTicketList(statusData.Resolved)}</td>
+                        <td class="text-center">${formatTicketList(statusData['In Progress'])}</td>
+                        <td class="text-center">${formatTicketList(statusData.Pending)}</td>
                     </tr>
                 `;
             });
@@ -2054,15 +2432,25 @@ function updateTrendModalContent() {
             if (!monthData[item.month].issues[item.title]) {
                 monthData[item.month].issues[item.title] = {
                     total: 0,
-                    Pending: 0,
-                    Assigned: 0,
-                    'In Progress': 0,
-                    Resolved: 0
+                    Pending: { count: 0, tickets: [], damagedParts: [] },
+                    Assigned: { count: 0, tickets: [], damagedParts: [] },
+                    'In Progress': { count: 0, tickets: [], damagedParts: [] },
+                    Resolved: { count: 0, tickets: [], damagedParts: [] }
                 };
             }
             const count = parseInt(item.count) || 0;
+            const ticketIds = item.ticket_ids ? item.ticket_ids.split(',') : [];
+            const damagedParts = item.damaged_parts ? item.damaged_parts.split('|') : [];
+            
             monthData[item.month].issues[item.title].total += count;
-            monthData[item.month].issues[item.title][item.status] = (monthData[item.month].issues[item.title][item.status] || 0) + count;
+            
+            if (!monthData[item.month].issues[item.title][item.status]) {
+                monthData[item.month].issues[item.title][item.status] = { count: 0, tickets: [], damagedParts: [] };
+            }
+            
+            monthData[item.month].issues[item.title][item.status].count += count;
+            monthData[item.month].issues[item.title][item.status].tickets.push(...ticketIds);
+            monthData[item.month].issues[item.title][item.status].damagedParts.push(...damagedParts);
             monthData[item.month].total += count;
         }
     });
@@ -2117,14 +2505,33 @@ function updateTrendModalContent() {
             `;
         } else {
             Object.entries(data.issues).forEach(([issue, statusData], idx) => {
+                // Helper function to format ticket list with damage parts
+                const formatTicketList = (statusObj) => {
+                    if (!statusObj || !statusObj.tickets || statusObj.tickets.length === 0) {
+                        return '<span class="badge bg-secondary">0</span>';
+                    }
+                    
+                    const tickets = statusObj.tickets;
+                    const parts = statusObj.damagedParts || [];
+                    const items = tickets.map((ticketId, i) => {
+                        const formattedTicket = '#' + String(ticketId).padStart(4, '0');
+                        const part = parts[i] || 'N/A';
+                        return `${formattedTicket} ${part}`;
+                    });
+                    
+                    return `<div style="text-align: left; max-width: 200px;">
+                        ${items.map(item => `<div style="margin-bottom: 2px; font-size: 0.85em;">${item}</div>`).join('')}
+                    </div>`;
+                };
+                
                 tableRows += `
                     <tr>
                         ${idx === 0 ? `<td rowspan="${Object.keys(data.issues).length}"><strong>${data.label}</strong></td>` : ''}
                         <td>${issue}</td>
                         <td class="text-center"><span class="badge bg-primary">${statusData.total}</span></td>
-                        <td class="text-center"><span class="badge bg-success">${statusData.Resolved || 0}</span></td>
-                        <td class="text-center"><span class="badge bg-warning">${statusData['In Progress'] || 0}</span></td>
-                        <td class="text-center"><span class="badge bg-secondary">${statusData.Pending || 0}</span></td>
+                        <td class="text-center">${formatTicketList(statusData.Resolved)}</td>
+                        <td class="text-center">${formatTicketList(statusData['In Progress'])}</td>
+                        <td class="text-center">${formatTicketList(statusData.Pending)}</td>
                     </tr>
                 `;
             });
@@ -2296,6 +2703,7 @@ function updatePeriodComparisonModalContent() {
         const count = counts[idx];
         const avgPerRepair = count > 0 ? cost / count : 0;
         const percentOfTotal = totalCost > 0 ? ((cost / totalCost) * 100).toFixed(1) : 0;
+        const periodKey = keys[idx]; // Store the period key (YYYY-MM or YYYY)
         
         let trendIcon = '';
         if (idx > 0) {
@@ -2309,8 +2717,12 @@ function updatePeriodComparisonModalContent() {
             }
         }
         
+        // Make row clickable if there are repairs
+        const rowClass = count > 0 ? 'cursor-pointer period-breakdown-row' : '';
+        const rowClick = count > 0 ? `onclick="showPeriodBreakdownModal('${periodKey}', '${label}')"` : '';
+        
         tableRows += `
-            <tr>
+            <tr class="${rowClass}" ${rowClick} style="${count > 0 ? 'cursor: pointer;' : ''}">
                 <td><strong>${label}</strong></td>
                 <td class="text-center">${count}</td>
                 <td class="text-end">₱${cost.toLocaleString('en-PH', {minimumFractionDigits: 2})}</td>
@@ -2325,7 +2737,7 @@ function updatePeriodComparisonModalContent() {
     
     // Add footer row
     tableRows += `
-        <tr class="table-secondary fw-bold">
+        <tr class="table-secondary fw-bold cursor-pointer period-breakdown-row" onclick="showAllPeriodsBreakdown()" style="cursor: pointer;">
             <td>TOTAL (${periodLabel})</td>
             <td class="text-center">${totalCount}</td>
             <td class="text-end">₱${totalCost.toLocaleString('en-PH', {minimumFractionDigits: 2})}</td>

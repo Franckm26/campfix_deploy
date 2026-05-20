@@ -105,13 +105,19 @@
                                     <td>{{ $concern->categoryRelation->name ?? 'N/A' }}</td>
                                     <td>{{ $concern->location }}</td>
                                     <td>
-                                        <span class="badge bg-{{
-                                            $concern->priority == 'urgent' ? 'danger' :
-                                            ($concern->priority == 'high' ? 'warning' :
-                                            ($concern->priority == 'medium' ? 'info' : 'secondary'))
-                                        }}">
-                                            {{ ucfirst($concern->priority) }}
-                                        </span>
+                                        @if($concern->is_safety_hazard)
+                                            <span class="badge" style="background: linear-gradient(135deg, #dc3545 0%, #8b0000 100%); color: white; border: 1px solid #8b0000; font-weight: bold;">
+                                                <i class="fas fa-exclamation-triangle"></i> Safety Hazard
+                                            </span>
+                                        @else
+                                            <span class="badge bg-{{
+                                                $concern->priority == 'urgent' ? 'danger' :
+                                                ($concern->priority == 'high' ? 'warning' :
+                                                ($concern->priority == 'medium' ? 'info' : 'secondary'))
+                                            }}">
+                                                {{ ucfirst($concern->priority) }}
+                                            </span>
+                                        @endif
                                     </td>
                                     <td>
                                         <span class="badge bg-success">
@@ -165,13 +171,19 @@
                                 <td>{{ $concern->categoryRelation->name ?? 'N/A' }}</td>
                                 <td>{{ $concern->location }}</td>
                                 <td>
-                                    <span class="badge bg-{{
-                                        $concern->priority == 'urgent' ? 'danger' :
-                                        ($concern->priority == 'high' ? 'warning' :
-                                        ($concern->priority == 'medium' ? 'info' : 'secondary'))
-                                    }}">
-                                        {{ ucfirst($concern->priority) }}
-                                    </span>
+                                    @if($concern->is_safety_hazard)
+                                        <span class="badge" style="background: linear-gradient(135deg, #dc3545 0%, #8b0000 100%); color: white; border: 1px solid #8b0000; font-weight: bold;">
+                                            <i class="fas fa-exclamation-triangle"></i> Safety Hazard
+                                        </span>
+                                    @else
+                                        <span class="badge bg-{{
+                                            $concern->priority == 'urgent' ? 'danger' :
+                                            ($concern->priority == 'high' ? 'warning' :
+                                            ($concern->priority == 'medium' ? 'info' : 'secondary'))
+                                        }}">
+                                            {{ ucfirst($concern->priority) }}
+                                        </span>
+                                    @endif
                                 </td>
                                 <td>
                                     <span class="badge bg-{{
@@ -379,15 +391,16 @@
 @section('scripts')
 <script>
 // View Concern Modal
+// View Concern Modal using SweetAlert2
 function viewConcern(id) {
-    const modal = new bootstrap.Modal(document.getElementById('viewConcernModal'));
-    const contentDiv = document.getElementById('viewConcernContent');
-    const actionsDiv = document.getElementById('viewConcernActions');
-
-    contentDiv.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
-    actionsDiv.innerHTML = '';
-
-    modal.show();
+    // Show loading state
+    Swal.fire({
+        title: '<i class="fas fa-ticket-alt me-2"></i>Loading Ticket Details...',
+        html: '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>',
+        showConfirmButton: false,
+        allowOutsideClick: false,
+        width: '900px'
+    });
 
     fetch('/api/concerns/' + id, {
         headers: {
@@ -405,7 +418,11 @@ function viewConcern(id) {
     })
     .then(data => {
         if (data.error) {
-            contentDiv.innerHTML = '<div class="alert alert-danger">' + data.error + '</div>';
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.error
+            });
             return;
         }
 
@@ -414,9 +431,17 @@ function viewConcern(id) {
         const userName = concern.user ? concern.user.name : 'Unknown';
         const userRole = concern.user ? concern.user.role : '';
 
-        const priorityClass = concern.priority === 'urgent' ? 'danger' :
-            (concern.priority === 'high' ? 'warning' :
-            (concern.priority === 'medium' ? 'info' : 'secondary'));
+        // Check if it's a safety hazard
+        let priorityBadge = '';
+        if (concern.is_safety_hazard) {
+            priorityBadge = '<span class="badge" style="background: linear-gradient(135deg, #dc3545 0%, #8b0000 100%); color: white; border: 1px solid #8b0000; font-weight: bold;"><i class="fas fa-exclamation-triangle"></i> Safety Hazard</span>';
+        } else {
+            const priorityClass = concern.priority === 'urgent' ? 'danger' :
+                (concern.priority === 'high' ? 'warning' :
+                (concern.priority === 'medium' ? 'info' : 'secondary'));
+            const priorityText = concern.priority ? concern.priority.charAt(0).toUpperCase() + concern.priority.slice(1) : 'N/A';
+            priorityBadge = '<span class="badge bg-' + priorityClass + '">' + priorityText + '</span>';
+        }
 
         const statusClass = concern.status === 'Resolved' ? 'success' :
             (concern.status === 'In Progress' ? 'warning' :
@@ -425,9 +450,9 @@ function viewConcern(id) {
         let imageHtml = '';
         if (concern.image_path) {
             imageHtml = `
-                <div class="mb-3">
-                    <p><strong>Photo:</strong></p>
-                    <img src="${concern.image_path}" alt="Concern photo" class="img-fluid rounded" style="max-width: 400px;">
+                <div class="mb-3 text-center">
+                    <p class="text-start"><strong>Photo:</strong></p>
+                    <img src="${concern.image_path}" alt="Concern photo" class="img-fluid rounded" style="max-width: 100%; max-height: 400px;">
                 </div>
             `;
         }
@@ -435,49 +460,75 @@ function viewConcern(id) {
         let resolutionHtml = '';
         if (concern.resolution_notes) {
             resolutionHtml = `
-                <div class="alert alert-success mt-3">
-                    <h5>Resolution Notes:</h5>
-                    <p>${concern.resolution_notes}</p>
-                    ${concern.resolved_at ? '<small>Resolved on: ' + concern.resolved_at + '</small>' : ''}
+                <div class="alert alert-success mt-3 text-start">
+                    <h6><strong>Resolution Notes:</strong></h6>
+                    <p class="mb-1">${concern.resolution_notes}</p>
+                    ${concern.resolved_at ? '<small class="text-muted">Resolved on: ' + concern.resolved_at + '</small>' : ''}
                 </div>
             `;
         }
 
-        contentDiv.innerHTML = `
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">${concern.title || 'No Title'}</h5>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <p><strong>Category:</strong> ${categoryName}</p>
-                            <p><strong>Location:</strong> ${concern.location || 'N/A'}</p>
-                            <p><strong>Reported by:</strong> ${userName} ${userRole ? '(' + userRole + ')' : ''}</p>
-                        </div>
-                        <div class="col-md-6">
-                            <p><strong>Priority:</strong> <span class="badge bg-${priorityClass}">${concern.priority ? concern.priority.charAt(0).toUpperCase() + concern.priority.slice(1) : 'N/A'}</span></p>
-                            <p><strong>Status:</strong> <span class="badge bg-${statusClass}">${concern.status || 'N/A'}</span></p>
-                            <p><strong>Created:</strong> ${concern.created_at || 'N/A'}</p>
-                        </div>
+        const htmlContent = `
+            <div style="text-align: left; max-height: 70vh; overflow-y: auto; padding: 10px;">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">${concern.title || 'No Title'}</h5>
+                    <div>
+                        ${priorityBadge}
+                        <span class="badge bg-${statusClass} ms-2">${concern.status || 'N/A'}</span>
                     </div>
-                    <div class="mt-3">
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Ticket #:</strong> #${String(concern.id).padStart(4, '0')}</p>
+                        <p><strong>Category:</strong> ${categoryName}</p>
+                        <p><strong>Location:</strong> ${concern.location || 'N/A'}</p>
+                        <p><strong>Issue:</strong> ${concern.issue || 'N/A'}</p>
+                        <p><strong>Damaged Part:</strong> ${concern.damaged_part || 'N/A'}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Reported by:</strong> ${userName}</p>
+                        <p><strong>Date Submitted:</strong> ${concern.created_at || 'N/A'}</p>
+                        ${concern.assigned_at ? '<p><strong>Date Assigned:</strong> ' + concern.assigned_at + '</p>' : ''}
+                        ${concern.in_progress_at ? '<p><strong>Date In Progress:</strong> ' + concern.in_progress_at + '</p>' : ''}
+                        ${concern.resolved_at ? '<p><strong>Date Resolved:</strong> ' + concern.resolved_at + '</p>' : ''}
+                        ${concern.cost ? '<p><strong>Cost:</strong> ₱' + parseFloat(concern.cost).toLocaleString('en-PH', {minimumFractionDigits: 2}) + '</p>' : ''}
+                    </div>
+                </div>
+                <hr>
+                <div class="row mt-3">
+                    <div class="col-12">
                         <p><strong>Description:</strong></p>
-                        <p>${concern.description || 'No description provided'}</p>
+                        <p style="white-space: pre-wrap;">${concern.description || 'No description provided'}</p>
+                        ${imageHtml}
+                        ${resolutionHtml}
                     </div>
-                    ${imageHtml}
-                    ${resolutionHtml}
                 </div>
             </div>
         `;
-
-        // Show acknowledge/update buttons based on status and assignment
-        const currentUserId = {{ auth()->id() }};
-        if (concern.status === 'Assigned' && concern.assigned_to == currentUserId) {
-            actionsDiv.innerHTML = `
-                <button type="button" class="btn btn-success" onclick="acknowledgeConcern(${concern.id})">
-                    <i class="fas fa-check"></i> Acknowledge & Start Work
-                </button>
-            `;
-        } else if (concern.status === 'In Progress' && concern.assigned_to == currentUserId) {
+        
+        Swal.fire({
+            title: '<i class="fas fa-ticket-alt me-2"></i>Ticket #' + String(concern.id).padStart(4, '0') + ' Details',
+            html: htmlContent,
+            width: '900px',
+            showCloseButton: true,
+            showConfirmButton: true,
+            confirmButtonText: 'Close',
+            confirmButtonColor: '#6c757d',
+            customClass: {
+                popup: 'swal-wide-popup',
+                htmlContainer: 'swal2-html-container'
+            }
+        });
+    })
+    .catch(error => {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Error loading concern details: ' + error.message
+        });
+    });
+}
             actionsDiv.innerHTML = `
                 <button type="button" class="btn btn-warning" onclick="openResolveModal(${concern.id})">
                     <i class="fas fa-check-circle"></i> Mark as Completed

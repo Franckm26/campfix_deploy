@@ -1881,16 +1881,19 @@ function batchPermanentDeleteSelected() {
 }
 
 // View Concern Modal
+// View Concern Modal using SweetAlert2
 function viewConcern(id) {
-    const modal = new bootstrap.Modal(document.getElementById('viewConcernModal'));
-    const contentDiv = document.getElementById('viewConcernContent');
-    
     // Store current concern ID for assign functionality
     window.currentConcernId = id;
     
-    contentDiv.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
-    
-    modal.show();
+    // Show loading state
+    Swal.fire({
+        title: '<i class="fas fa-ticket-alt me-2"></i>Loading Ticket Details...',
+        html: '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>',
+        showConfirmButton: false,
+        allowOutsideClick: false,
+        width: '900px'
+    });
     
     fetch('/api/concerns/' + id, {
         headers: {
@@ -1910,7 +1913,11 @@ function viewConcern(id) {
     })
     .then(data => {
         if (data.error) {
-            contentDiv.innerHTML = '<div class="alert alert-danger">' + data.error + '</div>';
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.error
+            });
             return;
         }
         
@@ -1930,9 +1937,9 @@ function viewConcern(id) {
         let imageHtml = '';
         if (concern.image_path) {
             imageHtml = `
-                <div class="mb-3">
-                    <p><strong>Photo:</strong></p>
-                    <img src="${concern.image_path}" alt="Concern photo" class="img-fluid rounded" style="max-width: 400px;">
+                <div class="mb-3 text-center">
+                    <p class="text-start"><strong>Photo:</strong></p>
+                    <img src="${concern.image_path}" alt="Concern photo" class="img-fluid rounded" style="max-width: 100%; max-height: 400px;">
                 </div>
             `;
         }
@@ -1940,78 +1947,74 @@ function viewConcern(id) {
         let resolutionHtml = '';
         if (concern.resolution_notes) {
             resolutionHtml = `
-                <div class="alert alert-success mt-3">
-                    <h5>Resolution Notes:</h5>
-                    <p>${concern.resolution_notes}</p>
-                    ${concern.resolved_at ? '<small>Resolved on: ' + concern.resolved_at + '</small>' : ''}
+                <div class="alert alert-success mt-3 text-start">
+                    <h6><strong>Resolution Notes:</strong></h6>
+                    <p class="mb-1">${concern.resolution_notes}</p>
+                    ${concern.resolved_at ? '<small class="text-muted">Resolved on: ' + concern.resolved_at + '</small>' : ''}
                 </div>
             `;
         }
         
-        contentDiv.innerHTML = `
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h4>Ticket #${String(concern.id).padStart(4, '0')}</h4>
+        const htmlContent = `
+            <div style="text-align: left; max-height: 70vh; overflow-y: auto; padding: 10px;">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">${concern.title || (concern.description ? concern.description.substring(0, 40) + '...' : 'No Title')}</h5>
                     <div>
                         <span class="badge bg-${priorityClass} me-2">${concern.priority ? (concern.priority.charAt(0).toUpperCase() + concern.priority.slice(1)) : 'Not Set'} Priority</span>
                         <span class="badge bg-${statusClass}">${concern.status}</span>
                     </div>
                 </div>
-                <div class="card-body">
-                    <h5 class="card-title">${concern.title || (concern.description ? concern.description.substring(0, 40) : 'No Title')}</h5>
-                    
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <p><strong>Category:</strong> ${categoryName}</p>
-                            <p><strong>Location:</strong> ${concern.location}</p>
-                        </div>
-                        <div class="col-md-6">
-                            <p><strong>Reported:</strong> ${concern.created_at}</p>
-                            ${window.userRole === 'admin' ? '<p><strong>Reported by:</strong> ' + userName + (userRole ? ' (' + userRole + ')' : '') + '</p>' : ''}
-                        </div>
+                <hr>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Ticket #:</strong> #${String(concern.id).padStart(4, '0')}</p>
+                        <p><strong>Category:</strong> ${categoryName}</p>
+                        <p><strong>Location:</strong> ${concern.location || 'N/A'}</p>
+                        <p><strong>Issue:</strong> ${concern.issue || 'N/A'}</p>
+                        <p><strong>Damaged Part:</strong> ${concern.damaged_part || 'N/A'}</p>
                     </div>
-                    
-                    ${imageHtml}
-                    
-                    <div class="mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Priority:</strong> <span class="badge bg-${priorityClass}">${concern.priority || 'Not Set'}</span></p>
+                        ${window.userRole === 'admin' || window.userRole === 'mis' || window.userRole === 'building_admin' ? '<p><strong>Reported by:</strong> ' + userName + '</p>' : ''}
+                        <p><strong>Date Submitted:</strong> ${concern.created_at || 'N/A'}</p>
+                        ${concern.assigned_at ? '<p><strong>Date Assigned:</strong> ' + concern.assigned_at + '</p>' : ''}
+                        ${concern.in_progress_at ? '<p><strong>Date In Progress:</strong> ' + concern.in_progress_at + '</p>' : ''}
+                        ${concern.resolved_at ? '<p><strong>Date Resolved:</strong> ' + concern.resolved_at + '</p>' : ''}
+                        ${concern.cost ? '<p><strong>Cost:</strong> ₱' + parseFloat(concern.cost).toLocaleString('en-PH', {minimumFractionDigits: 2}) + '</p>' : ''}
+                    </div>
+                </div>
+                <hr>
+                <div class="row mt-3">
+                    <div class="col-12">
                         <p><strong>Description:</strong></p>
-                        <p class="card-text">${concern.description}</p>
+                        <p style="white-space: pre-wrap;">${concern.description || 'No description provided'}</p>
+                        ${imageHtml}
+                        ${resolutionHtml}
                     </div>
-                    
-                    ${resolutionHtml}
                 </div>
             </div>
         `;
-
-        // Add action buttons to modal footer based on user role and concern status
-        const modalFooter = document.querySelector('#viewConcernModal .modal-footer');
-        let actionButtons = '';
-
-        if (window.userRole === 'maintenance') {
-            if (concern.status === 'Assigned') {
-                actionButtons = `
-                    <form action="/concerns/${concern.id}/acknowledge" method="POST" class="d-inline">
-                        <input type="hidden" name="_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="btn btn-success">
-                            <i class="fas fa-check"></i> Acknowledge & Start Work
-                        </button>
-                    </form>
-                `;
-            } else if (concern.status === 'In Progress') {
-                actionButtons = `
-                    <button type="button" class="btn btn-success" onclick="window.location.href='/concerns/assigned'">
-                        <i class="fas fa-tasks"></i> View My Tasks
-                    </button>
-                `;
+        
+        Swal.fire({
+            title: '<i class="fas fa-ticket-alt me-2"></i>Ticket #' + String(concern.id).padStart(4, '0') + ' Details',
+            html: htmlContent,
+            width: '900px',
+            showCloseButton: true,
+            showConfirmButton: true,
+            confirmButtonText: 'Close',
+            confirmButtonColor: '#6c757d',
+            customClass: {
+                popup: 'swal-wide-popup',
+                htmlContainer: 'swal2-html-container'
             }
-        }
-
-        // Update modal footer
-        modalFooter.innerHTML = actionButtons + '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>';
+        });
     })
     .catch(error => {
-        console.error('Error:', error);
-        contentDiv.innerHTML = '<div class="alert alert-danger">Error loading concern details.</div>';
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Error loading concern details: ' + error.message
+        });
     });
 }
 

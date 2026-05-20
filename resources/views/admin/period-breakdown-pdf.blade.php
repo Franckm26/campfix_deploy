@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-    <title>Combined Cost by Location Report</title>
+    <title>{{ $periodLabel }} - Repair Breakdown</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -92,14 +92,6 @@
             border-radius: 5px;
         }
         
-        .summary-section h3 {
-            margin: 0 0 10px 0;
-            font-size: 14px;
-            color: #003087;
-            border-bottom: 2px solid #003087;
-            padding-bottom: 5px;
-        }
-        
         .summary-grid {
             display: table;
             width: 100%;
@@ -152,6 +144,11 @@
             background: #f8f9fa;
         }
         
+        tfoot tr {
+            background: #e9ecef;
+            font-weight: bold;
+        }
+        
         .text-right {
             text-align: right;
         }
@@ -159,6 +156,20 @@
         .text-center {
             text-align: center;
         }
+        
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-weight: bold;
+            color: white;
+        }
+        
+        .badge-warning { background: #ffc107; color: #000; }
+        .badge-info { background: #17a2b8; }
+        .badge-primary { background: #007bff; }
+        .badge-success { background: #28a745; }
         
         .footer {
             position: fixed;
@@ -171,18 +182,6 @@
             font-size: 9px;
             color: #666;
             background: white;
-        }
-        
-        /* Add bottom margin to body to prevent content from overlapping footer */
-        body {
-            margin-bottom: 60px;
-        }
-        
-        .no-data {
-            text-align: center;
-            padding: 40px;
-            color: #999;
-            font-style: italic;
         }
     </style>
 </head>
@@ -212,86 +211,84 @@
 
     <!-- Report Title -->
     <div class="report-title">
-        <h2>Combined Cost by Location Report</h2>
-        <p>Detailed Breakdown by Location with Ticket Information</p>
-        <p><strong>Period:</strong> {{ $dateRange }}</p>
+        <h2>{{ $periodLabel }} - Repair Breakdown</h2>
+        <p>Detailed Repair and Damage Report</p>
         <p><strong>Generated:</strong> {{ now()->format('F d, Y h:i A') }}</p>
     </div>
 
     <!-- Summary Section -->
     <div class="summary-section">
-        <h3>Summary Statistics</h3>
         <div class="summary-grid">
             <div class="summary-item">
-                <span class="summary-value">{{ number_format($totalTickets) }}</span>
-                <span class="summary-label">Total Tickets</span>
+                <span class="summary-value">{{ $totalRepairs }}</span>
+                <span class="summary-label">Total Repairs</span>
             </div>
             <div class="summary-item">
                 <span class="summary-value">PHP {{ number_format($totalCost, 2) }}</span>
                 <span class="summary-label">Total Cost</span>
             </div>
             <div class="summary-item">
-                <span class="summary-value">PHP {{ number_format($avgCostPerTicket, 2) }}</span>
-                <span class="summary-label">Average Cost per Ticket</span>
+                <span class="summary-value">PHP {{ number_format($avgCost, 2) }}</span>
+                <span class="summary-label">Average Cost</span>
             </div>
         </div>
     </div>
 
-    <!-- Combined Cost by Location Table -->
-    <h3 style="margin-top: 20px; color: #003087; border-bottom: 2px solid #003087; padding-bottom: 5px;">Combined Cost by Location</h3>
-    
-    @if($combinedLocationStats->count() > 0)
-    <div class="location-table-container"><table>
+    <!-- Repairs Table -->
+    <table>
         <thead>
             <tr>
-                <th style="width: 18%;">Location</th>
-                <th style="width: 30%;">Damaged Parts (Tickets)</th>
-                <th style="width: 15%;">Date Fixed</th>
-                <th style="width: 10%;" class="text-center">Total Tickets</th>
-                <th style="width: 15%;" class="text-right">Total Cost</th>
-                <th style="width: 12%;" class="text-right">Avg Cost</th>
+                <th style="width: 5%;">#</th>
+                <th style="width: 12%;">Date</th>
+                <th style="width: 10%;">Ticket</th>
+                <th style="width: 18%;">Issue</th>
+                <th style="width: 15%;">Location</th>
+                <th style="width: 12%;">Status</th>
+                <th style="width: 15%;">Damaged Part</th>
+                <th style="width: 13%;" class="text-right">Cost</th>
             </tr>
         </thead>
         <tbody>
-            @foreach($combinedLocationStats as $stat)
+            @forelse($repairs as $index => $repair)
             <tr>
-                <td style="vertical-align: top;"><strong>{{ $stat['location'] }}</strong></td>
-                <td style="font-size: 10px;">
-                    @foreach($stat['tickets'] as $ticket)
-                        <div style="margin-bottom: 3px;">
-                            <strong>{{ $ticket['ticket_number'] }}</strong>: {{ $ticket['damaged_part'] }} 
-                            <span style="color: #28a745; font-weight: bold;">(PHP {{ number_format($ticket['cost'], 2) }})</span>
-                        </div>
-                    @endforeach
+                <td class="text-center">{{ $index + 1 }}</td>
+                <td>{{ \Carbon\Carbon::parse($repair->created_at)->format('M d, Y') }}</td>
+                <td class="text-center">#{{ str_pad($repair->id, 4, '0', STR_PAD_LEFT) }}</td>
+                <td>{{ $repair->title ?: 'N/A' }}</td>
+                <td>{{ $repair->location ?: 'N/A' }}</td>
+                <td class="text-center">
+                    @php
+                        $statusClass = match($repair->status) {
+                            'Pending' => 'badge-warning',
+                            'Assigned' => 'badge-info',
+                            'In Progress' => 'badge-primary',
+                            'Resolved' => 'badge-success',
+                            default => 'badge-info'
+                        };
+                    @endphp
+                    <span class="badge {{ $statusClass }}">{{ $repair->status }}</span>
                 </td>
-                <td style="font-size: 10px; vertical-align: top;">
-                    @foreach($stat['tickets'] as $ticket)
-                        <div style="margin-bottom: 3px;">
-                            {{ $ticket['date_fixed'] }}
-                        </div>
-                    @endforeach
-                </td>
-                <td class="text-center" style="vertical-align: top;">
-                    <strong>{{ $stat['total_count'] }}</strong>
-                </td>
-                <td class="text-right" style="vertical-align: top;">
-                    <strong>PHP {{ number_format($stat['total_cost'], 2) }}</strong>
-                </td>
-                <td class="text-right" style="vertical-align: top;">PHP {{ number_format($stat['avg_cost'], 2) }}</td>
+                <td>{{ $repair->damaged_part ?: 'N/A' }}</td>
+                <td class="text-right">{{ $repair->cost > 0 ? 'PHP ' . number_format($repair->cost, 2) : 'N/A' }}</td>
             </tr>
-            @endforeach
+            @empty
+            <tr>
+                <td colspan="8" class="text-center">No repairs found for this period</td>
+            </tr>
+            @endforelse
         </tbody>
-    </table></div>
-    @else
-    <div class="no-data">
-        <p>No data available for the selected date range.</p>
-    </div>
-    @endif
+        <tfoot>
+            <tr>
+                <td colspan="7" class="text-right">TOTAL:</td>
+                <td class="text-right">PHP {{ number_format($totalCost, 2) }}</td>
+            </tr>
+        </tfoot>
+    </table>
 
     <!-- Footer -->
     <div class="footer">
-        <p>This is a computer-generated document. No signature is required.</p>
-        <p>© {{ date('Y') }} STI College Novaliches - CampFix Facility Management System</p>
+        <p>CampFix - Campus Facility Management System | STI College Novaliches</p>
+        <p>Generated on {{ now()->format('F d, Y h:i A') }}</p>
     </div>
 </body>
-        </html>\n<!-- Note: PDF is server-rendered; ensure pagination is respected in data export -->
+</html>

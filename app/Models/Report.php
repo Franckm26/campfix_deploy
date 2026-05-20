@@ -18,6 +18,7 @@ class Report extends Model
         'description',
         'location',
         'severity',
+        'is_safety_hazard',
         'status',
         'photo_path',
         'assigned_to',
@@ -55,6 +56,7 @@ class Report extends Model
 
     protected $casts = [
         'is_archived' => 'boolean',
+        'is_safety_hazard' => 'boolean',
         'admin_archived' => 'boolean',
         'student_archived' => 'boolean',
         'faculty_archived' => 'boolean',

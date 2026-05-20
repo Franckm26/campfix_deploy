@@ -1420,12 +1420,13 @@ class ConcernController extends Controller
                 return response()->json(['error' => 'Concern not found'], 404);
             }
 
-            // Users can view their own concerns, concerns assigned to them, or MIS can view all
+            // Users can view their own concerns, concerns assigned to them, or MIS/Admin can view all
             $isOwner = $concern->user_id == $user->id;
             $isAssigned = $concern->assigned_to == $user->id;
             $isMIS = $user->role === 'mis';
+            $isAdmin = in_array($user->role, ['admin', 'building_admin', 'school_admin']);
 
-            if (! $isOwner && ! $isAssigned && ! $isMIS) {
+            if (! $isOwner && ! $isAssigned && ! $isMIS && ! $isAdmin) {
                 return response()->json(['error' => 'Unauthorized'], 403);
             }
 
@@ -1438,6 +1439,7 @@ class ConcernController extends Controller
                 'title' => $concern->title,
                 'description' => $concern->description,
                 'location' => $concern->location,
+                'issue' => $concern->issue,
                 'categoryRelation' => $concern->categoryRelation,
                 'user' => $concern->user ? [
                     'id' => $concern->user->id,
@@ -1450,6 +1452,7 @@ class ConcernController extends Controller
                 'priority' => $concern->priority,
                 'created_at' => $concern->created_at ? $concern->created_at->format('M d, Y h:i A') : null,
                 'assigned_at' => $concern->assigned_at ? $concern->assigned_at->format('M d, Y h:i A') : null,
+                'in_progress_at' => $concern->in_progress_at ? $concern->in_progress_at->format('M d, Y h:i A') : null,
                 'resolved_at' => $concern->resolved_at ? $concern->resolved_at->format('M d, Y h:i A') : null,
                 'image_path' => $concern->image_path ? asset('storage/'.$concern->image_path) : null,
             ];

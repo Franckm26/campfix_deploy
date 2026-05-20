@@ -99,6 +99,21 @@
     border-bottom: 2px solid #dee2e6 !important;
 }
 
+/* Clickable period rows */
+.period-breakdown-row {
+    transition: all 0.2s ease !important;
+}
+
+.period-breakdown-row:hover {
+    background-color: #e3f2fd !important;
+    transform: scale(1.01);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.period-breakdown-row:active {
+    transform: scale(0.99);
+}
+
 .modal-compact-table td {
     padding: 6px 4px !important;
     font-size: 0.7rem !important;
@@ -1040,7 +1055,7 @@
     window.chartStatuses = {!! json_encode($chartStatuses ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
     window.chartStatusCounts = {!! json_encode($chartStatusCounts ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
     window.statusReportIds = {!! json_encode($statusReportIds ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
-    window.monthlyStats = {!! json_encode(isset($monthlyStats) ? $monthlyStats->map(fn($s) => ['month' => $s->month, 'title' => $s->title, 'status' => $s->status, 'count' => $s->count])->values() : [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
+    window.monthlyStats = {!! json_encode(isset($monthlyStats) ? $monthlyStats->map(fn($s) => ['month' => $s->month, 'title' => $s->title, 'status' => $s->status, 'count' => $s->count, 'ticket_ids' => $s->ticket_ids ?? '', 'damaged_parts' => $s->damaged_parts ?? ''])->values() : [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
     window.monthlyCostData = {!! json_encode(isset($monthlyCostData) ? $monthlyCostData->map(fn($s) => ['month' => $s->month, 'count' => $s->count, 'total_cost' => $s->total_cost])->values() : [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
     window.locationDetailedStats = {!! json_encode($locationStatsDetailed ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
     window.responseTimeStats = {!! json_encode($responseTimeStats ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
@@ -2587,7 +2602,11 @@ function showStatusDetailsModal() {
     const statusOrder = ['Pending', 'Assigned', 'In Progress', 'Resolved'];
     const itemsPerPage = 5; // Show 5 tickets initially
     
-    let statusTable = '<div class="table-responsive mt-3"><table class="table table-sm table-hover"><thead class="table-light"><tr><th>Status</th><th class="text-center">Count</th><th>Issue</th></tr></thead><tbody>';
+    let statusTable = '<div style="max-height: 400px; overflow-y: auto; margin-bottom: 20px;">';
+    statusTable += '<table class="table table-sm table-hover" style="font-size: 0.85rem;">';
+    statusTable += '<thead style="position: sticky; top: 0; background: #f8f9fa; z-index: 10;">';
+    statusTable += '<tr><th style="width: 25%;">Status</th><th style="width: 15%; text-align: center;">Count</th><th style="width: 60%;">Tickets</th></tr>';
+    statusTable += '</thead><tbody>';
     
     // Sort statuses according to the defined order
     statusOrder.forEach(function(orderedStatus) {
@@ -2601,14 +2620,30 @@ function showStatusDetailsModal() {
             
             // Show first 5 items
             issuesArray.slice(0, itemsPerPage).forEach(function(issue) {
-                issuesList += '<div style="padding: 2px 0; font-size: 0.85rem;">' + issue + '</div>';
+                // Extract ticket ID from issue string (e.g., "#0018 - Aircon" -> 0018)
+                const ticketMatch = issue.match(/#(\d+)/);
+                const ticketId = ticketMatch ? ticketMatch[1] : null;
+                
+                if (ticketId) {
+                    issuesList += '<div onclick="viewConcern(' + ticketId + ')" style="padding: 4px 8px; margin-bottom: 4px; background: #f8f9fa; border-radius: 4px; border-left: 3px solid #0d6efd; font-size: 0.75rem; transition: all 0.2s ease; cursor: pointer;" onmouseover="this.style.background=\'#e3f2fd\'; this.style.transform=\'translateX(4px)\';" onmouseout="this.style.background=\'#f8f9fa\'; this.style.transform=\'translateX(0)\';">' + issue + '</div>';
+                } else {
+                    issuesList += '<div style="padding: 4px 8px; margin-bottom: 4px; background: #f8f9fa; border-radius: 4px; border-left: 3px solid #0d6efd; font-size: 0.75rem;">' + issue + '</div>';
+                }
             });
             
             // Hidden items
             if (issuesArray.length > itemsPerPage) {
                 issuesList += '<div id="hidden-issues-' + status.replace(/\s+/g, '-') + '" style="display: none;">';
                 issuesArray.slice(itemsPerPage).forEach(function(issue) {
-                    issuesList += '<div style="padding: 2px 0; font-size: 0.85rem;">' + issue + '</div>';
+                    // Extract ticket ID from issue string (e.g., "#0018 - Aircon" -> 0018)
+                    const ticketMatch = issue.match(/#(\d+)/);
+                    const ticketId = ticketMatch ? ticketMatch[1] : null;
+                    
+                    if (ticketId) {
+                        issuesList += '<div onclick="viewConcern(' + ticketId + ')" style="padding: 4px 8px; margin-bottom: 4px; background: #f8f9fa; border-radius: 4px; border-left: 3px solid #0d6efd; font-size: 0.75rem; transition: all 0.2s ease; cursor: pointer;" onmouseover="this.style.background=\'#e3f2fd\'; this.style.transform=\'translateX(4px)\';" onmouseout="this.style.background=\'#f8f9fa\'; this.style.transform=\'translateX(0)\';">' + issue + '</div>';
+                    } else {
+                        issuesList += '<div style="padding: 4px 8px; margin-bottom: 4px; background: #f8f9fa; border-radius: 4px; border-left: 3px solid #0d6efd; font-size: 0.75rem;">' + issue + '</div>';
+                    }
                 });
                 issuesList += '</div>';
                 
@@ -2618,11 +2653,11 @@ function showStatusDetailsModal() {
             
             issuesList += '</div>';
             
-            statusTable += '<tr>' +
-                '<td><strong>' + status + '</strong></td>' +
-                '<td class="text-center"><span class="badge bg-primary">' + statusCounts[index] + '</span></td>' +
-                '<td>' + issuesList + '</td>' +
-                '</tr>';
+            statusTable += '<tr>';
+            statusTable += '<td><strong>' + status + '</strong></td>';
+            statusTable += '<td style="text-align: center;"><span class="badge bg-primary">' + statusCounts[index] + '</span></td>';
+            statusTable += '<td>' + issuesList + '</td>';
+            statusTable += '</tr>';
         }
     });
     
@@ -2830,6 +2865,130 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// View Concern Modal Function using SweetAlert2
+function viewConcern(id) {
+    // Show loading state
+    Swal.fire({
+        title: '<i class="fas fa-ticket-alt me-2"></i>Loading Ticket Details...',
+        html: '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>',
+        showConfirmButton: false,
+        allowOutsideClick: false,
+        width: '800px'
+    });
+    
+    fetch('/api/concerns/' + id, {
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => {
+                throw new Error(err.error || 'Request failed with status ' + response.status);
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.error
+            });
+            return;
+        }
+        
+        const concern = data.concern;
+        const categoryName = concern.categoryRelation ? concern.categoryRelation.name : 'N/A';
+        const userName = concern.user ? concern.user.name : 'Unknown';
+        
+        const priorityClass = concern.priority === 'urgent' ? 'danger' : 
+            (concern.priority === 'high' ? 'warning' : 
+            (concern.priority === 'medium' ? 'info' : 'secondary'));
+        
+        const statusClass = concern.status === 'Resolved' ? 'success' : 
+            (concern.status === 'In Progress' ? 'warning' : 
+            (concern.status === 'Assigned' ? 'primary' : 'secondary'));
+        
+        let imageHtml = '';
+        if (concern.image_path) {
+            imageHtml = `
+                <div class="mb-3 text-center">
+                    <p class="text-start"><strong>Photo:</strong></p>
+                    <img src="${concern.image_path}" alt="Concern photo" class="img-fluid rounded" style="max-width: 100%; max-height: 400px;">
+                </div>
+            `;
+        }
+        
+        let resolutionHtml = '';
+        if (concern.resolution_notes) {
+            resolutionHtml = `
+                <div class="alert alert-success mt-3 text-start">
+                    <h6><strong>Resolution Notes:</strong></h6>
+                    <p class="mb-1">${concern.resolution_notes}</p>
+                    ${concern.resolved_at ? '<small class="text-muted">Resolved on: ' + concern.resolved_at + '</small>' : ''}
+                </div>
+            `;
+        }
+        
+        const htmlContent = `
+            <div style="text-align: left; max-height: 70vh; overflow-y: auto; padding: 10px;">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Ticket #:</strong> #${String(concern.id).padStart(4, '0')}</p>
+                        <p><strong>Category:</strong> ${categoryName}</p>
+                        <p><strong>Location:</strong> ${concern.location || 'N/A'}</p>
+                        <p><strong>Issue:</strong> ${concern.issue || 'N/A'}</p>
+                        <p><strong>Damaged Part:</strong> ${concern.damaged_part || 'N/A'}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Status:</strong> <span class="badge bg-${statusClass}">${concern.status}</span></p>
+                        <p><strong>Priority:</strong> <span class="badge bg-${priorityClass}">${concern.priority}</span></p>
+                        <p><strong>Reported by:</strong> ${userName}</p>
+                        <p><strong>Date Submitted:</strong> ${concern.created_at || 'N/A'}</p>
+                        ${concern.assigned_at ? '<p><strong>Date Assigned:</strong> ' + concern.assigned_at + '</p>' : ''}
+                        ${concern.in_progress_at ? '<p><strong>Date In Progress:</strong> ' + concern.in_progress_at + '</p>' : ''}
+                        ${concern.resolved_at ? '<p><strong>Date Resolved:</strong> ' + concern.resolved_at + '</p>' : ''}
+                        <p><strong>Cost:</strong> ₱${concern.cost ? parseFloat(concern.cost).toLocaleString('en-PH', {minimumFractionDigits: 2}) : '0.00'}</p>
+                    </div>
+                </div>
+                <hr>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <p><strong>Description:</strong></p>
+                        <p style="white-space: pre-wrap;">${concern.description || 'No description provided'}</p>
+                        ${imageHtml}
+                        ${resolutionHtml}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        Swal.fire({
+            title: '<i class="fas fa-ticket-alt me-2"></i>Ticket #' + String(concern.id).padStart(4, '0') + ' Details',
+            html: htmlContent,
+            width: '900px',
+            showCloseButton: true,
+            showConfirmButton: true,
+            confirmButtonText: 'Close',
+            confirmButtonColor: '#6c757d',
+            customClass: {
+                popup: 'swal-wide-popup',
+                htmlContainer: 'swal2-html-container'
+            }
+        });
+    })
+    .catch(error => {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Error loading concern details: ' + error.message
+        });
+    });
+}
+
 </script>
 @endsection
-

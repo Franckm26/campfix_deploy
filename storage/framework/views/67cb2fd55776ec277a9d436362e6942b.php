@@ -258,12 +258,18 @@
                                         <td><?php echo e($report->category->name ?? 'N/A'); ?></td>
                                         <td><?php echo e($report->location); ?></td>
                                         <td>
-                                            <span class="badge bg-<?php echo e($report->severity == 'critical' || $report->severity == 'urgent' ? 'danger' :
-                                                ($report->severity == 'high' ? 'warning' :
-                                                ($report->severity == 'medium' ? 'info' : 'secondary'))); ?>">
-                                                <?php echo e(($report->severity ? ucfirst($report->severity) : 'Not Set')); ?>
+                                            <?php if($report->is_safety_hazard): ?>
+                                                <span class="badge" style="background: linear-gradient(135deg, #dc3545 0%, #8b0000 100%); color: white; border: 1px solid #8b0000; font-weight: bold;">
+                                                    <i class="fas fa-exclamation-triangle"></i> Safety Hazard
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="badge bg-<?php echo e($report->severity == 'critical' || $report->severity == 'urgent' ? 'danger' :
+                                                    ($report->severity == 'high' ? 'warning' :
+                                                    ($report->severity == 'medium' ? 'info' : 'secondary'))); ?>">
+                                                    <?php echo e(($report->severity ? ucfirst($report->severity) : 'Not Set')); ?>
 
-                                            </span>
+                                                </span>
+                                            <?php endif; ?>
                                         </td>
                                         <td>
                                             <span class="badge bg-<?php echo e($report->status == 'Resolved' ? 'success' :
@@ -364,12 +370,18 @@
                                     <td><?php echo e($report->category->name ?? 'N/A'); ?></td>
                                     <td><?php echo e($report->location); ?></td>
                                     <td>
-                                        <span class="badge bg-<?php echo e($report->severity == 'critical' || $report->severity == 'urgent' ? 'danger' :
-                                            ($report->severity == 'high' ? 'warning' :
-                                            ($report->severity == 'medium' ? 'info' : 'secondary'))); ?>">
-                                            <?php echo e(($report->severity ? ucfirst($report->severity) : 'Not Set')); ?>
+                                        <?php if($report->is_safety_hazard): ?>
+                                            <span class="badge" style="background: linear-gradient(135deg, #dc3545 0%, #8b0000 100%); color: white; border: 1px solid #8b0000; font-weight: bold;">
+                                                <i class="fas fa-exclamation-triangle"></i> Safety Hazard
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="badge bg-<?php echo e($report->severity == 'critical' || $report->severity == 'urgent' ? 'danger' :
+                                                ($report->severity == 'high' ? 'warning' :
+                                                ($report->severity == 'medium' ? 'info' : 'secondary'))); ?>">
+                                                <?php echo e(($report->severity ? ucfirst($report->severity) : 'Not Set')); ?>
 
-                                        </span>
+                                            </span>
+                                        <?php endif; ?>
                                     </td>
                                     <td><?php echo e($report->reported_by_name ?? ($report->user ? $report->user->name : 'Unknown')); ?></td>
                                     <td><?php echo e($report->created_at->format('M d, Y')); ?></td>
@@ -879,7 +891,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.chartStatuses  = <?php echo json_encode($chartStatuses ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
     window.chartStatusCounts = <?php echo json_encode($chartStatusCounts ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
     window.monthlyData    = <?php echo json_encode(
-        isset($monthlyStats) ? $monthlyStats->map(fn($s) => ['month' => $s->month, 'title' => $s->title, 'status' => $s->status, 'count' => $s->count])->values() : [],
+        isset($monthlyStats) ? $monthlyStats->map(fn($s) => ['month' => $s->month, 'title' => $s->title, 'status' => $s->status, 'count' => $s->count, 'ticket_ids' => $s->ticket_ids ?? '', 'damaged_parts' => $s->damaged_parts ?? ''])->values() : [],
         JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
     ); ?>;
     <?php endif; ?>
@@ -1869,8 +1881,10 @@ window.startAssignWizard = async function() {
                 title: 'Set Priority',
                 html: `
                     <p class="mb-3">${itemType.charAt(0).toUpperCase() + itemType.slice(1)} assigned to <strong>${selectedStaffName}</strong>.</p>
-                    <p class="mb-3">How urgent is this?</p>
                     <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-sm swal-priority-btn" data-priority="safety_hazard" style="background: linear-gradient(135deg, #dc3545 0%, #8b0000 100%); color: white; border: 2px solid #8b0000; font-weight: bold;">
+                            <i class="fas fa-exclamation-triangle me-1"></i> Safety Hazard
+                        </button>
                         <button type="button" class="btn btn-danger btn-sm swal-priority-btn" data-priority="urgent">
                             <i class="fas fa-exclamation-circle me-1"></i> Urgent
                         </button>
@@ -1913,10 +1927,16 @@ window.startAssignWizard = async function() {
             const pData = await pResponse.json();
             console.log('Priority save result:', pData, 'priority sent:', priority);
 
+            // Format priority display text
+            let priorityText = priority;
+            if (priority === 'safety_hazard') {
+                priorityText = 'Safety Hazard (Urgent)';
+            }
+
             await getSwal().fire({
                 icon: 'success',
                 title: 'Done!',
-                text: 'Assigned to ' + selectedStaffName + ' with ' + priority + ' priority.',
+                text: 'Assigned to ' + selectedStaffName + ' with ' + priorityText + ' priority.',
                 confirmButtonColor: '#198754',
                 timer: 2000,
                 showConfirmButton: false
@@ -2260,16 +2280,18 @@ async function updateReportStatus(reportId, newStatus, resolutionData, reportTit
 }
 
 // View report function for Building Admin
+// View Report Modal using SweetAlert2
 function viewReport(id) {
     window.currentReportId = id; // Store the current report ID
-    const modal = new bootstrap.Modal(document.getElementById('viewConcernModal'));
-    const contentDiv = document.getElementById('viewConcernModalLabel');
-    const bodyDiv = document.getElementById('viewConcernContent');
-
-    contentDiv.textContent = 'Report Details';
-    bodyDiv.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
-
-    modal.show();
+    
+    // Show loading state
+    Swal.fire({
+        title: '<i class="fas fa-file-alt me-2"></i>Loading Report Details...',
+        html: '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>',
+        showConfirmButton: false,
+        allowOutsideClick: false,
+        width: '900px'
+    });
 
     fetch('/api/reports/' + id, {
         headers: {
@@ -2286,14 +2308,27 @@ function viewReport(id) {
     })
     .then(data => {
         if (data.error) {
-            bodyDiv.innerHTML = '<div class="alert alert-danger">' + data.error + '</div>';
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.error
+            });
             return;
         }
 
         const report = data.report;
-        const severityClass = report.severity === 'critical' ? 'danger' :
-            (report.severity === 'high' ? 'warning' :
-            (report.severity === 'medium' ? 'info' : 'secondary'));
+        
+        // Check if it's a safety hazard
+        let priorityBadge = '';
+        if (report.is_safety_hazard) {
+            priorityBadge = '<span class="badge" style="background: linear-gradient(135deg, #dc3545 0%, #8b0000 100%); color: white; border: 1px solid #8b0000; font-weight: bold;"><i class="fas fa-exclamation-triangle"></i> Safety Hazard</span>';
+        } else {
+            const severityClass = report.severity === 'critical' || report.severity === 'urgent' ? 'danger' :
+                (report.severity === 'high' ? 'warning' :
+                (report.severity === 'medium' ? 'info' : 'secondary'));
+            const severityText = report.severity ? report.severity.charAt(0).toUpperCase() + report.severity.slice(1) : 'Not Set';
+            priorityBadge = '<span class="badge bg-' + severityClass + '">' + severityText + ' Priority</span>';
+        }
 
         const statusClass = report.status === 'Resolved' ? 'success' :
             (report.status === 'In Progress' ? 'warning' :
@@ -2301,40 +2336,85 @@ function viewReport(id) {
 
         let imageHtml = '';
         if (report.photo_path) {
-            imageHtml = '<div class="mb-3"><p><strong>Photo:</strong></p><img src="' + report.photo_path + '" alt="Report photo" class="img-fluid rounded" style="max-width: 400px;"></div>';
+            imageHtml = `
+                <div class="mb-3 text-center">
+                    <p class="text-start"><strong>Photo:</strong></p>
+                    <img src="${report.photo_path}" alt="Report photo" class="img-fluid rounded" style="max-width: 100%; max-height: 400px;">
+                </div>
+            `;
         }
 
-        const canAssign = <?php echo e(in_array(auth()->user()->role, ['building_admin', 'school_admin', 'academic_head']) ? 'true' : 'false'); ?>;
+        let resolutionHtml = '';
+        if (report.resolution_notes) {
+            resolutionHtml = `
+                <div class="alert alert-success mt-3 text-start">
+                    <h6><strong>Resolution Notes:</strong></h6>
+                    <p class="mb-1">${report.resolution_notes}</p>
+                </div>
+            `;
+        }
 
-        const assignBtn = (canAssign && report.status !== 'Resolved')
-            ? `<button class="btn btn-primary btn-sm ms-2" onclick="bootstrap.Modal.getInstance(document.getElementById('viewConcernModal')).hide(); assignReport(${report.id});">
-                   <i class="fas fa-user-plus"></i> Assign
-               </button>`
-            : '';
-
-        bodyDiv.innerHTML = '<div class="card">' +
-            '<div class="card-header d-flex justify-content-between align-items-center">' +
-                '<h4>Ticket #' + String(report.id).padStart(4, '0') + '</h4>' +
-                '<div class="d-flex align-items-center gap-2"><span class="badge bg-' + severityClass + '">' + report.severity.charAt(0).toUpperCase() + report.severity.slice(1) + ' Priority</span><span class="badge bg-' + statusClass + '">' + report.status + '</span>' + assignBtn + '</div>' +
-            '</div>' +
-            '<div class="card-body">' +
-                '<h5 class="card-title">' + (report.title || (report.description ? report.description.substring(0, 40) : 'No Title')) + '</h5>' +
-                '<div class="row mb-3">' +
-                    '<div class="col-md-6"><p><strong>Category:</strong> ' + (report.category ? report.category.name : 'N/A') + '</p><p><strong>Location:</strong> ' + report.location + '</p></div>' +
-                    '<div class="col-md-6"><p><strong>Reported by:</strong> ' + (report.reported_by_name || 'Unknown') + '</p><p><strong>Date:</strong> ' + report.created_at + '</p></div>' +
-                '</div>' +
-                (report.assigned_to ? '<div class="mb-3"><p><strong>Assigned to:</strong> ' + (report.assigned_user_name || 'Unknown') + '</p></div>' : '') +
-                (report.damaged_part ? '<div class="mb-3"><p><strong>Damaged Part:</strong> ' + report.damaged_part + '</p></div>' : '') +
-                '<div class="mb-3"><p><strong>Description:</strong></p><p>' + report.description + '</p></div>' +
-                imageHtml +
-                (report.resolution_notes ? '<div class="mb-3"><p><strong>Resolution Notes:</strong></p><p>' + report.resolution_notes + '</p></div>' : '') +
-                ((report.cost || report.replaced_part) ? '<div class="mb-3"><p><strong>Maintenance Details:</strong></p><div class="row"><div class="col-md-6">' + (report.cost ? '<p><strong>Cost:</strong> PHP‚±' + parseFloat(report.cost).toFixed(2) + '</p>' : '') + '</div><div class="col-md-6">' + (report.replaced_part ? '<p><strong>Replaced With:</strong> ' + report.replaced_part + '</p>' : '') + '</div></div></div>' : '') +
-            '</div>' +
-        '</div>';
+        const htmlContent = `
+            <div style="text-align: left; max-height: 70vh; overflow-y: auto; padding: 10px;">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">${report.title || (report.description ? report.description.substring(0, 40) + '...' : 'No Title')}</h5>
+                    <div>
+                        ${priorityBadge}
+                        <span class="badge bg-${statusClass} ms-2">${report.status}</span>
+                    </div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Report #:</strong> #${String(report.id).padStart(4, '0')}</p>
+                        <p><strong>Category:</strong> ${report.category ? report.category.name : 'N/A'}</p>
+                        <p><strong>Location:</strong> ${report.location || 'N/A'}</p>
+                        ${report.damaged_part ? '<p><strong>Damaged Part:</strong> ' + report.damaged_part + '</p>' : ''}
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Reported by:</strong> ${report.reported_by_name || 'Unknown'}</p>
+                        <p><strong>Date Submitted:</strong> ${report.created_at || 'N/A'}</p>
+                        ${report.assigned_at ? '<p><strong>Date Assigned:</strong> ' + report.assigned_at + '</p>' : ''}
+                        ${report.in_progress_at ? '<p><strong>Date In Progress:</strong> ' + report.in_progress_at + '</p>' : ''}
+                        ${report.resolved_at ? '<p><strong>Date Resolved:</strong> ' + report.resolved_at + '</p>' : ''}
+                        ${report.assigned_to ? '<p><strong>Assigned to:</strong> ' + (report.assigned_user_name || 'Unknown') + '</p>' : ''}
+                        ${report.cost ? '<p><strong>Cost:</strong> ₱' + parseFloat(report.cost).toLocaleString('en-PH', {minimumFractionDigits: 2}) + '</p>' : ''}
+                        ${report.replaced_part ? '<p><strong>Replaced With:</strong> ' + report.replaced_part + '</p>' : ''}
+                    </div>
+                </div>
+                <hr>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <p><strong>Description:</strong></p>
+                        <p style="white-space: pre-wrap;">${report.description || 'No description provided'}</p>
+                        ${imageHtml}
+                        ${resolutionHtml}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        Swal.fire({
+            title: '<i class="fas fa-file-alt me-2"></i>Report #' + String(report.id).padStart(4, '0') + ' Details',
+            html: htmlContent,
+            width: '900px',
+            showCloseButton: true,
+            showConfirmButton: true,
+            confirmButtonText: 'Close',
+            confirmButtonColor: '#6c757d',
+            customClass: {
+                popup: 'swal-wide-popup',
+                htmlContainer: 'swal2-html-container'
+            }
+        });
     })
     .catch(error => {
         console.error('viewReport error:', error);
-        bodyDiv.innerHTML = '<div class="alert alert-danger">Error loading report details. Check console for details.</div>';
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Error loading report details: ' + error.message
+        });
     });
 }
 
@@ -2434,16 +2514,18 @@ function getSelectedResolvedReports() {
     const checkboxes = document.querySelectorAll('.resolved-report-checkbox:checked');
     return Array.from(checkboxes).map(cb => cb.value);
 }
-// View Report from table button
+// View Report from table button using SweetAlert2
 function viewReport(id) {
     window.currentReportId = id;
-    const modal = new bootstrap.Modal(document.getElementById('viewConcernModal'));
-    const contentDiv = document.getElementById('viewConcernModalLabel');
-    const bodyDiv = document.getElementById('viewConcernContent');
-
-    contentDiv.textContent = 'Report Details';
-    bodyDiv.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
-    modal.show();
+    
+    // Show loading state
+    Swal.fire({
+        title: '<i class="fas fa-file-alt me-2"></i>Loading Report Details...',
+        html: '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>',
+        showConfirmButton: false,
+        allowOutsideClick: false,
+        width: '900px'
+    });
 
     fetch('/api/reports/' + id, {
         headers: {
@@ -2460,56 +2542,112 @@ function viewReport(id) {
     })
     .then(data => {
         if (data.error) {
-            bodyDiv.innerHTML = '<div class="alert alert-danger">' + data.error + '</div>';
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.error
+            });
             return;
         }
         const report = data.report;
-        const severityClass = report.severity === 'critical' ? 'danger' :
-            (report.severity === 'high' ? 'warning' :
-            (report.severity === 'medium' ? 'info' : 'secondary'));
+        
+        // Check if it's a safety hazard
+        let priorityBadge2 = '';
+        if (report.is_safety_hazard) {
+            priorityBadge2 = '<span class="badge" style="background: linear-gradient(135deg, #dc3545 0%, #8b0000 100%); color: white; border: 1px solid #8b0000; font-weight: bold;"><i class="fas fa-exclamation-triangle"></i> Safety Hazard</span>';
+        } else {
+            const severityClass = report.severity === 'critical' || report.severity === 'urgent' ? 'danger' :
+                (report.severity === 'high' ? 'warning' :
+                (report.severity === 'medium' ? 'info' : 'secondary'));
+            const severityText = report.severity ? report.severity.charAt(0).toUpperCase() + report.severity.slice(1) : 'Not Set';
+            priorityBadge2 = '<span class="badge bg-' + severityClass + '">' + severityText + ' Priority</span>';
+        }
+        
         const statusClass = report.status === 'Resolved' ? 'success' :
             (report.status === 'In Progress' ? 'warning' :
             (report.status === 'Assigned' ? 'primary' : 'secondary'));
+        
         let imageHtml = '';
         if (report.photo_path) {
-            imageHtml = '<div class="mb-3"><p><strong>Photo:</strong></p><img src="' + report.photo_path + '" alt="Report photo" class="img-fluid rounded" style="max-width:400px;"></div>';
+            imageHtml = `
+                <div class="mb-3 text-center">
+                    <p class="text-start"><strong>Photo:</strong></p>
+                    <img src="${report.photo_path}" alt="Report photo" class="img-fluid rounded" style="max-width: 100%; max-height: 400px;">
+                </div>
+            `;
         }
-        const canAssign2 = <?php echo e(in_array(auth()->user()->role, ['building_admin', 'school_admin', 'academic_head']) ? 'true' : 'false'); ?>;
 
-        const assignBtn2 = (canAssign2 && report.status !== 'Resolved')
-            ? `<button class="btn btn-primary btn-sm ms-2" onclick="bootstrap.Modal.getInstance(document.getElementById('viewConcernModal')).hide(); assignReport(${report.id});">
-                   <i class="fas fa-user-plus"></i> Assign
-               </button>`
-            : '';
+        let resolutionHtml = '';
+        if (report.resolution_notes) {
+            resolutionHtml = `
+                <div class="alert alert-success mt-3 text-start">
+                    <h6><strong>Resolution Notes:</strong></h6>
+                    <p class="mb-1">${report.resolution_notes}</p>
+                </div>
+            `;
+        }
 
-        bodyDiv.innerHTML = '<div class="card">' +
-            '<div class="card-header d-flex justify-content-between align-items-center">' +
-                '<h4>Ticket #' + String(report.id).padStart(4, '0') + '</h4>' +
-                '<div class="d-flex align-items-center gap-2"><span class="badge bg-' + severityClass + '">' + report.severity.charAt(0).toUpperCase() + report.severity.slice(1) + ' Priority</span>' +
-                '<span class="badge bg-' + statusClass + '">' + report.status + '</span>' + assignBtn2 + '</div>' +
-            '</div>' +
-            '<div class="card-body">' +
-                '<h5 class="card-title">' + (report.title || (report.description ? report.description.substring(0, 40) : 'No Title')) + '</h5>' +
-                '<div class="row mb-3">' +
-                    '<div class="col-md-6"><p><strong>Category:</strong> ' + (report.category ? report.category.name : 'N/A') + '</p>' +
-                    '<p><strong>Location:</strong> ' + report.location + '</p></div>' +
-                    '<div class="col-md-6"><p><strong>Reported by:</strong> ' + (report.reported_by_name || 'Unknown') + '</p>' +
-                    '<p><strong>Date:</strong> ' + report.created_at + '</p></div>' +
-                '</div>' +
-                (report.assigned_to ? '<div class="mb-3"><p><strong>Assigned to:</strong> ' + (report.assigned_user_name || 'Unknown') + '</p></div>' : '') +
-                (report.damaged_part ? '<div class="mb-3"><p><strong>Damaged Part:</strong> ' + report.damaged_part + '</p></div>' : '') +
-                '<div class="mb-3"><p><strong>Description:</strong></p><p>' + (report.description || '') + '</p></div>' +
-                imageHtml +
-                (report.resolution_notes ? '<div class="mb-3"><p><strong>Resolution Notes:</strong></p><p>' + report.resolution_notes + '</p></div>' : '') +
-                ((report.cost || report.replaced_part) ? '<div class="mb-3"><p><strong>Maintenance Details:</strong></p><div class="row">' +
-                    '<div class="col-md-6">' + (report.cost ? '<p><strong>Cost:</strong> PHP‚±' + parseFloat(report.cost).toFixed(2) + '</p>' : '') + '</div>' +
-                    '<div class="col-md-6">' + (report.replaced_part ? '<p><strong>Replaced With:</strong> ' + report.replaced_part + '</p>' : '') + '</div>' +
-                '</div></div>' : '') +
-            '</div></div>';
+        const htmlContent = `
+            <div style="text-align: left; max-height: 70vh; overflow-y: auto; padding: 10px;">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">${report.title || (report.description ? report.description.substring(0, 40) + '...' : 'No Title')}</h5>
+                    <div>
+                        ${priorityBadge2}
+                        <span class="badge bg-${statusClass} ms-2">${report.status}</span>
+                    </div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Report #:</strong> #${String(report.id).padStart(4, '0')}</p>
+                        <p><strong>Category:</strong> ${report.category ? report.category.name : 'N/A'}</p>
+                        <p><strong>Location:</strong> ${report.location || 'N/A'}</p>
+                        ${report.damaged_part ? '<p><strong>Damaged Part:</strong> ' + report.damaged_part + '</p>' : ''}
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Reported by:</strong> ${report.reported_by_name || 'Unknown'}</p>
+                        <p><strong>Date Submitted:</strong> ${report.created_at || 'N/A'}</p>
+                        ${report.assigned_at ? '<p><strong>Date Assigned:</strong> ' + report.assigned_at + '</p>' : ''}
+                        ${report.in_progress_at ? '<p><strong>Date In Progress:</strong> ' + report.in_progress_at + '</p>' : ''}
+                        ${report.resolved_at ? '<p><strong>Date Resolved:</strong> ' + report.resolved_at + '</p>' : ''}
+                        ${report.assigned_to ? '<p><strong>Assigned to:</strong> ' + (report.assigned_user_name || 'Unknown') + '</p>' : ''}
+                        ${report.cost ? '<p><strong>Cost:</strong> ₱' + parseFloat(report.cost).toLocaleString('en-PH', {minimumFractionDigits: 2}) + '</p>' : ''}
+                        ${report.replaced_part ? '<p><strong>Replaced With:</strong> ' + report.replaced_part + '</p>' : ''}
+                    </div>
+                </div>
+                <hr>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <p><strong>Description:</strong></p>
+                        <p style="white-space: pre-wrap;">${report.description || 'No description provided'}</p>
+                        ${imageHtml}
+                        ${resolutionHtml}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        Swal.fire({
+            title: '<i class="fas fa-file-alt me-2"></i>Report #' + String(report.id).padStart(4, '0') + ' Details',
+            html: htmlContent,
+            width: '900px',
+            showCloseButton: true,
+            showConfirmButton: true,
+            confirmButtonText: 'Close',
+            confirmButtonColor: '#6c757d',
+            customClass: {
+                popup: 'swal-wide-popup',
+                htmlContainer: 'swal2-html-container'
+            }
+        });
     })
     .catch(function(error) {
         console.error('viewReport error:', error);
-        bodyDiv.innerHTML = '<div class="alert alert-danger">Error loading report details.</div>';
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Error loading report details: ' + error.message
+        });
     });
 }
 

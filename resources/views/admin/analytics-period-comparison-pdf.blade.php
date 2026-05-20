@@ -248,6 +248,60 @@
         </tbody>
     </table>
 
+    {{-- Repair Breakdown for Each Period --}}
+    @foreach($periodData as $item)
+        @if($item['count'] > 0 && isset($item['repairs']) && count($item['repairs']) > 0)
+        <div style="page-break-inside: avoid; margin-top: 30px;">
+            <h3 style="font-size: 14px; color: #333; margin-bottom: 10px; border-bottom: 2px solid #003087; padding-bottom: 5px;">
+                {{ $item['label'] }} - Repair Breakdown ({{ $item['count'] }} repairs)
+            </h3>
+            <table style="font-size: 10px;">
+                <thead>
+                    <tr>
+                        <th style="width: 8%;">Ticket</th>
+                        <th style="width: 12%;">Date</th>
+                        <th style="width: 25%;">Issue</th>
+                        <th style="width: 15%;">Location</th>
+                        <th style="width: 10%;">Status</th>
+                        <th style="width: 18%;">Damaged Part</th>
+                        <th class="text-end" style="width: 12%;">Cost</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($item['repairs'] as $repair)
+                    <tr>
+                        <td>{{ $repair['ticket_number'] }}</td>
+                        <td>{{ $repair['date'] }}</td>
+                        <td>{{ $repair['title'] }}</td>
+                        <td>{{ $repair['location'] }}</td>
+                        <td class="text-center">
+                            @php
+                                $statusColors = [
+                                    'Pending' => '#ffc107',
+                                    'Assigned' => '#17a2b8',
+                                    'In Progress' => '#007bff',
+                                    'Resolved' => '#28a745'
+                                ];
+                                $bgColor = $statusColors[$repair['status']] ?? '#6c757d';
+                            @endphp
+                            <span style="background-color: {{ $bgColor }}; color: white; padding: 2px 6px; border-radius: 3px; font-size: 9px;">
+                                {{ $repair['status'] }}
+                            </span>
+                        </td>
+                        <td>{{ $repair['damaged_part'] }}</td>
+                        <td class="text-end">{{ $repair['cost'] > 0 ? 'PHP ' . number_format($repair['cost'], 2) : 'N/A' }}</td>
+                    </tr>
+                    @endforeach
+                    <tr class="footer-row">
+                        <td colspan="6" class="text-end"><strong>Period Total:</strong></td>
+                        <td class="text-end"><strong>PHP {{ number_format($item['cost'], 2) }}</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        @endif
+    @endforeach
+
     <div class="footer">
         Generated on {{ now()->format('F d, Y g:i A') }} | CampFix - Facility Management System
     </div>
