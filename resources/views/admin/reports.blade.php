@@ -2097,7 +2097,7 @@ window.viewReportProgress = async function(id) {
 
         // Handle proceed action
         if (result.isConfirmed && showProceedButton && nextAction) {
-            await proceedReportToNextLevel(id, nextAction.status, r.title);
+            await proceedReportToNextLevel(id, nextAction.status, r.title || (r.description ? r.description.substring(0, 40) : 'Report #' + r.id));
         } else if (result.isDismissed || !result.isConfirmed) {
             // Reload page when user clicks Close or dismisses the modal
             location.reload();
