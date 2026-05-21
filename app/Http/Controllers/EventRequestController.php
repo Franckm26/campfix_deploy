@@ -76,7 +76,12 @@ class EventRequestController extends Controller
             }
             throw $e;
         } catch (\Exception $e) {
-            \Log::error('Event request store error: ' . $e->getMessage());
+            \Log::error('Event request store error: ' . $e->getMessage(), [
+                'exception' => get_class($e),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => false,
