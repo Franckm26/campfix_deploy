@@ -30,6 +30,9 @@ class EventRequestController extends Controller
     {
         $allowedRoles = ['faculty', 'school_admin', 'academic_head', 'program_head', 'building_admin'];
         if (!in_array(auth()->user()->role, $allowedRoles)) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'You do not have permission to create event requests.'], 403);
+            }
             return redirect('/dashboard')->with('error', 'You do not have permission to create event requests.');
         }
         $request->validate([
@@ -117,6 +120,13 @@ class EventRequestController extends Controller
             // Faculty-intended: no approval needed — notify building admin and school admin only
             $notificationService->notifyAdminsOfFacultyRequest($eventRequest);
 
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Facility request submitted successfully! Building Admin and School Admin have been notified.',
+                    'redirect' => route('events.my', ['view' => 'approved'])
+                ]);
+            }
             return redirect()->route('events.my', ['view' => 'approved'])->with('success', 'Facility request submitted successfully! Building Admin and School Admin have been notified.');
         }
 
@@ -221,6 +231,13 @@ class EventRequestController extends Controller
             ? 'Event request submitted successfully! Your approval has been automatically recorded. Waiting for other approvers.'
             : 'Event request submitted successfully! Waiting for approval.';
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'redirect' => route('events.my', ['view' => 'active'])
+            ]);
+        }
         return redirect()->route('events.my', ['view' => 'active'])->with('success', $message);
     }
 

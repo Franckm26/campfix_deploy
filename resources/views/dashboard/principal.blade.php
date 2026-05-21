@@ -353,7 +353,7 @@
                     </div>
                     <div>
                         @if(in_array($user->role, ['school_admin', 'academic_head', 'program_head', 'principal_assistant']))
-                        <button type="button" class="btn btn-sm btn-primary me-2" data-bs-toggle="modal" data-bs-target="#eventRequestModal">
+                        <button type="button" class="btn btn-sm btn-primary me-2" onclick="openEventRequestModal()">
                             <i class="fas fa-plus"></i> Add Event
                         </button>
                         @endif
@@ -383,7 +383,7 @@
                             <h5 class="text-muted">No Upcoming Events</h5>
                             <p class="text-muted mb-3">There are no approved events scheduled.</p>
                             @if(in_array($user->role, ['school_admin', 'academic_head', 'program_head', 'principal_assistant']))
-                                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#eventRequestModal">
+                                <button type="button" class="btn btn-primary" onclick="openEventRequestModal()">
                                     <i class="fas fa-plus"></i> Submit Event Request
                                 </button>
                             @else

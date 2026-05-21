@@ -1683,8 +1683,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="{{ asset('js/event-request-modal.js') }}"></script>
 
 <script>
+// Pass facilities data to JavaScript
+@if(isset($facilities))
+window.facilitiesData = @json($facilities);
+@endif
+
 // ── SweetAlert2 Global Helpers ────────────────────────────────────────────────
 
 // Themed Swal instance that respects dark mode

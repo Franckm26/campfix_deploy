@@ -1,7 +1,7 @@
-@extends('layouts.app')
 
-@section('styles')
-<link href="{{ asset('css/admin.css') }}" rel="stylesheet">
+
+<?php $__env->startSection('styles'); ?>
+<link href="<?php echo e(asset('css/admin.css')); ?>" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 .analytics-card {
@@ -45,16 +45,16 @@
     color: #e0e0e0 !important;
 }
 </style>
-@endsection
+<?php $__env->stopSection(); ?>
 
-@section('page_title')
+<?php $__env->startSection('page_title'); ?>
 <div style="display:flex;align-items:center;gap:12px">
-    <img src="{{ asset('Campfix/Images/images.png') }}" alt="STI Logo" style="height:40px">
+    <img src="<?php echo e(asset('Campfix/Images/images.png')); ?>" alt="STI Logo" style="height:40px">
     <h2 style="margin:0">Home</h2>
 </div>
-@endsection
+<?php $__env->stopSection(); ?>
 
-@section('content')
+<?php $__env->startSection('content'); ?>
 <div class="container-fluid px-3">
     <!-- Quick Stats -->
     <div class="row mb-3 g-2">
@@ -62,8 +62,8 @@
             <div class="card bg-warning text-white">
                 <div class="card-body py-3 px-3">
                     <h6 class="mb-1">Pending Approval</h6>
-                    <h3 class="mb-1">{{ $pendingEvents }}</h3>
-                    <a href="{{ route('admin.events') }}" class="text-white text-decoration-underline small">Review Now</a>
+                    <h3 class="mb-1"><?php echo e($pendingEvents); ?></h3>
+                    <a href="<?php echo e(route('admin.events')); ?>" class="text-white text-decoration-underline small">Review Now</a>
                 </div>
             </div>
         </div>
@@ -71,8 +71,8 @@
             <div class="card bg-success text-white">
                 <div class="card-body py-3 px-3">
                     <h6 class="mb-1">Upcoming Events</h6>
-                    <h3 class="mb-1">{{ $approvedEvents }}</h3>
-                    <a href="{{ route('events.calendar') }}" class="text-white text-decoration-underline small">View Calendar</a>
+                    <h3 class="mb-1"><?php echo e($approvedEvents); ?></h3>
+                    <a href="<?php echo e(route('events.calendar')); ?>" class="text-white text-decoration-underline small">View Calendar</a>
                 </div>
             </div>
         </div>
@@ -80,8 +80,8 @@
             <div class="card bg-primary text-white">
                 <div class="card-body py-3 px-3">
                     <h6 class="mb-1">Total Concerns</h6>
-                    <h3 class="mb-1">{{ $totalConcerns }}</h3>
-                    <a href="{{ route('admin.reports') }}" class="text-white text-decoration-underline small">View Reports</a>
+                    <h3 class="mb-1"><?php echo e($totalConcerns); ?></h3>
+                    <a href="<?php echo e(route('admin.reports')); ?>" class="text-white text-decoration-underline small">View Reports</a>
                 </div>
             </div>
         </div>
@@ -91,15 +91,15 @@
                     <h6 class="mb-2">Campus Overview</h6>
                     <div class="d-flex justify-content-between align-items-center mb-1">
                         <small>Total Concerns Reported</small>
-                        <span class="badge bg-white text-info">{{ $totalConcerns }}</span>
+                        <span class="badge bg-white text-info"><?php echo e($totalConcerns); ?></span>
                     </div>
                     <div class="d-flex justify-content-between align-items-center mb-1">
                         <small>Unresolved Concerns</small>
-                        <span class="badge bg-white text-warning">{{ $pendingConcerns }}</span>
+                        <span class="badge bg-white text-warning"><?php echo e($pendingConcerns); ?></span>
                     </div>
                     <div class="d-flex justify-content-between align-items-center">
                         <small>Upcoming Approved Events</small>
-                        <span class="badge bg-white text-success">{{ $approvedEvents }}</span>
+                        <span class="badge bg-white text-success"><?php echo e($approvedEvents); ?></span>
                     </div>
                 </div>
             </div>
@@ -153,55 +153,57 @@
                 <div class="card-header py-2 px-3 d-flex justify-content-between align-items-center">
                     <span class="mb-0"><i class="fas fa-calendar-check me-1"></i> Upcoming Approved Events</span>
                     <div>
-                        <button type="button" class="btn btn-sm btn-primary me-2" onclick="openEventRequestModal()">
+                        <button type="button" class="btn btn-sm btn-primary me-2" data-bs-toggle="modal" data-bs-target="#eventRequestModal">
                             <i class="fas fa-plus"></i> Add Event
                         </button>
-                        <a href="{{ route('events.calendar') }}" class="btn btn-sm btn-outline-primary">
+                        <a href="<?php echo e(route('events.calendar')); ?>" class="btn btn-sm btn-outline-primary">
                             <i class="fas fa-calendar"></i> Full Calendar
                         </a>
                     </div>
                 </div>
                 <div class="card-body p-3" style="max-height: 400px; overflow-y: auto;">
-                    @if($upcomingEventsList->count() > 0)
+                    <?php if($upcomingEventsList->count() > 0): ?>
                         <div class="list-group list-group-flush">
-                            @foreach($upcomingEventsList->take(5) as $event)
+                            <?php $__currentLoopData = $upcomingEventsList->take(5); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $event): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                             <div class="list-group-item d-flex justify-content-between align-items-start border-0 px-0 py-2">
                                 <div class="ms-2 me-auto">
-                                    <div class="fw-bold text-primary" style="font-size: 0.9rem;">{{ $event->location }} - {{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</div>
+                                    <div class="fw-bold text-primary" style="font-size: 0.9rem;"><?php echo e($event->location); ?> - <?php echo e(\Carbon\Carbon::parse($event->event_date)->format('M d, Y')); ?></div>
                                     <div class="text-muted small">
-                                        <i class="fas fa-map-marker-alt me-1"></i>{{ $event->location }}
-                                        @if($event->department)
-                                            <span class="ms-2"><i class="fas fa-building me-1"></i>{{ $event->department }}</span>
-                                        @endif
+                                        <i class="fas fa-map-marker-alt me-1"></i><?php echo e($event->location); ?>
+
+                                        <?php if($event->department): ?>
+                                            <span class="ms-2"><i class="fas fa-building me-1"></i><?php echo e($event->department); ?></span>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                                 <div class="text-end">
-                                    <div class="badge bg-success mb-1" style="font-size: 0.75rem;">{{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</div>
+                                    <div class="badge bg-success mb-1" style="font-size: 0.75rem;"><?php echo e(\Carbon\Carbon::parse($event->event_date)->format('M d, Y')); ?></div>
                                     <div class="text-muted" style="font-size: 0.7rem;">
-                                        {{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - 
-                                        {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}
+                                        <?php echo e(\Carbon\Carbon::parse($event->start_time)->format('g:i A')); ?> - 
+                                        <?php echo e(\Carbon\Carbon::parse($event->end_time)->format('g:i A')); ?>
+
                                     </div>
                                 </div>
                             </div>
-                            @endforeach
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                         </div>
-                        @if($approvedEvents > 5)
+                        <?php if($approvedEvents > 5): ?>
                             <div class="text-center mt-2">
-                                <a href="{{ route('events.calendar') }}" class="btn btn-outline-primary btn-sm">
-                                    <i class="fas fa-calendar"></i> View All Events ({{ $approvedEvents }} total)
+                                <a href="<?php echo e(route('events.calendar')); ?>" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-calendar"></i> View All Events (<?php echo e($approvedEvents); ?> total)
                                 </a>
                             </div>
-                        @endif
-                    @else
+                        <?php endif; ?>
+                    <?php else: ?>
                         <div class="text-center py-4">
                             <i class="fas fa-calendar-times fa-2x text-muted mb-2"></i>
                             <h6 class="text-muted">No Upcoming Events</h6>
                             <p class="text-muted small mb-2">There are no approved events scheduled for the coming days.</p>
-                            <a href="{{ route('events.calendar') }}" class="btn btn-outline-primary btn-sm">
+                            <a href="<?php echo e(route('events.calendar')); ?>" class="btn btn-outline-primary btn-sm">
                                 <i class="fas fa-calendar"></i> View Events Calendar
                             </a>
                         </div>
-                    @endif
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -213,22 +215,22 @@
                 </div>
                 <div class="card-body p-2">
                     <div class="d-grid gap-2">
-                        <a href="{{ route('admin.reports') }}" class="btn btn-outline-primary btn-sm text-start">
+                        <a href="<?php echo e(route('admin.reports')); ?>" class="btn btn-outline-primary btn-sm text-start">
                             <i class="fas fa-file-alt me-2"></i> Reports
                         </a>
-                        <a href="{{ route('admin.analytics') }}" class="btn btn-outline-info btn-sm text-start">
+                        <a href="<?php echo e(route('admin.analytics')); ?>" class="btn btn-outline-info btn-sm text-start">
                             <i class="fas fa-chart-line me-2"></i> Analytics
                         </a>
-                        <a href="{{ route('admin.events') }}" class="btn btn-outline-warning btn-sm text-start">
+                        <a href="<?php echo e(route('admin.events')); ?>" class="btn btn-outline-warning btn-sm text-start">
                             <i class="fas fa-calendar-alt me-2"></i> Events
                         </a>
-                        <a href="{{ route('events.my') }}" class="btn btn-outline-success btn-sm text-start">
+                        <a href="<?php echo e(route('events.my')); ?>" class="btn btn-outline-success btn-sm text-start">
                             <i class="fas fa-calendar me-2"></i> My Events
                         </a>
-                        <a href="{{ route('events.calendar') }}" class="btn btn-outline-success btn-sm text-start">
+                        <a href="<?php echo e(route('events.calendar')); ?>" class="btn btn-outline-success btn-sm text-start">
                             <i class="fas fa-calendar-check me-2"></i> Upcoming Events
                         </a>
-                        <a href="{{ route('admin.management') }}" class="btn btn-outline-secondary btn-sm text-start">
+                        <a href="<?php echo e(route('admin.management')); ?>" class="btn btn-outline-secondary btn-sm text-start">
                             <i class="fas fa-tools me-2"></i> Management
                         </a>
                         <a href="/admin/logs" class="btn btn-outline-dark btn-sm text-start">
@@ -251,9 +253,9 @@ document.addEventListener('DOMContentLoaded', function() {
         new Chart(locationPieCtx, {
             type: 'pie',
             data: {
-                labels: @json($chartLocations ?? []),
+                labels: <?php echo json_encode($chartLocations ?? [], 15, 512) ?>,
                 datasets: [{
-                    data: @json($chartCounts ?? []),
+                    data: <?php echo json_encode($chartCounts ?? [], 15, 512) ?>,
                     backgroundColor: [
                         '#FF6384',
                         '#36A2EB',
@@ -280,7 +282,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var periodComparisonCtx = document.getElementById('periodComparisonChart');
     if (periodComparisonCtx) {
         // Process monthly stats data for period comparison
-        var monthlyData = @json($monthlyStats ?? []);
+        var monthlyData = <?php echo json_encode($monthlyStats ?? [], 15, 512) ?>;
         var monthsMap = {};
         var totalCounts = [];
         
@@ -334,7 +336,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var monthlyTrendCtx = document.getElementById('monthlyTrendChart');
     if (monthlyTrendCtx) {
         // Process monthly stats data
-        var monthlyData = @json($monthlyStats ?? []);
+        var monthlyData = <?php echo json_encode($monthlyStats ?? [], 15, 512) ?>;
         var months = [];
         var categories = {};
         var statusBreakdown = {}; // Store status breakdown for tooltips
@@ -454,6 +456,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-@endsection
+<?php $__env->stopSection(); ?>
 
 
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\Campfix\resources\views/dashboard/building-admin.blade.php ENDPATH**/ ?>

@@ -1,14 +1,14 @@
-@extends('layouts.app')
 
-@section('styles')
-<link href="{{ asset('css/admin.css') }}" rel="stylesheet">
-@endsection
 
-@section('page_title')
+<?php $__env->startSection('styles'); ?>
+<link href="<?php echo e(asset('css/admin.css')); ?>" rel="stylesheet">
+<?php $__env->stopSection(); ?>
+
+<?php $__env->startSection('page_title'); ?>
 <h2>My Event Requests</h2>
-@endsection
+<?php $__env->stopSection(); ?>
 
-@section('content')
+<?php $__env->startSection('content'); ?>
 <div class="container-fluid px-3">
 
     <!-- Context Menu -->
@@ -40,88 +40,88 @@
     </div>
 
 
-    @if(session('success'))
+    <?php if(session('success')): ?>
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 Swal.fire({
                     icon: 'success',
                     title: 'Success!',
-                    text: @json(session('success')),
+                    text: <?php echo json_encode(session('success'), 15, 512) ?>,
                     confirmButtonColor: '#28a745',
                     timer: 3000,
                     timerProgressBar: true
                 });
             });
         </script>
-    @endif
+    <?php endif; ?>
 
     <!-- Tabs Navigation -->
     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
         <ul class="nav nav-tabs border-0 mb-0 flex-wrap" id="eventTabs" role="tablist">
         <li class="nav-item" role="presentation">
-            <button class="nav-link {{ ($viewType ?? 'active') === 'active' ? 'active' : '' }}"
+            <button class="nav-link <?php echo e(($viewType ?? 'active') === 'active' ? 'active' : ''); ?>"
                     id="active-tab" data-bs-toggle="tab" data-bs-target="#active-events"
                     type="button" role="tab" aria-controls="active-events"
-                    aria-selected="{{ ($viewType ?? 'active') === 'active' ? 'true' : 'false' }}">
+                    aria-selected="<?php echo e(($viewType ?? 'active') === 'active' ? 'true' : 'false'); ?>">
                 <i class="fas fa-list"></i> Active
-                @if(isset($requests) && $requests->count() > 0)
-                    <span class="badge bg-primary ms-1">{{ $requests->count() }}</span>
-                @endif
+                <?php if(isset($requests) && $requests->count() > 0): ?>
+                    <span class="badge bg-primary ms-1"><?php echo e($requests->count()); ?></span>
+                <?php endif; ?>
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link {{ ($viewType ?? '') === 'approved' ? 'active' : '' }}"
+            <button class="nav-link <?php echo e(($viewType ?? '') === 'approved' ? 'active' : ''); ?>"
                     id="approved-tab" data-bs-toggle="tab" data-bs-target="#approved-events"
                     type="button" role="tab" aria-controls="approved-events"
-                    aria-selected="{{ ($viewType ?? '') === 'approved' ? 'true' : 'false' }}">
+                    aria-selected="<?php echo e(($viewType ?? '') === 'approved' ? 'true' : 'false'); ?>">
                 <i class="fas fa-check-circle"></i> Approved
-                @if(isset($approvedRequests) && $approvedRequests->count() > 0)
-                    <span class="badge bg-success ms-1">{{ $approvedRequests->count() }}</span>
-                @endif
+                <?php if(isset($approvedRequests) && $approvedRequests->count() > 0): ?>
+                    <span class="badge bg-success ms-1"><?php echo e($approvedRequests->count()); ?></span>
+                <?php endif; ?>
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link {{ ($viewType ?? '') === 'finished' ? 'active' : '' }}"
+            <button class="nav-link <?php echo e(($viewType ?? '') === 'finished' ? 'active' : ''); ?>"
                     id="finished-tab" data-bs-toggle="tab" data-bs-target="#finished-events"
                     type="button" role="tab" aria-controls="finished-events"
-                    aria-selected="{{ ($viewType ?? '') === 'finished' ? 'true' : 'false' }}">
+                    aria-selected="<?php echo e(($viewType ?? '') === 'finished' ? 'true' : 'false'); ?>">
                 <i class="fas fa-flag-checkered"></i> Finished
-                @if(isset($finishedRequests) && $finishedRequests->count() > 0)
-                    <span class="badge bg-secondary ms-1">{{ $finishedRequests->count() }}</span>
-                @endif
+                <?php if(isset($finishedRequests) && $finishedRequests->count() > 0): ?>
+                    <span class="badge bg-secondary ms-1"><?php echo e($finishedRequests->count()); ?></span>
+                <?php endif; ?>
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link {{ ($viewType ?? '') === 'rejected' ? 'active' : '' }}"
+            <button class="nav-link <?php echo e(($viewType ?? '') === 'rejected' ? 'active' : ''); ?>"
                     id="rejected-tab" data-bs-toggle="tab" data-bs-target="#rejected-events"
                     type="button" role="tab" aria-controls="rejected-events"
-                    aria-selected="{{ ($viewType ?? '') === 'rejected' ? 'true' : 'false' }}">
+                    aria-selected="<?php echo e(($viewType ?? '') === 'rejected' ? 'true' : 'false'); ?>">
                 <i class="fas fa-times-circle"></i> Rejected
-                @if(isset($rejectedRequests) && $rejectedRequests->count() > 0)
-                    <span class="badge bg-danger ms-1">{{ $rejectedRequests->count() }}</span>
-                @endif
+                <?php if(isset($rejectedRequests) && $rejectedRequests->count() > 0): ?>
+                    <span class="badge bg-danger ms-1"><?php echo e($rejectedRequests->count()); ?></span>
+                <?php endif; ?>
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link {{ ($viewType ?? '') === 'archives' ? 'active' : '' }}"
+            <button class="nav-link <?php echo e(($viewType ?? '') === 'archives' ? 'active' : ''); ?>"
                     id="archives-tab" data-bs-toggle="tab" data-bs-target="#archived-events"
                     type="button" role="tab" aria-controls="archived-events"
-                    aria-selected="{{ ($viewType ?? '') === 'archives' ? 'true' : 'false' }}">
+                    aria-selected="<?php echo e(($viewType ?? '') === 'archives' ? 'true' : 'false'); ?>">
                 <i class="fas fa-archive"></i> Archives
-                @if(isset($archivedRequests) && $archivedRequests->count() > 0)
-                    <span class="badge bg-warning ms-1">{{ $archivedRequests->count() }}</span>
-                @endif
+                <?php if(isset($archivedRequests) && $archivedRequests->count() > 0): ?>
+                    <span class="badge bg-warning ms-1"><?php echo e($archivedRequests->count()); ?></span>
+                <?php endif; ?>
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link {{ ($viewType ?? '') === 'deleted' ? 'active' : '' }}"
+            <button class="nav-link <?php echo e(($viewType ?? '') === 'deleted' ? 'active' : ''); ?>"
                     id="deleted-tab" data-bs-toggle="tab" data-bs-target="#deleted-events"
                     type="button" role="tab" aria-controls="deleted-events"
-                    aria-selected="{{ ($viewType ?? '') === 'deleted' ? 'true' : 'false' }}">
+                    aria-selected="<?php echo e(($viewType ?? '') === 'deleted' ? 'true' : 'false'); ?>">
                 <i class="fas fa-trash"></i> Deleted
-                @if(isset($deletedRequests) && $deletedRequests->count() > 0)
-                    <span class="badge bg-danger ms-1">{{ $deletedRequests->count() }}</span>
-                @endif
+                <?php if(isset($deletedRequests) && $deletedRequests->count() > 0): ?>
+                    <span class="badge bg-danger ms-1"><?php echo e($deletedRequests->count()); ?></span>
+                <?php endif; ?>
             </button>
         </li>
     </ul>
@@ -134,56 +134,56 @@
     <div class="tab-content show" id="eventTabContent">
 
         <!-- Active Events Tab -->
-        <div class="tab-pane fade {{ ($viewType ?? 'active') === 'active' ? 'show active' : '' }}"
+        <div class="tab-pane fade <?php echo e(($viewType ?? 'active') === 'active' ? 'show active' : ''); ?>"
              id="active-events" role="tabpanel" aria-labelledby="active-tab">
 
             <!-- Filters for Active -->
-            @if(($viewType ?? 'active') === 'active')
+            <?php if(($viewType ?? 'active') === 'active'): ?>
             <div class="card mb-4">
                 <div class="card-body">
-                    <form method="GET" action="{{ route('events.my') }}" class="row g-2 align-items-center" id="filterForm">
+                    <form method="GET" action="<?php echo e(route('events.my')); ?>" class="row g-2 align-items-center" id="filterForm">
                         <input type="hidden" name="view" value="active">
                         <div class="col-6 col-md">
                             <input type="text" name="search" class="form-control form-control-sm" placeholder="Search by title..."
-                                value="{{ request('search') }}">
+                                value="<?php echo e(request('search')); ?>">
                         </div>
                         <div class="col-6 col-md">
                             <select name="status" class="form-select form-select-sm">
                                 <option value="">All Status</option>
-                                <option value="Pending" {{ request('status') == 'Pending' ? 'selected' : '' }}>Pending</option>
-                                <option value="Approved" {{ request('status') == 'Approved' ? 'selected' : '' }}>Approved</option>
-                                <option value="Rejected" {{ request('status') == 'Rejected' ? 'selected' : '' }}>Rejected</option>
-                                <option value="Cancelled" {{ request('status') == 'Cancelled' ? 'selected' : '' }}>Cancelled</option>
+                                <option value="Pending" <?php echo e(request('status') == 'Pending' ? 'selected' : ''); ?>>Pending</option>
+                                <option value="Approved" <?php echo e(request('status') == 'Approved' ? 'selected' : ''); ?>>Approved</option>
+                                <option value="Rejected" <?php echo e(request('status') == 'Rejected' ? 'selected' : ''); ?>>Rejected</option>
+                                <option value="Cancelled" <?php echo e(request('status') == 'Cancelled' ? 'selected' : ''); ?>>Cancelled</option>
                             </select>
                         </div>
                         <div class="col-6 col-md">
                             <select name="category" class="form-select form-select-sm">
                                 <option value="">All Categories</option>
-                                <option value="event" {{ request('category') == 'event' ? 'selected' : '' }}>Event</option>
-                                <option value="meeting" {{ request('category') == 'meeting' ? 'selected' : '' }}>Meeting</option>
-                                <option value="activity" {{ request('category') == 'activity' ? 'selected' : '' }}>Activity</option>
-                                <option value="training" {{ request('category') == 'training' ? 'selected' : '' }}>Training</option>
-                                <option value="other" {{ request('category') == 'other' ? 'selected' : '' }}>Other</option>
+                                <option value="event" <?php echo e(request('category') == 'event' ? 'selected' : ''); ?>>Event</option>
+                                <option value="meeting" <?php echo e(request('category') == 'meeting' ? 'selected' : ''); ?>>Meeting</option>
+                                <option value="activity" <?php echo e(request('category') == 'activity' ? 'selected' : ''); ?>>Activity</option>
+                                <option value="training" <?php echo e(request('category') == 'training' ? 'selected' : ''); ?>>Training</option>
+                                <option value="other" <?php echo e(request('category') == 'other' ? 'selected' : ''); ?>>Other</option>
                             </select>
                         </div>
                         <div class="col-6 col-md">
                             <input type="date" name="date_from" class="form-control form-control-sm" placeholder="From Date"
-                                value="{{ request('date_from') }}">
+                                value="<?php echo e(request('date_from')); ?>">
                         </div>
                         <div class="col-6 col-md">
                             <input type="date" name="date_to" class="form-control form-control-sm" placeholder="To Date"
-                                value="{{ request('date_to') }}">
+                                value="<?php echo e(request('date_to')); ?>">
                         </div>
                         <div class="col-auto">
                             <button type="submit" class="btn btn-primary btn-sm">Filter</button>
                         </div>
                         <div class="col-auto">
-                            <a href="{{ route('events.my', ['view' => 'active']) }}" class="btn btn-secondary btn-sm"><i class="fas fa-times"></i></a>
+                            <a href="<?php echo e(route('events.my', ['view' => 'active'])); ?>" class="btn btn-secondary btn-sm"><i class="fas fa-times"></i></a>
                         </div>
                     </form>
                 </div>
             </div>
-            @endif
+            <?php endif; ?>
 
             <!-- Active Events List -->
             <div class="card">
@@ -201,7 +201,7 @@
                         <span class="ms-2 text-muted" id="activeSelectedCount">0 selected</span>
                     </div>
 
-                    @if($requests->count() > 0)
+                    <?php if($requests->count() > 0): ?>
                         <div class="table-responsive">
                             <table class="table table-hover">
                                 <thead>
@@ -214,34 +214,34 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($requests as $request)
-                                        <tr data-id="{{ $request->id }}" data-view="active">
-                                            <td style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" class="active-checkbox" value="{{ $request->id }}" onchange="updateActiveBulkActions()"></td>
+                                    <?php $__currentLoopData = $requests; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $request): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <tr data-id="<?php echo e($request->id); ?>" data-view="active">
+                                            <td style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" class="active-checkbox" value="<?php echo e($request->id); ?>" onchange="updateActiveBulkActions()"></td>
                                             <td>
                                                 <span class="badge bg-info">
-                                                    {{ ucfirst($request->category) }}
+                                                    <?php echo e(ucfirst($request->category)); ?>
+
                                                 </span>
                                             </td>
-                                            <td>{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</td>
-                                            <td>{{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</td>
-                                            <td>{{ $request->location }}</td>
+                                            <td><?php echo e(\Carbon\Carbon::parse($request->event_date)->format('M d, Y')); ?></td>
+                                            <td><?php echo e(\Carbon\Carbon::parse($request->start_time)->format('g:i A')); ?> - <?php echo e(\Carbon\Carbon::parse($request->end_time)->format('g:i A')); ?></td>
+                                            <td><?php echo e($request->location); ?></td>
                                             <td>
-                                                <span class="badge bg-{{
-                                                    $request->status == 'Approved' ? 'success' :
+                                                <span class="badge bg-<?php echo e($request->status == 'Approved' ? 'success' :
                                                     ($request->status == 'Rejected' ? 'danger' :
-                                                    ($request->status == 'Cancelled' ? 'secondary' : 'warning'))
-                                                }}">
-                                                    {{ $request->status }}
+                                                    ($request->status == 'Cancelled' ? 'secondary' : 'warning'))); ?>">
+                                                    <?php echo e($request->status); ?>
+
                                                 </span>
                                             </td>
                                             <td class="text-nowrap">
                                                 <div class="btn-group" role="group">
-                                                    <button type="button" class="btn btn-sm btn-info" onclick="viewEvent({{ $request->id }})" title="View">
+                                                    <button type="button" class="btn btn-sm btn-info" onclick="viewEvent(<?php echo e($request->id); ?>)" title="View">
                                                         <i class="fas fa-eye"></i>
                                                     </button>
-                                                    @if($request->status == 'Pending')
-                                                        <form action="{{ route('events.cancel', $request->id) }}" method="POST" class="d-inline">
-                                                            @csrf
+                                                    <?php if($request->status == 'Pending'): ?>
+                                                        <form action="<?php echo e(route('events.cancel', $request->id)); ?>" method="POST" class="d-inline">
+                                                            <?php echo csrf_field(); ?>
                                                             <button type="submit" class="btn btn-sm btn-danger"
                                                                 data-confirm="Cancel this request?"
                                                                 data-confirm-title="Cancel Request"
@@ -251,14 +251,14 @@
                                                                 <i class="fas fa-times"></i>
                                                             </button>
                                                         </form>
-                                                    @endif
+                                                    <?php endif; ?>
                                                     <a href="#" class="btn btn-sm btn-secondary"
-                                                        onclick="event.preventDefault(); showEventArchiveModal({{ $request->id }});"
+                                                        onclick="event.preventDefault(); showEventArchiveModal(<?php echo e($request->id); ?>);"
                                                         title="Archive">
                                                         <i class="fas fa-archive"></i>
                                                     </a>
-                                                    <form action="{{ route('events.delete', $request->id) }}" method="POST" class="d-inline">
-                                                        @csrf
+                                                    <form action="<?php echo e(route('events.delete', $request->id)); ?>" method="POST" class="d-inline">
+                                                        <?php echo csrf_field(); ?>
                                                         <button type="submit" class="btn btn-sm btn-danger"
                                                             data-confirm="Delete this event? It will be moved to deleted events."
                                                             data-confirm-title="Delete Event"
@@ -271,28 +271,28 @@
                                                 </div>
                                             </td>
                                         </tr>
-                                    @endforeach
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                 </tbody>
                             </table>
                         </div>
 
-                    @else
+                    <?php else: ?>
                         <div class="text-center py-5">
                             <h4 class="text-muted">No active event requests</h4>
                             <p>Submit your first event request</p>
-                            <a href="{{ route('events.create') }}" class="btn btn-primary">Create Event Request</a>
+                            <a href="<?php echo e(route('events.create')); ?>" class="btn btn-primary">Create Event Request</a>
                         </div>
-                    @endif
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
 
         <!-- Approved Events Tab -->
-        <div class="tab-pane fade {{ ($viewType ?? '') === 'approved' ? 'show active' : '' }}"
+        <div class="tab-pane fade <?php echo e(($viewType ?? '') === 'approved' ? 'show active' : ''); ?>"
              id="approved-events" role="tabpanel" aria-labelledby="approved-tab">
             <div class="card">
                 <div class="card-body">
-                    @if(isset($approvedRequests) && $approvedRequests->count() > 0)
+                    <?php if(isset($approvedRequests) && $approvedRequests->count() > 0): ?>
                         <div class="table-responsive">
                             <table class="table table-hover">
                                 <thead>
@@ -306,52 +306,52 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($approvedRequests as $request)
-                                        <tr data-id="{{ $request->id }}">
-                                            <td>EVT-{{ str_pad($request->id, 5, '0', STR_PAD_LEFT) }}</td>
-                                            <td>{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</td>
-                                            <td>{{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</td>
-                                            <td>{{ $request->location }}</td>
+                                    <?php $__currentLoopData = $approvedRequests; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $request): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <tr data-id="<?php echo e($request->id); ?>">
+                                            <td>EVT-<?php echo e(str_pad($request->id, 5, '0', STR_PAD_LEFT)); ?></td>
+                                            <td><?php echo e(\Carbon\Carbon::parse($request->event_date)->format('M d, Y')); ?></td>
+                                            <td><?php echo e(\Carbon\Carbon::parse($request->start_time)->format('g:i A')); ?> - <?php echo e(\Carbon\Carbon::parse($request->end_time)->format('g:i A')); ?></td>
+                                            <td><?php echo e($request->location); ?></td>
                                             <td>
-                                                <span class="badge bg-success">{{ $request->status }}</span>
+                                                <span class="badge bg-success"><?php echo e($request->status); ?></span>
                                             </td>
                                             <td class="text-nowrap">
                                                 <div class="btn-group" role="group">
-                                                    <button type="button" class="btn btn-sm btn-info" onclick="viewEvent({{ $request->id }})" title="View">
+                                                    <button type="button" class="btn btn-sm btn-info" onclick="viewEvent(<?php echo e($request->id); ?>)" title="View">
                                                         <i class="fas fa-eye"></i>
                                                     </button>
-                                                    <a href="{{ route('events.pdf', $request->id) }}" class="btn btn-sm btn-primary" title="Download PDF" target="_blank">
+                                                    <a href="<?php echo e(route('events.pdf', $request->id)); ?>" class="btn btn-sm btn-primary" title="Download PDF" target="_blank">
                                                         <i class="fas fa-file-pdf"></i>
                                                     </a>
                                                     <a href="#" class="btn btn-sm btn-secondary"
-                                                        onclick="event.preventDefault(); showEventArchiveModal({{ $request->id }});"
+                                                        onclick="event.preventDefault(); showEventArchiveModal(<?php echo e($request->id); ?>);"
                                                         title="Archive">
                                                         <i class="fas fa-archive"></i>
                                                     </a>
                                                 </div>
                                             </td>
                                         </tr>
-                                    @endforeach
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                 </tbody>
                             </table>
                         </div>
-                    @else
+                    <?php else: ?>
                         <div class="text-center py-5">
                             <i class="fas fa-check-circle fa-3x text-muted mb-3"></i>
                             <h4 class="text-muted">No approved events</h4>
                             <p>Your approved events will appear here</p>
                         </div>
-                    @endif
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
 
         <!-- Finished Events Tab -->
-        <div class="tab-pane fade {{ ($viewType ?? '') === 'finished' ? 'show active' : '' }}"
+        <div class="tab-pane fade <?php echo e(($viewType ?? '') === 'finished' ? 'show active' : ''); ?>"
              id="finished-events" role="tabpanel" aria-labelledby="finished-tab">
             <div class="card">
                 <div class="card-body">
-                    @if(isset($finishedRequests) && $finishedRequests->count() > 0)
+                    <?php if(isset($finishedRequests) && $finishedRequests->count() > 0): ?>
                         <div class="table-responsive">
                             <table class="table table-hover">
                                 <thead>
@@ -365,52 +365,52 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($finishedRequests as $request)
-                                        <tr data-id="{{ $request->id }}">
-                                            <td>EVT-{{ str_pad($request->id, 5, '0', STR_PAD_LEFT) }}</td>
-                                            <td>{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</td>
-                                            <td>{{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</td>
-                                            <td>{{ $request->location }}</td>
+                                    <?php $__currentLoopData = $finishedRequests; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $request): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <tr data-id="<?php echo e($request->id); ?>">
+                                            <td>EVT-<?php echo e(str_pad($request->id, 5, '0', STR_PAD_LEFT)); ?></td>
+                                            <td><?php echo e(\Carbon\Carbon::parse($request->event_date)->format('M d, Y')); ?></td>
+                                            <td><?php echo e(\Carbon\Carbon::parse($request->start_time)->format('g:i A')); ?> - <?php echo e(\Carbon\Carbon::parse($request->end_time)->format('g:i A')); ?></td>
+                                            <td><?php echo e($request->location); ?></td>
                                             <td>
                                                 <span class="badge bg-secondary">Finished</span>
                                             </td>
                                             <td class="text-nowrap">
                                                 <div class="btn-group" role="group">
-                                                    <button type="button" class="btn btn-sm btn-info" onclick="viewEvent({{ $request->id }})" title="View">
+                                                    <button type="button" class="btn btn-sm btn-info" onclick="viewEvent(<?php echo e($request->id); ?>)" title="View">
                                                         <i class="fas fa-eye"></i>
                                                     </button>
-                                                    <a href="{{ route('events.pdf', $request->id) }}" class="btn btn-sm btn-primary" title="Download PDF" target="_blank">
+                                                    <a href="<?php echo e(route('events.pdf', $request->id)); ?>" class="btn btn-sm btn-primary" title="Download PDF" target="_blank">
                                                         <i class="fas fa-file-pdf"></i>
                                                     </a>
                                                     <a href="#" class="btn btn-sm btn-secondary"
-                                                        onclick="event.preventDefault(); showEventArchiveModal({{ $request->id }});"
+                                                        onclick="event.preventDefault(); showEventArchiveModal(<?php echo e($request->id); ?>);"
                                                         title="Archive">
                                                         <i class="fas fa-archive"></i>
                                                     </a>
                                                 </div>
                                             </td>
                                         </tr>
-                                    @endforeach
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                 </tbody>
                             </table>
                         </div>
-                    @else
+                    <?php else: ?>
                         <div class="text-center py-5">
                             <i class="fas fa-flag-checkered fa-3x text-muted mb-3"></i>
                             <h4 class="text-muted">No finished events</h4>
                             <p>Completed events will appear here</p>
                         </div>
-                    @endif
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
 
         <!-- Rejected Events Tab -->
-        <div class="tab-pane fade {{ ($viewType ?? '') === 'rejected' ? 'show active' : '' }}"
+        <div class="tab-pane fade <?php echo e(($viewType ?? '') === 'rejected' ? 'show active' : ''); ?>"
              id="rejected-events" role="tabpanel" aria-labelledby="rejected-tab">
             <div class="card">
                 <div class="card-body">
-                    @if(isset($rejectedRequests) && $rejectedRequests->count() > 0)
+                    <?php if(isset($rejectedRequests) && $rejectedRequests->count() > 0): ?>
                         <div class="table-responsive">
                             <table class="table table-hover">
                                 <thead>
@@ -424,27 +424,27 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($rejectedRequests as $request)
-                                        <tr data-id="{{ $request->id }}">
-                                            <td>EVT-{{ str_pad($request->id, 5, '0', STR_PAD_LEFT) }}</td>
-                                            <td>{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</td>
-                                            <td>{{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</td>
-                                            <td>{{ $request->location }}</td>
+                                    <?php $__currentLoopData = $rejectedRequests; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $request): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <tr data-id="<?php echo e($request->id); ?>">
+                                            <td>EVT-<?php echo e(str_pad($request->id, 5, '0', STR_PAD_LEFT)); ?></td>
+                                            <td><?php echo e(\Carbon\Carbon::parse($request->event_date)->format('M d, Y')); ?></td>
+                                            <td><?php echo e(\Carbon\Carbon::parse($request->start_time)->format('g:i A')); ?> - <?php echo e(\Carbon\Carbon::parse($request->end_time)->format('g:i A')); ?></td>
+                                            <td><?php echo e($request->location); ?></td>
                                             <td>
-                                                <span class="badge bg-danger">{{ $request->status }}</span>
+                                                <span class="badge bg-danger"><?php echo e($request->status); ?></span>
                                             </td>
                                             <td class="text-nowrap">
                                                 <div class="btn-group" role="group">
-                                                    <button type="button" class="btn btn-sm btn-info" onclick="viewEvent({{ $request->id }})" title="View">
+                                                    <button type="button" class="btn btn-sm btn-info" onclick="viewEvent(<?php echo e($request->id); ?>)" title="View">
                                                         <i class="fas fa-eye"></i>
                                                     </button>
                                                     <a href="#" class="btn btn-sm btn-secondary"
-                                                        onclick="event.preventDefault(); showEventArchiveModal({{ $request->id }});"
+                                                        onclick="event.preventDefault(); showEventArchiveModal(<?php echo e($request->id); ?>);"
                                                         title="Archive">
                                                         <i class="fas fa-archive"></i>
                                                     </a>
-                                                    <form action="{{ route('events.delete', $request->id) }}" method="POST" class="d-inline">
-                                                        @csrf
+                                                    <form action="<?php echo e(route('events.delete', $request->id)); ?>" method="POST" class="d-inline">
+                                                        <?php echo csrf_field(); ?>
                                                         <button type="submit" class="btn btn-sm btn-danger"
                                                             data-confirm="Delete this event? It will be moved to deleted events."
                                                             data-confirm-title="Delete Event"
@@ -457,68 +457,68 @@
                                                 </div>
                                             </td>
                                         </tr>
-                                    @endforeach
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                 </tbody>
                             </table>
                         </div>
-                    @else
+                    <?php else: ?>
                         <div class="text-center py-5">
                             <i class="fas fa-times-circle fa-3x text-muted mb-3"></i>
                             <h4 class="text-muted">No rejected events</h4>
                             <p>Rejected events will appear here</p>
                         </div>
-                    @endif
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
 
         <!-- Archived Events Tab -->
-        <div class="tab-pane fade {{ ($viewType ?? '') === 'archives' ? 'show active' : '' }}"
+        <div class="tab-pane fade <?php echo e(($viewType ?? '') === 'archives' ? 'show active' : ''); ?>"
              id="archived-events" role="tabpanel" aria-labelledby="archives-tab">
 
             <!-- Filters for Archives -->
-            @if(($viewType ?? '') === 'archives')
+            <?php if(($viewType ?? '') === 'archives'): ?>
             <div class="card mb-4">
                 <div class="card-body">
-                    <form method="GET" action="{{ route('events.my') }}" class="row g-2 align-items-center">
+                    <form method="GET" action="<?php echo e(route('events.my')); ?>" class="row g-2 align-items-center">
                         <input type="hidden" name="view" value="archives">
                         <div class="col-6 col-md">
                             <input type="text" name="search" class="form-control form-control-sm" placeholder="Search by title..."
-                                value="{{ request('search') }}">
+                                value="<?php echo e(request('search')); ?>">
                         </div>
                         <div class="col-6 col-md">
                             <select name="status" class="form-select form-select-sm">
                                 <option value="">All Status</option>
-                                <option value="Pending" {{ request('status') == 'Pending' ? 'selected' : '' }}>Pending</option>
-                                <option value="Approved" {{ request('status') == 'Approved' ? 'selected' : '' }}>Approved</option>
-                                <option value="Rejected" {{ request('status') == 'Rejected' ? 'selected' : '' }}>Rejected</option>
-                                <option value="Cancelled" {{ request('status') == 'Cancelled' ? 'selected' : '' }}>Cancelled</option>
+                                <option value="Pending" <?php echo e(request('status') == 'Pending' ? 'selected' : ''); ?>>Pending</option>
+                                <option value="Approved" <?php echo e(request('status') == 'Approved' ? 'selected' : ''); ?>>Approved</option>
+                                <option value="Rejected" <?php echo e(request('status') == 'Rejected' ? 'selected' : ''); ?>>Rejected</option>
+                                <option value="Cancelled" <?php echo e(request('status') == 'Cancelled' ? 'selected' : ''); ?>>Cancelled</option>
                             </select>
                         </div>
                         <div class="col-6 col-md">
                             <select name="category" class="form-select form-select-sm">
                                 <option value="">All Categories</option>
-                                <option value="Area Use" {{ request('category') == 'Area Use' ? 'selected' : '' }}>Area Use</option>
+                                <option value="Area Use" <?php echo e(request('category') == 'Area Use' ? 'selected' : ''); ?>>Area Use</option>
                             </select>
                         </div>
                         <div class="col-6 col-md">
                             <input type="date" name="date_from" class="form-control form-control-sm" placeholder="From Date"
-                                value="{{ request('date_from') }}">
+                                value="<?php echo e(request('date_from')); ?>">
                         </div>
                         <div class="col-6 col-md">
                             <input type="date" name="date_to" class="form-control form-control-sm" placeholder="To Date"
-                                value="{{ request('date_to') }}">
+                                value="<?php echo e(request('date_to')); ?>">
                         </div>
                         <div class="col-auto">
                             <button type="submit" class="btn btn-primary btn-sm">Filter</button>
                         </div>
                         <div class="col-auto">
-                            <a href="{{ route('events.my', ['view' => 'archives']) }}" class="btn btn-secondary btn-sm"><i class="fas fa-times"></i></a>
+                            <a href="<?php echo e(route('events.my', ['view' => 'archives'])); ?>" class="btn btn-secondary btn-sm"><i class="fas fa-times"></i></a>
                         </div>
                     </form>
                 </div>
             </div>
-            @endif
+            <?php endif; ?>
 
             <!-- Archived Events List -->
             <div class="card">
@@ -536,7 +536,7 @@
                         <span class="ms-2 text-muted" id="archiveSelectedCount">0 selected</span>
                     </div>
 
-                    @if(isset($archivedRequests) && $archivedRequests->count() > 0)
+                    <?php if(isset($archivedRequests) && $archivedRequests->count() > 0): ?>
                         <div class="table-responsive">
                             <table class="table table-hover">
                                 <thead>
@@ -549,29 +549,31 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($archivedRequests as $request)
-                                        <tr data-id="{{ $request->id }}" data-view="archive">
-                                            <td style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" class="archive-checkbox" value="{{ $request->id }}" onchange="updateArchiveBulkActions()"></td>
+                                    <?php $__currentLoopData = $archivedRequests; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $request): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <tr data-id="<?php echo e($request->id); ?>" data-view="archive">
+                                            <td style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" class="archive-checkbox" value="<?php echo e($request->id); ?>" onchange="updateArchiveBulkActions()"></td>
                                             <td>
                                                 <span class="badge bg-info">
-                                                    {{ ucfirst($request->category) }}
+                                                    <?php echo e(ucfirst($request->category)); ?>
+
                                                 </span>
                                             </td>
-                                            <td>{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</td>
-                                            <td>{{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</td>
-                                            <td>{{ $request->location }}</td>
+                                            <td><?php echo e(\Carbon\Carbon::parse($request->event_date)->format('M d, Y')); ?></td>
+                                            <td><?php echo e(\Carbon\Carbon::parse($request->start_time)->format('g:i A')); ?> - <?php echo e(\Carbon\Carbon::parse($request->end_time)->format('g:i A')); ?></td>
+                                            <td><?php echo e($request->location); ?></td>
                                             <td>
-                                                <span class="badge bg-{{ $request->status == 'Approved' ? 'success' : ($request->status == 'Rejected' ? 'danger' : ($request->status == 'Cancelled' ? 'secondary' : 'warning')) }}">
-                                                    {{ $request->status }}
+                                                <span class="badge bg-<?php echo e($request->status == 'Approved' ? 'success' : ($request->status == 'Rejected' ? 'danger' : ($request->status == 'Cancelled' ? 'secondary' : 'warning'))); ?>">
+                                                    <?php echo e($request->status); ?>
+
                                                 </span>
                                             </td>
                                             <td class="text-nowrap">
                                                 <div class="btn-group" role="group">
-                                                    <button type="button" class="btn btn-sm btn-info" onclick="viewEvent({{ $request->id }})" title="View">
+                                                    <button type="button" class="btn btn-sm btn-info" onclick="viewEvent(<?php echo e($request->id); ?>)" title="View">
                                                         <i class="fas fa-eye"></i>
                                                     </button>
-                                                    <form action="{{ route('events.restore', $request->id) }}" method="POST" class="d-inline">
-                                                        @csrf
+                                                    <form action="<?php echo e(route('events.restore', $request->id)); ?>" method="POST" class="d-inline">
+                                                        <?php echo csrf_field(); ?>
                                                         <button type="submit" class="btn btn-sm btn-success"
                                                             data-confirm="Restore this request?"
                                                             data-confirm-title="Restore Event"
@@ -581,8 +583,8 @@
                                                             <i class="fas fa-trash-restore"></i>
                                                         </button>
                                                     </form>
-                                                    <form action="{{ route('events.delete', $request->id) }}" method="POST" class="d-inline">
-                                                        @csrf
+                                                    <form action="<?php echo e(route('events.delete', $request->id)); ?>" method="POST" class="d-inline">
+                                                        <?php echo csrf_field(); ?>
                                                         <button type="submit" class="btn btn-sm btn-danger"
                                                             data-confirm="Permanently delete this event?"
                                                             data-confirm-title="Permanent Delete"
@@ -595,68 +597,68 @@
                                                 </div>
                                             </td>
                                         </tr>
-                                    @endforeach
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                 </tbody>
                             </table>
                         </div>
 
-                    @else
+                    <?php else: ?>
                         <div class="text-center py-5">
                             <h4 class="text-muted">No archived event requests</h4>
                         </div>
-                    @endif
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
 
         <!-- Deleted Events Tab -->
-        <div class="tab-pane fade {{ ($viewType ?? '') === 'deleted' ? 'show active' : '' }}"
+        <div class="tab-pane fade <?php echo e(($viewType ?? '') === 'deleted' ? 'show active' : ''); ?>"
              id="deleted-events" role="tabpanel" aria-labelledby="deleted-tab">
 
             <!-- Filters for Deleted -->
-            @if(($viewType ?? '') === 'deleted')
+            <?php if(($viewType ?? '') === 'deleted'): ?>
             <div class="card mb-4">
                 <div class="card-body">
-                    <form method="GET" action="{{ route('events.my') }}" class="row g-2 align-items-center">
+                    <form method="GET" action="<?php echo e(route('events.my')); ?>" class="row g-2 align-items-center">
                         <input type="hidden" name="view" value="deleted">
                         <div class="col-6 col-md">
                             <input type="text" name="search" class="form-control form-control-sm" placeholder="Search by title..."
-                                value="{{ request('search') }}">
+                                value="<?php echo e(request('search')); ?>">
                         </div>
                         <div class="col-6 col-md">
                             <select name="status" class="form-select form-select-sm">
                                 <option value="">All Status</option>
-                                <option value="Pending" {{ request('status') == 'Pending' ? 'selected' : '' }}>Pending</option>
-                                <option value="Approved" {{ request('status') == 'Approved' ? 'selected' : '' }}>Approved</option>
-                                <option value="Rejected" {{ request('status') == 'Rejected' ? 'selected' : '' }}>Rejected</option>
-                                <option value="Cancelled" {{ request('status') == 'Cancelled' ? 'selected' : '' }}>Cancelled</option>
+                                <option value="Pending" <?php echo e(request('status') == 'Pending' ? 'selected' : ''); ?>>Pending</option>
+                                <option value="Approved" <?php echo e(request('status') == 'Approved' ? 'selected' : ''); ?>>Approved</option>
+                                <option value="Rejected" <?php echo e(request('status') == 'Rejected' ? 'selected' : ''); ?>>Rejected</option>
+                                <option value="Cancelled" <?php echo e(request('status') == 'Cancelled' ? 'selected' : ''); ?>>Cancelled</option>
                             </select>
                         </div>
                         <div class="col-6 col-md">
                             <select name="category" class="form-select form-select-sm">
                                 <option value="">All Categories</option>
-                                <option value="Area Use" {{ request('category') == 'Area Use' ? 'selected' : '' }}>Area Use</option>
+                                <option value="Area Use" <?php echo e(request('category') == 'Area Use' ? 'selected' : ''); ?>>Area Use</option>
                             
                             </select>
                         </div>
                         <div class="col-6 col-md">
                             <input type="date" name="date_from" class="form-control form-control-sm" placeholder="From Date"
-                                value="{{ request('date_from') }}">
+                                value="<?php echo e(request('date_from')); ?>">
                         </div>
                         <div class="col-6 col-md">
                             <input type="date" name="date_to" class="form-control form-control-sm" placeholder="To Date"
-                                value="{{ request('date_to') }}">
+                                value="<?php echo e(request('date_to')); ?>">
                         </div>
                         <div class="col-auto">
                             <button type="submit" class="btn btn-primary btn-sm">Filter</button>
                         </div>
                         <div class="col-auto">
-                            <a href="{{ route('events.my', ['view' => 'deleted']) }}" class="btn btn-secondary btn-sm"><i class="fas fa-times"></i></a>
+                            <a href="<?php echo e(route('events.my', ['view' => 'deleted'])); ?>" class="btn btn-secondary btn-sm"><i class="fas fa-times"></i></a>
                         </div>
                     </form>
                 </div>
             </div>
-            @endif
+            <?php endif; ?>
 
             <!-- Deleted Events List -->
             <div class="card">
@@ -674,7 +676,7 @@
                         <span class="ms-2 text-muted" id="deletedSelectedCount">0 selected</span>
                     </div>
 
-                    @if(isset($deletedRequests) && $deletedRequests->count() > 0)
+                    <?php if(isset($deletedRequests) && $deletedRequests->count() > 0): ?>
                         <div class="table-responsive">
                             <table class="table table-hover">
                                 <thead>
@@ -687,29 +689,31 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($deletedRequests as $request)
-                                        <tr data-id="{{ $request->id }}" data-view="deleted">
-                                            <td style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" class="deleted-checkbox" value="{{ $request->id }}" onchange="updateDeletedBulkActions()"></td>
+                                    <?php $__currentLoopData = $deletedRequests; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $request): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <tr data-id="<?php echo e($request->id); ?>" data-view="deleted">
+                                            <td style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" class="deleted-checkbox" value="<?php echo e($request->id); ?>" onchange="updateDeletedBulkActions()"></td>
                                             <td>
                                                 <span class="badge bg-info">
-                                                    {{ ucfirst($request->category) }}
+                                                    <?php echo e(ucfirst($request->category)); ?>
+
                                                 </span>
                                             </td>
-                                            <td>{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</td>
-                                            <td>{{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</td>
-                                            <td>{{ $request->location }}</td>
+                                            <td><?php echo e(\Carbon\Carbon::parse($request->event_date)->format('M d, Y')); ?></td>
+                                            <td><?php echo e(\Carbon\Carbon::parse($request->start_time)->format('g:i A')); ?> - <?php echo e(\Carbon\Carbon::parse($request->end_time)->format('g:i A')); ?></td>
+                                            <td><?php echo e($request->location); ?></td>
                                             <td>
-                                                <span class="badge bg-{{ $request->status == 'Approved' ? 'success' : ($request->status == 'Rejected' ? 'danger' : ($request->status == 'Cancelled' ? 'secondary' : 'warning')) }}">
-                                                    {{ $request->status }}
+                                                <span class="badge bg-<?php echo e($request->status == 'Approved' ? 'success' : ($request->status == 'Rejected' ? 'danger' : ($request->status == 'Cancelled' ? 'secondary' : 'warning'))); ?>">
+                                                    <?php echo e($request->status); ?>
+
                                                 </span>
                                             </td>
                                             <td class="text-nowrap">
                                                 <div class="btn-group" role="group">
-                                                    <button type="button" class="btn btn-sm btn-info" onclick="viewEvent({{ $request->id }})" title="View">
+                                                    <button type="button" class="btn btn-sm btn-info" onclick="viewEvent(<?php echo e($request->id); ?>)" title="View">
                                                         <i class="fas fa-eye"></i>
                                                     </button>
-                                                    <form action="{{ route('events.restore', $request->id) }}" method="POST" class="d-inline">
-                                                        @csrf
+                                                    <form action="<?php echo e(route('events.restore', $request->id)); ?>" method="POST" class="d-inline">
+                                                        <?php echo csrf_field(); ?>
                                                         <button type="submit" class="btn btn-sm btn-success"
                                                             data-confirm="Restore this event?"
                                                             data-confirm-title="Restore Event"
@@ -719,8 +723,8 @@
                                                             <i class="fas fa-trash-restore"></i>
                                                         </button>
                                                     </form>
-                                                    <form action="{{ route('events.delete', $request->id) }}" method="POST" class="d-inline">
-                                                        @csrf
+                                                    <form action="<?php echo e(route('events.delete', $request->id)); ?>" method="POST" class="d-inline">
+                                                        <?php echo csrf_field(); ?>
                                                         <input type="hidden" name="permanent" value="1">
                                                         <button type="submit" class="btn btn-sm btn-danger"
                                                             data-confirm="Permanently delete this event? This action cannot be undone."
@@ -734,16 +738,16 @@
                                                 </div>
                                             </td>
                                         </tr>
-                                    @endforeach
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                 </tbody>
                             </table>
                         </div>
 
-                    @else
+                    <?php else: ?>
                         <div class="text-center py-5">
                             <h4 class="text-muted">No deleted event requests</h4>
                         </div>
-                    @endif
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -781,7 +785,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="eventArchiveForm" method="POST">
-                @csrf
+                <?php echo csrf_field(); ?>
                 <div class="modal-body">
                     <input type="hidden" id="archiveEventId" name="event_id" value="">
                     <div class="alert alert-warning">
@@ -907,7 +911,7 @@ function viewEvent(id) {
 
     fetch('/events/' + id, {
         headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>',
             'Content-Type': 'application/json'
         }
     })
@@ -1113,7 +1117,7 @@ function initializeDiscussionChat(eventId) {
     const chatForm = document.getElementById(`chatForm-${eventId}`);
     const chatMessage = document.getElementById(`chatMessage-${eventId}`);
     const chatContainer = document.getElementById(`chatContainer-${eventId}`);
-    const currentUserId = {{ auth()->id() }};
+    const currentUserId = <?php echo e(auth()->id()); ?>;
     
     // Load discussions
     loadDiscussions();
@@ -1171,7 +1175,7 @@ function initializeDiscussionChat(eventId) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>'
             },
             body: JSON.stringify({ message: message })
         })
@@ -1200,7 +1204,7 @@ function deleteDiscussion(discussionId, eventId) {
     fetch(`/discussions/${discussionId}`, {
         method: 'DELETE',
         headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>'
         }
     })
     .then(response => response.json())
@@ -1236,7 +1240,7 @@ function showEventArchiveModal(eventId) {
             const csrfToken = document.createElement('input');
             csrfToken.type = 'hidden';
             csrfToken.name = '_token';
-            csrfToken.value = '{{ csrf_token() }}';
+            csrfToken.value = '<?php echo e(csrf_token()); ?>';
             form.appendChild(csrfToken);
             
             document.body.appendChild(form);
@@ -1316,7 +1320,7 @@ function contextDelete() {
                 const csrfToken = document.createElement('input');
                 csrfToken.type = 'hidden';
                 csrfToken.name = '_token';
-                csrfToken.value = '{{ csrf_token() }}';
+                csrfToken.value = '<?php echo e(csrf_token()); ?>';
                 form.appendChild(csrfToken);
                 
                 document.body.appendChild(form);
@@ -1341,7 +1345,7 @@ function contextRestore() {
                 const csrfToken = document.createElement('input');
                 csrfToken.type = 'hidden';
                 csrfToken.name = '_token';
-                csrfToken.value = '{{ csrf_token() }}';
+                csrfToken.value = '<?php echo e(csrf_token()); ?>';
                 form.appendChild(csrfToken);
                 
                 document.body.appendChild(form);
@@ -1366,7 +1370,7 @@ function contextDeleteFromArchive() {
                 const csrfToken = document.createElement('input');
                 csrfToken.type = 'hidden';
                 csrfToken.name = '_token';
-                csrfToken.value = '{{ csrf_token() }}';
+                csrfToken.value = '<?php echo e(csrf_token()); ?>';
                 form.appendChild(csrfToken);
                 
                 document.body.appendChild(form);
@@ -1397,15 +1401,17 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Reopen modal if there are validation errors
-    @if($errors->any())
+    <?php if($errors->any()): ?>
         const modal = new bootstrap.Modal(document.getElementById('eventRequestModal'));
         modal.show();
-    @endif
+    <?php endif; ?>
 });
 </script>
-@endsection
+<?php $__env->stopSection(); ?>
 
 
 
 
 
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\Campfix\resources\views/events/my.blade.php ENDPATH**/ ?>
