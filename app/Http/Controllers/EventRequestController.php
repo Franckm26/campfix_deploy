@@ -43,7 +43,7 @@ class EventRequestController extends Controller
             'end_time' => 'required|after:start_time',
             'category' => 'required|in:Area Use',
             'request_type' => 'required|in:Academic,Non-Academic',
-            'area_of_use' => 'required_if:category,Area Use|in:Room,Court,AVR,Library,Open Lobby,Computer Laboratory,Kitchen',
+            'area_of_use' => 'required_if:category,Area Use|string',
             'room_number' => 'nullable|string',
             'department' => 'nullable|in:GE,ICT,Business Management,THM',
             'priority' => 'nullable|in:low,medium,high,urgent',
