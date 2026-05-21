@@ -339,7 +339,15 @@ function submitEventRequest(formData) {
             'X-Requested-With': 'XMLHttpRequest'
         }
     })
-    .then(response => response.json())
+    .then(response => {
+        // Check if response is ok
+        if (!response.ok) {
+            return response.text().then(text => {
+                throw new Error(`Server error: ${response.status} - ${text}`);
+            });
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             Swal.fire({
@@ -365,7 +373,7 @@ function submitEventRequest(formData) {
         Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: 'An error occurred while submitting your request',
+            text: error.message || 'An error occurred while submitting your request',
             confirmButtonColor: '#dc3545'
         });
     });

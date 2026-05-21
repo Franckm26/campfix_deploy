@@ -28,43 +28,63 @@ class EventRequestController extends Controller
     // Store new event request - Only for faculty and admin roles
     public function store(Request $request)
     {
-        $allowedRoles = ['faculty', 'school_admin', 'academic_head', 'program_head', 'building_admin'];
-        if (!in_array(auth()->user()->role, $allowedRoles)) {
-            if ($request->expectsJson()) {
-                return response()->json(['success' => false, 'message' => 'You do not have permission to create event requests.'], 403);
+        try {
+            $allowedRoles = ['faculty', 'school_admin', 'academic_head', 'program_head', 'building_admin'];
+            if (!in_array(auth()->user()->role, $allowedRoles)) {
+                if ($request->expectsJson()) {
+                    return response()->json(['success' => false, 'message' => 'You do not have permission to create event requests.'], 403);
+                }
+                return redirect('/dashboard')->with('error', 'You do not have permission to create event requests.');
             }
-            return redirect('/dashboard')->with('error', 'You do not have permission to create event requests.');
+            
+            $validatedData = $request->validate([
+                'description' => 'required|string|min:10',
+                'event_date' => 'required|date|after_or_equal:today',
+                'location' => 'required|string|min:3|max:255',
+                'start_time' => 'required',
+                'end_time' => 'required|after:start_time',
+                'category' => 'required|in:Area Use',
+                'request_type' => 'required|in:Academic,Non-Academic',
+                'area_of_use' => 'required_if:category,Area Use|string',
+                'room_number' => 'nullable|string',
+                'department' => 'nullable|in:GE,ICT,Business Management,THM',
+                'priority' => 'nullable|in:low,medium,high,urgent',
+                'education_level' => 'required|in:tertiary,shs,faculty,staff,maintenance',
+                'picture' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+            ], [
+                'description.required' => 'The description is required.',
+                'description.min' => 'The description must be at least 10 characters.',
+                'event_date.required' => 'The event date is required.',
+                'event_date.after_or_equal' => 'The event date cannot be in the past.',
+                'location.required' => 'The location is required.',
+                'location.min' => 'The location must be at least 3 characters.',
+                'start_time.required' => 'The start time is required.',
+                'end_time.required' => 'The end time is required.',
+                'end_time.after' => 'The end time must be after the start time.',
+                'category.required' => 'Please select a category.',
+                'category.in' => 'Please select a valid category.',
+                'request_type.required' => 'Please select a request type.',
+                'request_type.in' => 'Please select a valid request type (Academic or Non-Academic).',
+                'other_category.required_if' => 'Please specify the category when selecting "Other".',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed: ' . implode(', ', $e->validator->errors()->all())
+                ], 422);
+            }
+            throw $e;
+        } catch (\Exception $e) {
+            \Log::error('Event request store error: ' . $e->getMessage());
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'An error occurred: ' . $e->getMessage()
+                ], 500);
+            }
+            return redirect()->back()->with('error', 'An error occurred while creating the event request.');
         }
-        $request->validate([
-            'description' => 'required|string|min:10',
-            'event_date' => 'required|date|after_or_equal:today',
-            'location' => 'required|string|min:3|max:255',
-            'start_time' => 'required',
-            'end_time' => 'required|after:start_time',
-            'category' => 'required|in:Area Use',
-            'request_type' => 'required|in:Academic,Non-Academic',
-            'area_of_use' => 'required_if:category,Area Use|string',
-            'room_number' => 'nullable|string',
-            'department' => 'nullable|in:GE,ICT,Business Management,THM',
-            'priority' => 'nullable|in:low,medium,high,urgent',
-            'education_level' => 'required|in:tertiary,shs,faculty,staff,maintenance',
-            'picture' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
-        ], [
-            'description.required' => 'The description is required.',
-            'description.min' => 'The description must be at least 10 characters.',
-            'event_date.required' => 'The event date is required.',
-            'event_date.after_or_equal' => 'The event date cannot be in the past.',
-            'location.required' => 'The location is required.',
-            'location.min' => 'The location must be at least 3 characters.',
-            'start_time.required' => 'The start time is required.',
-            'end_time.required' => 'The end time is required.',
-            'end_time.after' => 'The end time must be after the start time.',
-            'category.required' => 'Please select a category.',
-            'category.in' => 'Please select a valid category.',
-            'request_type.required' => 'Please select a request type.',
-            'request_type.in' => 'Please select a valid request type (Academic or Non-Academic).',
-            'other_category.required_if' => 'Please specify the category when selecting "Other".',
-        ]);
 
         // Process materials_needed - convert to array if provided
         $materialsNeeded = null;
