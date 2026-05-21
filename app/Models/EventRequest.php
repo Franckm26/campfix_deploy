@@ -17,7 +17,6 @@ class EventRequest extends Model
         'request_type',
         'other_category',
         'department',
-        'level',
         'education_level',
         'priority',
         'status',

@@ -117,7 +117,6 @@ class EventRequestController extends Controller
             'request_type' => $request->request_type,
             'other_category' => $request->other_category,
             'department' => $request->department,
-            'level' => $educationLevel,
             'education_level' => $educationLevel,
             'priority' => $request->priority ?? 'medium',
             // Faculty-intended requests are auto-approved; others go through the approval chain
