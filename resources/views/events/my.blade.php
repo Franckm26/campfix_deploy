@@ -41,7 +41,18 @@
 
 
     @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: @json(session('success')),
+                    confirmButtonColor: '#28a745',
+                    timer: 3000,
+                    timerProgressBar: true
+                });
+            });
+        </script>
     @endif
 
     <!-- Tabs Navigation -->

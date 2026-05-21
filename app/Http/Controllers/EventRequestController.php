@@ -117,7 +117,7 @@ class EventRequestController extends Controller
             // Faculty-intended: no approval needed — notify building admin and school admin only
             $notificationService->notifyAdminsOfFacultyRequest($eventRequest);
 
-            return redirect('/dashboard')->with('success', 'Facility request submitted successfully! Building Admin and School Admin have been notified.');
+            return redirect()->route('events.my', ['view' => 'approved'])->with('success', 'Facility request submitted successfully! Building Admin and School Admin have been notified.');
         }
 
         // Auto-approve for the requester if they are also an approver
@@ -221,7 +221,7 @@ class EventRequestController extends Controller
             ? 'Event request submitted successfully! Your approval has been automatically recorded. Waiting for other approvers.'
             : 'Event request submitted successfully! Waiting for approval.';
 
-        return redirect('/dashboard')->with('success', $message);
+        return redirect()->route('events.my', ['view' => 'active'])->with('success', $message);
     }
 
     // Show single event request (for web/AJAX calls)
