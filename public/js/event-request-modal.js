@@ -332,7 +332,7 @@ function submitEventRequest(formData) {
     });
 
     // Submit via fetch
-    fetch('/events/store', {
+    fetch('/events', {
         method: 'POST',
         body: submitData,
         headers: {
