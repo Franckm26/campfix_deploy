@@ -206,7 +206,10 @@
                             <table class="table table-hover">
                                 <thead>
                                     <tr>
-                                        <th class="text-nowrap" style="min-width: 50px;"><input type="checkbox" id="selectAllActive" onchange="toggleSelectAll('active')"></th>                                        <th class="text-nowrap" style="min-width: 100px;">Date</th>
+                                        <th class="text-nowrap" style="min-width: 50px;"><input type="checkbox" id="selectAllActive" onchange="toggleSelectAll('active')"></th>
+                                        <th class="text-nowrap" style="min-width: 100px;">Event Ticket</th>
+                                        <th class="text-nowrap" style="min-width: 120px;">Category</th>
+                                        <th class="text-nowrap" style="min-width: 100px;">Event Date</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Time</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Location</th>
                                         <th class="text-nowrap" style="min-width: 100px;">Status</th>
@@ -217,6 +220,7 @@
                                     @foreach($requests as $request)
                                         <tr data-id="{{ $request->id }}" data-view="active">
                                             <td style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" class="active-checkbox" value="{{ $request->id }}" onchange="updateActiveBulkActions()"></td>
+                                            <td>EVT-{{ str_pad($request->id, 5, '0', STR_PAD_LEFT) }}</td>
                                             <td>
                                                 <span class="badge bg-info">
                                                     {{ ucfirst($request->category) }}
