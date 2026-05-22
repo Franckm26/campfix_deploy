@@ -899,16 +899,15 @@ function formatTime12(t) {
     return (hour % 12 || 12) + ':' + m + ' ' + ampm;
 }
 function viewEvent(id) {
-    // Show loading SweetAlert
-    Swal.fire({
-        title: 'Loading Event Details...',
-        html: '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>',
-        showConfirmButton: false,
-        allowOutsideClick: false
-    });
+    const modal = new bootstrap.Modal(document.getElementById('viewEventModal'));
+    const contentDiv = document.getElementById('viewEventContent');
 
     // Store current event ID
     window.currentEventId = id;
+
+    contentDiv.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+    modal.show();
 
     fetch('/events/' + id, {
         headers: {
@@ -927,11 +926,7 @@ function viewEvent(id) {
     })
     .then(data => {
         if (data.error) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: data.error
-            });
+            contentDiv.innerHTML = '<div class="alert alert-danger">' + data.error + '</div>';
             return;
         }
 
@@ -949,7 +944,7 @@ function viewEvent(id) {
         if (event.materials_needed && event.materials_needed.length > 0) {
             materialsHtml = `
                 <div class="mt-3">
-                    <p class="text-start"><strong>Materials Needed:</strong></p>
+                    <p><strong>Materials Needed:</strong></p>
                     <table class="table table-bordered table-sm">
                         <thead class="table-light">
                             <tr>
@@ -972,310 +967,148 @@ function viewEvent(id) {
             `;
         }
 
-        // Determine if this is a Non-Academic event (only 2 approval levels)
-        const isNonAcademic = event.request_type === 'Non-Academic';
+        // Calculate approval progress
         const approvalLevel = event.approval_level || 0;
-        
-        // Calculate progress based on request type
-        let progressPercentage, currentStep, totalSteps;
-        if (isNonAcademic) {
-            // Non-Academic: Building Admin (3) → School Admin (4)
-            totalSteps = 2;
-            if (event.status === 'Approved') {
-                currentStep = 2;
-                progressPercentage = 100;
-            } else if (approvalLevel >= 4) {
-                currentStep = 2;
-                progressPercentage = 100;
-            } else if (approvalLevel >= 3) {
-                currentStep = 1;
-                progressPercentage = 50;
-            } else {
-                currentStep = 0;
-                progressPercentage = 0;
-            }
-        } else {
-            // Academic: Program Head (1) → Academic Head (2) → Building Admin (3) → School Admin (4)
-            totalSteps = 4;
-            if (event.status === 'Approved') {
-                currentStep = 4;
-                progressPercentage = 100;
-            } else {
-                currentStep = approvalLevel;
-                progressPercentage = (approvalLevel / 4) * 100;
-            }
-        }
+        const progressPercentage = event.status === 'Approved' ? 100 : 
+                                   event.status === 'Rejected' ? (approvalLevel / 4 * 100) :
+                                   (approvalLevel / 4 * 100);
 
-        // Build approval steps HTML based on request type
-        let approvalStepsHtml = '';
-        if (isNonAcademic) {
-            // Non-Academic: Only Building Admin and School Admin
-            approvalStepsHtml = `
-                <div class="col-6">
-                    <div class="approval-step-card ${approvalLevel >= 3 ? 'step-approved' : (approvalLevel === 3 ? 'step-pending' : 'step-waiting')}">
-                        <div class="step-icon-circle mb-2">
-                            ${approvalLevel >= 3 ? '<i class="fas fa-check-circle fa-3x text-success"></i>' : '<i class="fas fa-clock fa-3x text-muted"></i>'}
-                        </div>
-                        <h6 class="fw-bold mb-1">Building Admin</h6>
-                        <small class="text-muted">${approvalLevel >= 3 ? 'Approved' : 'Pending'}</small>
-                    </div>
+        contentDiv.innerHTML = `
+            <!-- Approval Progress -->
+            <div class="card mb-3">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="fas fa-tasks me-2"></i>Approval Progress</h6>
                 </div>
-                <div class="col-6">
-                    <div class="approval-step-card ${event.status === 'Approved' ? 'step-approved' : (approvalLevel >= 4 ? 'step-pending' : 'step-waiting')}">
-                        <div class="step-icon-circle mb-2">
-                            ${event.status === 'Approved' ? '<i class="fas fa-check-circle fa-3x text-success"></i>' : '<i class="fas fa-clock fa-3x text-muted"></i>'}
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Progress</span>
+                            <span class="fw-bold">
+                                ${event.status === 'Approved' ? '<span class="text-success"><i class="fas fa-check-circle"></i> Fully Approved</span>' :
+                                  event.status === 'Rejected' ? '<span class="text-danger"><i class="fas fa-times-circle"></i> Rejected</span>' :
+                                  `<span class="text-warning">${approvalLevel} / 4</span>`}
+                            </span>
                         </div>
-                        <h6 class="fw-bold mb-1">School Admin</h6>
-                        <small class="text-muted">${event.status === 'Approved' ? 'Approved' : (approvalLevel >= 3 ? 'Waiting' : 'Pending')}</small>
-                    </div>
-                </div>
-            `;
-        } else {
-            // Academic: All 4 levels
-            approvalStepsHtml = `
-                <div class="col-3">
-                    <div class="approval-step-card ${approvalLevel >= 1 ? 'step-approved' : (approvalLevel === 0 && event.status === 'Pending' ? 'step-pending' : 'step-waiting')}">
-                        <div class="step-icon-circle mb-2">
-                            ${approvalLevel >= 1 ? '<i class="fas fa-check-circle fa-2x text-success"></i>' : '<i class="fas fa-clock fa-2x text-muted"></i>'}
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar bg-${statusClass}" role="progressbar" style="width: ${progressPercentage}%">
+                                ${Math.round(progressPercentage)}%
+                            </div>
                         </div>
-                        <h6 class="fw-bold mb-1 small">Program Head</h6>
-                        <small class="text-muted">${approvalLevel >= 1 ? 'Approved' : 'Pending'}</small>
                     </div>
-                </div>
-                <div class="col-3">
-                    <div class="approval-step-card ${approvalLevel >= 2 ? 'step-approved' : (approvalLevel === 1 ? 'step-pending' : 'step-waiting')}">
-                        <div class="step-icon-circle mb-2">
-                            ${approvalLevel >= 2 ? '<i class="fas fa-check-circle fa-2x text-success"></i>' : '<i class="fas fa-clock fa-2x text-muted"></i>'}
-                        </div>
-                        <h6 class="fw-bold mb-1 small">Academic Head</h6>
-                        <small class="text-muted">${approvalLevel >= 2 ? 'Approved' : (approvalLevel >= 1 ? 'Waiting' : 'Pending')}</small>
-                    </div>
-                </div>
-                <div class="col-3">
-                    <div class="approval-step-card ${approvalLevel >= 3 ? 'step-approved' : (approvalLevel >= 2 ? 'step-pending' : 'step-waiting')}">
-                        <div class="step-icon-circle mb-2">
-                            ${approvalLevel >= 3 ? '<i class="fas fa-check-circle fa-2x text-success"></i>' : '<i class="fas fa-clock fa-2x text-muted"></i>'}
-                        </div>
-                        <h6 class="fw-bold mb-1 small">Building Admin</h6>
-                        <small class="text-muted">${approvalLevel >= 3 ? 'Approved' : (approvalLevel >= 2 ? 'Waiting' : 'Pending')}</small>
-                    </div>
-                </div>
-                <div class="col-3">
-                    <div class="approval-step-card ${event.status === 'Approved' ? 'step-approved' : (approvalLevel >= 3 ? 'step-pending' : 'step-waiting')}">
-                        <div class="step-icon-circle mb-2">
-                            ${event.status === 'Approved' ? '<i class="fas fa-check-circle fa-2x text-success"></i>' : '<i class="fas fa-clock fa-2x text-muted"></i>'}
-                        </div>
-                        <h6 class="fw-bold mb-1 small">School Admin</h6>
-                        <small class="text-muted">${event.status === 'Approved' ? 'Approved' : (approvalLevel >= 3 ? 'Waiting' : 'Pending')}</small>
-                    </div>
-                </div>
-            `;
-        }
 
-        const htmlContent = `
-            <style>
-                .swal2-html-container {
-                    max-height: 70vh;
-                    overflow-y: auto;
-                    text-align: left;
-                }
-                .approval-progress-section {
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    border-radius: 15px;
-                    padding: 25px;
-                    margin-bottom: 20px;
-                    color: white;
-                }
-                .progress-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 15px;
-                }
-                .progress-title {
-                    font-size: 18px;
-                    font-weight: bold;
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                }
-                .progress-count {
-                    font-size: 24px;
-                    font-weight: bold;
-                    color: #ffd700;
-                }
-                .custom-progress-bar {
-                    height: 30px;
-                    background: rgba(255, 255, 255, 0.2);
-                    border-radius: 15px;
-                    overflow: hidden;
-                    margin-bottom: 20px;
-                }
-                .custom-progress-fill {
-                    height: 100%;
-                    background: linear-gradient(90deg, #4CAF50 0%, #8BC34A 100%);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: white;
-                    font-weight: bold;
-                    transition: width 0.5s ease;
-                }
-                .approval-steps-grid {
-                    display: grid;
-                    grid-template-columns: repeat(${isNonAcademic ? '2' : '4'}, 1fr);
-                    gap: 15px;
-                    margin-top: 20px;
-                }
-                .approval-step-card {
-                    background: white;
-                    border-radius: 12px;
-                    padding: 20px 10px;
-                    text-align: center;
-                    transition: all 0.3s ease;
-                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-                }
-                .approval-step-card.step-approved {
-                    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-                    border: 2px solid #28a745;
-                }
-                .approval-step-card.step-pending {
-                    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
-                    border: 2px solid #ffc107;
-                    animation: pulse 2s infinite;
-                }
-                .approval-step-card.step-waiting {
-                    background: #f8f9fa;
-                    border: 2px solid #dee2e6;
-                }
-                @keyframes pulse {
-                    0%, 100% { transform: scale(1); }
-                    50% { transform: scale(1.02); }
-                }
-                .step-icon-circle {
-                    height: 60px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-                .status-badge-large {
-                    display: inline-block;
-                    padding: 12px 24px;
-                    border-radius: 25px;
-                    font-size: 16px;
-                    font-weight: bold;
-                    margin: 15px 0;
-                }
-                .event-details-grid {
-                    display: grid;
-                    grid-template-columns: repeat(2, 1fr);
-                    gap: 15px;
-                    margin-top: 20px;
-                }
-                .detail-item {
-                    text-align: left;
-                }
-                .detail-item strong {
-                    color: #667eea;
-                }
-                @media (max-width: 768px) {
-                    .approval-steps-grid {
-                        grid-template-columns: repeat(2, 1fr);
-                    }
-                    .event-details-grid {
-                        grid-template-columns: 1fr;
-                    }
-                }
-            </style>
+                    <!-- Approval Steps -->
+                    <div class="row text-center g-2">
+                        <div class="col-3">
+                            <div class="approval-step ${approvalLevel >= 1 ? 'approved' : (approvalLevel === 0 && event.status === 'Pending' ? 'pending' : '')}">
+                                <div class="step-icon mb-2">
+                                    ${approvalLevel >= 1 ? '<i class="fas fa-check-circle fa-2x text-success"></i>' : '<i class="fas fa-clock fa-2x text-muted"></i>'}
+                                </div>
+                                <h6 class="small">Program Head</h6>
+                                <small class="text-muted">${approvalLevel >= 1 ? 'Approved' : 'Pending'}</small>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="approval-step ${approvalLevel >= 2 ? 'approved' : (approvalLevel === 1 ? 'pending' : '')}">
+                                <div class="step-icon mb-2">
+                                    ${approvalLevel >= 2 ? '<i class="fas fa-check-circle fa-2x text-success"></i>' : '<i class="fas fa-clock fa-2x text-muted"></i>'}
+                                </div>
+                                <h6 class="small">Academic Head</h6>
+                                <small class="text-muted">${approvalLevel >= 2 ? 'Approved' : (approvalLevel >= 1 ? 'Waiting' : 'Pending')}</small>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="approval-step ${approvalLevel >= 3 ? 'approved' : (approvalLevel >= 2 ? 'pending' : '')}">
+                                <div class="step-icon mb-2">
+                                    ${approvalLevel >= 3 ? '<i class="fas fa-check-circle fa-2x text-success"></i>' : '<i class="fas fa-clock fa-2x text-muted"></i>'}
+                                </div>
+                                <h6 class="small">Building Admin</h6>
+                                <small class="text-muted">${approvalLevel >= 3 ? 'Approved' : (approvalLevel >= 2 ? 'Waiting' : 'Pending')}</small>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="approval-step ${event.status === 'Approved' ? 'approved' : (approvalLevel >= 3 ? 'pending' : '')}">
+                                <div class="step-icon mb-2">
+                                    ${event.status === 'Approved' ? '<i class="fas fa-check-circle fa-2x text-success"></i>' : '<i class="fas fa-clock fa-2x text-muted"></i>'}
+                                </div>
+                                <h6 class="small">School Admin</h6>
+                                <small class="text-muted">${event.status === 'Approved' ? 'Approved' : (approvalLevel >= 3 ? 'Waiting' : 'Pending')}</small>
+                            </div>
+                        </div>
+                    </div>
 
-            <!-- Approval Progress Section -->
-            <div class="approval-progress-section">
-                <div class="progress-header">
-                    <div class="progress-title">
-                        <i class="fas fa-tasks"></i>
-                        <span>Approval Progress</span>
+                    <!-- Current Status -->
+                    <div class="mt-3 text-center">
+                        <span class="badge bg-${statusClass} fs-6">
+                            <i class="fas fa-${event.status === 'Approved' ? 'check' : (event.status === 'Rejected' ? 'times' : 'clock')} me-1"></i>
+                            ${event.status}
+                        </span>
+                        ${event.status === 'Approved' ? `
+                        <div class="mt-3">
+                            <a href="/events/${event.id}/pdf" class="btn btn-primary" target="_blank">
+                                <i class="fas fa-file-pdf me-2"></i> Download PDF
+                            </a>
+                        </div>
+                        ` : ''}
                     </div>
-                    <div class="progress-count">${currentStep} / ${totalSteps}</div>
-                </div>
-                <div class="custom-progress-bar">
-                    <div class="custom-progress-fill" style="width: ${progressPercentage}%">
-                        ${Math.round(progressPercentage)}%
-                    </div>
-                </div>
-                
-                <!-- Approval Steps -->
-                <div class="approval-steps-grid">
-                    ${approvalStepsHtml}
-                </div>
-
-                <!-- Current Status -->
-                <div class="text-center mt-3">
-                    <span class="status-badge-large bg-${statusClass}">
-                        <i class="fas fa-${event.status === 'Approved' ? 'check' : (event.status === 'Rejected' ? 'times' : 'clock')} me-2"></i>
-                        ${event.status}
-                    </span>
-                    ${event.status === 'Approved' ? `
-                    <div class="mt-3">
-                        <a href="/events/${event.id}/pdf" class="btn btn-light btn-lg" target="_blank">
-                            <i class="fas fa-file-pdf me-2"></i> Download PDF
-                        </a>
-                    </div>
-                    ` : ''}
                 </div>
             </div>
 
             <hr>
 
-            <!-- Event Details -->
-            <div class="event-details-grid">
-                <div class="detail-item">
-                    <p><strong>Event Ticket:</strong> EVT-${String(event.id).padStart(5, '0')}</p>
+            <div class="row">
+                <div class="col-md-6">
                     <p><strong>Category:</strong> ${categoryBadge}</p>
-                    <p><strong>Request Type:</strong> <span class="badge bg-${isNonAcademic ? 'warning' : 'info'}">${event.request_type || 'Academic'}</span></p>
                     <p><strong>Date:</strong> ${new Date(event.event_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                </div>
-                <div class="detail-item">
                     <p><strong>Time:</strong> ${formatTime12(event.start_time)} - ${formatTime12(event.end_time)}</p>
+                </div>
+                <div class="col-md-6">
                     <p><strong>Location:</strong> ${event.location}</p>
                     <p><strong>Department:</strong> ${event.department || 'N/A'}</p>
                     <p><strong>Priority:</strong> <span class="badge bg-${event.priority === 'urgent' ? 'danger' : (event.priority === 'high' ? 'warning' : (event.priority === 'medium' ? 'info' : 'secondary'))}">${event.priority.charAt(0).toUpperCase() + event.priority.slice(1)}</span></p>
+                    <p><strong>Submitted:</strong> ${new Date(event.created_at).toLocaleString()}</p>
                 </div>
             </div>
-            
-            <div class="mt-3 text-start">
+            <div class="mt-3">
                 <p><strong>Description:</strong></p>
                 <p class="text-muted">${event.description}</p>
             </div>
-            
             ${event.notes ? `
-            <div class="mt-3 text-start">
+            <div class="mt-3">
                 <p><strong>Notes:</strong></p>
                 <p class="text-muted">${event.notes}</p>
             </div>
             ` : ''}
-            
             ${materialsHtml}
+
+            <!-- Event Discussion -->
+            <div class="card mt-4">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="fas fa-comments me-2"></i>Event Discussion</h6>
+                </div>
+                <div class="card-body" style="max-height: 400px; overflow-y: auto;" id="chatContainer-${event.id}">
+                    <div id="chatMessages-${event.id}" class="mb-3">
+                        <div class="text-center text-muted py-3">
+                            <i class="fas fa-spinner fa-spin"></i> Loading discussions...
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <form id="chatForm-${event.id}" class="d-flex gap-2">
+                        <input type="text" id="chatMessage-${event.id}" class="form-control" placeholder="Type your message..." maxlength="1000">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
         `;
 
-        Swal.fire({
-            title: '<i class="fas fa-calendar-alt me-2"></i>Event Request Details',
-            html: htmlContent,
-            width: '900px',
-            showCloseButton: true,
-            showConfirmButton: false,
-            customClass: {
-                popup: 'event-details-modal',
-                title: 'text-primary'
-            }
-        });
+        // Initialize discussion chat
+        initializeDiscussionChat(event.id);
     })
     .catch(error => {
         console.error('Error:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Error loading event details: ' + error.message
-        });
+        contentDiv.innerHTML = '<div class="alert alert-danger">Error loading event details: ' + error.message + '</div>';
     });
 }
 
