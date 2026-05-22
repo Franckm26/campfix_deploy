@@ -125,7 +125,7 @@
             </button>
         </li>
     </ul>
-        <button type="button" class="btn btn-primary btn-sm" onclick="openEventRequestModal()">
+        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#eventRequestModal">
             <i class="fas fa-plus"></i> New Request
         </button>
     </div>
