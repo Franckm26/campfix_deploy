@@ -87,6 +87,15 @@ class EventRequestController extends Controller
 
             $educationLevel = $request->education_level ?? 'tertiary';
             $isFacultyIntended = $educationLevel === 'faculty';
+            $isNonAcademic = $request->request_type === 'Non-Academic';
+
+            // Determine initial approval level based on request type
+            // Non-Academic: starts at Building Admin (level 3)
+            // Academic: starts at Program Head (level 1)
+            $initialApprovalLevel = EventRequest::LEVEL_NONE;
+            if (!$isFacultyIntended) {
+                $initialApprovalLevel = $isNonAcademic ? EventRequest::LEVEL_3_BUILDING_ADMIN : EventRequest::LEVEL_1_PROGRAM_HEAD;
+            }
 
             $eventRequest = EventRequest::create([
                 'user_id' => auth()->id(),
@@ -103,7 +112,7 @@ class EventRequestController extends Controller
                 'priority' => $request->priority ?? 'medium',
                 // Faculty-intended requests are auto-approved; others go through the approval chain
                 'status' => $isFacultyIntended ? 'Approved' : 'Pending',
-                'approval_level' => $isFacultyIntended ? EventRequest::LEVEL_APPROVED : EventRequest::LEVEL_NONE,
+                'approval_level' => $isFacultyIntended ? EventRequest::LEVEL_APPROVED : $initialApprovalLevel,
                 'approved_at' => $isFacultyIntended ? now() : null,
                 'materials_needed' => $materialsNeeded,
                 'image_path' => $imagePath,
@@ -686,24 +695,51 @@ class EventRequestController extends Controller
             ];
             $eventRequest->approval_history = $history;
 
-            // Check if ALL Building Admins have approved AND all previous levels
-            if ($eventRequest->isApprovedByAllBuildingAdmins() && $eventRequest->isApprovedByAllAcademicHeads() && $eventRequest->isApprovedByAllProgramHeads()) {
-                $eventRequest->approval_level = EventRequest::LEVEL_3_BUILDING_ADMIN;
+            // Check if this is a Non-Academic event
+            $isNonAcademic = $eventRequest->request_type === 'Non-Academic';
 
-                // Check if School Admin exists
-                if (\App\Models\User::whereIn('role', ['school_admin', 'mis'])->exists()) {
-                    $eventRequest->status = 'Pending'; // Still pending for final approval
+            // For Non-Academic events: Building Admin → School Admin (skip levels 1 & 2)
+            // For Academic events: Check all previous levels
+            if ($isNonAcademic) {
+                // Non-Academic: Building Admin approved, now go to School Admin (level 4)
+                if ($eventRequest->isApprovedByAllBuildingAdmins()) {
+                    $eventRequest->approval_level = EventRequest::LEVEL_4_SCHOOL_ADMIN;
+
+                    // Check if School Admin exists
+                    if (\App\Models\User::whereIn('role', ['school_admin', 'mis'])->exists()) {
+                        $eventRequest->status = 'Pending'; // Still pending for final approval
+                    } else {
+                        // No School Admin, approve directly
+                        $eventRequest->status = 'Approved';
+                        $eventRequest->approved_by = $user->id;
+                        $eventRequest->approved_at = now();
+                        $eventRequest->approval_level = EventRequest::LEVEL_APPROVED;
+                    }
                 } else {
-                    // No School Admin, approve directly
-                    $eventRequest->status = 'Approved';
-                    $eventRequest->approved_by = $user->id;
-                    $eventRequest->approved_at = now();
-                    $eventRequest->approval_level = EventRequest::LEVEL_APPROVED;
+                    // Still waiting for other Building Admins to approve
+                    $eventRequest->status = 'Pending';
+                    $eventRequest->approval_level = EventRequest::LEVEL_3_BUILDING_ADMIN;
                 }
             } else {
-                // Still waiting for other Building Admins to approve
-                $eventRequest->status = 'Pending';
-                $eventRequest->approval_level = EventRequest::LEVEL_2_ACADEMIC_HEAD;
+                // Academic: Check if ALL Building Admins have approved AND all previous levels
+                if ($eventRequest->isApprovedByAllBuildingAdmins() && $eventRequest->isApprovedByAllAcademicHeads() && $eventRequest->isApprovedByAllProgramHeads()) {
+                    $eventRequest->approval_level = EventRequest::LEVEL_3_BUILDING_ADMIN;
+
+                    // Check if School Admin exists
+                    if (\App\Models\User::whereIn('role', ['school_admin', 'mis'])->exists()) {
+                        $eventRequest->status = 'Pending'; // Still pending for final approval
+                    } else {
+                        // No School Admin, approve directly
+                        $eventRequest->status = 'Approved';
+                        $eventRequest->approved_by = $user->id;
+                        $eventRequest->approved_at = now();
+                        $eventRequest->approval_level = EventRequest::LEVEL_APPROVED;
+                    }
+                } else {
+                    // Still waiting for other Building Admins to approve
+                    $eventRequest->status = 'Pending';
+                    $eventRequest->approval_level = EventRequest::LEVEL_2_ACADEMIC_HEAD;
+                }
             }
 
             ActivityLog::log(
@@ -715,10 +751,19 @@ class EventRequestController extends Controller
             // Notify the requester
             $this->sendApprovalNotification($eventRequest, 3, 'Approved');
 
-            // Notify the next approver (School Admin) only if all Building Admins have approved
-            if ($eventRequest->isApprovedByAllBuildingAdmins() && $eventRequest->isApprovedByAllAcademicHeads() && $eventRequest->isApprovedByAllProgramHeads()) {
-                $notificationService = new NotificationService;
-                $notificationService->notifyApproversOfNewEvent($eventRequest);
+            // Notify the next approver (School Admin)
+            if ($isNonAcademic) {
+                // Non-Academic: notify School Admin after Building Admin approves
+                if ($eventRequest->isApprovedByAllBuildingAdmins()) {
+                    $notificationService = new NotificationService;
+                    $notificationService->notifyApproversOfNewEvent($eventRequest);
+                }
+            } else {
+                // Academic: notify School Admin only if all previous levels have approved
+                if ($eventRequest->isApprovedByAllBuildingAdmins() && $eventRequest->isApprovedByAllAcademicHeads() && $eventRequest->isApprovedByAllProgramHeads()) {
+                    $notificationService = new NotificationService;
+                    $notificationService->notifyApproversOfNewEvent($eventRequest);
+                }
             }
 
         } elseif ($user->isSchoolAdmin() || $user->isAdmin()) {
