@@ -1531,7 +1531,7 @@ class EventRequestController extends Controller
 
         $allRequests = $query->orderBy('created_at', 'desc')->get();
 
-        // Filter out events that the current user has already approved at their level
+        // Filter events to show only those at the current user's approval level
         $user = auth()->user();
         $requests = $allRequests->filter(function ($eventRequest) use ($user) {
             // Determine the user's approval level
@@ -1551,7 +1551,14 @@ class EventRequestController extends Controller
                 return true;
             }
 
-            // Check if user has already approved at their level
+            // Only show events that are at this user's approval level
+            // approval_level indicates which level needs to approve next
+            // 1 = Program Head, 2 = Academic Head, 3 = Building Admin, 4 = School Admin
+            if ($eventRequest->approval_level != $userLevel) {
+                return false;
+            }
+
+            // Also check if user has already approved at their level
             return !$eventRequest->hasUserApprovedAtLevel($user->id, $userLevel);
         });
 
