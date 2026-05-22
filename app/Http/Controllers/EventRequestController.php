@@ -67,6 +67,188 @@ class EventRequestController extends Controller
                 'request_type.in' => 'Please select a valid request type (Academic or Non-Academic).',
                 'other_category.required_if' => 'Please specify the category when selecting "Other".',
             ]);
+
+            // Process materials_needed - convert to array if provided
+            $materialsNeeded = null;
+            if ($request->has('materials') && is_array($request->materials)) {
+                $materials = array_filter($request->materials, function ($item) {
+                    return ! empty($item['item']);
+                });
+                if (! empty($materials)) {
+                    $materialsNeeded = array_values($materials);
+                }
+            }
+
+            // Handle picture upload
+            $imagePath = null;
+            if ($request->hasFile('picture')) {
+                $imagePath = $request->file('picture')->store('event-images', 'public');
+            }
+
+            $educationLevel = $request->education_level ?? 'tertiary';
+            $isFacultyIntended = $educationLevel === 'faculty';
+
+            $eventRequest = EventRequest::create([
+                'user_id' => auth()->id(),
+                'description' => $request->description,
+                'event_date' => $request->event_date,
+                'location' => $request->location,
+                'start_time' => $request->start_time,
+                'end_time' => $request->end_time,
+                'category' => $request->category,
+                'request_type' => $request->request_type,
+                'other_category' => $request->other_category,
+                'department' => $request->department,
+                'education_level' => $educationLevel,
+                'priority' => $request->priority ?? 'medium',
+                // Faculty-intended requests are auto-approved; others go through the approval chain
+                'status' => $isFacultyIntended ? 'Approved' : 'Pending',
+                'approval_level' => $isFacultyIntended ? EventRequest::LEVEL_APPROVED : EventRequest::LEVEL_NONE,
+                'approved_at' => $isFacultyIntended ? now() : null,
+                'materials_needed' => $materialsNeeded,
+                'image_path' => $imagePath,
+            ]);
+
+            ActivityLog::log(
+                'event_request_created',
+                'Event request submitted',
+                null
+            );
+
+            $notificationService = new NotificationService;
+
+            if ($isFacultyIntended) {
+                // Faculty-intended: no approval needed — notify building admin and school admin only
+                try {
+                    $notificationService->notifyAdminsOfFacultyRequest($eventRequest);
+                } catch (\Exception $notifEx) {
+                    \Log::warning('Failed to send notifications: ' . $notifEx->getMessage());
+                }
+
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Facility request submitted successfully! Building Admin and School Admin have been notified.',
+                        'redirect' => route('events.my', ['view' => 'approved'])
+                    ]);
+                }
+                return redirect()->route('events.my', ['view' => 'approved'])->with('success', 'Facility request submitted successfully! Building Admin and School Admin have been notified.');
+            }
+
+            // Auto-approve for the requester if they are also an approver
+            $user = auth()->user();
+            $autoApproved = false;
+            $approvalHistory = [];
+
+            // Check if requester is a Program Head
+            if ($user->isProgramHead()) {
+                $eventRequest->approved_by_level_1 = $user->id;
+                $eventRequest->approved_at_level_1 = now();
+                $approvalHistory[] = [
+                    'level' => 1,
+                    'role' => 'Program Head',
+                    'approver' => $user->name,
+                    'approver_id' => $user->id,
+                    'at' => now()->toDateTimeString(),
+                    'notes' => 'Auto-approved (requester is also approver)',
+                ];
+                $autoApproved = true;
+            }
+
+            // Check if requester is an Academic Head
+            if ($user->isAcademicHead()) {
+                $eventRequest->approved_by_level_2 = $user->id;
+                $eventRequest->approved_at_level_2 = now();
+                $approvalHistory[] = [
+                    'level' => 2,
+                    'role' => 'Academic Head',
+                    'approver' => $user->name,
+                    'approver_id' => $user->id,
+                    'at' => now()->toDateTimeString(),
+                    'notes' => 'Auto-approved (requester is also approver)',
+                ];
+                $autoApproved = true;
+            }
+
+            // Check if requester is a Building Admin
+            if ($user->isBuildingAdmin()) {
+                $eventRequest->approved_by_level_3 = $user->id;
+                $eventRequest->approved_at_level_3 = now();
+                $approvalHistory[] = [
+                    'level' => 3,
+                    'role' => 'Building Admin',
+                    'approver' => $user->name,
+                    'approver_id' => $user->id,
+                    'at' => now()->toDateTimeString(),
+                    'notes' => 'Auto-approved (requester is also approver)',
+                ];
+                $autoApproved = true;
+            }
+
+            // Check if requester is a School Admin
+            if ($user->isSchoolAdmin() || $user->isAdmin()) {
+                $approvalHistory[] = [
+                    'level' => 4,
+                    'role' => 'School Admin',
+                    'approver' => $user->name,
+                    'approver_id' => $user->id,
+                    'at' => now()->toDateTimeString(),
+                    'notes' => 'Auto-approved (requester is also approver)',
+                ];
+                $autoApproved = true;
+            }
+
+            // Save approval history if auto-approved
+            if ($autoApproved) {
+                $eventRequest->approval_history = $approvalHistory;
+                
+                // Determine the approval level based on what was auto-approved
+                if ($eventRequest->isFullyApproved()) {
+                    $eventRequest->status = 'Approved';
+                    $eventRequest->approved_by = $user->id;
+                    $eventRequest->approved_at = now();
+                    $eventRequest->approval_level = EventRequest::LEVEL_APPROVED;
+                } else {
+                    // Partially approved, determine next level
+                    $nextLevel = $eventRequest->getNextApprovalLevel();
+                    if ($nextLevel === 2) {
+                        $eventRequest->approval_level = EventRequest::LEVEL_1_PROGRAM_HEAD;
+                    } elseif ($nextLevel === 3) {
+                        $eventRequest->approval_level = EventRequest::LEVEL_2_ACADEMIC_HEAD;
+                    } elseif ($nextLevel === 4) {
+                        $eventRequest->approval_level = EventRequest::LEVEL_3_BUILDING_ADMIN;
+                    }
+                }
+                
+                $eventRequest->save();
+
+                ActivityLog::log(
+                    'event_auto_approved',
+                    'Event request auto-approved for requester at their approval level',
+                    null
+                );
+            }
+
+            // Non-faculty: go through the normal multi-level approval chain
+            try {
+                $notificationService->notifyApproversOfNewEvent($eventRequest);
+            } catch (\Exception $notifEx) {
+                \Log::warning('Failed to send notifications: ' . $notifEx->getMessage());
+            }
+
+            $message = $autoApproved 
+                ? 'Event request submitted successfully! Your approval has been automatically recorded. Waiting for other approvers.'
+                : 'Event request submitted successfully! Waiting for approval.';
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $message,
+                    'redirect' => route('events.my', ['view' => 'active'])
+                ]);
+            }
+            return redirect()->route('events.my', ['view' => 'active'])->with('success', $message);
+            
         } catch (\Illuminate\Validation\ValidationException $e) {
             if ($request->expectsJson()) {
                 return response()->json([
@@ -76,188 +258,19 @@ class EventRequestController extends Controller
             }
             throw $e;
         } catch (\Exception $e) {
-            \Log::error('Event request store error: ' . $e->getMessage());
+            \Log::error('Event request store error: ' . $e->getMessage(), [
+                'exception' => get_class($e),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'An error occurred: ' . $e->getMessage()
                 ], 500);
             }
-            return redirect()->back()->with('error', 'An error occurred while creating the event request.');
+            return redirect()->back()->with('error', 'An error occurred while creating the event request: ' . $e->getMessage());
         }
-
-        // Process materials_needed - convert to array if provided
-        $materialsNeeded = null;
-        if ($request->has('materials') && is_array($request->materials)) {
-            $materials = array_filter($request->materials, function ($item) {
-                return ! empty($item['item']);
-            });
-            if (! empty($materials)) {
-                $materialsNeeded = array_values($materials);
-            }
-        }
-
-        // Handle picture upload
-        $imagePath = null;
-        if ($request->hasFile('picture')) {
-            $imagePath = $request->file('picture')->store('event-images', 'public');
-        }
-
-        $educationLevel = $request->education_level ?? 'tertiary';
-        $isFacultyIntended = $educationLevel === 'faculty';
-
-        $eventRequest = EventRequest::create([
-            'user_id' => auth()->id(),
-            'description' => $request->description,
-            'event_date' => $request->event_date,
-            'location' => $request->location,
-            'start_time' => $request->start_time,
-            'end_time' => $request->end_time,
-            'category' => $request->category,
-            'request_type' => $request->request_type,
-            'other_category' => $request->other_category,
-            'department' => $request->department,
-            'education_level' => $educationLevel,
-            'priority' => $request->priority ?? 'medium',
-            // Faculty-intended requests are auto-approved; others go through the approval chain
-            'status' => $isFacultyIntended ? 'Approved' : 'Pending',
-            'approval_level' => $isFacultyIntended ? EventRequest::LEVEL_APPROVED : EventRequest::LEVEL_NONE,
-            'approved_at' => $isFacultyIntended ? now() : null,
-            'materials_needed' => $materialsNeeded,
-            'image_path' => $imagePath,
-        ]);
-
-        ActivityLog::log(
-            'event_request_created',
-            'Event request submitted',
-            null
-        );
-
-        $notificationService = new NotificationService;
-
-        if ($isFacultyIntended) {
-            // Faculty-intended: no approval needed — notify building admin and school admin only
-            $notificationService->notifyAdminsOfFacultyRequest($eventRequest);
-
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Facility request submitted successfully! Building Admin and School Admin have been notified.',
-                    'redirect' => route('events.my', ['view' => 'approved'])
-                ]);
-            }
-            return redirect()->route('events.my', ['view' => 'approved'])->with('success', 'Facility request submitted successfully! Building Admin and School Admin have been notified.');
-        }
-
-        // Auto-approve for the requester if they are also an approver
-        $user = auth()->user();
-        $autoApproved = false;
-        $approvalHistory = [];
-
-        // Check if requester is a Program Head
-        if ($user->isProgramHead()) {
-            $eventRequest->approved_by_level_1 = $user->id;
-            $eventRequest->approved_at_level_1 = now();
-            $approvalHistory[] = [
-                'level' => 1,
-                'role' => 'Program Head',
-                'approver' => $user->name,
-                'approver_id' => $user->id,
-                'at' => now()->toDateTimeString(),
-                'notes' => 'Auto-approved (requester is also approver)',
-            ];
-            $autoApproved = true;
-        }
-
-        // Check if requester is an Academic Head
-        if ($user->isAcademicHead()) {
-            $eventRequest->approved_by_level_2 = $user->id;
-            $eventRequest->approved_at_level_2 = now();
-            $approvalHistory[] = [
-                'level' => 2,
-                'role' => 'Academic Head',
-                'approver' => $user->name,
-                'approver_id' => $user->id,
-                'at' => now()->toDateTimeString(),
-                'notes' => 'Auto-approved (requester is also approver)',
-            ];
-            $autoApproved = true;
-        }
-
-        // Check if requester is a Building Admin
-        if ($user->isBuildingAdmin()) {
-            $eventRequest->approved_by_level_3 = $user->id;
-            $eventRequest->approved_at_level_3 = now();
-            $approvalHistory[] = [
-                'level' => 3,
-                'role' => 'Building Admin',
-                'approver' => $user->name,
-                'approver_id' => $user->id,
-                'at' => now()->toDateTimeString(),
-                'notes' => 'Auto-approved (requester is also approver)',
-            ];
-            $autoApproved = true;
-        }
-
-        // Check if requester is a School Admin
-        if ($user->isSchoolAdmin() || $user->isAdmin()) {
-            $approvalHistory[] = [
-                'level' => 4,
-                'role' => 'School Admin',
-                'approver' => $user->name,
-                'approver_id' => $user->id,
-                'at' => now()->toDateTimeString(),
-                'notes' => 'Auto-approved (requester is also approver)',
-            ];
-            $autoApproved = true;
-        }
-
-        // Save approval history if auto-approved
-        if ($autoApproved) {
-            $eventRequest->approval_history = $approvalHistory;
-            
-            // Determine the approval level based on what was auto-approved
-            if ($eventRequest->isFullyApproved()) {
-                $eventRequest->status = 'Approved';
-                $eventRequest->approved_by = $user->id;
-                $eventRequest->approved_at = now();
-                $eventRequest->approval_level = EventRequest::LEVEL_APPROVED;
-            } else {
-                // Partially approved, determine next level
-                $nextLevel = $eventRequest->getNextApprovalLevel();
-                if ($nextLevel === 2) {
-                    $eventRequest->approval_level = EventRequest::LEVEL_1_PROGRAM_HEAD;
-                } elseif ($nextLevel === 3) {
-                    $eventRequest->approval_level = EventRequest::LEVEL_2_ACADEMIC_HEAD;
-                } elseif ($nextLevel === 4) {
-                    $eventRequest->approval_level = EventRequest::LEVEL_3_BUILDING_ADMIN;
-                }
-            }
-            
-            $eventRequest->save();
-
-            ActivityLog::log(
-                'event_auto_approved',
-                'Event request auto-approved for requester at their approval level',
-                null
-            );
-        }
-
-        // Non-faculty: go through the normal multi-level approval chain
-        $notificationService->notifyApproversOfNewEvent($eventRequest);
-
-        $message = $autoApproved 
-            ? 'Event request submitted successfully! Your approval has been automatically recorded. Waiting for other approvers.'
-            : 'Event request submitted successfully! Waiting for approval.';
-
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => true,
-                'message' => $message,
-                'redirect' => route('events.my', ['view' => 'active'])
-            ]);
-        }
-        return redirect()->route('events.my', ['view' => 'active'])->with('success', $message);
     }
 
     // Show single event request (for web/AJAX calls)
