@@ -204,10 +204,14 @@ class ManagementController extends Controller
         $request->validate([
             'name'     => 'required|string|max:255|unique:categories,name',
             'issues'   => 'nullable|array',
-            'issues.*' => 'string|max:255',
+            'issues.*' => 'nullable|string|max:255',
         ]);
 
-        $issues = array_values(array_filter(array_map('trim', $request->input('issues', []))));
+        $issues = collect($request->input('issues', []))
+            ->map(fn ($issue) => trim((string) $issue))
+            ->filter()
+            ->values()
+            ->all();
 
         Category::create(['name' => $request->name, 'issues' => $issues ?: null]);
 
@@ -224,10 +228,14 @@ class ManagementController extends Controller
         $request->validate([
             'name'     => 'required|string|max:255|unique:categories,name,'.$id,
             'issues'   => 'nullable|array',
-            'issues.*' => 'string|max:255',
+            'issues.*' => 'nullable|string|max:255',
         ]);
 
-        $issues = array_values(array_filter(array_map('trim', $request->input('issues', []))));
+        $issues = collect($request->input('issues', []))
+            ->map(fn ($issue) => trim((string) $issue))
+            ->filter()
+            ->values()
+            ->all();
 
         $category->update(['name' => $request->name, 'issues' => $issues ?: null]);
 

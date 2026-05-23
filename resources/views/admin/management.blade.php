@@ -260,7 +260,7 @@
                             <td>
                                 <div class="btn-group" role="group">
                                     <button type="button" class="btn btn-sm btn-primary bg-transparent border-0"
-                                            title="Edit" onclick="openEditCategoryModal({{ $category->id }}, '{{ addslashes($category->name) }}', '{{ addslashes(json_encode($category->issues ?? [])) }}')">
+                                            title="Edit" onclick="openEditCategoryModal({{ $category->id }}, @js($category->name), @js($category->issues ?? []))">
                                         <i class="fas fa-edit"></i>
                                     </button>
                                     <form action="{{ route('admin.management.categories.destroy', $category->id) }}" method="POST" class="d-inline">
@@ -525,27 +525,36 @@ function addIssueRow(listId, value) {
     const list = document.getElementById(listId);
     const row = document.createElement('div');
     row.className = 'd-flex align-items-center gap-2 mb-2 issue-row';
-    row.innerHTML = `
-        <input type="text" name="issues[]" class="form-control form-control-sm" value="${value || ''}" placeholder="e.g., Aircon">
-        <button type="button" class="btn btn-sm btn-danger flex-shrink-0" onclick="this.closest('.issue-row').remove()" title="Remove">
-            <i class="fas fa-trash"></i>
-        </button>
-    `;
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.name = 'issues[]';
+    input.className = 'form-control form-control-sm';
+    input.value = value || '';
+    input.placeholder = 'e.g., Aircon';
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'btn btn-sm btn-danger flex-shrink-0';
+    button.title = 'Remove';
+    button.innerHTML = '<i class="fas fa-trash"></i>';
+    button.addEventListener('click', function() {
+        row.remove();
+    });
+
+    row.append(input, button);
     list.appendChild(row);
-    row.querySelector('input').focus();
+    input.focus();
 }
 
-function openEditCategoryModal(id, name, issuesJson) {
+function openEditCategoryModal(id, name, issues) {
     document.getElementById('editCategoryName').value  = name;
     document.getElementById('editCategoryForm').action = '/admin/management/categories/' + id;
 
     // Clear and repopulate issue rows
     const list = document.getElementById('editIssuesList');
     list.innerHTML = '';
-    try {
-        const issues = issuesJson ? JSON.parse(issuesJson) : [];
-        issues.forEach(issue => addIssueRow('editIssuesList', issue));
-    } catch(e) {}
+    (Array.isArray(issues) ? issues : []).forEach(issue => addIssueRow('editIssuesList', issue));
 
     new bootstrap.Modal(document.getElementById('editCategoryModal')).show();
 }

@@ -1668,7 +1668,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
     
     // Auto-open modal if there are validation errors (only on event-related pages)
-    @if($errors->any() && !Request::is('admin/users*', 'admin/logs*', 'admin/reports*', 'admin/dashboard*', 'settings*', 'profile*', 'my-concerns*', 'reports*'))
+    @if($errors->any() && !Request::is('admin/users*', 'admin/logs*', 'admin/reports*', 'admin/dashboard*', 'admin/management*', 'settings*', 'profile*', 'my-concerns*', 'reports*'))
     document.addEventListener('DOMContentLoaded', function() {
         var modalEl = document.getElementById('eventRequestModal');
         if (modalEl) {
