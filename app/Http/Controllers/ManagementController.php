@@ -47,9 +47,6 @@ class ManagementController extends Controller
         if ($request->filled('facility_type')) {
             $facilityQuery->where('type', $request->facility_type);
         }
-        if ($request->filled('facility_status')) {
-            $facilityQuery->where('status', $request->facility_status);
-        }
         $facilities = $facilityQuery->orderBy('name')->get();
 
         // Categories

@@ -154,14 +154,6 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <select name="facility_status" class="form-select form-select-sm">
-                        <option value="">All Status</option>
-                        <option value="available" {{ request('facility_status') == 'available' ? 'selected' : '' }}>Available</option>
-                        <option value="unavailable" {{ request('facility_status') == 'unavailable' ? 'selected' : '' }}>Unavailable</option>
-                        <option value="under_maintenance" {{ request('facility_status') == 'under_maintenance' ? 'selected' : '' }}>Under Maintenance</option>
-                    </select>
-                </div>
                 <div class="col-auto">
                     <button type="submit" class="btn btn-primary btn-sm">Filter</button>
                     <a href="{{ route('admin.management', ['tab' => 'facilities']) }}" class="btn btn-secondary btn-sm ms-1">
