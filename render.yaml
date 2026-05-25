@@ -1,8 +1,7 @@
 services:
   - type: web
     name: campfix
-    runtime: docker
-    plan: free
+    env: docker
     dockerfilePath: ./Dockerfile
     envVars:
       - key: APP_ENV
