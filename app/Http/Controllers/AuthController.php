@@ -71,6 +71,28 @@ class AuthController extends Controller
 
             \Log::info('Login attempt for: ' . $request->email);
 
+            // SIMPLIFIED FOR VERCEL: Skip complex checks in production
+            if (config('app.env') === 'production') {
+                if (Auth::attempt($request->only('email', 'password'))) {
+                    $user = Auth::user();
+                    \Log::info('Auth successful for: ' . $user->email . ', role: ' . $user->role);
+                    
+                    $request->session()->regenerate();
+                    
+                    // Direct redirect based on role
+                    if ($user->role === 'mis') {
+                        \Log::info('Redirecting MIS user to /admin');
+                        return redirect('/admin');
+                    }
+                    
+                    \Log::info('Redirecting user to /dashboard');
+                    return redirect('/dashboard');
+                }
+                
+                \Log::warning('Auth attempt failed for: ' . $request->email);
+                return back()->with('error', 'Invalid email or password');
+            }
+
             $user = User::where('email', $request->email)->first();
 
             // Check if account is locked — only MIS can unlock
@@ -95,19 +117,6 @@ class AuthController extends Controller
                     'locked_until' => null,
                     'login_lockout_level' => 0,
                 ]);
-
-                // TEMPORARY: Skip OTP in production for testing
-                if (config('app.env') === 'production') {
-                    \Log::info('Bypassing OTP for production');
-                    $request->session()->regenerate();
-                    
-                    // Direct redirect based on role to avoid dashboard routing issues
-                    if ($user->role === 'mis') {
-                        return redirect('/admin');
-                    }
-                    
-                    return redirect()->intended('/dashboard');
-                }
 
                 // Generate secure OTP using random_int for better security
                 $otp = (string) random_int(100000, 999999);
@@ -134,6 +143,12 @@ class AuthController extends Controller
         } catch (\Exception $e) {
             \Log::error('Login error: ' . $e->getMessage());
             \Log::error('Stack trace: ' . $e->getTraceAsString());
+            
+            // In production, show the actual error for debugging
+            if (config('app.env') === 'production' && config('app.debug')) {
+                return back()->with('error', 'Login error: ' . $e->getMessage());
+            }
+            
             return back()->with('error', 'An error occurred during login. Please try again.');
         }
 
