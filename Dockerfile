@@ -29,8 +29,14 @@ WORKDIR /app
 # Copy application files
 COPY . .
 
-# Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+# Create .env file with APP_KEY for build process
+RUN cp .env.example .env || echo "APP_KEY=" > .env
+
+# Install PHP dependencies (skip discovery to avoid APP_KEY requirement)
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
+
+# Run post-install scripts separately (after .env is ready)
+RUN php artisan package:discover --ansi || true
 
 # Install Node dependencies and build assets
 RUN npm install && npm run build
@@ -48,7 +54,8 @@ RUN chmod -R 775 storage bootstrap/cache
 EXPOSE 8080
 
 # Start the application
-CMD php artisan config:cache && \
+CMD php artisan package:discover --ansi && \
+    php artisan config:cache && \
     php artisan route:cache && \
     php artisan view:cache && \
     php artisan serve --host=0.0.0.0 --port=${PORT:-8080}
