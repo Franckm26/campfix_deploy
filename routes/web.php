@@ -21,13 +21,27 @@ Route::get('/', function () {
 
 /* TEST ROUTE - Check if app is working */
 Route::get('/test', function () {
-    return response()->json([
-        'status' => 'ok',
-        'app_env' => config('app.env'),
-        'db_connection' => config('database.default'),
-        'session_driver' => config('session.driver'),
-        'users_count' => \App\Models\User::count(),
-    ]);
+    try {
+        $usersCount = \App\Models\User::count();
+        $testUser = \App\Models\User::where('email', 'mercuriofranck9@gmail.com')->first();
+        
+        return response()->json([
+            'status' => 'ok',
+            'app_env' => config('app.env'),
+            'db_connection' => config('database.default'),
+            'session_driver' => config('session.driver'),
+            'users_count' => $usersCount,
+            'test_user_exists' => $testUser ? true : false,
+            'test_user_email' => $testUser ? $testUser->email : null,
+            'test_user_role' => $testUser ? $testUser->role : null,
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+        ], 500);
+    }
 });
 
 /* TEST AUTH ROUTE - Check if authentication works */
@@ -42,6 +56,53 @@ Route::get('/test-auth', function () {
         'session_id' => session()->getId(),
     ]);
 })->middleware('auth');
+
+/* TEST LOGIN ROUTE - Test authentication directly */
+Route::post('/test-login', function (Illuminate\Http\Request $request) {
+    try {
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required',
+        ]);
+        
+        $user = \App\Models\User::where('email', $request->email)->first();
+        
+        if (!$user) {
+            return response()->json(['error' => 'User not found'], 404);
+        }
+        
+        $passwordCheck = \Illuminate\Support\Facades\Hash::check($request->password, $user->password);
+        
+        if (!$passwordCheck) {
+            return response()->json(['error' => 'Password incorrect'], 401);
+        }
+        
+        $authAttempt = \Illuminate\Support\Facades\Auth::attempt([
+            'email' => $request->email,
+            'password' => $request->password,
+        ]);
+        
+        if ($authAttempt) {
+            $request->session()->regenerate();
+            return response()->json([
+                'success' => true,
+                'user' => [
+                    'id' => auth()->user()->id,
+                    'email' => auth()->user()->email,
+                    'role' => auth()->user()->role,
+                ],
+            ]);
+        }
+        
+        return response()->json(['error' => 'Auth attempt failed'], 401);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+        ], 500);
+    }
+});
 
 /* REQUIRED LOGIN ROUTE FOR AUTH MIDDLEWARE */
 Route::get('/login', function () {
