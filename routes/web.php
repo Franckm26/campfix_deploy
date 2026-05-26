@@ -30,6 +30,19 @@ Route::get('/test', function () {
     ]);
 });
 
+/* TEST AUTH ROUTE - Check if authentication works */
+Route::get('/test-auth', function () {
+    return response()->json([
+        'authenticated' => auth()->check(),
+        'user' => auth()->user() ? [
+            'id' => auth()->user()->id,
+            'email' => auth()->user()->email,
+            'role' => auth()->user()->role,
+        ] : null,
+        'session_id' => session()->getId(),
+    ]);
+})->middleware('auth');
+
 /* REQUIRED LOGIN ROUTE FOR AUTH MIDDLEWARE */
 Route::get('/login', function () {
     return redirect('/');
