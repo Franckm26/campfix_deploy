@@ -61,65 +61,74 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-        // OWASP A2: Rate limiting is handled by middleware
-        // Validate login input
-        $request->validate([
-            'email' => 'required|email|max:255',
-            'password' => 'required|min:1',
-        ]);
+        try {
+            // OWASP A2: Rate limiting is handled by middleware
+            // Validate login input
+            $request->validate([
+                'email' => 'required|email|max:255',
+                'password' => 'required|min:1',
+            ]);
 
+            \Log::info('Login attempt for: ' . $request->email);
 
-        $user = User::where('email', $request->email)->first();
+            $user = User::where('email', $request->email)->first();
 
-        // Check if account is locked — only MIS can unlock
-        if ($user && $user->locked_until) {
-            return back()->with('error', 'Your account has been locked due to too many failed login attempts. Please contact the MIS administrator to unlock your account.');
-        }
+            // Check if account is locked — only MIS can unlock
+            if ($user && $user->locked_until) {
+                return back()->with('error', 'Your account has been locked due to too many failed login attempts. Please contact the MIS administrator to unlock your account.');
+            }
 
-        if (Auth::attempt($request->only('email', 'password'))) {
-            $user = Auth::user();
+            if (Auth::attempt($request->only('email', 'password'))) {
+                $user = Auth::user();
+                \Log::info('Auth successful for: ' . $user->email);
 
-            // Check if user is archived
-            if ($user->is_archived || $user->archive_folder_id) {
+                // Check if user is archived
+                if ($user->is_archived || $user->archive_folder_id) {
+                    Auth::logout();
+
+                    return back()->with('error', 'Your account has been archived and cannot login.');
+                }
+
+                // Reset failed login attempts on successful login
+                $user->update([
+                    'failed_login_attempts' => 0,
+                    'locked_until' => null,
+                    'login_lockout_level' => 0,
+                ]);
+
+                // TEMPORARY: Skip OTP in production for testing
+                if (config('app.env') === 'production') {
+                    \Log::info('Bypassing OTP for production');
+                    $request->session()->regenerate();
+                    return redirect()->intended('/dashboard');
+                }
+
+                // Generate secure OTP using random_int for better security
+                $otp = (string) random_int(100000, 999999);
+
+                $user->update([
+                    'otp' => \Illuminate\Support\Facades\Hash::make($otp),
+                    'otp_expires_at' => now()->utc()->addMinutes(5),
+                    'otp_attempts' => 0,
+                ]);
+
+                // Save user id for verification and include phone info
+                session([
+                    'otp_user' => $user->id,
+                    'otp_email' => $user->email,
+                    'otp_phone' => $user->phone ?? 'your phone number',
+                ]);
+
+                // Logout until OTP verified
                 Auth::logout();
 
-                return back()->with('error', 'Your account has been archived and cannot login.');
+                // Redirect to choose OTP delivery method
+                return redirect('/otp-choice')->with('success', 'Choose how to receive your OTP.');
             }
-
-            // Reset failed login attempts on successful login
-            $user->update([
-                'failed_login_attempts' => 0,
-                'locked_until' => null,
-                'login_lockout_level' => 0,
-            ]);
-
-            // TEMPORARY: Skip OTP in production for testing
-            if (config('app.env') === 'production') {
-                $request->session()->regenerate();
-                return redirect()->intended('/dashboard');
-            }
-
-            // Generate secure OTP using random_int for better security
-            $otp = (string) random_int(100000, 999999);
-
-            $user->update([
-                'otp' => \Illuminate\Support\Facades\Hash::make($otp),
-                'otp_expires_at' => now()->utc()->addMinutes(5),
-                'otp_attempts' => 0,
-            ]);
-
-            // Save user id for verification and include phone info
-            session([
-                'otp_user' => $user->id,
-                'otp_email' => $user->email,
-                'otp_phone' => $user->phone ?? 'your phone number',
-            ]);
-
-            // Logout until OTP verified
-            Auth::logout();
-
-            // Redirect to choose OTP delivery method
-            return redirect('/otp-choice')->with('success', 'Choose how to receive your OTP.');
+        } catch (\Exception $e) {
+            \Log::error('Login error: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            return back()->with('error', 'An error occurred during login. Please try again.');
         }
 
         // Handle failed login attempts — lock permanently after 3 failures
