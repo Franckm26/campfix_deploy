@@ -76,11 +76,6 @@ class AdminController extends Controller
             return redirect('/dashboard');
         }
 
-        // TEMPORARY: Simple response for Vercel testing
-        if (config('app.env') === 'production') {
-            return response('<html><head><title>Admin Dashboard</title></head><body style="font-family: Arial, sans-serif; padding: 40px;"><h1>✅ Admin Dashboard</h1><p>Welcome, ' . auth()->user()->name . '!</p><p>Email: ' . auth()->user()->email . '</p><p>Role: ' . auth()->user()->role . '</p><hr><p><a href="/admin/users">Manage Users</a> | <a href="/logout">Logout</a></p></body></html>');
-        }
-
         // User stats
         $totalUsers        = User::hideSuperadmin()->where('is_deleted', false)->count();
         $activeUsers       = User::hideSuperadmin()->where('is_deleted', false)->where('is_archived', false)->whereNull('locked_until')->count();
