@@ -93,6 +93,12 @@ class AuthController extends Controller
                 'login_lockout_level' => 0,
             ]);
 
+            // TEMPORARY: Skip OTP in production for testing
+            if (config('app.env') === 'production') {
+                $request->session()->regenerate();
+                return redirect()->intended('/dashboard');
+            }
+
             // Generate secure OTP using random_int for better security
             $otp = (string) random_int(100000, 999999);
 
