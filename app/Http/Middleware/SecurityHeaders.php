@@ -30,9 +30,14 @@ class SecurityHeaders
         // Strict CSP that prevents XSS attacks
         // Note: 'unsafe-inline' is kept for compatibility but should be removed in production
         // when all inline handlers are converted to event listeners
+        
+        // Get the app URL for CSP
+        $appUrl = config('app.url');
+        $assetUrl = config('app.asset_url', $appUrl);
+        
         $response->headers->set(
             'Content-Security-Policy',
-            "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; img-src 'self' data: blob: https://www.sti.edu; font-src 'self' https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com; connect-src 'self' https://cdn.jsdelivr.net; frame-ancestors 'none';"
+            "default-src 'self' {$appUrl} {$assetUrl}; script-src 'self' 'unsafe-inline' 'unsafe-eval' {$appUrl} {$assetUrl} https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' {$appUrl} {$assetUrl} https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; img-src 'self' data: blob: {$appUrl} {$assetUrl} https://www.sti.edu; font-src 'self' {$appUrl} {$assetUrl} https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com; connect-src 'self' {$appUrl} {$assetUrl} https://cdn.jsdelivr.net; frame-ancestors 'none';"
         );
 
         // OWASP A6: Additional security headers
