@@ -100,6 +100,12 @@ class AuthController extends Controller
                 if (config('app.env') === 'production') {
                     \Log::info('Bypassing OTP for production');
                     $request->session()->regenerate();
+                    
+                    // Direct redirect based on role to avoid dashboard routing issues
+                    if ($user->role === 'mis') {
+                        return redirect('/admin');
+                    }
+                    
                     return redirect()->intended('/dashboard');
                 }
 
