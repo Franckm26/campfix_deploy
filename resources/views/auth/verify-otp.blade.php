@@ -4,8 +4,9 @@
     <title>Campfix - Verify Code</title>
     <meta name="viewport" content="width=device=device-width, initial-scale=1">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('css/auth-verify-otp.css') }}">
     <style>
+        <?php echo file_get_contents(public_path('css/auth-verify-otp.css')); ?>
+        
         .countdown-timer {
             text-align: center;
             margin: 15px 0;
