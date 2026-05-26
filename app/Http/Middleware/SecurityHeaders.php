@@ -37,7 +37,7 @@ class SecurityHeaders
         
         $response->headers->set(
             'Content-Security-Policy',
-            "default-src 'self' {$appUrl} {$assetUrl}; script-src 'self' 'unsafe-inline' 'unsafe-eval' {$appUrl} {$assetUrl} https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' {$appUrl} {$assetUrl} https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; img-src 'self' data: blob: {$appUrl} {$assetUrl} https://www.sti.edu; font-src 'self' {$appUrl} {$assetUrl} https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com; connect-src 'self' {$appUrl} {$assetUrl} https://cdn.jsdelivr.net; frame-ancestors 'none';"
+            "default-src 'self' {$appUrl} {$assetUrl}; script-src 'self' 'unsafe-inline' 'unsafe-eval' {$appUrl} {$assetUrl} https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://vercel.live; style-src 'self' 'unsafe-inline' {$appUrl} {$assetUrl} https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; img-src 'self' data: blob: {$appUrl} {$assetUrl} https://www.sti.edu; font-src 'self' {$appUrl} {$assetUrl} https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com; connect-src 'self' {$appUrl} {$assetUrl} https://cdn.jsdelivr.net https://vercel.live; frame-ancestors 'none';"
         );
 
         // OWASP A6: Additional security headers
