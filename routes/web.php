@@ -19,6 +19,17 @@ Route::get('/', function () {
     return view('home');
 });
 
+/* TEST ROUTE - Check if app is working */
+Route::get('/test', function () {
+    return response()->json([
+        'status' => 'ok',
+        'app_env' => config('app.env'),
+        'db_connection' => config('database.default'),
+        'session_driver' => config('session.driver'),
+        'users_count' => \App\Models\User::count(),
+    ]);
+});
+
 /* REQUIRED LOGIN ROUTE FOR AUTH MIDDLEWARE */
 Route::get('/login', function () {
     return redirect('/');
