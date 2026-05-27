@@ -9,7 +9,13 @@
 
 <div class="login-container">
     <div class="logo-container">
-        <img src="{{ asset('Campfix/Images/logo.png') }}" alt="Campfix Logo" class="logo-img">
+        <?php
+        $logoPath = public_path('Campfix/Images/logo.png');
+        if (file_exists($logoPath)) {
+            $logoData = base64_encode(file_get_contents($logoPath));
+            echo '<img src="data:image/png;base64,' . $logoData . '" alt="Campfix Logo" class="logo-img">';
+        }
+        ?>
     </div>
 
     <h2>Login</h2>

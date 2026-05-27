@@ -4,6 +4,9 @@
 .env.backup
 .env.production
 .env.vercel
+.env.render
+.env.supabase
+.env.vercel.import
 .phpactor.json
 .phpunit.result.cache
 /.fleet
@@ -17,6 +20,7 @@
 /public/hot
 /public/storage
 /storage/*.key
+/storage/framework/views/*.php
 /storage/pail
 /vendor
 Homestead.json
@@ -34,6 +38,8 @@ _ide_helper_models.php
 
 # Temp / scratch files
 temp_*.php
+temp_*.txt
+logo-base64.txt
 *.7z
 Sync/
 
