@@ -2,37 +2,22 @@
   "version": 2,
   "builds": [
     {
-      "src": "public/**",
-      "use": "@vercel/static"
-    },
-    {
       "src": "api/index.php",
-      "use": "vercel-php@0.7.1",
-      "config": {
-        "includeFiles": [
-          "vendor/**",
-          "storage/**",
-          "bootstrap/cache/**",
-          "public/**"
-        ]
-      }
+      "use": "vercel-php@0.7.1"
     }
   ],
   "routes": [
     {
-      "src": "/build/(.*)",
-      "dest": "/public/build/$1"
-    },
-    {
       "src": "/Campfix/Images/(.*)",
-      "dest": "/public/Campfix/Images/$1",
-      "headers": {
-        "cache-control": "public, max-age=31536000, immutable"
-      }
+      "dest": "/public/Campfix/Images/$1"
     },
     {
       "src": "/Campfix/(.*)",
       "dest": "/public/Campfix/$1"
+    },
+    {
+      "src": "/build/(.*)",
+      "dest": "/public/build/$1"
     },
     {
       "src": "/css/(.*)",
@@ -43,11 +28,12 @@
       "dest": "/public/js/$1"
     },
     {
-      "src": "/(.*\\.(css|js|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|webp|PNG|JPG|JPEG|GIF|SVG))",
-      "dest": "/public/$1"
+      "src": "/storage/(.*)",
+      "dest": "/public/storage/$1"
     },
     {
-      "handle": "filesystem"
+      "src": "/(favicon\\.ico|robots\\.txt)",
+      "dest": "/public/$1"
     },
     {
       "src": "/(.*)",
