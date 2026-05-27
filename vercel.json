@@ -2,6 +2,10 @@
   "version": 2,
   "builds": [
     {
+      "src": "public/**",
+      "use": "@vercel/static"
+    },
+    {
       "src": "api/index.php",
       "use": "vercel-php@0.7.1",
       "config": {
@@ -12,13 +16,13 @@
           "public/**"
         ]
       }
-    },
-    {
-      "src": "public/**",
-      "use": "@vercel/static"
     }
   ],
   "routes": [
+    {
+      "src": "/build/(.*)",
+      "dest": "/public/build/$1"
+    },
     {
       "src": "/Campfix/Images/(.*)",
       "dest": "/public/Campfix/Images/$1",
@@ -39,12 +43,11 @@
       "dest": "/public/js/$1"
     },
     {
-      "src": "/build/(.*)",
-      "dest": "/public/build/$1"
+      "src": "/(.*\\.(css|js|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|webp|PNG|JPG|JPEG|GIF|SVG))",
+      "dest": "/public/$1"
     },
     {
-      "src": "/(.*\\.(css|js|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|webp))",
-      "dest": "/public/$1"
+      "handle": "filesystem"
     },
     {
       "src": "/(.*)",
