@@ -1861,27 +1861,27 @@ async function editUser(userId) {
             <div style="text-align:left">
                 <div style="margin-bottom:15px">
                     <label style="display:block;font-weight:600;margin-bottom:5px">Name *</label>
-                    <input id="swal-name" class="swal2-input" value="${nameInput.value}" style="width:100%;margin:0" required>
+                    <input id="swal-name" class="swal2-input" value="${nameInput ? nameInput.value : ''}" style="width:100%;margin:0" required>
                 </div>
                 <div style="margin-bottom:15px">
                     <label style="display:block;font-weight:600;margin-bottom:5px">Email *</label>
-                    <input id="swal-email" type="email" class="swal2-input" value="${emailInput.value}" style="width:100%;margin:0" required>
+                    <input id="swal-email" type="email" class="swal2-input" value="${emailInput ? emailInput.value : ''}" style="width:100%;margin:0" required>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:15px">
                     <div>
                         <label style="display:block;font-weight:600;margin-bottom:5px">Role *</label>
                         <select id="swal-role" class="swal2-select" style="width:100%;margin:0" onchange="toggleSwalDept()">
-                            <option value="student" ${roleSelect.value === 'student' ? 'selected' : ''}>Student</option>
-                            <option value="faculty" ${roleSelect.value === 'faculty' ? 'selected' : ''}>Faculty</option>
-                            <option value="mis" ${roleSelect.value === 'mis' ? 'selected' : ''}>MIS</option>
-                            <option value="school_admin" ${roleSelect.value === 'school_admin' ? 'selected' : ''}>School Administrator</option>
-                            <option value="building_admin" ${roleSelect.value === 'building_admin' ? 'selected' : ''}>Building Administrator</option>
-                            <option value="academic_head" ${roleSelect.value === 'academic_head' ? 'selected' : ''}>Academic Head</option>
-                            <option value="program_head" ${roleSelect.value === 'program_head' ? 'selected' : ''}>Program Head</option>
-                            <option value="principal_assistant" ${roleSelect.value === 'principal_assistant' ? 'selected' : ''}>Principal Assistant</option>
+                            <option value="student" ${roleSelect && roleSelect.value === 'student' ? 'selected' : ''}>Student</option>
+                            <option value="faculty" ${roleSelect && roleSelect.value === 'faculty' ? 'selected' : ''}>Faculty</option>
+                            <option value="mis" ${roleSelect && roleSelect.value === 'mis' ? 'selected' : ''}>MIS</option>
+                            <option value="school_admin" ${roleSelect && roleSelect.value === 'school_admin' ? 'selected' : ''}>School Administrator</option>
+                            <option value="building_admin" ${roleSelect && roleSelect.value === 'building_admin' ? 'selected' : ''}>Building Administrator</option>
+                            <option value="academic_head" ${roleSelect && roleSelect.value === 'academic_head' ? 'selected' : ''}>Academic Head</option>
+                            <option value="program_head" ${roleSelect && roleSelect.value === 'program_head' ? 'selected' : ''}>Program Head</option>
+                            <option value="principal_assistant" ${roleSelect && roleSelect.value === 'principal_assistant' ? 'selected' : ''}>Principal Assistant</option>
                         </select>
                     </div>
-                    <div id="swal-dept-field" style="${roleSelect.value === 'program_head' ? '' : 'display:none'}">
+                    <div id="swal-dept-field" style="${roleSelect && roleSelect.value === 'program_head' ? '' : 'display:none'}">
                         <label style="display:block;font-weight:600;margin-bottom:5px">Department</label>
                         <select id="swal-dept" class="swal2-select" style="width:100%;margin:0">
                             <option value="">Select Department</option>
@@ -1895,11 +1895,11 @@ async function editUser(userId) {
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:15px">
                     <div>
                         <label style="display:block;font-weight:600;margin-bottom:5px">Phone</label>
-                        <input id="swal-phone" class="swal2-input" value="${phoneInput.value || ''}" placeholder="09XXXXXXXXX" maxlength="11" style="width:100%;margin:0">
+                        <input id="swal-phone" class="swal2-input" value="${phoneInput ? phoneInput.value || '' : ''}" placeholder="09XXXXXXXXX" maxlength="11" style="width:100%;margin:0">
                     </div>
                     <div>
                         <label style="display:block;font-weight:600;margin-bottom:5px">Student ID</label>
-                        <input id="swal-studentid" class="swal2-input" value="${studentIdInput.value || ''}" style="width:100%;margin:0">
+                        <input id="swal-studentid" class="swal2-input" value="${studentIdInput ? studentIdInput.value || '' : ''}" style="width:100%;margin:0">
                     </div>
                 </div>
                 <div style="margin-bottom:15px">
