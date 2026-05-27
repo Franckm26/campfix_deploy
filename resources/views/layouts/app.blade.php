@@ -12,6 +12,7 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+<link href="{{ asset('css/app.css') }}" rel="stylesheet">
 @vite(['resources/css/app.css', 'resources/js/app.js'])
 
 @yield('styles')
@@ -1683,6 +1684,82 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+// Critical JavaScript functions for navigation and dropdowns
+function toggleSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.querySelector('.sidebar-overlay');
+    if (sidebar && overlay) {
+        sidebar.classList.toggle('show');
+        overlay.classList.toggle('show');
+    }
+}
+
+function toggleDropdown(event) {
+    event.stopPropagation();
+    const dropdown = document.getElementById('userDropdownMenu');
+    const notificationDropdown = document.getElementById('notificationDropdown');
+    
+    if (notificationDropdown && notificationDropdown.classList.contains('show')) {
+        notificationDropdown.classList.remove('show');
+    }
+    
+    if (dropdown) {
+        dropdown.classList.toggle('show');
+    }
+}
+
+function toggleNotification(event) {
+    event.stopPropagation();
+    const dropdown = document.getElementById('notificationDropdown');
+    const userDropdown = document.getElementById('userDropdownMenu');
+    
+    if (userDropdown && userDropdown.classList.contains('show')) {
+        userDropdown.classList.remove('show');
+    }
+    
+    if (dropdown) {
+        dropdown.classList.toggle('show');
+    }
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', function(event) {
+    const userDropdown = document.getElementById('userDropdownMenu');
+    const notificationDropdown = document.getElementById('notificationDropdown');
+    const userIcon = document.querySelector('.user-icon');
+    const notificationBell = document.querySelector('.notification-bell');
+    
+    if (userDropdown && !event.target.closest('.user-dropdown-top')) {
+        userDropdown.classList.remove('show');
+    }
+    
+    if (notificationDropdown && !event.target.closest('.notification-bell')) {
+        notificationDropdown.classList.remove('show');
+    }
+});
+
+// Nav dropdown toggle
+document.addEventListener('DOMContentLoaded', function() {
+    const navToggles = document.querySelectorAll('[data-nav-toggle]');
+    navToggles.forEach(function(toggle) {
+        toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            const parent = this.closest('.nav-dropdown');
+            if (parent) {
+                parent.classList.toggle('open');
+            }
+        });
+    });
+});
+
+// Make functions globally available
+window.toggleSidebar = toggleSidebar;
+window.toggleDropdown = toggleDropdown;
+window.toggleNotification = toggleNotification;
+</script>
+
 <script src="{{ asset('js/event-request-modal.js') }}"></script>
 
 <script>
