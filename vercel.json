@@ -1,14 +1,39 @@
 {
   "version": 2,
-  "functions": {
-    "api/index.php": {
-      "runtime": "vercel-php@0.7.1"
+  "builds": [
+    {
+      "src": "api/index.php",
+      "use": "vercel-php@0.7.1"
     }
-  },
+  ],
   "routes": [
     {
-      "src": "/(css|js|build|Campfix)/(.*)$",
-      "dest": "public/$1/$2"
+      "src": "/Campfix/Images/(.*)",
+      "dest": "/public/Campfix/Images/$1"
+    },
+    {
+      "src": "/Campfix/(.*)",
+      "dest": "/public/Campfix/$1"
+    },
+    {
+      "src": "/build/(.*)",
+      "dest": "/public/build/$1"
+    },
+    {
+      "src": "/css/(.*)",
+      "dest": "/public/css/$1"
+    },
+    {
+      "src": "/js/(.*)",
+      "dest": "/public/js/$1"
+    },
+    {
+      "src": "/favicon.ico",
+      "dest": "/public/favicon.ico"
+    },
+    {
+      "src": "/robots.txt",
+      "dest": "/public/robots.txt"
     },
     {
       "src": "/(.*)",
