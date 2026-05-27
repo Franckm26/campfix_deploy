@@ -2,7 +2,7 @@
 <html>
 <head>
     <title>Campfix - Verify Code</title>
-    <meta name="viewport" content="width=device=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         <?php echo file_get_contents(public_path('css/auth-verify-otp.css')); ?>
@@ -65,7 +65,7 @@
     <!-- Logo -->
     <div class="logo-container">
         <div class="logo-wrapper">
-            <img src="{{ asset('Campfix/Images/logo.png') }}" alt="STI Logo" class="logo-img">
+            <img src="{{ asset('Campfix/Images/images.png') }}" alt="STI Logo" class="logo-img">
             <span class="logo-text">Campfix</span>
         </div>
     </div>
@@ -139,7 +139,6 @@
     
 </div>
 
-<script src="{{ asset('js/auth-verify-otp.js') }}"></script>
 <script>
 // Countdown Timer
 const countdownTimer = document.getElementById('countdownTimer');
