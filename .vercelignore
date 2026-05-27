@@ -15,3 +15,7 @@ yarn-error.log
 /storage/framework/sessions
 /storage/framework/testing
 /storage/framework/views
+!public/Campfix/**
+!public/build/**
+!public/css/**
+!public/js/**
