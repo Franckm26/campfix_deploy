@@ -65,7 +65,13 @@
     <!-- Logo -->
     <div class="logo-container">
         <div class="logo-wrapper">
-            <img src="{{ asset('Campfix/Images/images.png') }}" alt="STI Logo" class="logo-img">
+            <?php
+            $logoPath = public_path('Campfix/Images/logo.png');
+            if (file_exists($logoPath)) {
+                $logoData = base64_encode(file_get_contents($logoPath));
+                echo '<img src="data:image/png;base64,' . $logoData . '" alt="Campfix Logo" class="logo-img">';
+            }
+            ?>
             <span class="logo-text">Campfix</span>
         </div>
     </div>
