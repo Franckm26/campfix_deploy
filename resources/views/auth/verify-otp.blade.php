@@ -221,6 +221,66 @@ function startTimer() {
 
 // Start the timer
 startTimer();
+
+// OTP Input Handling
+otpInputs.forEach((input, index) => {
+    // Handle input
+    input.addEventListener('input', function(e) {
+        const value = e.target.value;
+        
+        // Only allow numbers
+        if (!/^\d*$/.test(value)) {
+            e.target.value = '';
+            return;
+        }
+        
+        // Move to next input if value entered
+        if (value && index < otpInputs.length - 1) {
+            otpInputs[index + 1].focus();
+        }
+        
+        // Update hidden field
+        updateOTPField();
+    });
+    
+    // Handle backspace
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Backspace' && !e.target.value && index > 0) {
+            otpInputs[index - 1].focus();
+        }
+    });
+    
+    // Handle paste
+    input.addEventListener('paste', function(e) {
+        e.preventDefault();
+        const pastedData = e.clipboardData.getData('text').trim();
+        
+        // Only process if it's 6 digits
+        if (/^\d{6}$/.test(pastedData)) {
+            // Fill all inputs with the pasted digits
+            pastedData.split('').forEach((digit, i) => {
+                if (otpInputs[i]) {
+                    otpInputs[i].value = digit;
+                }
+            });
+            
+            // Focus the last input
+            otpInputs[5].focus();
+            
+            // Update hidden field
+            updateOTPField();
+        }
+    });
+});
+
+// Update hidden OTP field
+function updateOTPField() {
+    const otpValue = Array.from(otpInputs).map(input => input.value).join('');
+    document.getElementById('otp').value = otpValue;
+}
+
+// Auto-focus first input on page load
+otpInputs[0].focus();
 </script>
 
 </body>
