@@ -1800,21 +1800,46 @@ function viewUser(userId) {
 
 // Edit user function with SweetAlert2
 async function editUser(userId) {
-    // Get user data from the modal (we'll extract it from the existing modal)
+    // Get user data from the table row
+    const row = document.querySelector(`tr[data-id="${userId}"]`);
+    if (!row) {
+        Swal.fire('Error', 'User not found', 'error');
+        return;
+    }
+    
+    // Try to get data from the hidden modal first
     const modal = document.getElementById('editUserModal' + userId);
-    if (!modal) return;
+    let userData = {};
     
-    const form = modal.querySelector('form');
-    const nameInput = form.querySelector('[name="name"]');
-    const emailInput = form.querySelector('[name="email"]');
-    const roleSelect = form.querySelector('[name="role"]');
-    const deptSelect = form.querySelector('[name="department"]');
-    const phoneInput = form.querySelector('[name="phone"]');
-    const studentIdInput = form.querySelector('[name="student_id"]');
-    
-    // Get permissions
-    const permCheckboxes = form.querySelectorAll('[name="permissions[]"]');
-    const currentPerms = Array.from(permCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+    if (modal) {
+        const form = modal.querySelector('form');
+        userData = {
+            name: form.querySelector('[name="name"]')?.value || '',
+            email: form.querySelector('[name="email"]')?.value || '',
+            role: form.querySelector('[name="role"]')?.value || 'student',
+            department: form.querySelector('[name="department"]')?.value || '',
+            phone: form.querySelector('[name="phone"]')?.value || '',
+            studentId: form.querySelector('[name="student_id"]')?.value || '',
+            formAction: form.action
+        };
+        
+        // Get permissions
+        const permCheckboxes = form.querySelectorAll('[name="permissions[]"]');
+        userData.permissions = Array.from(permCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+    } else {
+        // Fallback: get basic data from table row
+        const cells = row.querySelectorAll('td');
+        userData = {
+            name: cells[2]?.textContent || '',
+            email: cells[3]?.textContent || '',
+            role: 'student',
+            department: cells[4]?.textContent || '',
+            phone: cells[5]?.textContent || '',
+            studentId: cells[1]?.textContent || '',
+            permissions: [],
+            formAction: `/admin/users/${userId}`
+        };
+    }
     
     // Get all modules and sub-permissions
     const allModules = @json(\App\Models\User::allModules());
@@ -1827,7 +1852,7 @@ async function editUser(userId) {
     
     Object.keys(allModules).forEach(key => {
         const mod = allModules[key];
-        const isChecked = currentPerms.includes(key);
+        const isChecked = userData.permissions.includes(key);
         const hasSubPerms = subPerms[key] !== undefined;
         
         moduleHtml += `<div style="background:white;padding:10px;border-radius:6px;border:1px solid #dee2e6">`;
@@ -1843,7 +1868,7 @@ async function editUser(userId) {
             moduleHtml += `<div id="swal_sub_${key}" style="margin-left:26px;margin-top:8px;${isChecked ? '' : 'display:none'}">`;
             Object.keys(subPerms[key]).forEach(subKey => {
                 const subLabel = subPerms[key][subKey];
-                const isSubChecked = currentPerms.includes(subKey);
+                const isSubChecked = userData.permissions.includes(subKey);
                 moduleHtml += `<label style="display:flex;align-items:center;cursor:pointer;margin:4px 0;font-size:13px;color:#666">`;
                 moduleHtml += `<input type="checkbox" class="perm-checkbox" value="${subKey}" ${isSubChecked ? 'checked' : ''} style="margin-right:6px;width:16px;height:16px">`;
                 moduleHtml += `<span>${subLabel}</span>`;
@@ -1868,45 +1893,45 @@ async function editUser(userId) {
             <div style="text-align:left">
                 <div style="margin-bottom:15px">
                     <label style="display:block;font-weight:600;margin-bottom:5px">Name *</label>
-                    <input id="swal-name" class="swal2-input" value="${nameInput ? nameInput.value : ''}" style="width:100%;margin:0" required>
+                    <input id="swal-name" class="swal2-input" value="${userData.name}" style="width:100%;margin:0" required>
                 </div>
                 <div style="margin-bottom:15px">
                     <label style="display:block;font-weight:600;margin-bottom:5px">Email *</label>
-                    <input id="swal-email" type="email" class="swal2-input" value="${emailInput ? emailInput.value : ''}" style="width:100%;margin:0" required>
+                    <input id="swal-email" type="email" class="swal2-input" value="${userData.email}" style="width:100%;margin:0" required>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:15px">
                     <div>
                         <label style="display:block;font-weight:600;margin-bottom:5px">Role *</label>
                         <select id="swal-role" class="swal2-select" style="width:100%;margin:0" onchange="toggleSwalDept()">
-                            <option value="student" ${roleSelect && roleSelect.value === 'student' ? 'selected' : ''}>Student</option>
-                            <option value="faculty" ${roleSelect && roleSelect.value === 'faculty' ? 'selected' : ''}>Faculty</option>
-                            <option value="mis" ${roleSelect && roleSelect.value === 'mis' ? 'selected' : ''}>MIS</option>
-                            <option value="school_admin" ${roleSelect && roleSelect.value === 'school_admin' ? 'selected' : ''}>School Administrator</option>
-                            <option value="building_admin" ${roleSelect && roleSelect.value === 'building_admin' ? 'selected' : ''}>Building Administrator</option>
-                            <option value="academic_head" ${roleSelect && roleSelect.value === 'academic_head' ? 'selected' : ''}>Academic Head</option>
-                            <option value="program_head" ${roleSelect && roleSelect.value === 'program_head' ? 'selected' : ''}>Program Head</option>
-                            <option value="principal_assistant" ${roleSelect && roleSelect.value === 'principal_assistant' ? 'selected' : ''}>Principal Assistant</option>
+                            <option value="student" ${userData.role === 'student' ? 'selected' : ''}>Student</option>
+                            <option value="faculty" ${userData.role === 'faculty' ? 'selected' : ''}>Faculty</option>
+                            <option value="mis" ${userData.role === 'mis' ? 'selected' : ''}>MIS</option>
+                            <option value="school_admin" ${userData.role === 'school_admin' ? 'selected' : ''}>School Administrator</option>
+                            <option value="building_admin" ${userData.role === 'building_admin' ? 'selected' : ''}>Building Administrator</option>
+                            <option value="academic_head" ${userData.role === 'academic_head' ? 'selected' : ''}>Academic Head</option>
+                            <option value="program_head" ${userData.role === 'program_head' ? 'selected' : ''}>Program Head</option>
+                            <option value="principal_assistant" ${userData.role === 'principal_assistant' ? 'selected' : ''}>Principal Assistant</option>
                         </select>
                     </div>
-                    <div id="swal-dept-field" style="${roleSelect && roleSelect.value === 'program_head' ? '' : 'display:none'}">
+                    <div id="swal-dept-field" style="${userData.role === 'program_head' ? '' : 'display:none'}">
                         <label style="display:block;font-weight:600;margin-bottom:5px">Department</label>
                         <select id="swal-dept" class="swal2-select" style="width:100%;margin:0">
                             <option value="">Select Department</option>
-                            <option value="GE" ${deptSelect && deptSelect.value === 'GE' ? 'selected' : ''}>GE</option>
-                            <option value="ICT" ${deptSelect && deptSelect.value === 'ICT' ? 'selected' : ''}>ICT</option>
-                            <option value="Business Management" ${deptSelect && deptSelect.value === 'Business Management' ? 'selected' : ''}>Business Management</option>
-                            <option value="THM" ${deptSelect && deptSelect.value === 'THM' ? 'selected' : ''}>THM</option>
+                            <option value="GE" ${userData.department === 'GE' ? 'selected' : ''}>GE</option>
+                            <option value="ICT" ${userData.department === 'ICT' ? 'selected' : ''}>ICT</option>
+                            <option value="Business Management" ${userData.department === 'Business Management' ? 'selected' : ''}>Business Management</option>
+                            <option value="THM" ${userData.department === 'THM' ? 'selected' : ''}>THM</option>
                         </select>
                     </div>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:15px">
                     <div>
                         <label style="display:block;font-weight:600;margin-bottom:5px">Phone</label>
-                        <input id="swal-phone" class="swal2-input" value="${phoneInput ? phoneInput.value || '' : ''}" placeholder="09XXXXXXXXX" maxlength="11" style="width:100%;margin:0">
+                        <input id="swal-phone" class="swal2-input" value="${userData.phone}" placeholder="09XXXXXXXXX" maxlength="11" style="width:100%;margin:0">
                     </div>
                     <div>
                         <label style="display:block;font-weight:600;margin-bottom:5px">Student ID</label>
-                        <input id="swal-studentid" class="swal2-input" value="${studentIdInput ? studentIdInput.value || '' : ''}" style="width:100%;margin:0">
+                        <input id="swal-studentid" class="swal2-input" value="${userData.studentId}" style="width:100%;margin:0">
                     </div>
                 </div>
                 <div style="margin-bottom:15px">
@@ -1968,7 +1993,7 @@ async function editUser(userId) {
         });
         
         try {
-            const response = await fetch(form.action, {
+            const response = await fetch(userData.formAction, {
                 method: 'POST',
                 body: formData
             });
