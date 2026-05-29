@@ -11,8 +11,22 @@
 
 @section('content')
 <div class="container-fluid px-3">
-    <div class="row mb-4">
-        <div class="col-12 text-end">
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <form method="GET" action="{{ route('admin.archiveFolderUsers', $folder->id) }}" class="d-inline">
+                <label class="form-label me-2 mb-0">Show:</label>
+                <select name="per_page" class="form-select form-select-sm d-inline-block w-auto" onchange="this.form.submit()">
+                    <option value="10" {{ request('per_page') == '10' ? 'selected' : '' }}>10 per page</option>
+                    <option value="20" {{ (!request('per_page') || request('per_page') == '20') ? 'selected' : '' }}>20 per page</option>
+                    <option value="50" {{ request('per_page') == '50' ? 'selected' : '' }}>50 per page</option>
+                    <option value="100" {{ request('per_page') == '100' ? 'selected' : '' }}>100 per page</option>
+                </select>
+            </form>
+        </div>
+        <div class="col-md-6 text-end">
+            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteAllModal">
+                <i class="fas fa-trash"></i> Delete All
+            </button>
             <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#restoreAllModal">
                 <i class="fas fa-trash-restore"></i> Restore All
             </button>
@@ -89,6 +103,42 @@
                         @endforelse
                     </tbody>
                 </table>
+            </div>
+
+            <!-- Pagination -->
+            @if($users->hasPages())
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <div class="text-muted">
+                    Showing {{ $users->firstItem() ?? 0 }} to {{ $users->lastItem() ?? 0 }} of {{ $users->total() }} users
+                </div>
+                <div>
+                    {{ $users->appends(['per_page' => request('per_page')])->links() }}
+                </div>
+            </div>
+            @endif
+        </div>
+    </div>
+</div>
+
+<!-- Delete All Modal -->
+<div class="modal fade" id="deleteAllModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-trash me-1"></i> Delete All Users</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Are you sure you want to delete all {{ $folder->user_count }} users from this folder?</strong></p>
+                <p class="text-danger">All users will be moved to the "Deleted Users" folder.</p>
+                <p class="text-muted">They can be restored later from the Deleted Users folder.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form action="{{ route('admin.archiveFolderUsers.deleteAll', $folder->id) }}" method="POST" class="d-inline">
+                    @csrf
+                    <button type="submit" class="btn btn-danger"><i class="fas fa-trash me-1"></i> Delete All</button>
+                </form>
             </div>
         </div>
     </div>

@@ -346,6 +346,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::post('/admin/users/restore-all-folder/{folder_id}', [AdminController::class, 'restoreAllFolderUsers'])->name('admin.users.restoreAllFolder');
     Route::post('/admin/users/import', [AdminController::class, 'importUsers'])->name('admin.users.import');
     Route::get('/admin/users/archive-folders/{id}', [AdminController::class, 'archiveFolderUsers'])->name('admin.archiveFolderUsers');
+    Route::post('/admin/users/archive-folders/{id}/delete-all', [AdminController::class, 'deleteAllFolderUsers'])->name('admin.archiveFolderUsers.deleteAll');
     Route::delete('/admin/users/archive-folders/{id}', [AdminController::class, 'deleteArchiveFolder'])->name('admin.archiveFolder.delete');
     Route::get('/admin/users/{uuid}/edit', [AdminController::class, 'editUser'])->name('admin.users.edit');
     Route::put('/admin/users/{uuid}', [AdminController::class, 'updateUser'])->name('admin.users.update');

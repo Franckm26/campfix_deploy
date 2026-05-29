@@ -3245,12 +3245,68 @@ class AdminController extends Controller
     }
 
     // View users in a specific archive folder
-    public function archiveFolderUsers($id)
+    public function archiveFolderUsers(Request $request, $id)
     {
         $folder = UserArchiveFolder::findOrFail($id);
-        $users = User::where('archive_folder_id', $id)->orderBy('name', 'asc')->get();
+        $perPage = $request->get('per_page', 20);
+        $users = User::where('archive_folder_id', $id)
+            ->orderBy('name', 'asc')
+            ->paginate($perPage);
 
         return view('admin.archive-folder-users', compact('folder', 'users'));
+    }
+
+    // Delete all users in archive folder
+    public function deleteAllFolderUsers($id)
+    {
+        if (!auth()->user()->canAccess('users_delete')) {
+            return redirect()->back()->with('error', 'You do not have permission to perform this action.');
+        }
+
+        $folder = UserArchiveFolder::findOrFail($id);
+        $folderName = $folder->name;
+        
+        // Get all users in this folder
+        $users = User::where('archive_folder_id', $id)->get();
+        $count = $users->count();
+
+        // Get or create the "Deleted Users" system folder
+        $deletedFolder = UserArchiveFolder::firstOrCreate(
+            ['name' => 'Deleted Users'],
+            [
+                'description' => 'Users that have been deleted and can be restored',
+                'is_system' => true,
+            ]
+        );
+
+        // Move all users to Deleted Users folder
+        foreach ($users as $user) {
+            $user->is_deleted = true;
+            $user->deleted_at = now();
+            $user->deleted_by = auth()->id();
+            $user->archive_folder_id = $deletedFolder->id;
+            $user->save();
+
+            // Log activity
+            ActivityLog::log('user_deleted', "User '{$user->name}' deleted from folder '{$folderName}'", $user->id, 'user');
+        }
+
+        // Update folder counts
+        $folder->user_count = 0;
+        $folder->save();
+
+        $deletedFolder->user_count = $deletedFolder->archivedUsers()->count();
+        $deletedFolder->save();
+
+        // Delete the folder if it's now empty
+        if ($folder->user_count == 0 && !$folder->is_system) {
+            $folder->delete();
+            return redirect()->route('admin.users', ['view' => 'archives'])
+                ->with('success', "Successfully deleted all {$count} users from folder '{$folderName}'. The empty folder has been removed.");
+        }
+
+        return redirect()->route('admin.archiveFolderUsers', $id)
+            ->with('success', "Successfully deleted all {$count} users from folder '{$folderName}'.");
     }
 
     // Delete archive folder
