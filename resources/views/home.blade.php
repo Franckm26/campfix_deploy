@@ -11,15 +11,22 @@
     <title>CampFix - Campus Facility Management System</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="{{ asset('css/home.css') }}" rel="stylesheet">
-
+    <style>
+        <?php echo file_get_contents(public_path('css/home.css')); ?>
+    </style>
 </head>
 <body>
     <!-- Header -->
     <nav class="navbar navbar-expand-lg">
         <div class="container">
             <a class="navbar-brand" href="/">
-                <img src="{{ asset('Campfix/Images/logo.png') }}" alt="CampFix Logo" height="60">
+                <?php
+                $logoPath = public_path('Campfix/Images/logo.png');
+                if (file_exists($logoPath)) {
+                    $logoData = base64_encode(file_get_contents($logoPath));
+                    echo '<img src="data:image/png;base64,' . $logoData . '" alt="CampFix Logo" height="60">';
+                }
+                ?>
                 <span class="logo-text"><span class="camp-text">Camp</span><span class="fix-text">fix</span></span>
             </a>
             <button class="mobile-menu-btn" onclick="toggleMenu()">

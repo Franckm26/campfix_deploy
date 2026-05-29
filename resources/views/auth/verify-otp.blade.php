@@ -4,8 +4,8 @@
     <title>Campfix - Verify Code</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="{{ asset('css/auth-verify-otp.css') }}" rel="stylesheet">
     <style>
+        <?php echo file_get_contents(public_path('css/auth-verify-otp.css')); ?>
         
         .countdown-timer {
             text-align: center;
@@ -65,7 +65,13 @@
     <!-- Logo -->
     <div class="logo-container">
         <div class="logo-wrapper">
-            <img src="{{ asset('Campfix/Images/logo.png') }}" alt="Campfix Logo" class="logo-img">
+            <?php
+            $logoPath = public_path('Campfix/Images/logo.png');
+            if (file_exists($logoPath)) {
+                $logoData = base64_encode(file_get_contents($logoPath));
+                echo '<img src="data:image/png;base64,' . $logoData . '" alt="Campfix Logo" class="logo-img">';
+            }
+            ?>
             <span class="logo-text">Campfix</span>
         </div>
     </div>
