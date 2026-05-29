@@ -8,4 +8,4 @@ Disallow: /settings
 Disallow: /profile
 Disallow: /api/
 
-Sitemap: https://campfix.vercel.app/sitemap.xml
+Sitemap: https://www.campfixsti.com/sitemap.xml
