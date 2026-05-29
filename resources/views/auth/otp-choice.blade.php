@@ -4,9 +4,8 @@
     <title>Campfix - OTP Delivery Choice</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        <?php echo file_get_contents(public_path('css/auth-otp-choice.css')); ?>
-    </style>
+    <link href="{{ asset('css/auth-otp-choice.css') }}" rel="stylesheet">
+
 </head>
 <body>
 
@@ -15,13 +14,7 @@
     <!-- Logo -->
     <div class="logo-container">
         <div style="display: flex; align-items: center; gap: 12px;">
-            <?php
-            $logoPath = public_path('Campfix/Images/logo.png');
-            if (file_exists($logoPath)) {
-                $logoData = base64_encode(file_get_contents($logoPath));
-                echo '<img src="data:image/png;base64,' . $logoData . '" alt="STI Logo" class="logo-img">';
-            }
-            ?>
+            <img src="{{ asset('Campfix/Images/logo.png') }}" alt="STI Logo" class="logo-img">
             <span style="font-size: 28px; font-weight: 700; color: #1a1a1a;">Campfix</span>
         </div>
     </div>

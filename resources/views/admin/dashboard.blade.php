@@ -1,14 +1,7 @@
 @extends('layouts.app')
 
 @section('styles')
-<style>
-<?php
-$adminCssPath = public_path('css/admin.css');
-if (file_exists($adminCssPath)) {
-    echo file_get_contents($adminCssPath);
-}
-?>
-</style>
+<link href="{{ asset('css/admin.css') }}" rel="stylesheet">
 <style>
     .stat-card { border-left: 4px solid; border-radius: 8px; }
     .stat-card.blue   { border-color: #0d6efd; }
@@ -25,13 +18,7 @@ if (file_exists($adminCssPath)) {
 
 @section('page_title')
 <div style="display:flex;align-items:center;gap:12px">
-    <?php
-    $imagesPath = public_path('Campfix/Images/images.png');
-    if (file_exists($imagesPath)) {
-        $imagesData = base64_encode(file_get_contents($imagesPath));
-        echo '<img src="data:image/png;base64,' . $imagesData . '" alt="STI Logo" style="height:40px">';
-    }
-    ?>
+    <img src="{{ asset('Campfix/Images/images.png') }}" alt="STI Logo" style="height:40px">
     <h2 style="margin:0">Home</h2>
 </div>
 @endsection

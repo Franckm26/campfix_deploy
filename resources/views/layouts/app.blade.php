@@ -6,27 +6,15 @@
 <meta name="csrf-token" content="{{ csrf_token() }}">
 
 <!-- Favicon -->
-<?php
-$logoPath = public_path('Campfix/Images/logo.png');
-if (file_exists($logoPath)) {
-    $logoData = base64_encode(file_get_contents($logoPath));
-    echo '<link rel="icon" type="image/png" href="data:image/png;base64,' . $logoData . '">';
-    echo '<link rel="shortcut icon" type="image/png" href="data:image/png;base64,' . $logoData . '">';
-}
-?>
+<link rel="icon" type="image/png" href="{{ asset('Campfix/Images/logo.png') }}">
+<link rel="shortcut icon" type="image/png" href="{{ asset('Campfix/Images/logo.png') }}">
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
 
-<style>
-<?php
-$cssPath = public_path('css/app.css');
-if (file_exists($cssPath)) {
-    echo file_get_contents($cssPath);
-}
-?>
-</style>
+<!-- App CSS - Served via Vercel CDN -->
+<link href="{{ asset('css/app.css') }}" rel="stylesheet">
 
 @yield('styles')
 
@@ -329,13 +317,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- Sidebar/Nav -->
 <div class="sidebar">
     <div class="sidebar-header">
-        <?php
-        $logoPath = public_path('Campfix/Images/logo.png');
-        if (file_exists($logoPath)) {
-            $logoData = base64_encode(file_get_contents($logoPath));
-            echo '<img src="data:image/png;base64,' . $logoData . '" alt="CampFix Logo">';
-        }
-        ?>
+        <img src="{{ asset('Campfix/Images/logo.png') }}" alt="CampFix Logo">
     </div>
 
     <div class="sidebar-content">
