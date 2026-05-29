@@ -504,10 +504,24 @@ if (file_exists($adminCssPath)) {
     @if(($viewType ?? '') == 'archives')
     <div class="card mb-3">
         <div class="card-body">
-            <div class="text-end">
-                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteAllArchivedModal">
-                    <i class="fas fa-trash"></i> Delete All Archived
-                </button>
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <form method="GET" action="{{ route('admin.users', ['view' => 'archives']) }}" class="d-inline">
+                        <input type="hidden" name="view" value="archives">
+                        <label class="form-label me-2 mb-0">Show:</label>
+                        <select name="per_page" class="form-select form-select-sm d-inline-block w-auto" onchange="this.form.submit()">
+                            <option value="10" {{ request('per_page') == '10' ? 'selected' : '' }}>10 per page</option>
+                            <option value="20" {{ (!request('per_page') || request('per_page') == '20') ? 'selected' : '' }}>20 per page</option>
+                            <option value="50" {{ request('per_page') == '50' ? 'selected' : '' }}>50 per page</option>
+                            <option value="100" {{ request('per_page') == '100' ? 'selected' : '' }}>100 per page</option>
+                        </select>
+                    </form>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteAllArchivedModal">
+                        <i class="fas fa-trash"></i> Delete All Archived
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -581,6 +595,18 @@ if (file_exists($adminCssPath)) {
                     </tbody>
                 </table>
             </div>
+
+            <!-- Pagination -->
+            @if($archiveFolders->hasPages())
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <div class="text-muted">
+                    Showing {{ $archiveFolders->firstItem() ?? 0 }} to {{ $archiveFolders->lastItem() ?? 0 }} of {{ $archiveFolders->total() }} folders
+                </div>
+                <div>
+                    {{ $archiveFolders->appends(['view' => 'archives', 'per_page' => request('per_page')])->links() }}
+                </div>
+            </div>
+            @endif
         </div>
     </div>
     @endif

@@ -1923,8 +1923,11 @@ class AdminController extends Controller
 
         // Handle archive folders view
         if ($viewType === 'archives') {
-            // Get archive folders (exclude Deleted Users system folder)
-            $archiveFolders = UserArchiveFolder::where('name', '!=', 'Deleted Users')->orderBy('created_at', 'desc')->get();
+            // Get archive folders (exclude Deleted Users system folder) with pagination
+            $perPage = $request->get('per_page', 20);
+            $archiveFolders = UserArchiveFolder::where('name', '!=', 'Deleted Users')
+                ->orderBy('created_at', 'desc')
+                ->paginate($perPage);
 
             return view('admin.users', [
                 'viewType' => $viewType,
