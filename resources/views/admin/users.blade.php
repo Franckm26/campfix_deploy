@@ -1798,231 +1798,220 @@ function viewUser(userId) {
     modal.show();
 }
 
-// Edit user function with SweetAlert2
+// Edit user function with SweetAlert2 - fetch data via AJAX
 async function editUser(userId) {
-    // Get user data from the table row
-    const row = document.querySelector(`tr[data-id="${userId}"]`);
-    if (!row) {
-        Swal.fire('Error', 'User not found', 'error');
-        return;
-    }
-    
-    // Try to get data from the hidden modal first
-    const modal = document.getElementById('editUserModal' + userId);
-    let userData = {};
-    
-    if (modal) {
-        const form = modal.querySelector('form');
-        userData = {
-            name: form.querySelector('[name="name"]')?.value || '',
-            email: form.querySelector('[name="email"]')?.value || '',
-            role: form.querySelector('[name="role"]')?.value || 'student',
-            department: form.querySelector('[name="department"]')?.value || '',
-            phone: form.querySelector('[name="phone"]')?.value || '',
-            studentId: form.querySelector('[name="student_id"]')?.value || '',
-            formAction: form.action
-        };
-        
-        // Get permissions
-        const permCheckboxes = form.querySelectorAll('[name="permissions[]"]');
-        userData.permissions = Array.from(permCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
-    } else {
-        // Fallback: get basic data from table row
-        const cells = row.querySelectorAll('td');
-        userData = {
-            name: cells[2]?.textContent || '',
-            email: cells[3]?.textContent || '',
-            role: 'student',
-            department: cells[4]?.textContent || '',
-            phone: cells[5]?.textContent || '',
-            studentId: cells[1]?.textContent || '',
-            permissions: [],
-            formAction: `/admin/users/${userId}`
-        };
-    }
-    
-    // Get all modules and sub-permissions
-    const allModules = @json(\App\Models\User::allModules());
-    const subPerms = @json(\App\Models\User::subPermissions());
-    
-    // Build module access HTML
-    let moduleHtml = '<div style="max-height:400px;overflow-y:auto;padding:10px;background:#f8f9fa;border-radius:8px">';
-    moduleHtml += '<div style="margin-bottom:15px"><strong style="color:#0d6efd"><i class="fas fa-shield-halved me-2"></i>Module Access</strong><br><small class="text-muted">Select which modules this user can access</small></div>';
-    moduleHtml += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">';
-    
-    Object.keys(allModules).forEach(key => {
-        const mod = allModules[key];
-        const isChecked = userData.permissions.includes(key);
-        const hasSubPerms = subPerms[key] !== undefined;
-        
-        moduleHtml += `<div style="background:white;padding:10px;border-radius:6px;border:1px solid #dee2e6">`;
-        moduleHtml += `<label style="display:flex;align-items:center;cursor:pointer;margin:0">`;
-        moduleHtml += `<input type="checkbox" class="perm-checkbox" value="${key}" ${isChecked ? 'checked' : ''} 
-                       ${hasSubPerms ? `onchange="toggleSwalSubPerms('${key}',this.checked)"` : ''}
-                       style="margin-right:8px;width:18px;height:18px">`;
-        moduleHtml += `<span style="font-size:14px;font-weight:500">${mod.label}</span>`;
-        moduleHtml += `</label>`;
-        
-        // Add sub-permissions if they exist
-        if (hasSubPerms) {
-            moduleHtml += `<div id="swal_sub_${key}" style="margin-left:26px;margin-top:8px;${isChecked ? '' : 'display:none'}">`;
-            Object.keys(subPerms[key]).forEach(subKey => {
-                const subLabel = subPerms[key][subKey];
-                const isSubChecked = userData.permissions.includes(subKey);
-                moduleHtml += `<label style="display:flex;align-items:center;cursor:pointer;margin:4px 0;font-size:13px;color:#666">`;
-                moduleHtml += `<input type="checkbox" class="perm-checkbox" value="${subKey}" ${isSubChecked ? 'checked' : ''} style="margin-right:6px;width:16px;height:16px">`;
-                moduleHtml += `<span>${subLabel}</span>`;
-                moduleHtml += `</label>`;
-            });
-            moduleHtml += `</div>`;
-        }
-        
-        moduleHtml += `</div>`;
+    // Show loading while fetching user data
+    Swal.fire({
+        title: 'Loading...',
+        html: '<div class="spinner-border text-primary"></div>',
+        showConfirmButton: false,
+        allowOutsideClick: false
     });
     
-    moduleHtml += '</div>';
-    moduleHtml += '<div style="margin-top:15px;display:flex;gap:10px">';
-    moduleHtml += '<button type="button" class="swal2-confirm swal2-styled" onclick="selectAllSwalPerms(true)" style="padding:8px 16px;font-size:13px"><i class="fas fa-check-double me-1"></i>Select All</button>';
-    moduleHtml += '<button type="button" class="swal2-cancel swal2-styled" onclick="selectAllSwalPerms(false)" style="padding:8px 16px;font-size:13px"><i class="fas fa-xmark me-1"></i>Clear All</button>';
-    moduleHtml += '</div>';
-    moduleHtml += '</div>';
-    
-    const { value: formValues } = await Swal.fire({
-        title: '<i class="fas fa-user-pen me-2"></i>Edit User',
-        html: `
-            <div style="text-align:left">
-                <div style="margin-bottom:15px">
-                    <label style="display:block;font-weight:600;margin-bottom:5px">Name *</label>
-                    <input id="swal-name" class="swal2-input" value="${userData.name}" style="width:100%;margin:0" required>
-                </div>
-                <div style="margin-bottom:15px">
-                    <label style="display:block;font-weight:600;margin-bottom:5px">Email *</label>
-                    <input id="swal-email" type="email" class="swal2-input" value="${userData.email}" style="width:100%;margin:0" required>
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:15px">
-                    <div>
-                        <label style="display:block;font-weight:600;margin-bottom:5px">Role *</label>
-                        <select id="swal-role" class="swal2-select" style="width:100%;margin:0" onchange="toggleSwalDept()">
-                            <option value="student" ${userData.role === 'student' ? 'selected' : ''}>Student</option>
-                            <option value="faculty" ${userData.role === 'faculty' ? 'selected' : ''}>Faculty</option>
-                            <option value="mis" ${userData.role === 'mis' ? 'selected' : ''}>MIS</option>
-                            <option value="school_admin" ${userData.role === 'school_admin' ? 'selected' : ''}>School Administrator</option>
-                            <option value="building_admin" ${userData.role === 'building_admin' ? 'selected' : ''}>Building Administrator</option>
-                            <option value="academic_head" ${userData.role === 'academic_head' ? 'selected' : ''}>Academic Head</option>
-                            <option value="program_head" ${userData.role === 'program_head' ? 'selected' : ''}>Program Head</option>
-                            <option value="principal_assistant" ${userData.role === 'principal_assistant' ? 'selected' : ''}>Principal Assistant</option>
-                        </select>
-                    </div>
-                    <div id="swal-dept-field" style="${userData.role === 'program_head' ? '' : 'display:none'}">
-                        <label style="display:block;font-weight:600;margin-bottom:5px">Department</label>
-                        <select id="swal-dept" class="swal2-select" style="width:100%;margin:0">
-                            <option value="">Select Department</option>
-                            <option value="GE" ${userData.department === 'GE' ? 'selected' : ''}>GE</option>
-                            <option value="ICT" ${userData.department === 'ICT' ? 'selected' : ''}>ICT</option>
-                            <option value="Business Management" ${userData.department === 'Business Management' ? 'selected' : ''}>Business Management</option>
-                            <option value="THM" ${userData.department === 'THM' ? 'selected' : ''}>THM</option>
-                        </select>
-                    </div>
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:15px">
-                    <div>
-                        <label style="display:block;font-weight:600;margin-bottom:5px">Phone</label>
-                        <input id="swal-phone" class="swal2-input" value="${userData.phone}" placeholder="09XXXXXXXXX" maxlength="11" style="width:100%;margin:0">
-                    </div>
-                    <div>
-                        <label style="display:block;font-weight:600;margin-bottom:5px">Student ID</label>
-                        <input id="swal-studentid" class="swal2-input" value="${userData.studentId}" style="width:100%;margin:0">
-                    </div>
-                </div>
-                <div style="margin-bottom:15px">
-                    <label style="display:block;font-weight:600;margin-bottom:5px">New Password <small style="color:#666;font-weight:400">(leave blank to keep current)</small></label>
-                    <input id="swal-password" type="password" class="swal2-input" placeholder="Min 8 characters" minlength="8" maxlength="20" style="width:100%;margin:0">
-                </div>
-                ${moduleHtml}
-            </div>
-        `,
-        width: '900px',
-        showCancelButton: true,
-        confirmButtonText: '<i class="fas fa-save me-1"></i>Update User',
-        cancelButtonText: 'Cancel',
-        confirmButtonColor: '#0d6efd',
-        preConfirm: () => {
-            const name = document.getElementById('swal-name').value;
-            const email = document.getElementById('swal-email').value;
-            const role = document.getElementById('swal-role').value;
-            const dept = document.getElementById('swal-dept')?.value || '';
-            const phone = document.getElementById('swal-phone').value;
-            const studentId = document.getElementById('swal-studentid').value;
-            const password = document.getElementById('swal-password').value;
-            const permissions = Array.from(document.querySelectorAll('.perm-checkbox:checked')).map(cb => cb.value);
+    try {
+        // Fetch user data from server
+        const response = await fetch(`/admin/users/${userId}/edit`, {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch user data');
+        }
+        
+        const userData = await response.json();
+        
+        // Get all modules and sub-permissions
+        const allModules = @json(\App\Models\User::allModules());
+        const subPerms = @json(\App\Models\User::subPermissions());
+        
+        // Build module access HTML
+        let moduleHtml = '<div style="max-height:400px;overflow-y:auto;padding:10px;background:#f8f9fa;border-radius:8px">';
+        moduleHtml += '<div style="margin-bottom:15px"><strong style="color:#0d6efd"><i class="fas fa-shield-halved me-2"></i>Module Access</strong><br><small class="text-muted">Select which modules this user can access</small></div>';
+        moduleHtml += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">';
+        
+        Object.keys(allModules).forEach(key => {
+            const mod = allModules[key];
+            const isChecked = userData.permissions && userData.permissions.includes(key);
+            const hasSubPerms = subPerms[key] !== undefined;
             
-            if (!name || !email || !role) {
-                Swal.showValidationMessage('Please fill in all required fields');
-                return false;
+            moduleHtml += `<div style="background:white;padding:10px;border-radius:6px;border:1px solid #dee2e6">`;
+            moduleHtml += `<label style="display:flex;align-items:center;cursor:pointer;margin:0">`;
+            moduleHtml += `<input type="checkbox" class="perm-checkbox" value="${key}" ${isChecked ? 'checked' : ''} 
+                           ${hasSubPerms ? `onchange="toggleSwalSubPerms('${key}',this.checked)"` : ''}
+                           style="margin-right:8px;width:18px;height:18px">`;
+            moduleHtml += `<span style="font-size:14px;font-weight:500">${mod.label}</span>`;
+            moduleHtml += `</label>`;
+            
+            // Add sub-permissions if they exist
+            if (hasSubPerms) {
+                moduleHtml += `<div id="swal_sub_${key}" style="margin-left:26px;margin-top:8px;${isChecked ? '' : 'display:none'}">`;
+                Object.keys(subPerms[key]).forEach(subKey => {
+                    const subLabel = subPerms[key][subKey];
+                    const isSubChecked = userData.permissions && userData.permissions.includes(subKey);
+                    moduleHtml += `<label style="display:flex;align-items:center;cursor:pointer;margin:4px 0;font-size:13px;color:#666">`;
+                    moduleHtml += `<input type="checkbox" class="perm-checkbox" value="${subKey}" ${isSubChecked ? 'checked' : ''} style="margin-right:6px;width:16px;height:16px">`;
+                    moduleHtml += `<span>${subLabel}</span>`;
+                    moduleHtml += `</label>`;
+                });
+                moduleHtml += `</div>`;
             }
             
-            return { name, email, role, dept, phone, studentId, password, permissions };
-        }
-    });
-    
-    if (formValues) {
-        // Submit the form
-        const formData = new FormData();
-        formData.append('_token', '{{ csrf_token() }}');
-        formData.append('_method', 'PUT');
-        formData.append('name', formValues.name);
-        formData.append('email', formValues.email);
-        formData.append('role', formValues.role);
-        formData.append('department', formValues.dept);
-        formData.append('phone', formValues.phone);
-        formData.append('student_id', formValues.studentId);
-        if (formValues.password) {
-            formData.append('password', formValues.password);
-        }
-        formData.append('use_custom_permissions', '1');
-        formValues.permissions.forEach(perm => {
-            formData.append('permissions[]', perm);
+            moduleHtml += `</div>`;
         });
         
-        // Show loading
-        Swal.fire({
-            title: 'Updating...',
-            html: '<div class="spinner-border text-primary"></div>',
-            showConfirmButton: false,
-            allowOutsideClick: false
+        moduleHtml += '</div>';
+        moduleHtml += '<div style="margin-top:15px;display:flex;gap:10px">';
+        moduleHtml += '<button type="button" class="swal2-confirm swal2-styled" onclick="selectAllSwalPerms(true)" style="padding:8px 16px;font-size:13px"><i class="fas fa-check-double me-1"></i>Select All</button>';
+        moduleHtml += '<button type="button" class="swal2-cancel swal2-styled" onclick="selectAllSwalPerms(false)" style="padding:8px 16px;font-size:13px"><i class="fas fa-xmark me-1"></i>Clear All</button>';
+        moduleHtml += '</div>';
+        moduleHtml += '</div>';
+        
+        const { value: formValues } = await Swal.fire({
+            title: '<i class="fas fa-user-pen me-2"></i>Edit User',
+            html: `
+                <div style="text-align:left">
+                    <div style="margin-bottom:15px">
+                        <label style="display:block;font-weight:600;margin-bottom:5px">Name *</label>
+                        <input id="swal-name" class="swal2-input" value="${userData.name || ''}" style="width:100%;margin:0" required>
+                    </div>
+                    <div style="margin-bottom:15px">
+                        <label style="display:block;font-weight:600;margin-bottom:5px">Email *</label>
+                        <input id="swal-email" type="email" class="swal2-input" value="${userData.email || ''}" style="width:100%;margin:0" required>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:15px">
+                        <div>
+                            <label style="display:block;font-weight:600;margin-bottom:5px">Role *</label>
+                            <select id="swal-role" class="swal2-select" style="width:100%;margin:0" onchange="toggleSwalDept()">
+                                <option value="student" ${userData.role === 'student' ? 'selected' : ''}>Student</option>
+                                <option value="faculty" ${userData.role === 'faculty' ? 'selected' : ''}>Faculty</option>
+                                <option value="mis" ${userData.role === 'mis' ? 'selected' : ''}>MIS</option>
+                                <option value="school_admin" ${userData.role === 'school_admin' ? 'selected' : ''}>School Administrator</option>
+                                <option value="building_admin" ${userData.role === 'building_admin' ? 'selected' : ''}>Building Administrator</option>
+                                <option value="academic_head" ${userData.role === 'academic_head' ? 'selected' : ''}>Academic Head</option>
+                                <option value="program_head" ${userData.role === 'program_head' ? 'selected' : ''}>Program Head</option>
+                                <option value="principal_assistant" ${userData.role === 'principal_assistant' ? 'selected' : ''}>Principal Assistant</option>
+                            </select>
+                        </div>
+                        <div id="swal-dept-field" style="${userData.role === 'program_head' ? '' : 'display:none'}">
+                            <label style="display:block;font-weight:600;margin-bottom:5px">Department</label>
+                            <select id="swal-dept" class="swal2-select" style="width:100%;margin:0">
+                                <option value="">Select Department</option>
+                                <option value="GE" ${userData.department === 'GE' ? 'selected' : ''}>GE</option>
+                                <option value="ICT" ${userData.department === 'ICT' ? 'selected' : ''}>ICT</option>
+                                <option value="Business Management" ${userData.department === 'Business Management' ? 'selected' : ''}>Business Management</option>
+                                <option value="THM" ${userData.department === 'THM' ? 'selected' : ''}>THM</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:15px">
+                        <div>
+                            <label style="display:block;font-weight:600;margin-bottom:5px">Phone</label>
+                            <input id="swal-phone" class="swal2-input" value="${userData.phone || ''}" placeholder="09XXXXXXXXX" maxlength="11" style="width:100%;margin:0">
+                        </div>
+                        <div>
+                            <label style="display:block;font-weight:600;margin-bottom:5px">Student ID</label>
+                            <input id="swal-studentid" class="swal2-input" value="${userData.student_id || ''}" style="width:100%;margin:0">
+                        </div>
+                    </div>
+                    <div style="margin-bottom:15px">
+                        <label style="display:block;font-weight:600;margin-bottom:5px">New Password <small style="color:#666;font-weight:400">(leave blank to keep current)</small></label>
+                        <input id="swal-password" type="password" class="swal2-input" placeholder="Min 8 characters" minlength="8" maxlength="20" style="width:100%;margin:0">
+                    </div>
+                    ${moduleHtml}
+                </div>
+            `,
+            width: '900px',
+            showCancelButton: true,
+            confirmButtonText: '<i class="fas fa-save me-1"></i>Update User',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#0d6efd',
+            preConfirm: () => {
+                const name = document.getElementById('swal-name').value;
+                const email = document.getElementById('swal-email').value;
+                const role = document.getElementById('swal-role').value;
+                const dept = document.getElementById('swal-dept')?.value || '';
+                const phone = document.getElementById('swal-phone').value;
+                const studentId = document.getElementById('swal-studentid').value;
+                const password = document.getElementById('swal-password').value;
+                const permissions = Array.from(document.querySelectorAll('.perm-checkbox:checked')).map(cb => cb.value);
+                
+                if (!name || !email || !role) {
+                    Swal.showValidationMessage('Please fill in all required fields');
+                    return false;
+                }
+                
+                return { name, email, role, dept, phone, studentId, password, permissions };
+            }
         });
         
-        try {
-            const response = await fetch(userData.formAction, {
-                method: 'POST',
-                body: formData
+        if (formValues) {
+            // Submit the form
+            const formData = new FormData();
+            formData.append('_token', '{{ csrf_token() }}');
+            formData.append('_method', 'PUT');
+            formData.append('name', formValues.name);
+            formData.append('email', formValues.email);
+            formData.append('role', formValues.role);
+            formData.append('department', formValues.dept);
+            formData.append('phone', formValues.phone);
+            formData.append('student_id', formValues.studentId);
+            if (formValues.password) {
+                formData.append('password', formValues.password);
+            }
+            formData.append('use_custom_permissions', '1');
+            formValues.permissions.forEach(perm => {
+                formData.append('permissions[]', perm);
             });
             
-            if (response.ok) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Success!',
-                    text: 'User updated successfully',
-                    timer: 2000,
-                    showConfirmButton: false
-                }).then(() => {
-                    window.location.reload();
+            // Show loading
+            Swal.fire({
+                title: 'Updating...',
+                html: '<div class="spinner-border text-primary"></div>',
+                showConfirmButton: false,
+                allowOutsideClick: false
+            });
+            
+            try {
+                const updateResponse = await fetch(`/admin/users/${userData.uuid || userId}`, {
+                    method: 'POST',
+                    body: formData
                 });
-            } else {
-                const data = await response.json();
+                
+                if (updateResponse.ok) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: 'User updated successfully',
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    const data = await updateResponse.json();
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message || 'Failed to update user'
+                    });
+                }
+            } catch (error) {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: data.message || 'Failed to update user'
+                    text: 'An error occurred while updating the user'
                 });
             }
-        } catch (error) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'An error occurred while updating the user'
-            });
         }
+    } catch (error) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to load user data. Please try again.'
+        });
     }
 }
 

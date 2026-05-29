@@ -2075,8 +2075,23 @@ class AdminController extends Controller
     public function editUser($uuid)
     {
         $user = User::hideSuperadmin()->where('uuid', $uuid)->firstOrFail();
+        
+        // If it's an AJAX request, return JSON
+        if (request()->expectsJson() || request()->ajax()) {
+            return response()->json([
+                'id' => $user->id,
+                'uuid' => $user->uuid,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role,
+                'department' => $user->department,
+                'phone' => $user->phone,
+                'student_id' => $user->student_id,
+                'permissions' => $user->permissions ?? []
+            ]);
+        }
+        
         $users = User::hideSuperadmin()->get();
-
         return view('admin.users', compact('user', 'users'));
     }
 
