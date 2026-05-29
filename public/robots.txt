@@ -1,2 +1,11 @@
 User-agent: *
-Disallow:
+Allow: /
+Disallow: /admin/
+Disallow: /dashboard
+Disallow: /my-concerns
+Disallow: /my-events
+Disallow: /settings
+Disallow: /profile
+Disallow: /api/
+
+Sitemap: https://campfix.vercel.app/sitemap.xml

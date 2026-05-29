@@ -8,6 +8,14 @@
   ],
   "routes": [
     {
+      "src": "/sitemap.xml",
+      "dest": "/api/index.php"
+    },
+    {
+      "src": "/robots.txt",
+      "dest": "/api/index.php"
+    },
+    {
       "src": "/Campfix/Images/(.*)",
       "dest": "/public/Campfix/Images/$1"
     },
@@ -30,10 +38,6 @@
     {
       "src": "/favicon.ico",
       "dest": "/public/favicon.ico"
-    },
-    {
-      "src": "/robots.txt",
-      "dest": "/public/robots.txt"
     },
     {
       "src": "/(.*)",

@@ -11,8 +11,13 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\SitemapController;
 use App\Models\Event;
 use Illuminate\Support\Facades\Route;
+
+/* SITEMAP & ROBOTS.TXT */
+Route::get('/sitemap.xml', [SitemapController::class, 'index']);
+Route::get('/robots.txt', [SitemapController::class, 'robots']);
 
 /* HOMEPAGE */
 Route::get('/', function () {
