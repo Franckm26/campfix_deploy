@@ -223,7 +223,7 @@ if (file_exists($adminCssPath)) {
                                             <i class="fas fa-eye"></i>
                                         </button>
                                         @if(auth()->user()->canAccess('users_edit') && !$user->isProtectedFrom(auth()->user()))
-                                        <button type="button" class="btn btn-sm btn-warning" onclick="editUser({{ $user->id }})" title="Edit">
+                                        <button type="button" class="btn btn-sm btn-warning" onclick="editUser('{{ $user->uuid ?? $user->id }}')" title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </button>
                                         @endif
@@ -1799,7 +1799,7 @@ function viewUser(userId) {
 }
 
 // Edit user function with SweetAlert2 - fetch data via AJAX
-async function editUser(userId) {
+async function editUser(userUuid) {
     // Show loading while fetching user data
     Swal.fire({
         title: 'Loading...',
@@ -1810,7 +1810,7 @@ async function editUser(userId) {
     
     try {
         // Fetch user data from server
-        const response = await fetch(`/admin/users/${userId}/edit`, {
+        const response = await fetch(`/admin/users/${userUuid}/edit`, {
             headers: {
                 'Accept': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
@@ -1975,7 +1975,7 @@ async function editUser(userId) {
             });
             
             try {
-                const updateResponse = await fetch(`/admin/users/${userData.uuid || userId}`, {
+                const updateResponse = await fetch(`/admin/users/${userUuid}`, {
                     method: 'POST',
                     body: formData
                 });
