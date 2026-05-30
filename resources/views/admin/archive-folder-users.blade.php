@@ -105,17 +105,10 @@
                 </table>
             </div>
 
-            <!-- Pagination -->
-            @if($users->hasPages())
-            <div class="d-flex justify-content-between align-items-center mt-3">
-                <div class="text-muted">
-                    Showing {{ $users->firstItem() ?? 0 }} to {{ $users->lastItem() ?? 0 }} of {{ $users->total() }} users
-                </div>
-                <div>
-                    {{ $users->appends(['per_page' => request('per_page')])->links() }}
-                </div>
+            <div class="d-flex justify-content-between align-items-center px-3 py-2">
+                <small class="text-muted">Showing {{ $users->firstItem() ?? 0 }} - {{ $users->lastItem() ?? 0 }} of {{ $users->total() }} entries</small>
+                {{ $users->appends(request()->except('page'))->links('pagination::bootstrap-4') }}
             </div>
-            @endif
         </div>
     </div>
 </div>
