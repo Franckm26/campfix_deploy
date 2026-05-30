@@ -2943,22 +2943,21 @@ class AdminController extends Controller
         $folder = UserArchiveFolder::findOrFail($folder_id);
         $folderName = $folder->name;
 
-        $users = User::where('archive_folder_id', $folder_id)->get();
-        $count = 0;
-
-        foreach ($users as $user) {
-            $user->is_archived = false;
-            $user->archive_folder_id = null;
-            $user->save();
-
-            $count++;
-            ActivityLog::log('user_restored', "Restored user from archive: {$user->name}");
-        }
+        // Restore in one database statement. Loading and saving thousands of
+        // users one-by-one can exceed serverless request limits on Vercel.
+        $count = User::withoutGlobalScopes()
+            ->where('archive_folder_id', $folder_id)
+            ->update([
+                'is_archived' => false,
+                'archive_folder_id' => null,
+                'updated_at' => now(),
+            ]);
 
         // Delete the folder if all users were restored
         if ($count > 0) {
             $folder->delete();
             ActivityLog::log('archive_folder_deleted', "Deleted empty archive folder: {$folderName}");
+            ActivityLog::log('users_restored', "Restored {$count} users from archive folder: {$folderName}");
         }
 
         return redirect()->route('admin.users', ['view' => 'archives'])->with('success', "Successfully restored {$count} users from folder '{$folderName}'! The empty folder has been deleted.");
@@ -7034,6 +7033,5 @@ class AdminController extends Controller
         return back()->with('success', 'Facility request moved to deleted successfully!');
     }
 }
-
 
 
