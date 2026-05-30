@@ -1,5 +1,9 @@
 /* Shared Application JavaScript */
 
+// Import and initialize Vercel Speed Insights
+import { injectSpeedInsights } from '@vercel/speed-insights';
+injectSpeedInsights();
+
 // Modal functions
 function openModal(){
     document.getElementById("submitConcernModal").classList.add("active");
