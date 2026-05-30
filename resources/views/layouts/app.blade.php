@@ -320,6 +320,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+
+<!-- Vercel Speed Insights -->
+<script>
+  window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/speed-insights/script.js"></script>
 </head>
 <body data-user-timezone="{{ auth()->check() ? auth()->user()->timezone : config('app.timezone') }}" data-user-locale="{{ app()->getLocale() }}" data-user-date-format="{{ $userDateFormat ?? 'Y-m-d' }}">
 
