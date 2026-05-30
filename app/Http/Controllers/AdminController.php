@@ -3316,18 +3316,23 @@ class AdminController extends Controller
         $userFolder = UserArchiveFolder::find($id);
 
         if ($userFolder) {
+            if (!auth()->user()->canAccess('users_delete')) {
+                return redirect()->back()->with('error', 'You do not have permission to perform this action.');
+            }
+
             if ($userFolder->is_system) {
                 return back()->with('error', 'Cannot delete system folder!');
             }
 
-            // Delete all users in this folder (permanently remove archived users)
-            $users = User::where('archive_folder_id', $id)->get();
-            $count = $users->count();
-
-            foreach ($users as $user) {
-                ActivityLog::log('user_deleted', "Permanently deleted archived user: {$user->name}");
-                $user->forceDelete();
+            if (User::withoutGlobalScopes()->where('archive_folder_id', $id)->where('id', auth()->id())->exists()) {
+                return back()->with('error', 'Cannot delete a folder that contains your own account.');
             }
+
+            // Delete in one database statement. Loading and deleting thousands of users
+            // one-by-one can exceed serverless request limits on Vercel.
+            $count = User::withoutGlobalScopes()
+                ->where('archive_folder_id', $id)
+                ->delete();
 
             $folderName = $userFolder->name;
             $userFolder->delete();
@@ -7029,8 +7034,6 @@ class AdminController extends Controller
         return back()->with('success', 'Facility request moved to deleted successfully!');
     }
 }
-
-
 
 
 
