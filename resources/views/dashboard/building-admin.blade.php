@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('styles')
-<link href="{{ asset('css/admin.css') }}" rel="stylesheet">
+@include('dashboard.partials.inline-admin-css')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 .analytics-card {
@@ -49,7 +49,7 @@
 
 @section('page_title')
 <div style="display:flex;align-items:center;gap:12px">
-    <img src="{{ asset('Campfix/Images/images.png') }}" alt="STI Logo" style="height:40px">
+    @include('dashboard.partials.sti-logo')
     <h2 style="margin:0">Home</h2>
 </div>
 @endsection
@@ -455,5 +455,4 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 @endsection
-
 
