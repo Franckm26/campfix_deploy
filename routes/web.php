@@ -443,6 +443,11 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/analytics/alert-detail-pdf', [AdminController::class, 'alertDetailPDF'])->name('admin.analytics.alert-detail-pdf');
     Route::post('/admin/concern/{id}/cost', [AdminController::class, 'updateCost'])->name('admin.concern.updateCost');
 
+    // Modal data routes for the session-authenticated admin reports UI.
+    // Avoid the /api prefix because Vercel reserves it for serverless functions.
+    Route::get('/admin/reports/{report}/modal-data', [ReportController::class, 'apiShow'])->name('admin.reports.modalData');
+    Route::get('/admin/reports/{report}/edit-data', [ReportController::class, 'apiEdit'])->name('admin.reports.editData');
+
     // Building Admin: Assign concerns to maintenance
     Route::post('/admin/concern/{id}/assign', [AdminController::class, 'assignConcern'])->name('admin.concern.assign');
 

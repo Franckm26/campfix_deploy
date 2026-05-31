@@ -1251,7 +1251,7 @@ function editReport(id) {
 
     modal.show();
 
-    fetch('/api/reports/' + id + '/edit-data', {
+    fetch('/admin/reports/' + id + '/edit-data', {
         headers: {
             'X-CSRF-TOKEN': '{{ csrf_token() }}',
             'Content-Type': 'application/json'
@@ -1781,7 +1781,7 @@ window.startAssignWizard = async function() {
     let isTechnologyCategory = false;
     
     try {
-        const detailsRes = await fetch('/api/reports/' + itemId, {
+        const detailsRes = await fetch('/admin/reports/' + itemId + '/modal-data', {
             headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
             credentials: 'same-origin'
         });
@@ -1990,7 +1990,7 @@ window.viewReportProgress = async function(id) {
     });
 
     try {
-        const res = await fetch('/api/reports/' + id, {
+        const res = await fetch('/admin/reports/' + id + '/modal-data', {
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                 'Accept': 'application/json'
@@ -2295,7 +2295,7 @@ function viewReport(id) {
         width: '900px'
     });
 
-    fetch('/api/reports/' + id, {
+    fetch('/admin/reports/' + id + '/modal-data', {
         headers: {
             'X-CSRF-TOKEN': '{{ csrf_token() }}',
             'Accept': 'application/json',
@@ -2529,7 +2529,7 @@ function viewReport(id) {
         width: '900px'
     });
 
-    fetch('/api/reports/' + id, {
+    fetch('/admin/reports/' + id + '/modal-data', {
         headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
             'Accept': 'application/json',
@@ -2667,4 +2667,3 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 @endsection
-
