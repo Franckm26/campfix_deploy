@@ -5,7 +5,7 @@
   "builds": [
     {
       "src": "api/index.php",
-      "use": "vercel-php@0.7.1"
+      "use": "vercel-php@0.8.0"
     },
     {
       "src": "public/**",
@@ -55,6 +55,35 @@
     }
   ],
   "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self' https://www.campfixsti.com; script-src 'self' 'unsafe-inline' https://www.campfixsti.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://vercel.live; style-src 'self' 'unsafe-inline' https://www.campfixsti.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; img-src 'self' data: blob: https://www.campfixsti.com https://www.sti.edu; font-src 'self' https://www.campfixsti.com https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com; connect-src 'self' https://www.campfixsti.com https://cdn.jsdelivr.net https://vercel.live; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests;"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "geolocation=(), microphone=(), camera=()"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=31536000; includeSubDomains"
+        }
+      ]
+    },
     {
       "source": "/build/(.*)",
       "headers": [

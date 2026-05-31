@@ -1,0 +1,5 @@
+Contact: https://www.campfixsti.com/
+Preferred-Languages: en
+Canonical: https://www.campfixsti.com/.well-known/security.txt
+Policy: https://www.campfixsti.com/
+Expires: 2027-05-31T00:00:00Z

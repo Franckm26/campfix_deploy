@@ -26,18 +26,17 @@ class SecurityHeaders
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
 
-        // Content Security Policy (OWASP A3: XSS)
-        // Strict CSP that prevents XSS attacks
-        // Note: 'unsafe-inline' is kept for compatibility but should be removed in production
-        // when all inline handlers are converted to event listeners
-        
-        // Get the app URL for CSP
-        $appUrl = config('app.url');
-        $assetUrl = config('app.asset_url', $appUrl);
-        
+        $allowedOrigins = $this->allowedOrigins();
+
         $response->headers->set(
             'Content-Security-Policy',
-            "default-src 'self' {$appUrl} {$assetUrl}; script-src 'self' 'unsafe-inline' 'unsafe-eval' {$appUrl} {$assetUrl} https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://vercel.live; style-src 'self' 'unsafe-inline' {$appUrl} {$assetUrl} https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; img-src 'self' data: blob: {$appUrl} {$assetUrl} https://www.sti.edu; font-src 'self' {$appUrl} {$assetUrl} https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com; connect-src 'self' {$appUrl} {$assetUrl} https://cdn.jsdelivr.net https://vercel.live; frame-ancestors 'none';"
+            "default-src 'self' {$allowedOrigins}; " .
+            "script-src 'self' 'unsafe-inline' {$allowedOrigins} https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://vercel.live; " .
+            "style-src 'self' 'unsafe-inline' {$allowedOrigins} https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; " .
+            "img-src 'self' data: blob: {$allowedOrigins} https://www.sti.edu; " .
+            "font-src 'self' {$allowedOrigins} https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com; " .
+            "connect-src 'self' {$allowedOrigins} https://cdn.jsdelivr.net https://vercel.live; " .
+            "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests;"
         );
 
         // OWASP A6: Additional security headers
@@ -45,5 +44,16 @@ class SecurityHeaders
         $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
 
         return $response;
+    }
+
+    private function allowedOrigins(): string
+    {
+        return collect([
+            config('app.url'),
+            config('app.asset_url'),
+        ])
+            ->filter()
+            ->unique()
+            ->implode(' ');
     }
 }
