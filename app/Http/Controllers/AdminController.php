@@ -924,17 +924,6 @@ class AdminController extends Controller
 
             $groupedReports = $reports->groupBy('location');
 
-            // Debug: log any report descriptions that might contain problematic characters
-            \Log::info('groupedReports locations: ' . implode(', ', $groupedReports->keys()->toArray()));
-            foreach ($groupedReports as $location => $group) {
-                foreach ($group as $report) {
-                    $encoded = json_encode($report->toArray(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
-                    if ($encoded === false) {
-                        \Log::error('json_encode failed for report ID: ' . $report->id . ' - ' . json_last_error_msg());
-                    }
-                }
-            }
-
             // Prepare data for charts
             $chartLocations = $locationStats->pluck('location')->toArray();
             $chartCounts = $locationStats->pluck('count')->toArray();
@@ -4208,11 +4197,6 @@ class AdminController extends Controller
         if ($request->has('location_filter') && $request->input('ajax') == '1') {
             $location = $request->input('location_filter');
             
-            \Log::info('AJAX Request for location tickets', [
-                'location' => $location,
-                'all_params' => $request->all()
-            ]);
-            
             if ($location) {
                 $query = Report::where('location', $location);
                 
@@ -4246,11 +4230,6 @@ class AdminController extends Controller
                     ->unique()
                     ->sort()
                     ->values();
-
-                \Log::info('Returning tickets', [
-                    'count' => $tickets->count(),
-                    'tickets' => $tickets->toArray()
-                ]);
 
                 return response()->json([
                     'success' => true,
@@ -4623,8 +4602,6 @@ class AdminController extends Controller
             $statusReportIds[$status] = implode(', ', $formattedReports);
         }
         
-        \Log::info('Status Report IDs:', ['statusReportIds' => $statusReportIds, 'period' => $period, 'date_from' => $request->input('date_from'), 'date_to' => $request->input('date_to')]);
-
         // ========== RESPONSE TIME ANALYSIS (must be before AJAX response) ==========
         
         try {
@@ -7033,5 +7010,4 @@ class AdminController extends Controller
         return back()->with('success', 'Facility request moved to deleted successfully!');
     }
 }
-
 
