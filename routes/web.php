@@ -183,6 +183,11 @@ Route::middleware('auth')->group(function () {
     // Maintenance: View assigned concerns - must come before {id} route
     // Maintenance: View assigned reports - must come before {id} route
 
+    // Modal data routes for the session-authenticated web UI. Avoid the /api
+    // prefix here because Vercel reserves it for serverless functions.
+    Route::get('/concerns/{id}/modal-data', [ConcernController::class, 'apiShow'])->name('concerns.modalData');
+    Route::get('/concerns/{id}/edit-data', [ConcernController::class, 'apiEditData'])->name('concerns.editData');
+
     Route::get('/concerns/{id}', [ConcernController::class, 'show'])->name('concerns.show');
     Route::get('/concerns/{id}/edit', [ConcernController::class, 'edit'])->name('concerns.edit');
     Route::put('/concerns/{id}', [ConcernController::class, 'update'])->name('concerns.update');
@@ -209,7 +214,7 @@ Route::middleware('auth')->group(function () {
 
     // API routes for modal data
     Route::get('/api/concerns/{id}', [ConcernController::class, 'apiShow'])->name('concerns.api.show');
-    Route::get('/api/concerns/{id}/edit-data', [ConcernController::class, 'apiEdit'])->name('concerns.api.edit');
+    Route::get('/api/concerns/{id}/edit-data', [ConcernController::class, 'apiEditData'])->name('concerns.api.edit');
     Route::get('/api/reports/{report}', [ReportController::class, 'apiShow'])->name('reports.api.show');
     Route::get('/api/reports/{report}/edit-data', [ReportController::class, 'apiEdit'])->name('reports.api.edit');
 

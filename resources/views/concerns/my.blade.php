@@ -1895,7 +1895,7 @@ function viewConcern(id) {
         width: '900px'
     });
     
-    fetch('/api/concerns/' + id, {
+    fetch('/concerns/' + id + '/modal-data', {
         headers: {
             'X-CSRF-TOKEN': '{{ csrf_token() }}',
             'Content-Type': 'application/json',
@@ -2030,7 +2030,7 @@ function editConcern(id) {
 
     modal.show();
 
-    fetch('/api/concerns/' + id + '/edit-data', {
+    fetch('/concerns/' + id + '/edit-data', {
         headers: {
             'X-CSRF-TOKEN': '{{ csrf_token() }}',
             'X-Requested-With': 'XMLHttpRequest',
