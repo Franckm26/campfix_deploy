@@ -17,27 +17,27 @@
     },
     {
       "src": "/Campfix/Images/(.*)",
-      "dest": "/public/Campfix/Images/$1"
+      "dest": "/Campfix/Images/$1"
     },
     {
       "src": "/Campfix/(.*)",
-      "dest": "/public/Campfix/$1"
+      "dest": "/Campfix/$1"
     },
     {
       "src": "/build/(.*)",
-      "dest": "/public/build/$1"
+      "dest": "/build/$1"
     },
     {
       "src": "/css/(.*)",
-      "dest": "/public/css/$1"
+      "dest": "/css/$1"
     },
     {
       "src": "/js/(.*)",
-      "dest": "/public/js/$1"
+      "dest": "/js/$1"
     },
     {
       "src": "/favicon.ico",
-      "dest": "/public/favicon.ico"
+      "dest": "/favicon.ico"
     },
     {
       "src": "/(.*)",
