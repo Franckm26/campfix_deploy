@@ -576,7 +576,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 </div>
 
-@auth
+@if($showEventRequestModal ?? false)
 <!-- Event Request Modal for Faculty -->
 <div class="modal fade" id="eventRequestModal" tabindex="-1" aria-labelledby="eventRequestModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
@@ -1687,7 +1687,7 @@ document.addEventListener('DOMContentLoaded', function() {
     @endif
     
 </script>
-@endauth
+@endif
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" defer></script>

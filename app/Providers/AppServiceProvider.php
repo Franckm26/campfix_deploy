@@ -46,10 +46,11 @@ class AppServiceProvider extends ServiceProvider
             Paginator::defaultView('pagination::bootstrap-5');
         }
 
-        // Share notifications with all views
-        View::composer('*', function ($view) {
+        // Share layout-only data once per page render.
+        View::composer('layouts.app', function ($view) {
             if (auth()->check()) {
                 $user = auth()->user();
+                $request = request();
 
                 App::setLocale($user->language ?: config('app.locale', 'en'));
                 config(['app.timezone' => $user->timezone ?: config('app.timezone')]);
@@ -57,14 +58,34 @@ class AppServiceProvider extends ServiceProvider
                 Carbon::setLocale($user->language ?: config('app.locale', 'en'));
 
                 $perPage = (int) ($user->items_per_page ?: 10);
-                $view->with('notifications', $user->notifications()->latest()->take(20)->get());
+                $showEventRequestModal = in_array($user->role, [
+                    'faculty',
+                    'building_admin',
+                    'school_admin',
+                    'academic_head',
+                    'program_head',
+                    'principal_assistant',
+                ], true) && (
+                    $request->routeIs('dashboard')
+                    || $request->routeIs('events.my')
+                    || $request->routeIs('events.calendar')
+                    || $request->routeIs('admin.events')
+                    || $request->boolean('open_modal')
+                );
+
+                $view->with('notifications', $user->notifications()
+                    ->latest()
+                    ->take(8)
+                    ->get(['id', 'type', 'data', 'read_at', 'created_at']));
                 $view->with('unread_count', $user->unreadNotifications()->count());
                 $view->with('userDateFormat', $user->date_format ?: 'Y-m-d');
                 $view->with('userItemsPerPage', max(5, min(100, $perPage)));
-                
-                // Share facilities for event request modal
-                $facilities = \App\Models\Facility::orderBy('type')->orderBy('name')->get();
-                $view->with('facilities', $facilities);
+                $view->with('showEventRequestModal', $showEventRequestModal);
+
+                if ($showEventRequestModal) {
+                    $facilities = \App\Models\Facility::orderBy('type')->orderBy('name')->get();
+                    $view->with('facilities', $facilities);
+                }
             }
         });
     }
