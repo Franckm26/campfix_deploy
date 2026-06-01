@@ -2867,6 +2867,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // View Concern Modal Function using SweetAlert2
 function viewConcern(id) {
+    // Convert to integer to remove leading zeros
+    id = parseInt(id);
+    
+    console.log('Fetching concern ID:', id);
+    
     // Show loading state
     Swal.fire({
         title: '<i class="fas fa-ticket-alt me-2"></i>Loading Ticket Details...',
@@ -2876,14 +2881,19 @@ function viewConcern(id) {
         width: '800px'
     });
     
-    fetch('/api/concerns/' + id, {
+    // Use /concerns/{id}/modal-data instead of /api/concerns/{id} for session-based auth
+    fetch('/concerns/' + id + '/modal-data', {
         headers: {
             'X-CSRF-TOKEN': '{{ csrf_token() }}',
             'Content-Type': 'application/json',
-            'Accept': 'application/json'
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
         }
     })
     .then(response => {
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers.get('content-type'));
+        
         if (!response.ok) {
             // Check if response is JSON before trying to parse it
             const contentType = response.headers.get('content-type');
@@ -2893,7 +2903,10 @@ function viewConcern(id) {
                 });
             } else {
                 // If not JSON, it's likely an HTML error page
-                throw new Error('Server returned an error (Status: ' + response.status + '). Please check if you have permission to view this concern.');
+                return response.text().then(html => {
+                    console.error('Server returned HTML:', html.substring(0, 500));
+                    throw new Error('Server returned an error (Status: ' + response.status + '). Please check if you have permission to view this concern.');
+                });
             }
         }
         return response.json();
