@@ -31,6 +31,13 @@ class SupabaseStorage
         try {
             $filename = $path . '/' . bin2hex(random_bytes(16)) . '.' . $file->getClientOriginalExtension();
             
+            Log::info('Attempting Supabase upload', [
+                'filename' => $filename,
+                'url' => $this->url,
+                'bucket' => $this->bucket,
+                'has_key' => !empty($this->key)
+            ]);
+            
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $this->key,
                 'Content-Type' => $file->getMimeType(),
@@ -39,9 +46,16 @@ class SupabaseStorage
                 $file->getMimeType()
             )->post("https://{$this->url}/storage/v1/object/{$this->bucket}/{$filename}");
 
+            Log::info('Supabase upload response', [
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
+
             if ($response->successful()) {
                 // Return public HTTPS URL
-                return "https://{$this->url}/storage/v1/object/public/{$this->bucket}/{$filename}";
+                $publicUrl = "https://{$this->url}/storage/v1/object/public/{$this->bucket}/{$filename}";
+                Log::info('Supabase upload successful', ['url' => $publicUrl]);
+                return $publicUrl;
             }
 
             Log::error('Supabase upload failed', [
@@ -51,7 +65,9 @@ class SupabaseStorage
 
             return null;
         } catch (\Exception $e) {
-            Log::error('Supabase upload exception: ' . $e->getMessage());
+            Log::error('Supabase upload exception: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
             return null;
         }
     }
