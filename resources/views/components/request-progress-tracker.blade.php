@@ -9,6 +9,7 @@
         @php
             $progress  = $request->getApprovalProgress();
             $history   = $request->approval_history ?? [];
+            $isShs = ($request->education_level ?? 'tertiary') === 'shs';
 
             // Determine which approval steps actually exist in this system
             $hasProgramHead   = \App\Models\User::where('role', 'program_head')->exists();
@@ -18,10 +19,16 @@
 
             // Build the ordered list of active steps only
             $steps = [];
-            if ($hasProgramHead)   $steps[] = ['level' => 1, 'label' => $request->department ? ucfirst($request->department).' Dept. Head' : 'Program Head',  'field_approved' => 'approved_by_level_1', 'field_at' => 'approved_at_level_1'];
-            if ($hasAcademicHead)  $steps[] = ['level' => 2, 'label' => 'Academic Head',  'field_approved' => 'approved_by_level_2', 'field_at' => 'approved_at_level_2'];
-            if ($hasBuildingAdmin) $steps[] = ['level' => 3, 'label' => 'Building Admin', 'field_approved' => 'approved_by_level_3', 'field_at' => 'approved_at_level_3'];
-            if ($hasSchoolAdmin)   $steps[] = ['level' => 4, 'label' => 'School Admin',   'field_approved' => 'approved_by',         'field_at' => 'approved_at'];
+            if ($isShs) {
+                $steps[] = ['level' => 1, 'label' => 'Principal Assistant', 'field_approved' => 'approved_by_level_1', 'field_at' => 'approved_at_level_1'];
+                $steps[] = ['level' => 2, 'label' => 'Academic Head',        'field_approved' => 'approved_by_level_2', 'field_at' => 'approved_at_level_2'];
+                $steps[] = ['level' => 4, 'label' => 'School Admin',         'field_approved' => 'approved_by',         'field_at' => 'approved_at'];
+            } else {
+                if ($hasProgramHead)   $steps[] = ['level' => 1, 'label' => $request->department ? ucfirst($request->department).' Dept. Head' : 'Program Head',  'field_approved' => 'approved_by_level_1', 'field_at' => 'approved_at_level_1'];
+                if ($hasAcademicHead)  $steps[] = ['level' => 2, 'label' => 'Academic Head',  'field_approved' => 'approved_by_level_2', 'field_at' => 'approved_at_level_2'];
+                if ($hasBuildingAdmin) $steps[] = ['level' => 3, 'label' => 'Building Admin', 'field_approved' => 'approved_by_level_3', 'field_at' => 'approved_at_level_3'];
+                if ($hasSchoolAdmin)   $steps[] = ['level' => 4, 'label' => 'School Admin',   'field_approved' => 'approved_by',         'field_at' => 'approved_at'];
+            }
 
             $totalSteps = count($steps);
 
@@ -31,14 +38,11 @@
             } elseif (isset($progress['rejected']) || isset($progress['cancelled'])) {
                 $doneSteps = 0;
             } else {
-                // Count how many active steps are done based on approval_level
+                // Count how many active steps are done based on actual approvals.
                 $doneSteps = 0;
                 foreach ($steps as $s) {
-                    if ($s['level'] === 4) {
-                        // School admin: done only when fully approved
-                        break;
-                    }
-                    if ($request->approval_level >= $s['level']) {
+                    $approvedBy = $s['level'] === 4 ? $request->approved_by : $request->{$s['field_approved']};
+                    if ($approvedBy) {
                         $doneSteps++;
                     }
                 }
@@ -117,17 +121,9 @@
                         $isPending  = false;
                         $isRejected = false;
 
-                        if ($lvl === 4) {
-                            $isDone     = isset($progress['approved']);
-                            $isRejected = isset($progress['rejected']) && $request->approval_level >= 4;
-                            $isPending  = !$isDone && !$isRejected && $request->approval_level >= 3;
-                        } else {
-                            $isDone     = $request->approval_level >= $lvl || isset($progress['approved']);
-                            $isRejected = isset($progress['rejected']) && $request->approval_level >= $lvl;
-                            // Pending = previous step done but this one not yet
-                            $prevLevel  = $idx > 0 ? $steps[$idx - 1]['level'] : 0;
-                            $isPending  = !$isDone && !$isRejected && ($prevLevel === 0 || $request->approval_level >= $prevLevel);
-                        }
+                        $isDone     = ($approvedBy && $approvedAt) || isset($progress['approved']);
+                        $isRejected = isset($progress['rejected']) && $request->approval_level >= $lvl;
+                        $isPending  = !$isDone && !$isRejected && $request->approval_level === $lvl;
 
                         // Rejection note from history
                         $rejectedBy = null;
