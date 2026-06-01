@@ -80,30 +80,39 @@ class OneSignalChannel
             Log::info('OneSignalChannel: Sending to OneSignal API', [
                 'payload' => $payload,
                 'user_id' => $notifiable->id,
+                'api_endpoint' => 'https://onesignal.com/api/v1/notifications',
             ]);
 
             // Send notification via OneSignal API
-            $response = Http::withHeaders([
-                'Authorization' => 'Basic ' . $apiKey,
-                'Content-Type' => 'application/json',
-            ])->post('https://onesignal.com/api/v1/notifications', $payload);
+            $response = Http::timeout(30)
+                ->withHeaders([
+                    'Authorization' => 'Basic ' . $apiKey,
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json',
+                ])
+                ->post('https://onesignal.com/api/v1/notifications', $payload);
 
+            $responseData = $response->json();
+            
             Log::info('OneSignalChannel: API Response', [
                 'status' => $response->status(),
-                'body' => $response->json(),
+                'body' => $responseData,
+                'headers' => $response->headers(),
             ]);
 
             if ($response->failed()) {
                 Log::error('OneSignal notification failed', [
                     'user_id' => $notifiable->id,
                     'status' => $response->status(),
-                    'response' => $response->json(),
+                    'response' => $responseData,
+                    'errors' => $responseData['errors'] ?? null,
                 ]);
             } else {
                 Log::info('OneSignal notification sent successfully', [
                     'user_id' => $notifiable->id,
-                    'notification_id' => $response->json()['id'] ?? null,
-                    'recipients' => $response->json()['recipients'] ?? 0,
+                    'notification_id' => $responseData['id'] ?? null,
+                    'recipients' => $responseData['recipients'] ?? 0,
+                    'external_id' => $responseData['external_id'] ?? null,
                 ]);
             }
         } catch (\Exception $e) {
@@ -111,6 +120,8 @@ class OneSignalChannel
                 'user_id' => $notifiable->id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
             ]);
         }
     }
