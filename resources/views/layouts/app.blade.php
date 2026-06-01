@@ -784,13 +784,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="col-md-4 fw-bold">Description:</div>
                     <div class="col-md-8" id="preview_description"></div>
                 </div>
-                <div class="row mt-3 pt-3 border-top">
-                    <div class="col-12">
-                        <div class="alert alert-info mb-0">
-                            <i class="fas fa-info-circle"></i> <strong>Approval will be sent to:</strong> <span id="approval_recipients">Chosen Department on the selection, Academic Head, Building Admin, and School Administrator</span>
-                        </div>
-                    </div>
-                </div>
+                <!-- Approval message removed - not needed in preview -->
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" id="editEventBtn">
@@ -804,6 +798,17 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 <script>
+// Define updateDescCount globally so it's available for inline oninput handlers
+window.updateDescCount = function() {
+    var ta = document.getElementById('modal_description');
+    var counter = document.getElementById('desc_char_count');
+    if (ta && counter) {
+        var len = ta.value.length;
+        counter.textContent = len + ' / 500';
+        counter.style.color = len >= 480 ? '#dc3545' : '';
+    }
+};
+
 document.addEventListener('DOMContentLoaded', function() {
     var modalRequestType = document.getElementById('modal_request_type');
     if (modalRequestType) {
@@ -1647,16 +1652,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Materials/Equipment dynamic rows for modal
     let modalMaterialRowCount = 1;
-
-    window.updateDescCount = function() {
-        var ta = document.getElementById('modal_description');
-        var counter = document.getElementById('desc_char_count');
-        if (ta && counter) {
-            var len = ta.value.length;
-            counter.textContent = len + ' / 500';
-            counter.style.color = len >= 480 ? '#dc3545' : '';
-        }
-    };
 
     window.addModalMaterialRow = function() {
         var table = document.getElementById('modalMaterialsTable');
