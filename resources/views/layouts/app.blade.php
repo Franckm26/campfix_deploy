@@ -2038,7 +2038,7 @@ document.addEventListener('DOMContentLoaded', function () {
 <script>
     // ── Theme System ──────────────────────────────────────────────
     const THEME_KEY = 'campfix_theme';
-    const userDbTheme = '{{ auth()->check() ? auth()->user()->theme : "light" }}';
+    const userDbTheme = @json(auth()->check() ? auth()->user()->theme : 'light');
 
     function applyTheme(theme) {
         document.documentElement.setAttribute('data-theme', theme);
