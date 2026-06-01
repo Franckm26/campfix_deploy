@@ -1219,61 +1219,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     const concernData = error.data;
                     bootstrap.Modal.getInstance(document.getElementById('newConcernModal')).hide();
                     
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Ticket Already Exists',
-                        html: `
-                            <p>You already have a report for "<strong>${concernData.location}</strong>" and is currently <strong>${concernData.status}</strong>.</p>
-                            <p>Is this the same issue? <a href="#" onclick="event.preventDefault(); viewExistingConcern(${concernData.concern_id});" style="color: #3085d6; text-decoration: underline; cursor: pointer;">Click here to view the ticket</a></p>
-                        `,
-                        showCancelButton: true,
-                        confirmButtonText: 'This is New',
-                        cancelButtonText: 'Cancel',
-                        confirmButtonColor: '#3085d6',
-                        cancelButtonColor: '#6c757d',
-                        customClass: {
-                            confirmButton: 'btn btn-primary',
-                            cancelButton: 'btn btn-secondary'
-                        }
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            // User confirms it's a new issue - submit anyway with override flag
-                            formData.append('override_duplicate', '1');
-                            submitButton.disabled = true;
-                            submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Submitting...';
-                            
-                            fetch('{{ route("concerns.store") }}', {
-                                method: 'POST',
-                                body: formData,
-                                headers: {
-                                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                    'Accept': 'application/json',
-                                    'X-Requested-With': 'XMLHttpRequest'
-                                }
-                            })
-                            .then(response => response.json())
-                            .then(data => {
-                                Swal.fire({
-                                    icon: 'success',
-                                    title: 'Success!',
-                                    text: 'Your concern has been submitted successfully.',
-                                    confirmButtonColor: '#3085d6'
-                                }).then(() => {
-                                    window.location.reload();
-                                });
-                            })
-                            .catch(err => {
-                                submitButton.disabled = false;
-                                submitButton.innerHTML = originalButtonText;
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'Error',
-                                    text: 'Failed to submit concern. Please try again.',
-                                    confirmButtonColor: '#d33'
-                                });
-                            });
-                        }
-                    });
+                    // Store form data for potential override
+                    window.pendingFormData = formData;
+                    window.pendingSubmitButton = submitButton;
+                    window.pendingOriginalButtonText = originalButtonText;
+                    
+                    showDuplicateAlert(concernData);
                 } else {
                     // Other error
                     Swal.fire({
@@ -1285,13 +1236,251 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         });
+        
+        // Listen for override submission event
+        document.addEventListener('submitWithOverride', function() {
+            if (window.pendingFormData && window.duplicateOverrideData) {
+                const formData = window.pendingFormData;
+                const submitButton = window.pendingSubmitButton;
+                const originalButtonText = window.pendingOriginalButtonText;
+                
+                formData.append('override_duplicate', '1');
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Submitting...';
+                
+                fetch('{{ route("concerns.store") }}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: 'Your concern has been submitted successfully.',
+                        confirmButtonColor: '#3085d6'
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                })
+                .catch(err => {
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = originalButtonText;
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Failed to submit concern. Please try again.',
+                        confirmButtonColor: '#d33'
+                    });
+                });
+                
+                // Clean up
+                window.pendingFormData = null;
+                window.pendingSubmitButton = null;
+                window.pendingOriginalButtonText = null;
+                window.duplicateOverrideData = null;
+            }
+        });
     }
 });
 
 // Function to view existing concern from duplicate alert
 function viewExistingConcern(concernId) {
     Swal.close();
-    viewConcern(concernId);
+    viewConcernWithBack(concernId);
+}
+
+// Modified viewConcern function that supports a back button
+function viewConcernWithBack(id, duplicateData = null) {
+    // Store current concern ID for assign functionality
+    window.currentConcernId = id;
+    
+    // Show loading state
+    Swal.fire({
+        title: '<i class="fas fa-ticket-alt me-2"></i>Loading Ticket Details...',
+        html: '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>',
+        showConfirmButton: false,
+        allowOutsideClick: false,
+        width: '900px'
+    });
+    
+    fetch('/concerns/' + id + '/modal-data', {
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+            return response.json().then(err => {
+                throw new Error(err.error || 'Request failed with status ' + response.status);
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.error
+            });
+            return;
+        }
+        
+        const concern = data.concern;
+        const categoryName = concern.categoryRelation ? concern.categoryRelation.name : 'N/A';
+        const userName = concern.user ? concern.user.name : 'Unknown';
+        const userRole = concern.user ? concern.user.role : '';
+        
+        const priorityClass = concern.priority === 'urgent' ? 'danger' : 
+            (concern.priority === 'high' ? 'warning' : 
+            (concern.priority === 'medium' ? 'info' : 'secondary'));
+        
+        const statusClass = concern.status === 'Resolved' ? 'success' : 
+            (concern.status === 'In Progress' ? 'warning' : 
+            (concern.status === 'Assigned' ? 'primary' : 'secondary'));
+        
+        let imageHtml = '';
+        if (concern.image_path) {
+            imageHtml = `
+                <div class="mb-3 text-center">
+                    <p class="text-start"><strong>Photo:</strong></p>
+                    <img src="${concern.image_path}" alt="Concern photo" class="img-fluid rounded" style="max-width: 100%; max-height: 400px;">
+                </div>
+            `;
+        }
+        
+        let resolutionHtml = '';
+        if (concern.resolution_notes) {
+            resolutionHtml = `
+                <div class="alert alert-success mt-3 text-start">
+                    <h6><strong>Resolution Notes:</strong></h6>
+                    <p class="mb-1">${concern.resolution_notes}</p>
+                    ${concern.resolved_at ? '<small class="text-muted">Resolved on: ' + concern.resolved_at + '</small>' : ''}
+                </div>
+            `;
+        }
+        
+        const htmlContent = `
+            <div style="text-align: left; max-height: 70vh; overflow-y: auto; padding: 10px;">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">${concern.title || (concern.description ? concern.description.substring(0, 40) + '...' : 'No Title')}</h5>
+                    <div>
+                        <span class="badge bg-${priorityClass} me-2">${concern.priority ? (concern.priority.charAt(0).toUpperCase() + concern.priority.slice(1)) : 'Not Set'} Priority</span>
+                        <span class="badge bg-${statusClass}">${concern.status}</span>
+                    </div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Ticket #:</strong> #${String(concern.id).padStart(4, '0')}</p>
+                        <p><strong>Category:</strong> ${categoryName}</p>
+                        <p><strong>Location:</strong> ${concern.location || 'N/A'}</p>
+                        <p><strong>Issue:</strong> ${concern.issue || 'N/A'}</p>
+                        <p><strong>Damaged Part:</strong> ${concern.damaged_part || 'N/A'}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Priority:</strong> <span class="badge bg-${priorityClass}">${concern.priority || 'Not Set'}</span></p>
+                        ${window.userRole === 'admin' || window.userRole === 'mis' || window.userRole === 'building_admin' ? '<p><strong>Reported by:</strong> ' + userName + '</p>' : ''}
+                        <p><strong>Date Submitted:</strong> ${concern.created_at || 'N/A'}</p>
+                        ${concern.assigned_at ? '<p><strong>Date Assigned:</strong> ' + concern.assigned_at + '</p>' : ''}
+                        ${concern.in_progress_at ? '<p><strong>Date In Progress:</strong> ' + concern.in_progress_at + '</p>' : ''}
+                        ${concern.resolved_at ? '<p><strong>Date Resolved:</strong> ' + concern.resolved_at + '</p>' : ''}
+                        ${concern.cost ? '<p><strong>Cost:</strong> ₱' + parseFloat(concern.cost).toLocaleString('en-PH', {minimumFractionDigits: 2}) + '</p>' : ''}
+                    </div>
+                </div>
+                <hr>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <p><strong>Description:</strong></p>
+                        <p style="white-space: pre-wrap;">${concern.description || 'No description provided'}</p>
+                        ${imageHtml}
+                        ${resolutionHtml}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Configure buttons based on whether we came from duplicate alert
+        const buttons = {
+            showCloseButton: true,
+            showConfirmButton: true,
+            confirmButtonText: 'Close',
+            confirmButtonColor: '#6c757d'
+        };
+        
+        // Add back button if we came from duplicate alert
+        if (duplicateData) {
+            buttons.showDenyButton = true;
+            buttons.denyButtonText = '<i class="fas fa-arrow-left me-1"></i> Back';
+            buttons.denyButtonColor = '#6c757d';
+        }
+        
+        Swal.fire({
+            title: '<i class="fas fa-ticket-alt me-2"></i>Ticket #' + String(concern.id).padStart(4, '0') + ' Details',
+            html: htmlContent,
+            width: '900px',
+            ...buttons,
+            customClass: {
+                popup: 'swal-wide-popup',
+                htmlContainer: 'swal2-html-container'
+            }
+        }).then((result) => {
+            // If user clicked the Back button, show the duplicate alert again
+            if (result.isDenied && duplicateData) {
+                showDuplicateAlert(duplicateData);
+            }
+        });
+    })
+    .catch(error => {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Error loading concern details: ' + error.message
+        });
+    });
+}
+
+// Function to show duplicate alert (extracted for reuse)
+function showDuplicateAlert(concernData) {
+    Swal.fire({
+        icon: 'warning',
+        title: 'Ticket Already Exists',
+        html: `
+            <p>You already have a report for "<strong>${concernData.location}</strong>" and is currently <strong>${concernData.status}</strong>.</p>
+            <p>Is this the same issue? <a href="#" onclick="event.preventDefault(); viewConcernFromDuplicate(${concernData.concern_id}, ${JSON.stringify(concernData).replace(/"/g, '&quot;')});" style="color: #3085d6; text-decoration: underline; cursor: pointer;">Click here to view the ticket</a></p>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'This is New',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#6c757d',
+        customClass: {
+            confirmButton: 'btn btn-primary',
+            cancelButton: 'btn btn-secondary'
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // User confirms it's a new issue - trigger the override submission
+            window.duplicateOverrideData = concernData;
+            const event = new CustomEvent('submitWithOverride');
+            document.dispatchEvent(event);
+        }
+    });
+}
+
+// Function to view concern from duplicate alert with back button
+function viewConcernFromDuplicate(concernId, concernData) {
+    Swal.close();
+    viewConcernWithBack(concernId, concernData);
 }
 
 // Handle category change for concerns modal
