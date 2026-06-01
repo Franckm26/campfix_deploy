@@ -1455,7 +1455,7 @@ function showDuplicateAlert(concernData) {
         icon: 'warning',
         title: 'Ticket Already Exists',
         html: `
-            <p>You already have a report for "<strong>${concernData.location}</strong>" and is currently <strong>${concernData.status}</strong>.</p>
+            <p>You already have a report for "<strong>${concernData.issue}</strong>" in "<strong>${concernData.location}</strong>" and is currently <strong>${concernData.status}</strong>.</p>
             <p>Is this the same issue? <a href="#" onclick="event.preventDefault(); viewConcernFromDuplicate(${concernData.concern_id}, ${JSON.stringify(concernData).replace(/"/g, '&quot;')});" style="color: #3085d6; text-decoration: underline; cursor: pointer;">Click here to view the ticket</a></p>
         `,
         showCancelButton: true,

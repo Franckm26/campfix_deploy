@@ -81,15 +81,18 @@ class ConcernController extends Controller
             return trim($value);
         };
 
-        // Check if the same room/location already has an active assigned concern
+        // Check if the same issue (title) in the same room/location already has an active assigned concern
+        // This allows multiple different issues to be reported for the same room
         $baseQuery = Concern::whereIn('status', ['Assigned', 'In Progress'])
-            ->where('is_deleted', false);
+            ->where('is_deleted', false)
+            ->where('title', $request->title); // Check for same issue/title
 
         if ($isRoomsCategory) {
             $normalizedInput = $normalizeRoomNumber($request->room_number);
-            // Fetch candidates matching location_type, then normalize room_number for comparison
+            // Fetch candidates matching location_type and title, then normalize room_number for comparison
             $existingConcern = Concern::whereIn('status', ['Assigned', 'In Progress'])
                 ->where('is_deleted', false)
+                ->where('title', $request->title) // Same issue
                 ->where('location_type', $request->location_type)
                 ->get()
                 ->first(function ($concern) use ($normalizedInput, $normalizeRoomNumber) {
@@ -115,9 +118,10 @@ class ConcernController extends Controller
                 return response()->json([
                     'duplicate' => true,
                     'concern_id' => $existingConcern->id,
+                    'issue' => $existingConcern->title,
                     'location' => $locationLabel,
                     'status' => $existingConcern->status,
-                    'message' => "You already have a report for \"{$locationLabel}\" and is currently {$existingConcern->status}."
+                    'message' => "You already have a report for \"{$existingConcern->title}\" in \"{$locationLabel}\" and is currently {$existingConcern->status}."
                 ], 409);
             }
 
@@ -125,6 +129,7 @@ class ConcernController extends Controller
             return redirect()->back()->withInput()->with([
                 'duplicate_concern' => true,
                 'existing_concern_id' => $existingConcern->id,
+                'existing_concern_issue' => $existingConcern->title,
                 'existing_concern_location' => $locationLabel,
                 'existing_concern_status' => $existingConcern->status
             ]);
