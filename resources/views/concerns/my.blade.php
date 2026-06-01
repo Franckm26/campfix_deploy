@@ -961,7 +961,7 @@
                 <h5 class="modal-title" id="newConcernModalLabel">Submit New Concern</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ route('concerns.store') }}" method="POST" enctype="multipart/form-data">
+            <form id="newConcernForm" action="{{ route('concerns.store') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 {{-- hidden title populated from Issue dropdown --}}
                 <input type="hidden" id="new_title" name="title">
@@ -1017,14 +1017,143 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Submit Concern</button>
+                    <button type="button" class="btn btn-primary" onclick="showReviewModal()">Review</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
+<!-- Review Concern Modal -->
+<div class="modal fade" id="reviewConcernModal" tabindex="-1" aria-labelledby="reviewConcernModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="reviewConcernModalLabel">Review Your Concern</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Category:</label>
+                    <p id="review_category" class="mb-0"></p>
+                </div>
+                <div class="mb-3" id="review_issue_container" style="display: none;">
+                    <label class="form-label fw-bold">Issue:</label>
+                    <p id="review_issue" class="mb-0"></p>
+                </div>
+                <div class="mb-3" id="review_location_container" style="display: none;">
+                    <label class="form-label fw-bold">Location:</label>
+                    <p id="review_location" class="mb-0"></p>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Description:</label>
+                    <p id="review_description" class="mb-0" style="white-space: pre-wrap;"></p>
+                </div>
+                <div class="mb-3" id="review_image_container" style="display: none;">
+                    <label class="form-label fw-bold">Photo:</label>
+                    <div>
+                        <img id="review_image" src="" alt="Preview" class="img-fluid" style="max-height: 200px; border-radius: 8px;">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="backToEdit()">Back to Edit</button>
+                <button type="button" class="btn btn-primary" onclick="confirmSubmit()">Submit Concern</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+function showReviewModal() {
+    // Validate form first
+    const form = document.getElementById('newConcernForm');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
+    // Get form values
+    const categorySelect = document.getElementById('new_category_id');
+    const categoryText = categorySelect.options[categorySelect.selectedIndex]?.text || '';
+    
+    const issueSelect = document.getElementById('new_issue');
+    const issueText = issueSelect.options[issueSelect.selectedIndex]?.text || '';
+    
+    const locationSelect = document.getElementById('new_location');
+    const locationText = locationSelect.options[locationSelect.selectedIndex]?.text || '';
+    
+    const description = document.getElementById('new_description').value;
+    
+    const imageInput = document.getElementById('new_image');
+    const imageFile = imageInput.files[0];
+
+    // Populate review modal
+    document.getElementById('review_category').textContent = categoryText;
+    
+    if (issueText && issueText !== 'Select an issue') {
+        document.getElementById('review_issue').textContent = issueText;
+        document.getElementById('review_issue_container').style.display = 'block';
+    } else {
+        document.getElementById('review_issue_container').style.display = 'none';
+    }
+    
+    if (locationText && locationText !== 'Select a location') {
+        document.getElementById('review_location').textContent = locationText;
+        document.getElementById('review_location_container').style.display = 'block';
+    } else {
+        document.getElementById('review_location_container').style.display = 'none';
+    }
+    
+    document.getElementById('review_description').textContent = description;
+    
+    // Handle image preview
+    if (imageFile) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('review_image').src = e.target.result;
+            document.getElementById('review_image_container').style.display = 'block';
+        };
+        reader.readAsDataURL(imageFile);
+    } else {
+        document.getElementById('review_image_container').style.display = 'none';
+    }
+
+    // Hide new concern modal and show review modal
+    const newConcernModal = bootstrap.Modal.getInstance(document.getElementById('newConcernModal'));
+    newConcernModal.hide();
+    
+    const reviewModal = new bootstrap.Modal(document.getElementById('reviewConcernModal'));
+    reviewModal.show();
+}
+
+function backToEdit() {
+    // Hide review modal and show new concern modal
+    const reviewModal = bootstrap.Modal.getInstance(document.getElementById('reviewConcernModal'));
+    reviewModal.hide();
+    
+    const newConcernModal = new bootstrap.Modal(document.getElementById('newConcernModal'));
+    newConcernModal.show();
+}
+
+function confirmSubmit() {
+    Swal.fire({
+        title: 'Are you sure?',
+        text: 'Do you want to submit this concern?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, Submit',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Submit the form
+            document.getElementById('newConcernForm').submit();
+        }
+    });
+}
+
 function updateAutoDeletePeriod(days) {
     if (confirm('Set auto-delete period to ' + days + ' days? Concerns deleted longer than this will be automatically removed.')) {
         fetch('{{ route('saveAutoDeletePreference') }}', {
