@@ -17,6 +17,18 @@
                 enable: false, // We'll use custom UI
             },
             allowLocalhostAsSecureOrigin: {{ config('app.env') === 'local' ? 'true' : 'false' }},
+            promptOptions: {
+                slidedown: {
+                    enabled: true,
+                    autoPrompt: false,
+                    actionMessage: "Stay updated with CampFix notifications",
+                    acceptButtonText: "Allow Notifications",
+                    cancelButtonText: "Not Now",
+                    categories: {
+                        tags: []
+                    }
+                }
+            }
         });
 
         @auth
@@ -30,13 +42,51 @@
             // Request permission if not already granted
             const permission = await OneSignal.Notifications.permission;
             if (permission !== 'granted') {
-                // Show custom prompt or use OneSignal's slidedown
+                // Show custom prompt with our settings
                 OneSignal.Slidedown.promptPush();
             }
         }
         @endauth
     });
 </script>
+
+<!-- Custom OneSignal Prompt Styling -->
+<style>
+    /* Make the OneSignal slidedown smaller and position it */
+    #onesignal-slidedown-container {
+        max-width: 450px !important;
+        right: 20px !important;
+        left: auto !important;
+        bottom: 20px !important;
+        top: auto !important;
+    }
+    
+    /* Adjust slidedown dialog size */
+    .onesignal-slidedown-dialog {
+        padding: 20px !important;
+        border-radius: 12px !important;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important;
+    }
+    
+    /* Make text smaller */
+    .slidedown-body {
+        font-size: 14px !important;
+    }
+    
+    /* Style buttons */
+    .onesignal-slidedown-allow-button {
+        background-color: #0d6efd !important;
+        padding: 10px 20px !important;
+        font-size: 14px !important;
+        border-radius: 6px !important;
+    }
+    
+    .onesignal-slidedown-cancel-button {
+        padding: 10px 20px !important;
+        font-size: 14px !important;
+        border-radius: 6px !important;
+    }
+</style>
 
 <!-- Favicon -->
 <link rel="icon" type="image/png" href="{{ asset('Campfix/Images/logo.png') }}">
