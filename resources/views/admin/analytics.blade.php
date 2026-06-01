@@ -738,8 +738,14 @@
                                     $totalSeconds = floor($avgSubmittedToAssigned * 3600);
                                     $hours = floor($totalSeconds / 3600);
                                     $minutes = floor(($totalSeconds % 3600) / 60);
-                                    $seconds = $totalSeconds % 60;
-                                    echo sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
+                                    
+                                    if ($hours > 0) {
+                                        echo $hours . 'h ' . $minutes . 'm';
+                                    } elseif ($minutes > 0) {
+                                        echo $minutes . 'm';
+                                    } else {
+                                        echo '< 1m';
+                                    }
                                 @endphp
                             </div>
                         </div>
@@ -752,8 +758,14 @@
                                     $totalSeconds = floor($avgAssignedToResolved * 3600);
                                     $hours = floor($totalSeconds / 3600);
                                     $minutes = floor(($totalSeconds % 3600) / 60);
-                                    $seconds = $totalSeconds % 60;
-                                    echo sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
+                                    
+                                    if ($hours > 0) {
+                                        echo $hours . 'h ' . $minutes . 'm';
+                                    } elseif ($minutes > 0) {
+                                        echo $minutes . 'm';
+                                    } else {
+                                        echo '< 1m';
+                                    }
                                 @endphp
                             </div>
                         </div>
@@ -766,8 +778,14 @@
                                     $totalSeconds = floor($avgTotalTime * 3600);
                                     $hours = floor($totalSeconds / 3600);
                                     $minutes = floor(($totalSeconds % 3600) / 60);
-                                    $seconds = $totalSeconds % 60;
-                                    echo sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
+                                    
+                                    if ($hours > 0) {
+                                        echo $hours . 'h ' . $minutes . 'm';
+                                    } elseif ($minutes > 0) {
+                                        echo $minutes . 'm';
+                                    } else {
+                                        echo '< 1m';
+                                    }
                                 @endphp
                             </div>
                         </div>
