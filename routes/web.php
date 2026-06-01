@@ -115,6 +115,9 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth');
 Route::middleware('auth')->group(function () {
     Route::get('/notifications/{id}/read', [NotificationController::class, 'read'])->name('notifications.read');
     Route::delete('/notifications/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
+    Route::get('/api/notifications/unread-count', function () {
+        return response()->json(['count' => auth()->user()->unreadNotifications()->count()]);
+    });
 });
 
 /* USER FEATURES - For students, faculty */

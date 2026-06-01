@@ -33,7 +33,17 @@ class EventRequestApprovalNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['mail', 'database'];
+        $channels = ['database'];
+        
+        if ($notifiable->email_notifications ?? true) {
+            $channels[] = 'mail';
+        }
+        
+        if ($notifiable->push_notifications ?? false) {
+            $channels[] = 'fcm';
+        }
+        
+        return $channels;
     }
 
     /**
@@ -131,6 +141,69 @@ class EventRequestApprovalNotification extends Notification
             'approval_level' => $this->approvalLevel,
             'status' => $this->status,
             'url' => '/events/my',
+        ];
+    }
+
+    /**
+     * Get the OneSignal representation of the notification.
+     *
+     * @return array<string, mixed>
+     */
+    public function toOneSignal(object $notifiable): array
+    {
+        $levelNames = [
+            1 => 'Program Head',
+            2 => 'Academic Head',
+            3 => 'Building Admin',
+            4 => 'School Admin',
+        ];
+
+        $levelName = $levelNames[$this->approvalLevel] ?? 'Approval';
+
+        if ($this->status === 'Rejected') {
+            return [
+                'title' => '❌ Event Request Rejected',
+                'body' => "'{$this->eventTitle}' was rejected by {$levelName}",
+                'icon' => '/favicon.ico',
+                'badge' => '/favicon.ico',
+                'url' => url('/events/my'),
+                'data' => [
+                    'type' => 'event_rejected',
+                    'event_title' => $this->eventTitle,
+                    'url' => '/events/my',
+                ],
+            ];
+        }
+
+        if ($this->approvalLevel === 4) {
+            return [
+                'title' => '✅ Event Fully Approved!',
+                'body' => "'{$this->eventTitle}' has been fully approved!",
+                'icon' => '/favicon.ico',
+                'badge' => '/favicon.ico',
+                'url' => url('/events/my'),
+                'data' => [
+                    'type' => 'event_approved',
+                    'event_title' => $this->eventTitle,
+                    'url' => '/events/my',
+                ],
+            ];
+        }
+
+        $nextLevel = $this->approvalLevel + 1;
+        $nextLevelName = $levelNames[$nextLevel] ?? 'Next Level';
+
+        return [
+            'title' => '📋 Event Request Update',
+            'body' => "'{$this->eventTitle}' approved by {$levelName}. Waiting for {$nextLevelName}.",
+            'icon' => '/favicon.ico',
+            'badge' => '/favicon.ico',
+            'url' => url('/events/my'),
+            'data' => [
+                'type' => 'event_update',
+                'event_title' => $this->eventTitle,
+                'url' => '/events/my',
+            ],
         ];
     }
 }

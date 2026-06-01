@@ -5,6 +5,39 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="csrf-token" content="{{ csrf_token() }}">
 
+<!-- OneSignal Push Notifications -->
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.init({
+            appId: "{{ env('ONESIGNAL_APP_ID') }}",
+            safari_web_id: "{{ env('ONESIGNAL_SAFARI_WEB_ID', '') }}",
+            notifyButton: {
+                enable: false, // We'll use custom UI
+            },
+            allowLocalhostAsSecureOrigin: {{ config('app.env') === 'local' ? 'true' : 'false' }},
+        });
+
+        @auth
+        // Set external user ID to link notifications to Laravel user
+        OneSignal.login("{{ auth()->id() }}");
+
+        // Check if user has push notifications enabled in settings
+        const pushEnabled = {{ auth()->user()->push_notifications ? 'true' : 'false' }};
+        
+        if (pushEnabled) {
+            // Request permission if not already granted
+            const permission = await OneSignal.Notifications.permission;
+            if (permission !== 'granted') {
+                // Show custom prompt or use OneSignal's slidedown
+                OneSignal.Slidedown.promptPush();
+            }
+        }
+        @endauth
+    });
+</script>
+
 <!-- Favicon -->
 <link rel="icon" type="image/png" href="{{ asset('Campfix/Images/logo.png') }}">
 <link rel="shortcut icon" type="image/png" href="{{ asset('Campfix/Images/logo.png') }}">

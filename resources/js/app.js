@@ -1,5 +1,7 @@
 /* Shared Application JavaScript */
 
+// OneSignal will be initialized via script tag in layout
+
 // Modal functions
 function openModal(){
     document.getElementById("submitConcernModal").classList.add("active");
