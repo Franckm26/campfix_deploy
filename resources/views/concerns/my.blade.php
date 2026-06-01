@@ -1301,6 +1301,57 @@ function confirmEditSubmit() {
     });
 }
 
+function handleEditCategoryChange() {
+    const categorySelect = document.getElementById('edit_category_id');
+    const issueContainer = document.getElementById('edit_issue_container');
+    const issueSelect = document.getElementById('edit_issue');
+    const locationContainer = document.getElementById('edit_location_container');
+    const locationSelect = document.getElementById('edit_location');
+    
+    if (!categorySelect) return;
+    
+    const selectedOption = categorySelect.options[categorySelect.selectedIndex];
+    const categoryName = selectedOption ? selectedOption.textContent.toLowerCase().trim() : '';
+    
+    // Category issues mapping (same as new concern)
+    const categoryIssues = {
+        'maintenance': ['Aircon', 'Lights', 'Chairs', 'Tables', 'Doors', 'Windows', 'Ceiling', 'Walls', 'Floors', 'Whiteboard', 'Projector', 'Others'],
+        'electrical': ['Power Outlet', 'Light Switch', 'Circuit Breaker', 'Wiring', 'Generator', 'Others'],
+        'plumbing': ['Faucet', 'Toilet', 'Sink', 'Drainage', 'Water Heater', 'Pipe Leak', 'Others'],
+        'cleanliness': ['Trash', 'Restroom', 'Classroom', 'Hallway', 'Grounds', 'Others'],
+        'safety': ['Fire Extinguisher', 'Emergency Exit', 'Security', 'Hazard', 'Others'],
+        'it': ['Computer', 'Printer', 'Network', 'Projector', 'Software', 'Others']
+    };
+    
+    const issues = categoryIssues[categoryName] || [];
+    
+    if (issues.length === 0) {
+        // No issues for this category
+        if (issueContainer) issueContainer.style.display = 'none';
+        if (issueSelect) {
+            issueSelect.removeAttribute('required');
+            issueSelect.innerHTML = '<option value="" disabled selected>Select an issue</option>';
+        }
+    } else {
+        // Has issues — show the dropdown and populate it
+        if (issueContainer) issueContainer.style.display = 'block';
+        if (issueSelect) {
+            issueSelect.setAttribute('required', 'required');
+            issueSelect.innerHTML = '<option value="" disabled selected>Select an issue</option>';
+            issues.forEach(function(issue) {
+                const opt = document.createElement('option');
+                opt.value = issue;
+                opt.textContent = issue;
+                issueSelect.appendChild(opt);
+            });
+        }
+    }
+    
+    // Show location dropdown for all categories
+    if (locationContainer) locationContainer.style.display = 'block';
+    if (locationSelect) locationSelect.setAttribute('required', 'required');
+}
+
 function updateAutoDeletePeriod(days) {
     if (confirm('Set auto-delete period to ' + days + ' days? Concerns deleted longer than this will be automatically removed.')) {
         fetch('{{ route('saveAutoDeletePreference') }}', {
@@ -2723,8 +2774,20 @@ function editConcern(id) {
         
         contentDiv.innerHTML = `
             <div class="mb-3">
+                <label class="form-label">Category *</label>
+                <select name="category_id" class="form-select" id="edit_category_id" required onchange="handleEditCategoryChange()">
+                    ${categoryOptions}
+                </select>
+            </div>
+            <div class="mb-3" id="edit_issue_container" style="display: none;">
+                <label class="form-label">Issue *</label>
+                <select class="form-select" id="edit_issue" name="_issue">
+                    <option value="" disabled selected>Select an issue</option>
+                </select>
+            </div>
+            <div class="mb-3" id="edit_location_container" style="display: none;">
                 <label class="form-label">Location *</label>
-                <select name="location" class="form-select" required>
+                <select name="location" class="form-select" id="edit_location" required>
                     <option value="" disabled>Select a location</option>
                     @foreach($facilities->groupBy('type') as $type => $group)
                         <optgroup label="{{ ucfirst($type) }}">
@@ -2736,17 +2799,21 @@ function editConcern(id) {
                 </select>
             </div>
             <div class="mb-3">
-                <label class="form-label">Category *</label>
-                <select name="category_id" class="form-select" required>
-                    ${categoryOptions}
-                </select>
-            </div>
-            <div class="mb-3">
                 <label class="form-label">Description *</label>
                 <textarea name="description" class="form-control" rows="4" required>${concern.description}</textarea>
             </div>
             ${imageHtml}
         `;
+        
+        // Trigger category change to show issue/location fields
+        setTimeout(() => {
+            handleEditCategoryChange();
+            // Set the selected location if exists
+            const locationSelect = document.getElementById('edit_location');
+            if (locationSelect && concern.location) {
+                locationSelect.value = concern.location;
+            }
+        }, 100);
     })
     .catch(error => {
         console.error('Error:', error);
