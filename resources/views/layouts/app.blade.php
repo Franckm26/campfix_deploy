@@ -1206,6 +1206,7 @@ document.addEventListener('DOMContentLoaded', function() {
         previewModal.addEventListener('show.bs.modal', function() {
             // Get form values
             var requestType = document.getElementById('modal_request_type').value;
+            var educationLevel = document.getElementById('modal_education_level').value;
             var areaOfUse = document.getElementById('modal_area_of_use').value;
             var department = document.getElementById('modal_department').value;
             var avrSelection = document.getElementById('modal_avr_selection').value;
@@ -1220,6 +1221,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Populate preview fields
             document.getElementById('preview_category').textContent = 'Area Use';
             document.getElementById('preview_request_type').textContent = requestType || 'Not specified';
+            document.getElementById('preview_education_level').textContent = educationLevel === 'shs' ? 'Senior High School' : educationLevel === 'faculty' ? 'Faculty' : educationLevel === 'staff' ? 'Staff' : educationLevel === 'maintenance' ? 'Maintenance' : 'Tertiary';
             document.getElementById('preview_area_of_use').textContent = areaOfUse || 'Not specified';
             document.getElementById('preview_department').textContent = department || 'Not specified';
             var avrSelectionEl = document.getElementById('preview_avr_selection');
@@ -1244,10 +1246,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 roomNumberRow.style.display = 'none';
             }
 
-            // Show/hide department row
+            // Show/hide department row - hide for SHS
             var departmentRow = document.getElementById('preview_department_row');
-            if (department) {
+            if (educationLevel === 'shs') {
+                // Always hide department for Senior High School
+                departmentRow.style.display = 'none';
+            } else if (department) {
                 departmentRow.style.display = 'block';
+            } else {
+                departmentRow.style.display = 'none';
+            }
             } else {
                 departmentRow.style.display = 'none';
             }
