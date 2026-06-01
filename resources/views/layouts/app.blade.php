@@ -10,6 +10,9 @@
 <script>
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     OneSignalDeferred.push(async function(OneSignal) {
+        // Enable debug logging
+        OneSignal.Debug.setLogLevel('trace');
+        
         await OneSignal.init({
             appId: "{{ env('ONESIGNAL_APP_ID') }}",
             safari_web_id: "{{ env('ONESIGNAL_SAFARI_WEB_ID', '') }}",
@@ -21,22 +24,48 @@
             autoRegister: false,
             autoResubscribe: true,
             notificationClickHandlerMatch: 'origin',
-            notificationClickHandlerAction: 'navigate'
+            notificationClickHandlerAction: 'navigate',
+            serviceWorkerParam: { scope: '/' },
+            serviceWorkerPath: 'OneSignalSDKWorker.js'
         });
+
+        console.log('OneSignal initialized');
 
         @auth
         // Set external user ID to link notifications to Laravel user
-        OneSignal.login("{{ auth()->id() }}");
+        try {
+            await OneSignal.login("{{ auth()->id() }}");
+            console.log('OneSignal: User logged in with ID {{ auth()->id() }}');
+        } catch (error) {
+            console.error('OneSignal login error:', error);
+        }
 
         // Check if user has push notifications enabled in settings
         const pushEnabled = {{ auth()->user()->push_notifications ? 'true' : 'false' }};
+        console.log('Push notifications enabled in settings:', pushEnabled);
         
         if (pushEnabled) {
             // Request permission if not already granted
             const permission = await OneSignal.Notifications.permission;
+            console.log('Current permission status:', permission);
+            
             if (permission !== 'granted' && permission !== 'denied') {
                 // Show custom modal before requesting permission
                 showCustomNotificationPrompt();
+            } else if (permission === 'granted') {
+                // Check if user is subscribed
+                const isSubscribed = await OneSignal.User.PushSubscription.optedIn;
+                console.log('User subscribed:', isSubscribed);
+                
+                if (!isSubscribed) {
+                    console.log('Permission granted but not subscribed, subscribing now...');
+                    try {
+                        await OneSignal.User.PushSubscription.optIn();
+                        console.log('Successfully subscribed!');
+                    } catch (error) {
+                        console.error('Subscription error:', error);
+                    }
+                }
             }
         }
         @endauth
@@ -94,17 +123,24 @@
         // Handle Allow button
         document.getElementById('notif-allow').addEventListener('click', async function() {
             modal.remove();
+            console.log('User clicked Allow, requesting permission...');
             // Request permission using OneSignal
             try {
                 await OneSignal.Notifications.requestPermission();
+                console.log('Permission requested');
+                
+                // Subscribe user
+                await OneSignal.User.PushSubscription.optIn();
+                console.log('User subscribed successfully!');
             } catch (error) {
-                console.error('Error requesting permission:', error);
+                console.error('Error requesting permission or subscribing:', error);
             }
         });
         
         // Handle Cancel button
         document.getElementById('notif-cancel').addEventListener('click', function() {
             modal.remove();
+            console.log('User clicked Not Now');
         });
     }
 </script>
