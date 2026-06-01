@@ -45,27 +45,30 @@
         console.log('Push notifications enabled in settings:', pushEnabled);
         
         if (pushEnabled) {
-            // Request permission if not already granted
+            // Check current permission state
             const permission = await OneSignal.Notifications.permission;
             console.log('Current permission status:', permission);
             
-            if (permission !== 'granted' && permission !== 'denied') {
+            // Check if already subscribed
+            const isSubscribed = await OneSignal.User.PushSubscription.optedIn;
+            console.log('User subscribed:', isSubscribed);
+            
+            // Only show prompt if permission is not granted AND not subscribed
+            if (permission === false && !isSubscribed) {
                 // Show custom modal before requesting permission
+                console.log('Showing notification prompt...');
                 showCustomNotificationPrompt();
-            } else if (permission === 'granted') {
-                // Check if user is subscribed
-                const isSubscribed = await OneSignal.User.PushSubscription.optedIn;
-                console.log('User subscribed:', isSubscribed);
-                
-                if (!isSubscribed) {
-                    console.log('Permission granted but not subscribed, subscribing now...');
-                    try {
-                        await OneSignal.User.PushSubscription.optIn();
-                        console.log('Successfully subscribed!');
-                    } catch (error) {
-                        console.error('Subscription error:', error);
-                    }
+            } else if (permission === true && !isSubscribed) {
+                // Permission granted but not subscribed, subscribe now
+                console.log('Permission granted but not subscribed, subscribing now...');
+                try {
+                    await OneSignal.User.PushSubscription.optIn();
+                    console.log('Successfully subscribed!');
+                } catch (error) {
+                    console.error('Subscription error:', error);
                 }
+            } else if (permission === true && isSubscribed) {
+                console.log('Already subscribed to push notifications');
             }
         }
         @endauth
@@ -73,6 +76,12 @@
 
     // Custom notification prompt
     function showCustomNotificationPrompt() {
+        // Check if modal already exists
+        if (document.getElementById('custom-notification-modal')) {
+            console.log('Modal already exists, not showing again');
+            return;
+        }
+        
         // Create custom modal
         const modal = document.createElement('div');
         modal.id = 'custom-notification-modal';
@@ -122,16 +131,25 @@
         
         // Handle Allow button
         document.getElementById('notif-allow').addEventListener('click', async function() {
-            modal.remove();
             console.log('User clicked Allow, requesting permission...');
+            modal.remove();
+            
             // Request permission using OneSignal
             try {
-                await OneSignal.Notifications.requestPermission();
-                console.log('Permission requested');
+                const permissionResult = await OneSignal.Notifications.requestPermission();
+                console.log('Permission result:', permissionResult);
                 
-                // Subscribe user
-                await OneSignal.User.PushSubscription.optIn();
-                console.log('User subscribed successfully!');
+                // Check if permission was granted
+                const newPermission = await OneSignal.Notifications.permission;
+                console.log('New permission status:', newPermission);
+                
+                if (newPermission === true) {
+                    // Subscribe user
+                    await OneSignal.User.PushSubscription.optIn();
+                    console.log('User subscribed successfully!');
+                } else {
+                    console.log('Permission was not granted');
+                }
             } catch (error) {
                 console.error('Error requesting permission or subscribing:', error);
             }
@@ -139,8 +157,8 @@
         
         // Handle Cancel button
         document.getElementById('notif-cancel').addEventListener('click', function() {
-            modal.remove();
             console.log('User clicked Not Now');
+            modal.remove();
         });
     }
 </script>
