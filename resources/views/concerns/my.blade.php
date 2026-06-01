@@ -2819,19 +2819,31 @@ function editConcern(id) {
             ${imageHtml}
         `;
         
-        // Trigger category change to show issue/location fields
+        // Trigger category change to show issue/location fields and set saved values
         setTimeout(() => {
             handleEditCategoryChange();
-            // Set the selected location if exists
-            const locationSelect = document.getElementById('edit_location');
-            if (locationSelect && concern.location) {
-                locationSelect.value = concern.location;
-            }
-            // Set the selected issue if exists
-            const issueSelect = document.getElementById('edit_issue');
-            if (issueSelect && concern.title) {
-                issueSelect.value = concern.title;
-            }
+            
+            // Wait a bit more for dropdown to be fully populated, then set values
+            setTimeout(() => {
+                // Set the selected issue if exists
+                const issueSelect = document.getElementById('edit_issue');
+                if (issueSelect && concern.title) {
+                    // Check if the option exists in the dropdown
+                    const optionExists = Array.from(issueSelect.options).some(opt => opt.value === concern.title);
+                    if (optionExists) {
+                        issueSelect.value = concern.title;
+                        // Trigger change to update hidden title field
+                        const event = new Event('change');
+                        issueSelect.dispatchEvent(event);
+                    }
+                }
+                
+                // Set the selected location if exists
+                const locationSelect = document.getElementById('edit_location');
+                if (locationSelect && concern.location) {
+                    locationSelect.value = concern.location;
+                }
+            }, 50);
         }, 100);
     })
     .catch(error => {
