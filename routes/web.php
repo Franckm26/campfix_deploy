@@ -118,6 +118,36 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/notifications/unread-count', function () {
         return response()->json(['count' => auth()->user()->unreadNotifications()->count()]);
     });
+    
+    // Test push notification endpoint
+    Route::get('/test-push-notification', function () {
+        $user = auth()->user();
+        
+        // Check if user has push notifications enabled
+        if (!$user->push_notifications) {
+            return response()->json([
+                'error' => 'Push notifications are disabled in your settings',
+                'push_enabled' => false,
+            ]);
+        }
+        
+        // Send test notification
+        try {
+            $user->notify(new \App\Notifications\TestPushNotification());
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Test notification sent!',
+                'user_id' => $user->id,
+                'push_enabled' => $user->push_notifications,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ], 500);
+        }
+    });
 });
 
 /* USER FEATURES - For students, faculty */
