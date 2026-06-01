@@ -35,22 +35,23 @@ class ConcernController extends Controller
     // Store a new concern in the database
     public function store(Request $request)
     {
-        // Only maintenance cannot create concerns
-        $role = auth()->user()->role;
-        if ($role === 'maintenance') {
-            return redirect('/dashboard')->with('error', 'Your role cannot submit concerns.');
-        }
+        try {
+            // Only maintenance cannot create concerns
+            $role = auth()->user()->role;
+            if ($role === 'maintenance') {
+                return redirect('/dashboard')->with('error', 'Your role cannot submit concerns.');
+            }
 
-        // Validate user input
-        $request->validate([
-            'location' => 'nullable|string|max:255',
-            'location_type' => 'nullable|in:Room,AVR,Computer Laboratory',
-            'room_number' => 'nullable|string|max:255',
-            'category_id' => 'required|exists:categories,id',
-            'description' => 'required|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'is_anonymous' => 'nullable|boolean',
-        ]);
+            // Validate user input
+            $request->validate([
+                'location' => 'nullable|string|max:255',
+                'location_type' => 'nullable|in:Room,AVR,Computer Laboratory',
+                'room_number' => 'nullable|string|max:255',
+                'category_id' => 'required|exists:categories,id',
+                'description' => 'required|string',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'is_anonymous' => 'nullable|boolean',
+            ]);
 
         // Additional validation based on category
         $category = Category::find($request->category_id);
@@ -222,6 +223,22 @@ class ConcernController extends Controller
         }
 
         return redirect()->route('concerns.my')->with('success', 'Concern submitted successfully!');
+        
+        } catch (\Exception $e) {
+            \Log::error('Error submitting concern: ' . $e->getMessage(), [
+                'user_id' => auth()->id(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error submitting concern: ' . $e->getMessage()
+                ], 500);
+            }
+            
+            return redirect()->back()->withInput()->with('error', 'Error submitting concern: ' . $e->getMessage());
+        }
     }
 
     // Show concerns list with inline archive and deleted views
