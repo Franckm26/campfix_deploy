@@ -243,7 +243,26 @@
                                                     <button type="button" class="btn btn-sm btn-info" onclick="viewEvent({{ $request->id }})" title="View">
                                                         <i class="fas fa-eye"></i>
                                                     </button>
-                                                    @if($request->status == 'Pending')
+                                                    @if($request->status == 'Cancelled')
+                                                        {{-- Show Archive and Delete for cancelled events --}}
+                                                        <a href="#" class="btn btn-sm btn-secondary"
+                                                            onclick="event.preventDefault(); showEventArchiveModal({{ $request->id }});"
+                                                            title="Archive">
+                                                            <i class="fas fa-archive"></i>
+                                                        </a>
+                                                        <form action="{{ route('events.delete', $request->id) }}" method="POST" class="d-inline">
+                                                            @csrf
+                                                            <button type="submit" class="btn btn-sm btn-danger"
+                                                                data-confirm="Delete this event? It will be moved to deleted events."
+                                                                data-confirm-title="Delete Event"
+                                                                data-confirm-ok="Yes, Delete"
+                                                                data-confirm-color="#dc3545"
+                                                                title="Delete">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                        </form>
+                                                    @elseif($request->status == 'Pending')
+                                                        {{-- Show only Cancel for pending events --}}
                                                         <form action="{{ route('events.cancel', $request->id) }}" method="POST" class="d-inline">
                                                             @csrf
                                                             <button type="submit" class="btn btn-sm btn-danger"
@@ -256,22 +275,6 @@
                                                             </button>
                                                         </form>
                                                     @endif
-                                                    <a href="#" class="btn btn-sm btn-secondary"
-                                                        onclick="event.preventDefault(); showEventArchiveModal({{ $request->id }});"
-                                                        title="Archive">
-                                                        <i class="fas fa-archive"></i>
-                                                    </a>
-                                                    <form action="{{ route('events.delete', $request->id) }}" method="POST" class="d-inline">
-                                                        @csrf
-                                                        <button type="submit" class="btn btn-sm btn-danger"
-                                                            data-confirm="Delete this event? It will be moved to deleted events."
-                                                            data-confirm-title="Delete Event"
-                                                            data-confirm-ok="Yes, Delete"
-                                                            data-confirm-color="#dc3545"
-                                                            title="Delete">
-                                                            <i class="fas fa-trash"></i>
-                                                        </button>
-                                                    </form>
                                                 </div>
                                             </td>
                                         </tr>
