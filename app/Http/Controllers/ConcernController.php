@@ -139,15 +139,26 @@ class ConcernController extends Controller
         // Handle image upload with security validation
         $imagePath = null;
         if ($request->hasFile('image')) {
-            $secureUpload = new SecureFileUpload();
-            $imagePath = $secureUpload->validateAndStore(
-                $request->file('image'),
-                'concerns',
-                'concerns'
-            );
+            // Use Supabase Storage for production/Vercel, local storage for development
+            if (config('app.env') === 'production' || config('app.env') === 'vercel') {
+                $supabaseStorage = new \App\Services\SupabaseStorage();
+                $imagePath = $supabaseStorage->upload($request->file('image'), 'concerns');
+                
+                if ($imagePath === null) {
+                    return redirect()->back()->withInput()->with('error', 'Failed to upload image to cloud storage.');
+                }
+            } else {
+                // Local storage for development
+                $secureUpload = new SecureFileUpload();
+                $imagePath = $secureUpload->validateAndStore(
+                    $request->file('image'),
+                    'concerns',
+                    'concerns'
+                );
 
-            if ($imagePath === null) {
-                return redirect()->back()->withInput()->with('error', 'Invalid file upload. Please ensure the file is a valid image under 2MB.');
+                if ($imagePath === null) {
+                    return redirect()->back()->withInput()->with('error', 'Invalid file upload. Please ensure the file is a valid image under 2MB.');
+                }
             }
         }
 

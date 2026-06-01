@@ -57,4 +57,15 @@ return [
         'user_auth_key' => env('ONESIGNAL_USER_AUTH_KEY'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Supabase Storage Configuration
+    |--------------------------------------------------------------------------
+    */
+    'supabase' => [
+        'url' => env('SUPABASE_URL'),
+        'key' => env('SUPABASE_KEY'),
+        'bucket' => env('SUPABASE_BUCKET', 'concerns'),
+    ],
+
 ];
