@@ -38,7 +38,7 @@ class EventRequestController extends Controller
             }
             
             $validatedData = $request->validate([
-                'description' => 'required|string|min:10',
+                'description' => 'required|string',
                 'event_date' => 'required|date|after_or_equal:today',
                 'location' => 'required|string|min:3|max:255',
                 'start_time' => 'required',
@@ -53,7 +53,6 @@ class EventRequestController extends Controller
                 'picture' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
             ], [
                 'description.required' => 'The description is required.',
-                'description.min' => 'The description must be at least 10 characters.',
                 'event_date.required' => 'The event date is required.',
                 'event_date.after_or_equal' => 'The event date cannot be in the past.',
                 'location.required' => 'The location is required.',
@@ -1873,7 +1872,7 @@ class EventRequestController extends Controller
 
         $validated = $request->validate([
             
-            'description' => 'required|string|min:10|max:5000',
+            'description' => 'required|string|max:5000',
             'event_date' => 'required|date|after_or_equal:today',
             'location' => 'required|string|min:3|max:255',
             'start_time' => 'required|date_format:H:i',

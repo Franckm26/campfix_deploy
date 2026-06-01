@@ -1162,7 +1162,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!startTime || !startTime.value) isValid = false;
         if (!endTime || !endTime.value) isValid = false;
         if (startTime && endTime && startTime.value && endTime.value && endTime.value <= startTime.value) isValid = false;
-        if (!description || !description.value.trim() || description.value.trim().length < 10) isValid = false;
+        if (!description || !description.value.trim()) isValid = false;
 
         if (previewBtn) {
             previewBtn.disabled = false;
@@ -1376,10 +1376,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!description.value.trim()) {
             showFieldError(description, 'Description is required');
             errors.push('Description is required');
-            isValid = false;
-        } else if (description.value.trim().length < 10) {
-            showFieldError(description, 'Description must be at least 10 characters');
-            errors.push('Description too short');
             isValid = false;
         }
 
