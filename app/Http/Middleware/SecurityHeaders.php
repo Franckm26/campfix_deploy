@@ -32,7 +32,7 @@ class SecurityHeaders
             'Content-Security-Policy',
             "default-src 'self' {$allowedOrigins}; " .
             "script-src 'self' 'unsafe-inline' {$allowedOrigins} https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://vercel.live https://cdn.onesignal.com https://onesignal.com https://api.onesignal.com; " .
-            "style-src 'self' 'unsafe-inline' {$allowedOrigins} https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com https://cdn.onesignal.com; " .
+            "style-src 'self' 'unsafe-inline' {$allowedOrigins} https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com https://cdn.onesignal.com https://onesignal.com; " .
             "img-src 'self' data: blob: {$allowedOrigins} https://www.sti.edu https://cdn.onesignal.com https://onesignal.com; " .
             "font-src 'self' {$allowedOrigins} https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com; " .
             "connect-src 'self' {$allowedOrigins} https://cdn.jsdelivr.net https://vercel.live https://cdn.onesignal.com https://onesignal.com https://api.onesignal.com; " .
