@@ -4619,13 +4619,17 @@ class AdminController extends Controller
                     $assignedToResolvedSeconds = $report->assigned_at->diffInSeconds($report->resolved_at, false);
                     $totalTimeSeconds = $report->created_at->diffInSeconds($report->resolved_at, false);
                     
-                    // Convert to user-friendly format (e.g., "30m", "1h 30m")
+                    // Convert to user-friendly format (e.g., "30m", "1h 30m", "1d 5h")
                     $formatTime = function($seconds) {
                         if ($seconds < 0) return '0m';
-                        $hours = floor($seconds / 3600);
+                        
+                        $days = floor($seconds / 86400); // 86400 seconds in a day
+                        $hours = floor(($seconds % 86400) / 3600);
                         $minutes = floor(($seconds % 3600) / 60);
                         
-                        if ($hours > 0) {
+                        if ($days > 0) {
+                            return $days . 'd ' . $hours . 'h';
+                        } elseif ($hours > 0) {
                             return $hours . 'h ' . $minutes . 'm';
                         } elseif ($minutes > 0) {
                             return $minutes . 'm';
@@ -6487,10 +6491,14 @@ class AdminController extends Controller
                 
                 $formatTime = function($seconds) {
                     if ($seconds < 0) return '0m';
-                    $hours = floor($seconds / 3600);
+                    
+                    $days = floor($seconds / 86400); // 86400 seconds in a day
+                    $hours = floor(($seconds % 86400) / 3600);
                     $minutes = floor(($seconds % 3600) / 60);
                     
-                    if ($hours > 0) {
+                    if ($days > 0) {
+                        return $days . 'd ' . $hours . 'h';
+                    } elseif ($hours > 0) {
                         return $hours . 'h ' . $minutes . 'm';
                     } elseif ($minutes > 0) {
                         return $minutes . 'm';

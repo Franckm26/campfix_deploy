@@ -736,10 +736,13 @@
                             <div style="font-size: 1.2rem; font-weight: bold; color: #3498db;">
                                 @php
                                     $totalSeconds = floor($avgSubmittedToAssigned * 3600);
-                                    $hours = floor($totalSeconds / 3600);
+                                    $days = floor($totalSeconds / 86400);
+                                    $hours = floor(($totalSeconds % 86400) / 3600);
                                     $minutes = floor(($totalSeconds % 3600) / 60);
                                     
-                                    if ($hours > 0) {
+                                    if ($days > 0) {
+                                        echo $days . 'd ' . $hours . 'h';
+                                    } elseif ($hours > 0) {
                                         echo $hours . 'h ' . $minutes . 'm';
                                     } elseif ($minutes > 0) {
                                         echo $minutes . 'm';
@@ -756,10 +759,13 @@
                             <div style="font-size: 1.2rem; font-weight: bold; color: #f39c12;">
                                 @php
                                     $totalSeconds = floor($avgAssignedToResolved * 3600);
-                                    $hours = floor($totalSeconds / 3600);
+                                    $days = floor($totalSeconds / 86400);
+                                    $hours = floor(($totalSeconds % 86400) / 3600);
                                     $minutes = floor(($totalSeconds % 3600) / 60);
                                     
-                                    if ($hours > 0) {
+                                    if ($days > 0) {
+                                        echo $days . 'd ' . $hours . 'h';
+                                    } elseif ($hours > 0) {
                                         echo $hours . 'h ' . $minutes . 'm';
                                     } elseif ($minutes > 0) {
                                         echo $minutes . 'm';
@@ -776,10 +782,13 @@
                             <div style="font-size: 1.2rem; font-weight: bold; color: #27ae60;">
                                 @php
                                     $totalSeconds = floor($avgTotalTime * 3600);
-                                    $hours = floor($totalSeconds / 3600);
+                                    $days = floor($totalSeconds / 86400);
+                                    $hours = floor(($totalSeconds % 86400) / 3600);
                                     $minutes = floor(($totalSeconds % 3600) / 60);
                                     
-                                    if ($hours > 0) {
+                                    if ($days > 0) {
+                                        echo $days . 'd ' . $hours . 'h';
+                                    } elseif ($hours > 0) {
                                         echo $hours . 'h ' . $minutes . 'm';
                                     } elseif ($minutes > 0) {
                                         echo $minutes . 'm';
