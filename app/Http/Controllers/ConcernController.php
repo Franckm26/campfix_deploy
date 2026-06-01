@@ -1420,7 +1420,22 @@ class ConcernController extends Controller
                 return response()->json(['error' => 'Not authenticated'], 401);
             }
 
-            $concern = Concern::with('categoryRelation', 'user', 'assignedTo')->find($id);
+            // For admins and MIS, include archived and deleted concerns
+            $isMIS = $user->role === 'mis';
+            $isAdmin = in_array($user->role, ['admin', 'building_admin', 'school_admin']);
+            
+            if ($isMIS || $isAdmin) {
+                // Admins can view all concerns including archived/deleted
+                $concern = Concern::with('categoryRelation', 'user', 'assignedTo')
+                    ->withoutGlobalScopes()
+                    ->find($id);
+            } else {
+                // Regular users can only view non-archived, non-deleted concerns
+                $concern = Concern::with('categoryRelation', 'user', 'assignedTo')
+                    ->where('is_archived', false)
+                    ->where('is_deleted', false)
+                    ->find($id);
+            }
 
             if (! $concern) {
                 return response()->json(['error' => 'Concern not found'], 404);
@@ -1429,8 +1444,6 @@ class ConcernController extends Controller
             // Users can view their own concerns, concerns assigned to them, or MIS/Admin can view all
             $isOwner = $concern->user_id == $user->id;
             $isAssigned = $concern->assigned_to == $user->id;
-            $isMIS = $user->role === 'mis';
-            $isAdmin = in_array($user->role, ['admin', 'building_admin', 'school_admin']);
 
             if (! $isOwner && ! $isAssigned && ! $isMIS && ! $isAdmin) {
                 return response()->json(['error' => 'Unauthorized'], 403);
@@ -1473,7 +1486,15 @@ class ConcernController extends Controller
 
             return response()->json(['concern' => $formattedConcern]);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'An error occurred while retrieving the concern.'], 500);
+            \Log::error('Error in apiShow: ' . $e->getMessage(), [
+                'concern_id' => $id,
+                'user_id' => auth()->id(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'error' => 'An error occurred while retrieving the concern.',
+                'message' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
         }
     }
 
