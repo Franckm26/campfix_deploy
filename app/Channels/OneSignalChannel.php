@@ -13,8 +13,14 @@ class OneSignalChannel
      */
     public function send(object $notifiable, Notification $notification): void
     {
+        Log::info('OneSignalChannel: Starting send', [
+            'user_id' => $notifiable->id,
+            'push_enabled' => $notifiable->push_notifications,
+        ]);
+
         // Check if user has push notifications enabled
         if (!$notifiable->push_notifications) {
+            Log::info('OneSignalChannel: Push notifications disabled for user', ['user_id' => $notifiable->id]);
             return;
         }
 
@@ -22,14 +28,26 @@ class OneSignalChannel
         $message = $notification->toOneSignal($notifiable);
 
         if (!$message) {
+            Log::warning('OneSignalChannel: No message data returned', ['user_id' => $notifiable->id]);
             return;
         }
+
+        Log::info('OneSignalChannel: Message data', ['message' => $message]);
 
         $appId = config('services.onesignal.app_id');
         $apiKey = config('services.onesignal.rest_api_key');
 
+        Log::info('OneSignalChannel: Config check', [
+            'app_id_set' => !empty($appId),
+            'api_key_set' => !empty($apiKey),
+            'app_id' => $appId ? substr($appId, 0, 10) . '...' : 'NOT SET',
+        ]);
+
         if (!$appId || !$apiKey) {
-            Log::warning('OneSignal not configured');
+            Log::error('OneSignal not configured', [
+                'app_id' => $appId,
+                'api_key_set' => !empty($apiKey),
+            ]);
             return;
         }
 
@@ -59,25 +77,41 @@ class OneSignalChannel
                 $payload['chrome_web_badge'] = url($message['badge']);
             }
 
+            Log::info('OneSignalChannel: Sending to OneSignal API', [
+                'payload' => $payload,
+                'user_id' => $notifiable->id,
+            ]);
+
             // Send notification via OneSignal API
             $response = Http::withHeaders([
                 'Authorization' => 'Basic ' . $apiKey,
                 'Content-Type' => 'application/json',
             ])->post('https://onesignal.com/api/v1/notifications', $payload);
 
+            Log::info('OneSignalChannel: API Response', [
+                'status' => $response->status(),
+                'body' => $response->json(),
+            ]);
+
             if ($response->failed()) {
                 Log::error('OneSignal notification failed', [
                     'user_id' => $notifiable->id,
+                    'status' => $response->status(),
                     'response' => $response->json(),
                 ]);
             } else {
-                Log::info('OneSignal notification sent', [
+                Log::info('OneSignal notification sent successfully', [
                     'user_id' => $notifiable->id,
                     'notification_id' => $response->json()['id'] ?? null,
+                    'recipients' => $response->json()['recipients'] ?? 0,
                 ]);
             }
         } catch (\Exception $e) {
-            Log::error('OneSignal notification exception: ' . $e->getMessage());
+            Log::error('OneSignal notification exception', [
+                'user_id' => $notifiable->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
         }
     }
 }
