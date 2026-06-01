@@ -22,6 +22,14 @@
       "dest": "/api/index.php"
     },
     {
+      "src": "/OneSignalSDKWorker.js",
+      "dest": "/public/OneSignalSDKWorker.js"
+    },
+    {
+      "src": "/OneSignalSDKUpdaterWorker.js",
+      "dest": "/public/OneSignalSDKUpdaterWorker.js"
+    },
+    {
       "src": "/Campfix/Images/(.*)",
       "dest": "/public/Campfix/Images/$1"
     },
