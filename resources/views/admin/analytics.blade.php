@@ -2885,9 +2885,16 @@ function viewConcern(id) {
     })
     .then(response => {
         if (!response.ok) {
-            return response.json().then(err => {
-                throw new Error(err.error || 'Request failed with status ' + response.status);
-            });
+            // Check if response is JSON before trying to parse it
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                return response.json().then(err => {
+                    throw new Error(err.error || 'Request failed with status ' + response.status);
+                });
+            } else {
+                // If not JSON, it's likely an HTML error page
+                throw new Error('Server returned an error (Status: ' + response.status + '). Please check if you have permission to view this concern.');
+            }
         }
         return response.json();
     })
