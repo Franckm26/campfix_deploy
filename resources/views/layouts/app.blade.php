@@ -798,6 +798,7 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 <script>
+// Event Request Form Script v2.0 - Updated 2026-06-01
 // Define updateDescCount globally so it's available for inline oninput handlers
 window.updateDescCount = function() {
     var ta = document.getElementById('modal_description');
