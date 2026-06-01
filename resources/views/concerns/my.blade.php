@@ -815,11 +815,57 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Update Concern</button>
+                    <button type="button" class="btn btn-primary" onclick="showEditReviewModal()">Review</button>
                 </div>
             </form>
         </div>
 </div>
+</div>
+
+<!-- Edit Review Modal -->
+<div class="modal fade" id="editReviewModal" tabindex="-1" aria-labelledby="editReviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editReviewModalLabel">Review Your Changes</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Category:</label>
+                    <p id="edit_review_category" class="mb-0"></p>
+                </div>
+                <div class="mb-3" id="edit_review_issue_container" style="display: none;">
+                    <label class="form-label fw-bold">Issue:</label>
+                    <p id="edit_review_issue" class="mb-0"></p>
+                </div>
+                <div class="mb-3" id="edit_review_location_container" style="display: none;">
+                    <label class="form-label fw-bold">Location:</label>
+                    <p id="edit_review_location" class="mb-0"></p>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Description:</label>
+                    <p id="edit_review_description" class="mb-0" style="white-space: pre-wrap;"></p>
+                </div>
+                <div class="mb-3" id="edit_review_current_image_container" style="display: none;">
+                    <label class="form-label fw-bold">Current Photo:</label>
+                    <div>
+                        <img id="edit_review_current_image" src="" alt="Current" class="img-fluid" style="max-height: 200px; border-radius: 8px;">
+                    </div>
+                </div>
+                <div class="mb-3" id="edit_review_new_image_container" style="display: none;">
+                    <label class="form-label fw-bold">New Photo:</label>
+                    <div>
+                        <img id="edit_review_new_image" src="" alt="New Preview" class="img-fluid" style="max-height: 200px; border-radius: 8px;">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="backToEditForm()">Back to Edit</button>
+                <button type="button" class="btn btn-primary" onclick="confirmEditSubmit()">Update Concern</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Assign Modal -->
@@ -1150,6 +1196,107 @@ function confirmSubmit() {
         if (result.isConfirmed) {
             // Submit the form
             document.getElementById('newConcernForm').submit();
+        }
+    });
+}
+
+function showEditReviewModal() {
+    // Validate form first
+    const form = document.getElementById('editConcernForm');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
+    // Get form values from edit modal
+    const categorySelect = document.querySelector('#editConcernModal select[name="category_id"]');
+    const categoryText = categorySelect?.options[categorySelect.selectedIndex]?.text || '';
+    
+    const issueSelect = document.querySelector('#editConcernModal select[name="_issue"]');
+    const issueText = issueSelect?.options[issueSelect.selectedIndex]?.text || '';
+    
+    const locationSelect = document.querySelector('#editConcernModal select[name="location"]');
+    const locationText = locationSelect?.options[locationSelect.selectedIndex]?.text || '';
+    
+    const descriptionTextarea = document.querySelector('#editConcernModal textarea[name="description"]');
+    const description = descriptionTextarea?.value || '';
+    
+    const imageInput = document.querySelector('#editConcernModal input[name="image"]');
+    const imageFile = imageInput?.files[0];
+    
+    const currentImageElement = document.querySelector('#editConcernModal img[id*="current_image"]');
+    const currentImageSrc = currentImageElement?.src || '';
+
+    // Populate edit review modal
+    document.getElementById('edit_review_category').textContent = categoryText;
+    
+    if (issueText && issueText !== 'Select an issue' && issueText !== '') {
+        document.getElementById('edit_review_issue').textContent = issueText;
+        document.getElementById('edit_review_issue_container').style.display = 'block';
+    } else {
+        document.getElementById('edit_review_issue_container').style.display = 'none';
+    }
+    
+    if (locationText && locationText !== 'Select a location' && locationText !== '') {
+        document.getElementById('edit_review_location').textContent = locationText;
+        document.getElementById('edit_review_location_container').style.display = 'block';
+    } else {
+        document.getElementById('edit_review_location_container').style.display = 'none';
+    }
+    
+    document.getElementById('edit_review_description').textContent = description;
+    
+    // Handle current image
+    if (currentImageSrc && !currentImageSrc.includes('placeholder')) {
+        document.getElementById('edit_review_current_image').src = currentImageSrc;
+        document.getElementById('edit_review_current_image_container').style.display = 'block';
+    } else {
+        document.getElementById('edit_review_current_image_container').style.display = 'none';
+    }
+    
+    // Handle new image preview
+    if (imageFile) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('edit_review_new_image').src = e.target.result;
+            document.getElementById('edit_review_new_image_container').style.display = 'block';
+        };
+        reader.readAsDataURL(imageFile);
+    } else {
+        document.getElementById('edit_review_new_image_container').style.display = 'none';
+    }
+
+    // Hide edit concern modal and show edit review modal
+    const editConcernModal = bootstrap.Modal.getInstance(document.getElementById('editConcernModal'));
+    editConcernModal.hide();
+    
+    const editReviewModal = new bootstrap.Modal(document.getElementById('editReviewModal'));
+    editReviewModal.show();
+}
+
+function backToEditForm() {
+    // Hide edit review modal and show edit concern modal
+    const editReviewModal = bootstrap.Modal.getInstance(document.getElementById('editReviewModal'));
+    editReviewModal.hide();
+    
+    const editConcernModal = new bootstrap.Modal(document.getElementById('editConcernModal'));
+    editConcernModal.show();
+}
+
+function confirmEditSubmit() {
+    Swal.fire({
+        title: 'Are you sure?',
+        text: 'Do you want to update this concern?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, Update',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Submit the edit form
+            document.getElementById('editConcernForm').submit();
         }
     });
 }
