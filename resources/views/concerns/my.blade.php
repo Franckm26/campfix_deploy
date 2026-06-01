@@ -1311,19 +1311,16 @@ function handleEditCategoryChange() {
     if (!categorySelect) return;
     
     const selectedOption = categorySelect.options[categorySelect.selectedIndex];
-    const categoryName = selectedOption ? selectedOption.textContent.toLowerCase().trim() : '';
     
-    // Category issues mapping (same as new concern)
-    const categoryIssues = {
-        'maintenance': ['Aircon', 'Lights', 'Chairs', 'Tables', 'Doors', 'Windows', 'Ceiling', 'Walls', 'Floors', 'Whiteboard', 'Projector', 'Others'],
-        'electrical': ['Power Outlet', 'Light Switch', 'Circuit Breaker', 'Wiring', 'Generator', 'Others'],
-        'plumbing': ['Faucet', 'Toilet', 'Sink', 'Drainage', 'Water Heater', 'Pipe Leak', 'Others'],
-        'cleanliness': ['Trash', 'Restroom', 'Classroom', 'Hallway', 'Grounds', 'Others'],
-        'safety': ['Fire Extinguisher', 'Emergency Exit', 'Security', 'Hazard', 'Others'],
-        'it': ['Computer', 'Printer', 'Network', 'Projector', 'Software', 'Others']
-    };
-    
-    const issues = categoryIssues[categoryName] || [];
+    // Get issues from the data-issues attribute
+    let issues = [];
+    try {
+        const issuesData = selectedOption ? selectedOption.getAttribute('data-issues') : null;
+        issues = issuesData ? JSON.parse(issuesData) : [];
+    } catch (e) {
+        console.error('Error parsing issues:', e);
+        issues = [];
+    }
     
     if (issues.length === 0) {
         // No issues for this category
@@ -2731,10 +2728,13 @@ function editConcern(id) {
         const maintenanceUsers = data.maintenance_users || [];
         const canAssign = data.can_assign || false;
         
+        // Store categories globally for handleEditCategoryChange to access
+        window.editConcernCategories = categories;
+        
         let categoryOptions = '';
         categories.forEach(cat => {
             const selected = cat.id === concern.category_id ? 'selected' : '';
-            categoryOptions += `<option value="${cat.id}" ${selected}>${cat.name}</option>`;
+            categoryOptions += `<option value="${cat.id}" data-issues='${JSON.stringify(cat.issues || [])}' ${selected}>${cat.name}</option>`;
         });
         
         const priorities = ['low', 'medium', 'high', 'urgent'];

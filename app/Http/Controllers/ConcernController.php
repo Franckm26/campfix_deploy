@@ -1561,8 +1561,8 @@ class ConcernController extends Controller
                 return response()->json(['error' => 'You cannot edit this concern once work has started or it has been completed.'], 403);
             }
 
-            // Get categories
-            $categories = Category::select('id', 'name')->get();
+            // Get categories with their issues
+            $categories = Category::select('id', 'name', 'issues')->get();
 
             // Check if user can assign (owner or admin)
             $isOwner = $concern->user_id === $user->id;
