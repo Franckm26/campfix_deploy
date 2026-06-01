@@ -2055,15 +2055,17 @@ document.addEventListener('DOMContentLoaded', function () {
         applyTheme(theme);
         localStorage.setItem(THEME_KEY, theme);
         // Persist to server
-        fetch('{{ route("settings.theme") }}', {
+        @auth
+        fetch('/settings/theme', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                 'Accept': 'application/json',
             },
-            body: JSON.stringify({ theme }),
-        });
+            body: JSON.stringify({ theme: theme }),
+        }).catch(err => console.error('Theme update failed:', err));
+        @endauth
     }
 
     // Apply on load — DB value takes priority, fallback to localStorage
