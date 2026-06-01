@@ -17,26 +17,9 @@
                 enable: false,
             },
             allowLocalhostAsSecureOrigin: {{ config('app.env') === 'local' ? 'true' : 'false' }},
-            // Slidedown prompt configuration
-            promptOptions: {
-                slidedown: {
-                    prompts: [
-                        {
-                            type: "push",
-                            autoPrompt: false,
-                            text: {
-                                actionMessage: "Stay updated with important CampFix notifications about your concerns, events, and reports.",
-                                acceptButton: "Allow Notifications",
-                                cancelButton: "Not Now",
-                            },
-                            delay: {
-                                pageViews: 1,
-                                timeDelay: 0
-                            }
-                        }
-                    ]
-                }
-            },
+            // Use native browser prompt instead of slidedown
+            autoRegister: false,
+            autoResubscribe: true,
             notificationClickHandlerMatch: 'origin',
             notificationClickHandlerAction: 'navigate'
         });
@@ -51,106 +34,80 @@
         if (pushEnabled) {
             // Request permission if not already granted
             const permission = await OneSignal.Notifications.permission;
-            if (permission !== 'granted') {
-                // Show slidedown prompt
-                OneSignal.Slidedown.promptPush();
+            if (permission !== 'granted' && permission !== 'denied') {
+                // Show custom modal before requesting permission
+                showCustomNotificationPrompt();
             }
         }
         @endauth
     });
-</script>
 
-<!-- Custom OneSignal Prompt Styling -->
-<style>
-    /* Position and size the slidedown */
-    #onesignal-slidedown-container {
-        max-width: 420px !important;
-        right: 20px !important;
-        left: auto !important;
-        bottom: 20px !important;
-        top: auto !important;
-        z-index: 9999 !important;
+    // Custom notification prompt
+    function showCustomNotificationPrompt() {
+        // Create custom modal
+        const modal = document.createElement('div');
+        modal.id = 'custom-notification-modal';
+        modal.innerHTML = `
+            <div style="
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                max-width: 420px;
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+                padding: 24px;
+                z-index: 9999;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            ">
+                <div style="font-size: 32px; margin-bottom: 12px;">🔔</div>
+                <div style="font-size: 15px; line-height: 1.5; color: #333; margin-bottom: 20px;">
+                    Stay updated with important CampFix notifications about your concerns, events, and reports.
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button id="notif-cancel" style="
+                        background-color: #f8f9fa;
+                        color: #6c757d;
+                        padding: 12px 24px;
+                        font-size: 14px;
+                        font-weight: 600;
+                        border-radius: 8px;
+                        border: 1px solid #dee2e6;
+                        cursor: pointer;
+                    ">Not Now</button>
+                    <button id="notif-allow" style="
+                        background-color: #0d6efd;
+                        color: white;
+                        padding: 12px 24px;
+                        font-size: 14px;
+                        font-weight: 600;
+                        border-radius: 8px;
+                        border: none;
+                        cursor: pointer;
+                    ">Allow Notifications</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Handle Allow button
+        document.getElementById('notif-allow').addEventListener('click', async function() {
+            modal.remove();
+            // Request permission using OneSignal
+            try {
+                await OneSignal.Notifications.requestPermission();
+            } catch (error) {
+                console.error('Error requesting permission:', error);
+            }
+        });
+        
+        // Handle Cancel button
+        document.getElementById('notif-cancel').addEventListener('click', function() {
+            modal.remove();
+        });
     }
-    
-    /* Style the slidedown dialog */
-    .onesignal-slidedown-dialog {
-        padding: 24px !important;
-        border-radius: 12px !important;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.15) !important;
-        background: white !important;
-    }
-    
-    /* Hide broken icon and add custom icon */
-    .slidedown-body-icon {
-        display: none !important;
-    }
-    
-    /* Add custom icon before message */
-    .slidedown-body-message::before {
-        content: "🔔";
-        font-size: 32px;
-        display: block;
-        margin-bottom: 12px;
-    }
-    
-    /* Style the message text */
-    .slidedown-body-message {
-        font-size: 15px !important;
-        line-height: 1.5 !important;
-        color: #333 !important;
-        margin-bottom: 20px !important;
-    }
-    
-    /* Style buttons container */
-    .slidedown-footer {
-        display: flex !important;
-        gap: 10px !important;
-        justify-content: flex-end !important;
-    }
-    
-    /* Style Allow button */
-    .onesignal-slidedown-allow-button,
-    button[data-test-id="slidedown-allow-button"] {
-        background-color: #0d6efd !important;
-        color: white !important;
-        padding: 12px 24px !important;
-        font-size: 14px !important;
-        font-weight: 600 !important;
-        border-radius: 8px !important;
-        border: none !important;
-        cursor: pointer !important;
-        transition: background-color 0.2s !important;
-    }
-    
-    .onesignal-slidedown-allow-button:hover,
-    button[data-test-id="slidedown-allow-button"]:hover {
-        background-color: #0b5ed7 !important;
-    }
-    
-    /* Style Cancel button */
-    .onesignal-slidedown-cancel-button,
-    button[data-test-id="slidedown-cancel-button"] {
-        background-color: #f8f9fa !important;
-        color: #6c757d !important;
-        padding: 12px 24px !important;
-        font-size: 14px !important;
-        font-weight: 600 !important;
-        border-radius: 8px !important;
-        border: 1px solid #dee2e6 !important;
-        cursor: pointer !important;
-        transition: background-color 0.2s !important;
-    }
-    
-    .onesignal-slidedown-cancel-button:hover,
-    button[data-test-id="slidedown-cancel-button"]:hover {
-        background-color: #e9ecef !important;
-    }
-    
-    /* Hide OneSignal branding */
-    .slidedown-footer-instructions {
-        display: none !important;
-    }
-</style>
+</script>
 
 <!-- Favicon -->
 <link rel="icon" type="image/png" href="{{ asset('Campfix/Images/logo.png') }}">
