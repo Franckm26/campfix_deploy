@@ -86,11 +86,12 @@ class EventRequestController extends Controller
 
             $educationLevel = $request->education_level ?? 'tertiary';
             $isFacultyIntended = $educationLevel === 'faculty';
+            $isShsIntended = $educationLevel === 'shs';
             $isNonAcademic = $request->request_type === 'Non-Academic';
 
             // Determine initial approval level based on request type
             // Non-Academic: starts at Building Admin (level 3)
-            // Academic: starts at Program Head (level 1)
+            // Academic: starts at Program Head (level 1), except SHS where level 1 is Principal Assistant
             $initialApprovalLevel = EventRequest::LEVEL_NONE;
             if (!$isFacultyIntended) {
                 $initialApprovalLevel = $isNonAcademic ? EventRequest::LEVEL_3_BUILDING_ADMIN : EventRequest::LEVEL_1_PROGRAM_HEAD;
@@ -106,7 +107,7 @@ class EventRequestController extends Controller
                 'category' => $request->category,
                 'request_type' => $request->request_type,
                 'other_category' => $request->other_category,
-                'department' => $request->department,
+                'department' => $isShsIntended ? null : $request->department,
                 'education_level' => $educationLevel,
                 'priority' => $request->priority ?? 'medium',
                 // Faculty-intended requests are auto-approved; others go through the approval chain
@@ -149,7 +150,7 @@ class EventRequestController extends Controller
             $approvalHistory = [];
 
             // Check if requester is a Program Head
-            if ($user->isProgramHead()) {
+            if (!$isShsIntended && $user->isProgramHead()) {
                 $eventRequest->approved_by_level_1 = $user->id;
                 $eventRequest->approved_at_level_1 = now();
                 $approvalHistory[] = [
@@ -522,6 +523,10 @@ class EventRequestController extends Controller
         $user = auth()->user();
         $isShs = ($eventRequest->education_level ?? 'tertiary') === 'shs';
 
+        if ($isShs && $user->isProgramHead()) {
+            return back()->with('error', 'Senior High School event requests do not require Program Head approval.');
+        }
+
         // SHS chain: Principal Assistant (level 1) → Academic Head (level 2) → School Admin (final)
         if ($isShs && $user->isPrincipalAssistant()) {
             if ($eventRequest->hasUserApprovedAtLevel($user->id, 1)) {
@@ -541,7 +546,7 @@ class EventRequestController extends Controller
                 'notes' => $request->notes,
             ];
             $eventRequest->approval_history = $history;
-            $eventRequest->approval_level = EventRequest::LEVEL_1_PROGRAM_HEAD;
+            $eventRequest->approval_level = EventRequest::LEVEL_2_ACADEMIC_HEAD;
             $eventRequest->status = 'Pending';
             $eventRequest->save();
 
@@ -552,6 +557,49 @@ class EventRequestController extends Controller
             $notificationService->notifyApproversOfNewEvent($eventRequest);
 
             return back()->with('success', 'Event request approved! Forwarded to Academic Head.');
+        }
+
+        if ($isShs && $user->isAcademicHead()) {
+            if ($eventRequest->hasUserApprovedAtLevel($user->id, 2)) {
+                return back()->with('error', 'You have already approved this event request.');
+            }
+
+            $eventRequest->approved_by_level_2 = $user->id;
+            $eventRequest->approved_at_level_2 = now();
+
+            $history = $eventRequest->approval_history ?? [];
+            $history[] = [
+                'level' => 2,
+                'role' => 'Academic Head',
+                'approver' => $user->name,
+                'approver_id' => $user->id,
+                'at' => now()->toDateTimeString(),
+                'notes' => $request->notes,
+            ];
+            $eventRequest->approval_history = $history;
+
+            if (\App\Models\User::whereIn('role', ['school_admin', 'mis'])->exists()) {
+                $eventRequest->status = 'Pending';
+                $eventRequest->approval_level = EventRequest::LEVEL_4_SCHOOL_ADMIN;
+            } else {
+                $eventRequest->status = 'Approved';
+                $eventRequest->approved_by = $user->id;
+                $eventRequest->approved_at = now();
+                $eventRequest->approval_level = EventRequest::LEVEL_APPROVED;
+            }
+
+            $eventRequest->notes = $request->notes;
+            $eventRequest->save();
+
+            ActivityLog::log('event_approved_level_2', 'SHS Event approved by Academic Head: ', null);
+            $this->sendApprovalNotification($eventRequest, 2, 'Approved');
+
+            if ($eventRequest->status !== 'Approved') {
+                $notificationService = new NotificationService;
+                $notificationService->notifyApproversOfNewEvent($eventRequest);
+            }
+
+            return back()->with('success', $eventRequest->status === 'Approved' ? 'Event request fully approved!' : 'Event request approved! Forwarded to School Admin.');
         }
 
         // Determine approval level based on user role
@@ -1578,13 +1626,26 @@ class EventRequestController extends Controller
         // Filter events to show only those at the current user's approval level
         $user = auth()->user();
         $requests = $allRequests->filter(function ($eventRequest) use ($user) {
+            $isShs = ($eventRequest->education_level ?? 'tertiary') === 'shs';
+
             // Determine the user's approval level
             $userLevel = null;
             if ($user->isProgramHead()) {
+                if ($isShs) {
+                    return false;
+                }
+                $userLevel = 1;
+            } elseif ($user->isPrincipalAssistant()) {
+                if (! $isShs) {
+                    return false;
+                }
                 $userLevel = 1;
             } elseif ($user->isAcademicHead()) {
                 $userLevel = 2;
             } elseif ($user->isBuildingAdmin()) {
+                if ($isShs) {
+                    return false;
+                }
                 $userLevel = 3;
             } elseif ($user->isSchoolAdmin() || $user->isAdmin()) {
                 $userLevel = 4;
@@ -2080,4 +2141,3 @@ class EventRequestController extends Controller
         ]);
     }
 }
-

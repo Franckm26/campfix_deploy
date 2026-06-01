@@ -90,17 +90,17 @@ class NotificationService
             if ($isShs) {
                 // SHS chain: Principal Assistant → Academic Head → School Admin
                 switch ($currentLevel) {
-                    case EventRequest::LEVEL_NONE:
+                    case EventRequest::LEVEL_1_PROGRAM_HEAD:
                         $roleToNotify = User::ROLE_PRINCIPAL_ASSISTANT;
                         break;
-                    case EventRequest::LEVEL_1_PROGRAM_HEAD:
+                    case EventRequest::LEVEL_2_ACADEMIC_HEAD:
                         $roleToNotify = User::ROLE_ACADEMIC_HEAD;
                         break;
-                    case EventRequest::LEVEL_2_ACADEMIC_HEAD:
+                    case EventRequest::LEVEL_4_SCHOOL_ADMIN:
                         $roleToNotify = User::ROLE_SCHOOL_ADMIN;
                         break;
                     default:
-                        $roleToNotify = User::ROLE_SCHOOL_ADMIN;
+                        $roleToNotify = User::ROLE_PRINCIPAL_ASSISTANT;
                         break;
                 }
             } else {

@@ -811,6 +811,36 @@ window.updateDescCount = function() {
 };
 
 document.addEventListener('DOMContentLoaded', function() {
+    function shouldRequireDepartment(requestTypeValue, educationLevelValue, areaValue) {
+        return requestTypeValue === 'Academic' && educationLevelValue !== 'shs' && !!areaValue;
+    }
+
+    function syncDepartmentRequirement() {
+        var requestType = document.getElementById('modal_request_type');
+        var educationLevel = document.getElementById('modal_education_level');
+        var areaOfUse = document.getElementById('modal_area_of_use');
+        var departmentContainer = document.getElementById('modal_department_container');
+        var departmentSelect = document.getElementById('modal_department');
+        var isRequired = shouldRequireDepartment(
+            requestType ? requestType.value : '',
+            educationLevel ? educationLevel.value : 'faculty',
+            areaOfUse ? areaOfUse.value : ''
+        );
+
+        if (departmentContainer) {
+            departmentContainer.style.display = isRequired ? 'block' : 'none';
+        }
+
+        if (departmentSelect) {
+            if (isRequired) {
+                departmentSelect.setAttribute('required', 'required');
+            } else {
+                departmentSelect.removeAttribute('required');
+                departmentSelect.value = '';
+            }
+        }
+    }
+
     var modalRequestType = document.getElementById('modal_request_type');
     if (modalRequestType) {
         modalRequestType.addEventListener('change', function() {
@@ -844,6 +874,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (departmentContainer) departmentContainer.style.display = 'none';
                 if (avrSelectionContainer) avrSelectionContainer.style.display = 'none';
             }
+            syncDepartmentRequirement();
             updatePreviewButtonState();
         });
     }
@@ -924,6 +955,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (avrSelectionSelect) avrSelectionSelect.removeAttribute('required');
                 if (avrSelectionSelect) avrSelectionSelect.value = '';
             }
+            syncDepartmentRequirement();
             updatePreviewButtonState();
         });
     }
@@ -1145,18 +1177,10 @@ document.addEventListener('DOMContentLoaded', function() {
         var isCourt = areaValue && areaValue.toLowerCase().includes('court');
         var isAVR = areaValue && areaValue.toLowerCase().includes('avr');
 
-        if (isRoom) {
-            // Always require department for Academic requests (regardless of education level)
-            if (requestTypeValue === 'Academic' && (!department || !department.value)) isValid = false;
-        }
-
-        if (isCourt) {
-            if (requestTypeValue === 'Academic' && (!department || !department.value)) isValid = false;
-        }
-
-        if (isAVR) {
-            // Require department for Academic AVR
-            if (requestTypeValue === 'Academic' && (!department || !department.value)) isValid = false;
+        if (isRoom || isCourt || isAVR) {
+            if (shouldRequireDepartment(requestTypeValue, educationLevelValue, areaValue) && (!department || !department.value)) {
+                isValid = false;
+            }
         }
 
         if (!eventDate || !eventDate.value) isValid = false;
@@ -1189,18 +1213,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var educationLevelSelect = document.getElementById('modal_education_level');
     if (educationLevelSelect) {
         educationLevelSelect.addEventListener('change', function() {
-            var isShs = this.value === 'shs';
-            var areaOfUse = document.getElementById('modal_area_of_use');
-            var departmentContainer = document.getElementById('modal_department_container');
-            var departmentSelect = document.getElementById('modal_department');
-            if (isShs) {
-                departmentContainer.style.display = 'none';
-                departmentSelect.removeAttribute('required');
-                departmentSelect.value = '';
-            } else if (areaOfUse && areaOfUse.value === 'Room') {
-                departmentContainer.style.display = 'block';
-                departmentSelect.setAttribute('required', 'required');
-            }
+            syncDepartmentRequirement();
             // Update preview button state after changing requirements
             updatePreviewButtonState();
         });
@@ -1220,6 +1233,10 @@ document.addEventListener('DOMContentLoaded', function() {
             var startTime = document.getElementById('modal_start_time').value;
             var endTime = document.getElementById('modal_end_time').value;
             var description = document.getElementById('modal_description').value;
+
+            if (educationLevel === 'shs') {
+                department = '';
+            }
 
             // Build location from selected options
             var location = areaOfUse || '';
@@ -1254,9 +1271,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Show/hide department row - hide for SHS
             var departmentRow = document.getElementById('preview_department_row');
-            if (educationLevel === 'shs') {
+            if (!departmentRow || educationLevel === 'shs') {
                 // Always hide department for Senior High School
-                departmentRow.style.display = 'none';
+                if (departmentRow) departmentRow.style.display = 'none';
             } else if (department) {
                 departmentRow.style.display = 'block';
             } else {
@@ -1318,14 +1335,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var isCourt = areaOfUse.value && areaOfUse.value.toLowerCase().includes('court');
         var isAVR = areaOfUse.value && areaOfUse.value.toLowerCase().includes('avr');
         
-        if (isRoom && requestType.value === 'Academic' && !department.value) {
-            showFieldError(department, 'Please select a department');
-            errors.push('Department is required');
-            isValid = false;
-        }
-
-        // Validate Department (if Academic request type and Court/AVR selected)
-        if (requestType.value === 'Academic' && (isCourt || isAVR) && !department.value) {
+        if ((isRoom || isCourt || isAVR) && shouldRequireDepartment(requestType.value, educationLevelValue, areaOfUse.value) && !department.value) {
             showFieldError(department, 'Please select a department for academic requests');
             errors.push('Department is required for academic requests');
             isValid = false;
@@ -1512,7 +1522,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             document.getElementById('preview_area_of_use_row').style.display = areaOfUse ? 'flex' : 'none';
             document.getElementById('preview_room_number_row').style.display = 'none'; // Room number row is no longer used
-            document.getElementById('preview_department_row').style.display = department ? 'flex' : 'none';
+            document.getElementById('preview_department_row').style.display = (educationLevel !== 'shs' && department) ? 'flex' : 'none';
             
             // Check if location contains "avr" keyword
             var isAVR = areaOfUse && areaOfUse.toLowerCase().includes('avr');
@@ -1549,7 +1559,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     approvalRecipients = deptHead + ', Academic Head, Building Admin, and School Administrator';
                 }
             }
-            document.getElementById('approval_recipients').textContent = approvalRecipients;
+            var approvalRecipientsEl = document.getElementById('approval_recipients');
+            if (approvalRecipientsEl) {
+                approvalRecipientsEl.textContent = approvalRecipients;
+            }
 
             var requestModalEl = document.getElementById('eventRequestModal');
             var previewModalEl = document.getElementById('eventPreviewModal');
@@ -1595,11 +1608,17 @@ document.addEventListener('DOMContentLoaded', function() {
     var requestTypeSelect = document.getElementById('modal_request_type');
 
     function updateApprovalRecipients() {
-        var areaOfUse = document.getElementById('modal_area_of_use').value;
+        var areaOfUseEl = document.getElementById('modal_area_of_use');
+        var educationLevelEl = document.getElementById('modal_education_level');
+        var areaOfUse = areaOfUseEl ? areaOfUseEl.value : '';
         var requestType = requestTypeSelect ? requestTypeSelect.value : '';
         var department = departmentSelect ? departmentSelect.value : '';
-        var educationLevel = document.getElementById('modal_education_level').value;
+        var educationLevel = educationLevelEl ? educationLevelEl.value : 'faculty';
         var approvalRecipients = 'Chosen Department on the selection, Academic Head, Building Admin, and School Administrator';
+
+        if (educationLevel === 'shs') {
+            department = '';
+        }
 
         // SHS approval flow: Principal Assistant → Academic Head → School Administrator
         if (educationLevel === 'shs') {
@@ -1628,7 +1647,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 approvalRecipients = deptHead + ', Academic Head, Building Admin, and School Administrator';
             }
         }
-        document.getElementById('approval_recipients').textContent = approvalRecipients;
+        var approvalRecipientsEl = document.getElementById('approval_recipients');
+        if (approvalRecipientsEl) {
+            approvalRecipientsEl.textContent = approvalRecipients;
+        }
     }
 
     if (departmentSelect) {
@@ -1641,7 +1663,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add listener for education level changes
     var educationLevelSelect = document.getElementById('modal_education_level');
     if (educationLevelSelect) {
-        educationLevelSelect.addEventListener('change', updateApprovalRecipients);
+        educationLevelSelect.addEventListener('change', function() {
+            syncDepartmentRequirement();
+            updateApprovalRecipients();
+        });
     }
 
     // Materials/Equipment dynamic rows for modal
