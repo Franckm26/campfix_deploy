@@ -8,7 +8,7 @@
     <form method="GET" action="{{ route('superadmin.reports') }}" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
         <div style="flex:1;min-width:200px">
             <label class="sa-label">Search</label>
-            <input type="text" name="search" value="{{ $search }}" class="sa-input" placeholder="Title, description, locationâ€¦">
+            <input type="text" name="search" value="{{ $search }}" class="sa-input" placeholder="Title, description, location…" enterkeyhint="search" inputmode="search" onkeypress="if(event.key==='Enter'){this.form.submit();}">
         </div>
         <div style="min-width:150px">
             <label class="sa-label">Status</label>

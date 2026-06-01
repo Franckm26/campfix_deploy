@@ -13,7 +13,7 @@
     <form method="GET" action="{{ route('superadmin.superadmin-logs') }}" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
         <div style="flex:1;min-width:200px">
             <label class="sa-label">Search</label>
-            <input type="text" name="search" value="{{ $search }}" class="sa-input" placeholder="Action, description…">
+            <input type="text" name="search" value="{{ $search }}" class="sa-input" placeholder="Action, description…" enterkeyhint="search" inputmode="search" onkeypress="if(event.key==='Enter'){this.form.submit();}">
         </div>
         <button type="submit" class="sa-btn sa-btn-primary"><i class="fas fa-search"></i> Filter</button>
         <a href="{{ route('superadmin.superadmin-logs') }}" class="sa-btn sa-btn-ghost">Reset</a>

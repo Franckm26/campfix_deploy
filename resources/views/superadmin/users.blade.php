@@ -9,7 +9,7 @@
     <form method="GET" action="{{ route('superadmin.users') }}" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
         <div style="flex:1;min-width:180px">
             <label class="sa-label">Search</label>
-            <input type="text" name="search" value="{{ $search }}" class="sa-input" placeholder="Name, email, department…">
+            <input type="text" name="search" value="{{ $search }}" class="sa-input" placeholder="Name, email, department…" enterkeyhint="search" inputmode="search" onkeypress="if(event.key==='Enter'){this.form.submit();}">
         </div>
         <div style="min-width:150px">
             <label class="sa-label">Role</label>
