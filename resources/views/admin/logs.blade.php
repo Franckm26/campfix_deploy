@@ -173,7 +173,7 @@
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <input type="text" name="search" class="form-control form-control-sm" placeholder="Search user / description" value="{{ request('search') }}">
+                    <input type="text" name="search" class="form-control form-control-sm" placeholder="Search user / description" value="{{ request('search') }}" enterkeyhint="search" inputmode="search" onkeypress="if(event.key==='Enter'){this.form.submit();}">
                 </div>
                 <div class="col-md-2">
                     <input type="date" name="date_from" class="form-control form-control-sm" value="{{ request('date_from') }}">

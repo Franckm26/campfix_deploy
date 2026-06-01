@@ -145,7 +145,7 @@
                 <div class="row g-2">
                     <div class="col-12 col-md">
                         <input type="text" name="search" class="form-control form-control-sm" placeholder="Search by title..."
-                            value="{{ request('search') }}">
+                            value="{{ request('search') }}" enterkeyhint="search" inputmode="search" onkeypress="if(event.key==='Enter'){this.form.submit();}">
                     </div>
                     <div class="col-6 col-md">
                         <select name="status" class="form-select form-select-sm">

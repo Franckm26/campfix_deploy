@@ -178,7 +178,7 @@
                     </div>
                     <div class="col-12 col-md">
                         <input type="text" name="search" class="form-control form-control-sm" placeholder="Search concerns..."
-                            value="{{ request('search') }}">
+                            value="{{ request('search') }}" enterkeyhint="search" inputmode="search" onkeypress="if(event.key==='Enter'){this.form.submit();}">
                     </div>
                     <div class="col-auto">
                         <button type="submit" class="btn btn-primary btn-sm">Filter</button>

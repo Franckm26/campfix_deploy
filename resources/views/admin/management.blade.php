@@ -58,7 +58,7 @@
                 <input type="hidden" name="tab" value="staff">
                 <div class="col-md-4">
                     <input type="text" name="staff_search" class="form-control form-control-sm"
-                           placeholder="Search name or email..." value="{{ request('staff_search') }}">
+                           placeholder="Search name or email..." value="{{ request('staff_search') }}" enterkeyhint="search" inputmode="search" onkeypress="if(event.key==='Enter'){this.form.submit();}">
                 </div>
                 <div class="col-auto">
                     <button type="submit" class="btn btn-primary btn-sm">Search</button>
@@ -144,7 +144,7 @@
                 <input type="hidden" name="tab" value="facilities">
                 <div class="col-md-3">
                     <input type="text" name="facility_search" class="form-control form-control-sm"
-                           placeholder="Search name or location..." value="{{ request('facility_search') }}">
+                           placeholder="Search name or location..." value="{{ request('facility_search') }}" enterkeyhint="search" inputmode="search" onkeypress="if(event.key==='Enter'){this.form.submit();}">
                 </div>
                 <div class="col-md-2">
                     <select name="facility_type" class="form-select form-select-sm">

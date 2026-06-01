@@ -84,7 +84,7 @@
                         <input type="hidden" name="view" value="{{ $viewType ?? 'active' }}">
                         <div class="col-auto">
                             <input type="text" name="search" id="searchInput" class="form-control form-control-sm" placeholder="Search Name, Email..." 
-                                value="{{ request('search') }}" onkeyup="filterTable()">
+                                value="{{ request('search') }}" onkeyup="filterTable()" enterkeyhint="search" inputmode="search" onkeypress="if(event.key==='Enter'){this.form.submit();}">
                         </div>
                         <div class="col-auto">
                             <select name="role" class="form-select form-select-sm" onchange="this.form.submit()">
