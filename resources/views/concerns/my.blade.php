@@ -1344,6 +1344,19 @@ function handleEditCategoryChange() {
                 opt.textContent = issue;
                 issueSelect.appendChild(opt);
             });
+            
+            // Add change listener to update hidden title field
+            issueSelect.addEventListener('change', function() {
+                // Create or update hidden title field
+                let titleInput = document.querySelector('#editConcernForm input[name="title"]');
+                if (!titleInput) {
+                    titleInput = document.createElement('input');
+                    titleInput.type = 'hidden';
+                    titleInput.name = 'title';
+                    document.getElementById('editConcernForm').appendChild(titleInput);
+                }
+                titleInput.value = this.value;
+            });
         }
     }
     
@@ -2773,6 +2786,7 @@ function editConcern(id) {
         // Don't show admin fields in my-concerns edit modal
         
         contentDiv.innerHTML = `
+            <input type="hidden" name="title" id="edit_title" value="${concern.title || ''}">
             <div class="mb-3">
                 <label class="form-label">Category *</label>
                 <select name="category_id" class="form-select" id="edit_category_id" required onchange="handleEditCategoryChange()">
@@ -2812,6 +2826,11 @@ function editConcern(id) {
             const locationSelect = document.getElementById('edit_location');
             if (locationSelect && concern.location) {
                 locationSelect.value = concern.location;
+            }
+            // Set the selected issue if exists
+            const issueSelect = document.getElementById('edit_issue');
+            if (issueSelect && concern.title) {
+                issueSelect.value = concern.title;
             }
         }, 100);
     })
