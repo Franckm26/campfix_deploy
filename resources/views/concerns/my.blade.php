@@ -1159,6 +1159,141 @@ function openNewConcernModal() {
     modal.show();
 }
 
+// Handle form submission with duplicate detection
+document.addEventListener('DOMContentLoaded', function() {
+    const concernForm = document.querySelector('#newConcernModal form');
+    if (concernForm) {
+        concernForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const submitButton = this.querySelector('button[type="submit"]');
+            const originalButtonText = submitButton.innerHTML;
+            
+            // Disable submit button and show loading
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Submitting...';
+            
+            fetch('{{ route("concerns.store") }}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                if (response.status === 409) {
+                    // Duplicate concern detected
+                    return response.json().then(data => {
+                        throw { duplicate: true, data: data };
+                    });
+                }
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw { duplicate: false, data: data };
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Success - close modal and reload
+                bootstrap.Modal.getInstance(document.getElementById('newConcernModal')).hide();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: 'Your concern has been submitted successfully.',
+                    confirmButtonColor: '#3085d6'
+                }).then(() => {
+                    window.location.reload();
+                });
+            })
+            .catch(error => {
+                // Re-enable submit button
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalButtonText;
+                
+                if (error.duplicate) {
+                    // Show duplicate concern alert with options
+                    const concernData = error.data;
+                    bootstrap.Modal.getInstance(document.getElementById('newConcernModal')).hide();
+                    
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Ticket Already Exists',
+                        html: `
+                            <p>You already have a report for "<strong>${concernData.location}</strong>" and is currently <strong>${concernData.status}</strong>.</p>
+                            <p>Is this the same issue? <a href="#" onclick="event.preventDefault(); viewExistingConcern(${concernData.concern_id});" style="color: #3085d6; text-decoration: underline; cursor: pointer;">Click here to view the ticket</a></p>
+                        `,
+                        showCancelButton: true,
+                        confirmButtonText: 'This is New',
+                        cancelButtonText: 'Cancel',
+                        confirmButtonColor: '#3085d6',
+                        cancelButtonColor: '#6c757d',
+                        customClass: {
+                            confirmButton: 'btn btn-primary',
+                            cancelButton: 'btn btn-secondary'
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // User confirms it's a new issue - submit anyway with override flag
+                            formData.append('override_duplicate', '1');
+                            submitButton.disabled = true;
+                            submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Submitting...';
+                            
+                            fetch('{{ route("concerns.store") }}', {
+                                method: 'POST',
+                                body: formData,
+                                headers: {
+                                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                    'Accept': 'application/json',
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                }
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Success!',
+                                    text: 'Your concern has been submitted successfully.',
+                                    confirmButtonColor: '#3085d6'
+                                }).then(() => {
+                                    window.location.reload();
+                                });
+                            })
+                            .catch(err => {
+                                submitButton.disabled = false;
+                                submitButton.innerHTML = originalButtonText;
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: 'Failed to submit concern. Please try again.',
+                                    confirmButtonColor: '#d33'
+                                });
+                            });
+                        }
+                    });
+                } else {
+                    // Other error
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: error.data?.message || 'Failed to submit concern. Please try again.',
+                        confirmButtonColor: '#d33'
+                    });
+                }
+            });
+        });
+    }
+});
+
+// Function to view existing concern from duplicate alert
+function viewExistingConcern(concernId) {
+    Swal.close();
+    viewConcern(concernId);
+}
+
 // Handle category change for concerns modal
 document.addEventListener('DOMContentLoaded', function() {
 

@@ -105,15 +105,29 @@ class ConcernController extends Controller
             });
         }
 
-        if ($existingConcern) {
+        if ($existingConcern && !$request->input('override_duplicate')) {
             $locationLabel = $isRoomsCategory
                 ? $request->location_type . ' ' . $request->room_number
                 : $request->location;
 
-            return redirect()->back()->withInput()->with(
-                'warning',
-                "A concern for \"{$locationLabel}\" has already been reported and is currently {$existingConcern->status}. Please wait for it to be resolved before submitting a new one."
-            );
+            // Return JSON response with existing concern details for AJAX handling
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'duplicate' => true,
+                    'concern_id' => $existingConcern->id,
+                    'location' => $locationLabel,
+                    'status' => $existingConcern->status,
+                    'message' => "You already have a report for \"{$locationLabel}\" and is currently {$existingConcern->status}."
+                ], 409);
+            }
+
+            // For non-AJAX requests, redirect with session data
+            return redirect()->back()->withInput()->with([
+                'duplicate_concern' => true,
+                'existing_concern_id' => $existingConcern->id,
+                'existing_concern_location' => $locationLabel,
+                'existing_concern_status' => $existingConcern->status
+            ]);
         }
 
         // Handle image upload with security validation
@@ -192,6 +206,15 @@ class ConcernController extends Controller
             'New concern submitted: '.($request->title ?? 'Untitled'),
             $concern->id
         );
+
+        // Return JSON for AJAX requests
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Concern submitted successfully!',
+                'concern_id' => $concern->id
+            ], 201);
+        }
 
         return redirect()->route('concerns.my')->with('success', 'Concern submitted successfully!');
     }
