@@ -14,21 +14,31 @@
             appId: "{{ env('ONESIGNAL_APP_ID') }}",
             safari_web_id: "{{ env('ONESIGNAL_SAFARI_WEB_ID', '') }}",
             notifyButton: {
-                enable: false, // We'll use custom UI
+                enable: false,
             },
             allowLocalhostAsSecureOrigin: {{ config('app.env') === 'local' ? 'true' : 'false' }},
+            // Slidedown prompt configuration
             promptOptions: {
                 slidedown: {
-                    enabled: true,
-                    autoPrompt: false,
-                    actionMessage: "Stay updated with CampFix notifications",
-                    acceptButtonText: "Allow Notifications",
-                    cancelButtonText: "Not Now",
-                    categories: {
-                        tags: []
-                    }
+                    prompts: [
+                        {
+                            type: "push",
+                            autoPrompt: false,
+                            text: {
+                                actionMessage: "Stay updated with important CampFix notifications about your concerns, events, and reports.",
+                                acceptButton: "Allow Notifications",
+                                cancelButton: "Not Now",
+                            },
+                            delay: {
+                                pageViews: 1,
+                                timeDelay: 0
+                            }
+                        }
+                    ]
                 }
-            }
+            },
+            notificationClickHandlerMatch: 'origin',
+            notificationClickHandlerAction: 'navigate'
         });
 
         @auth
@@ -42,7 +52,7 @@
             // Request permission if not already granted
             const permission = await OneSignal.Notifications.permission;
             if (permission !== 'granted') {
-                // Show custom prompt with our settings
+                // Show slidedown prompt
                 OneSignal.Slidedown.promptPush();
             }
         }
@@ -52,39 +62,93 @@
 
 <!-- Custom OneSignal Prompt Styling -->
 <style>
-    /* Make the OneSignal slidedown smaller and position it */
+    /* Position and size the slidedown */
     #onesignal-slidedown-container {
-        max-width: 450px !important;
+        max-width: 420px !important;
         right: 20px !important;
         left: auto !important;
         bottom: 20px !important;
         top: auto !important;
+        z-index: 9999 !important;
     }
     
-    /* Adjust slidedown dialog size */
+    /* Style the slidedown dialog */
     .onesignal-slidedown-dialog {
-        padding: 20px !important;
+        padding: 24px !important;
         border-radius: 12px !important;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.15) !important;
+        background: white !important;
     }
     
-    /* Make text smaller */
-    .slidedown-body {
-        font-size: 14px !important;
+    /* Hide broken icon and add custom icon */
+    .slidedown-body-icon {
+        display: none !important;
     }
     
-    /* Style buttons */
-    .onesignal-slidedown-allow-button {
+    /* Add custom icon before message */
+    .slidedown-body-message::before {
+        content: "🔔";
+        font-size: 32px;
+        display: block;
+        margin-bottom: 12px;
+    }
+    
+    /* Style the message text */
+    .slidedown-body-message {
+        font-size: 15px !important;
+        line-height: 1.5 !important;
+        color: #333 !important;
+        margin-bottom: 20px !important;
+    }
+    
+    /* Style buttons container */
+    .slidedown-footer {
+        display: flex !important;
+        gap: 10px !important;
+        justify-content: flex-end !important;
+    }
+    
+    /* Style Allow button */
+    .onesignal-slidedown-allow-button,
+    button[data-test-id="slidedown-allow-button"] {
         background-color: #0d6efd !important;
-        padding: 10px 20px !important;
+        color: white !important;
+        padding: 12px 24px !important;
         font-size: 14px !important;
-        border-radius: 6px !important;
+        font-weight: 600 !important;
+        border-radius: 8px !important;
+        border: none !important;
+        cursor: pointer !important;
+        transition: background-color 0.2s !important;
     }
     
-    .onesignal-slidedown-cancel-button {
-        padding: 10px 20px !important;
+    .onesignal-slidedown-allow-button:hover,
+    button[data-test-id="slidedown-allow-button"]:hover {
+        background-color: #0b5ed7 !important;
+    }
+    
+    /* Style Cancel button */
+    .onesignal-slidedown-cancel-button,
+    button[data-test-id="slidedown-cancel-button"] {
+        background-color: #f8f9fa !important;
+        color: #6c757d !important;
+        padding: 12px 24px !important;
         font-size: 14px !important;
-        border-radius: 6px !important;
+        font-weight: 600 !important;
+        border-radius: 8px !important;
+        border: 1px solid #dee2e6 !important;
+        cursor: pointer !important;
+        transition: background-color 0.2s !important;
+    }
+    
+    .onesignal-slidedown-cancel-button:hover,
+    button[data-test-id="slidedown-cancel-button"]:hover {
+        background-color: #e9ecef !important;
+    }
+    
+    /* Hide OneSignal branding */
+    .slidedown-footer-instructions {
+        display: none !important;
     }
 </style>
 
