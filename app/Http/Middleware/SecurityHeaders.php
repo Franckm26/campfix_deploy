@@ -36,6 +36,7 @@ class SecurityHeaders
             "img-src 'self' data: blob: {$allowedOrigins} https://www.sti.edu; " .
             "font-src 'self' {$allowedOrigins} https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com; " .
             "connect-src 'self' {$allowedOrigins} https://cdn.jsdelivr.net https://vercel.live; " .
+            "frame-src 'self' https://vercel.live; " .
             "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests;"
         );
 

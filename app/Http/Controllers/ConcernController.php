@@ -494,6 +494,12 @@ class ConcernController extends Controller
         $isAssignedMaintenance = $user->role === 'maintenance' && $concern->assigned_to === $user->id;
 
         if (! $isOwner && ! $isAssignedMaintenance) {
+            // Return JSON error for AJAX requests
+            if (request()->ajax()) {
+                return response()->json([
+                    'error' => 'You cannot view this concern.'
+                ], 403);
+            }
             return redirect('/dashboard')->with('error', 'You cannot view this concern.');
         }
 
