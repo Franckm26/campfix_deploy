@@ -1262,9 +1262,6 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 departmentRow.style.display = 'none';
             }
-            } else {
-                departmentRow.style.display = 'none';
-            }
 
             // Check if location contains "avr" keyword
             var isAVR = areaOfUse && areaOfUse.toLowerCase().includes('avr');
