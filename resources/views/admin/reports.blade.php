@@ -2,6 +2,121 @@
 
 @section('styles')
 <link href="{{ asset('css/admin.css') }}" rel="stylesheet">
+<style>
+    /* Mobile Responsive Styles */
+    @media screen and (max-width: 768px) {
+        /* Hide tables on mobile */
+        .card-body .table-responsive {
+            display: none !important;
+        }
+        
+        /* Show mobile cards */
+        .mobile-report-cards {
+            display: block !important;
+        }
+        
+        /* Report card styling */
+        .report-card {
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .report-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .report-card-header div {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .report-card-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .report-card-ticket {
+            font-weight: 600;
+            font-size: 14px;
+            color: #333;
+        }
+        
+        .report-card-body {
+            margin-bottom: 12px;
+        }
+        
+        .report-card-field {
+            display: flex;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .report-card-label {
+            font-weight: 600;
+            min-width: 100px;
+            color: #666;
+        }
+        
+        .report-card-value {
+            color: #333;
+            flex: 1;
+            word-break: break-word;
+        }
+        
+        .report-card-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e9ecef;
+            flex-wrap: wrap;
+        }
+        
+        .report-card-actions .btn {
+            flex: 1;
+            font-size: 12px;
+        }
+        
+        /* Dark mode support */
+        [data-bs-theme="dark"] .report-card {
+            background: #2d3238;
+            border-color: #495057;
+        }
+        
+        [data-bs-theme="dark"] .report-card-header {
+            border-bottom-color: #495057;
+        }
+        
+        [data-bs-theme="dark"] .report-card-ticket,
+        [data-bs-theme="dark"] .report-card-value {
+            color: #e9ecef;
+        }
+        
+        [data-bs-theme="dark"] .report-card-label {
+            color: #adb5bd;
+        }
+        
+        [data-bs-theme="dark"] .report-card-actions {
+            border-top-color: #495057;
+        }
+    }
+    
+    /* Hide mobile cards on desktop */
+    .mobile-report-cards {
+        display: none;
+    }
+</style>
 @endsection
 
 @section('page_title')
