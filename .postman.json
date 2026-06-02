@@ -9,7 +9,7 @@
   "environment_name": "CampFix Local",
   "base_url": "http://127.0.0.1:8000/api",
   "base_url_web": "http://127.0.0.1:8000",
-  "notes": "Run order: Login first to auto-save token, then List Categories to auto-save category_id, then Concerns/Events. Analytics endpoints: Location Report PDF, Monthly Filter, Quarterly Filter (Q1-Q4), Yearly Filter, Period Comparison, Period Comparison PDF. New filtering supports period-based queries (monthly, quarterly, yearly, custom) with compare_periods parameter for period-over-period analysis. Period Comparison PDF generates downloadable PDF reports.",
-  "last_updated": "2026-05-06T12:13:16Z",
-  "total_requests": 26
+  "notes": "Run order: Login first to auto-save token, then List Categories to auto-save category_id, then Concerns/Events. Analytics endpoints: Location Report PDF, Monthly Filter, Quarterly Filter (Q1-Q4), Yearly Filter, Period Comparison, Period Comparison PDF. New filtering supports period-based queries (monthly, quarterly, yearly, custom) with compare_periods parameter for period-over-period analysis. Period Comparison PDF generates downloadable PDF reports. User Management: Batch Archive Users, Batch Delete Users for bulk operations.",
+  "last_updated": "2026-06-02T10:19:37Z",
+  "total_requests": 28
 }

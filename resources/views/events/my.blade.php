@@ -1945,23 +1945,189 @@ function updateDeletedBulkActions() {
 }
 
 function batchArchiveSelected() {
-    // Implementation for bulk archive
+    const selected = document.querySelectorAll('.active-checkbox:checked');
+    const ids = Array.from(selected).map(cb => cb.value);
+    
+    if (ids.length === 0) return;
+    
+    Swal.fire({
+        title: 'Archive Events?',
+        text: `Are you sure you want to archive ${ids.length} event(s)?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ffc107',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, archive them',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch('/events/batch-archive', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ ids: ids })
+            }).then(response => response.json())
+            .then(data => {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: data.message,
+                    timer: 2000,
+                    showConfirmButton: false
+                }).then(() => location.reload());
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Error archiving events'
+                });
+            });
+        }
+    });
 }
 
 function batchSoftDeleteSelected() {
-    // Implementation for bulk delete
+    const selected = document.querySelectorAll('.active-checkbox:checked');
+    const ids = Array.from(selected).map(cb => cb.value);
+    
+    if (ids.length === 0) return;
+    
+    Swal.fire({
+        title: 'Delete Events?',
+        text: `Are you sure you want to delete ${ids.length} event(s)?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, delete them',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch('/events/batch-delete', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ ids: ids })
+            }).then(response => response.json())
+            .then(data => {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Deleted!',
+                    text: data.message,
+                    timer: 2000,
+                    showConfirmButton: false
+                }).then(() => location.reload());
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Error deleting events'
+                });
+            });
+        }
+    });
 }
 
 function batchRestoreSelected() {
-    // Implementation for bulk restore
+    const selected = document.querySelectorAll('.archive-checkbox:checked');
+    const ids = Array.from(selected).map(cb => cb.value);
+    
+    if (ids.length === 0) return;
+    
+    Swal.fire({
+        title: 'Restoring...',
+        text: `Restoring ${ids.length} event(s)...`,
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+            fetch('/events/batch-restore', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ ids: ids })
+            }).then(response => response.json())
+            .then(data => {
+                Swal.fire({icon: 'success', title: 'Restored!', text: data.message, timer: 2000, showConfirmButton: false}).then(() => location.reload());
+            })
+            .catch(error => {
+                Swal.fire({icon: 'error', title: 'Error', text: 'Error restoring events'});
+            });
+        }
+    });
 }
 
 function batchDeleteFromArchiveSelected() {
-    // Implementation for bulk delete from archive
+    const selected = document.querySelectorAll('.archive-checkbox:checked');
+    const ids = Array.from(selected).map(cb => cb.value);
+    
+    if (ids.length === 0) return;
+    
+    Swal.fire({
+        title: 'Delete Archived Events?',
+        text: `Are you sure you want to delete ${ids.length} archived event(s)?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, delete them'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch('/events/batch-delete', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ ids: ids })
+            }).then(response => response.json())
+            .then(data => {
+                Swal.fire({icon: 'success', title: 'Deleted!', text: data.message, timer: 2000, showConfirmButton: false}).then(() => location.reload());
+            })
+            .catch(error => {
+                Swal.fire({icon: 'error', title: 'Error', text: 'Error deleting events'});
+            });
+        }
+    });
 }
 
 function batchRestoreDeletedSelected() {
-    // Implementation for bulk restore deleted
+    const selected = document.querySelectorAll('.deleted-checkbox:checked');
+    const ids = Array.from(selected).map(cb => cb.value);
+    
+    if (ids.length === 0) return;
+    
+    Swal.fire({
+        title: 'Restoring...',
+        text: `Restoring ${ids.length} event(s)...`,
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+            fetch('/events/batch-restore-deleted', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ ids: ids })
+            }).then(response => response.json())
+            .then(data => {
+                Swal.fire({icon: 'success', title: 'Restored!', text: data.message, timer: 2000, showConfirmButton: false}).then(() => location.reload());
+            })
+            .catch(error => {
+                Swal.fire({icon: 'error', title: 'Error', text: 'Error restoring events'});
+            });
+        }
+    });
 }
 
 function batchPermanentDeleteSelected() {

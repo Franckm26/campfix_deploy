@@ -2807,24 +2807,44 @@ function batchArchiveSelected() {
     
     if (ids.length === 0) return;
     
-    if (confirm('Are you sure you want to archive ' + ids.length + ' concern(s)?')) {
-        fetch('/concerns/batch-archive', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ ids: ids })
-        }).then(response => response.json())
-        .then(data => {
-            alert(data.message);
-            location.reload();
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error archiving concerns');
-        });
-    }
+    Swal.fire({
+        title: 'Archive Concerns?',
+        text: `Are you sure you want to archive ${ids.length} concern(s)?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ffc107',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, archive them',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch('/concerns/batch-archive', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ ids: ids })
+            }).then(response => response.json())
+            .then(data => {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: data.message,
+                    timer: 2000,
+                    showConfirmButton: false
+                }).then(() => location.reload());
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Error archiving concerns'
+                });
+            });
+        }
+    });
 }
 
 function batchSoftDeleteSelected() {
@@ -2833,24 +2853,44 @@ function batchSoftDeleteSelected() {
     
     if (ids.length === 0) return;
     
-    if (confirm('Are you sure you want to delete ' + ids.length + ' concern(s)?')) {
-        fetch('/concerns/batch-soft-delete', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ ids: ids })
-        }).then(response => response.json())
-        .then(data => {
-            alert(data.message);
-            location.reload();
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error deleting concerns');
-        });
-    }
+    Swal.fire({
+        title: 'Delete Concerns?',
+        text: `Are you sure you want to delete ${ids.length} concern(s)?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, delete them',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch('/concerns/batch-soft-delete', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ ids: ids })
+            }).then(response => response.json())
+            .then(data => {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Deleted!',
+                    text: data.message,
+                    timer: 2000,
+                    showConfirmButton: false
+                }).then(() => location.reload());
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Error deleting concerns'
+                });
+            });
+        }
+    });
 }
 
 function batchArchiveResolved() {
@@ -2859,23 +2899,31 @@ function batchArchiveResolved() {
     
     if (ids.length === 0) return;
     
-    if (confirm('Are you sure you want to archive ' + ids.length + ' resolved concern(s)?')) {
-        fetch('/concerns/batch-archive', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ ids: ids })
-        }).then(response => response.json())
-        .then(data => {
-            alert(data.message);
-            location.reload();
-        }).catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while archiving concerns.');
-        });
-    }
+    Swal.fire({
+        title: 'Archive Resolved Concerns?',
+        text: `Are you sure you want to archive ${ids.length} resolved concern(s)?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ffc107',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, archive them'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch('/concerns/batch-archive', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ ids: ids })
+            }).then(response => response.json())
+            .then(data => {
+                Swal.fire({icon: 'success', title: 'Archived!', text: data.message, timer: 2000, showConfirmButton: false}).then(() => location.reload());
+            }).catch(error => {
+                Swal.fire({icon: 'error', title: 'Error', text: 'An error occurred while archiving concerns.'});
+            });
+        }
+    });
 }
 
 function batchSoftDeleteResolved() {
@@ -2884,23 +2932,31 @@ function batchSoftDeleteResolved() {
     
     if (ids.length === 0) return;
     
-    if (confirm('Are you sure you want to delete ' + ids.length + ' resolved concern(s)? They will be moved to the deleted folder.')) {
-        fetch('/concerns/batch-soft-delete', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ ids: ids })
-        }).then(response => response.json())
-        .then(data => {
-            alert(data.message);
-            location.reload();
-        }).catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while deleting concerns.');
-        });
-    }
+    Swal.fire({
+        title: 'Delete Resolved Concerns?',
+        html: `Are you sure you want to delete ${ids.length} resolved concern(s)?<br><small>They will be moved to the deleted folder.</small>`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, delete them'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch('/concerns/batch-soft-delete', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ ids: ids })
+            }).then(response => response.json())
+            .then(data => {
+                Swal.fire({icon: 'success', title: 'Deleted!', text: data.message, timer: 2000, showConfirmButton: false}).then(() => location.reload());
+            }).catch(error => {
+                Swal.fire({icon: 'error', title: 'Error', text: 'An error occurred while deleting concerns.'});
+            });
+        }
+    });
 }
 
 function batchRestoreArchived() {
@@ -2909,21 +2965,27 @@ function batchRestoreArchived() {
     
     if (ids.length === 0) return;
     
-    fetch('/concerns/batch-restore', {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ ids: ids })
-    }).then(response => response.json())
-    .then(data => {
-        alert(data.message);
-        location.reload();
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error restoring concerns');
+    Swal.fire({
+        title: 'Restoring...',
+        text: `Restoring ${ids.length} concern(s)...`,
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+            fetch('/concerns/batch-restore', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ ids: ids })
+            }).then(response => response.json())
+            .then(data => {
+                Swal.fire({icon: 'success', title: 'Restored!', text: data.message, timer: 2000, showConfirmButton: false}).then(() => location.reload());
+            })
+            .catch(error => {
+                Swal.fire({icon: 'error', title: 'Error', text: 'Error restoring concerns'});
+            });
+        }
     });
 }
 
@@ -2933,24 +2995,32 @@ function batchSoftDeleteArchived() {
     
     if (ids.length === 0) return;
     
-    if (confirm('Are you sure you want to move ' + ids.length + ' archived concern(s) to deleted?')) {
-        fetch('/concerns/batch-soft-delete', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ ids: ids })
-        }).then(response => response.json())
-        .then(data => {
-            alert(data.message);
-            location.reload();
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error deleting concerns');
-        });
-    }
+    Swal.fire({
+        title: 'Delete Archived Concerns?',
+        html: `Are you sure you want to move ${ids.length} archived concern(s) to deleted?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, delete them'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch('/concerns/batch-soft-delete', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ ids: ids })
+            }).then(response => response.json())
+            .then(data => {
+                Swal.fire({icon: 'success', title: 'Deleted!', text: data.message, timer: 2000, showConfirmButton: false}).then(() => location.reload());
+            })
+            .catch(error => {
+                Swal.fire({icon: 'error', title: 'Error', text: 'Error deleting concerns'});
+            });
+        }
+    });
 }
 
 function batchRestoreDeleted() {
@@ -2959,21 +3029,27 @@ function batchRestoreDeleted() {
     
     if (ids.length === 0) return;
     
-    fetch('/concerns/batch-restore-deleted', {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ ids: ids })
-    }).then(response => response.json())
-    .then(data => {
-        alert(data.message);
-        location.reload();
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error restoring concerns');
+    Swal.fire({
+        title: 'Restoring...',
+        text: `Restoring ${ids.length} concern(s)...`,
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+            fetch('/concerns/batch-restore-deleted', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ ids: ids })
+            }).then(response => response.json())
+            .then(data => {
+                Swal.fire({icon: 'success', title: 'Restored!', text: data.message, timer: 2000, showConfirmButton: false}).then(() => location.reload());
+            })
+            .catch(error => {
+                Swal.fire({icon: 'error', title: 'Error', text: 'Error restoring concerns'});
+            });
+        }
     });
 }
 
@@ -2983,24 +3059,45 @@ function batchPermanentDeleteSelected() {
     
     if (ids.length === 0) return;
     
-    if (confirm('Are you sure you want to PERMANENTLY DELETE ' + ids.length + ' concern(s)? This action cannot be undone!')) {
-        fetch('/concerns/batch-permanent-delete', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ ids: ids })
-        }).then(response => response.json())
-        .then(data => {
-            alert(data.message);
-            location.reload();
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error permanently deleting concerns');
-        });
-    }
+    Swal.fire({
+        title: 'Permanent Delete?',
+        html: `<strong>⚠️ WARNING:</strong> Are you sure you want to PERMANENTLY DELETE ${ids.length} concern(s)?<br><br><span style="color: #dc3545;">This action CANNOT be undone!</span>`,
+        icon: 'error',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, delete permanently',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Final Warning!',
+                html: 'This is your last chance. The selected concerns will be <strong>permanently deleted</strong>.<br>Continue?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, I understand'
+            }).then((finalResult) => {
+                if (finalResult.isConfirmed) {
+                    fetch('/concerns/batch-permanent-delete', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ ids: ids })
+                    }).then(response => response.json())
+                    .then(data => {
+                        Swal.fire({icon: 'success', title: 'Permanently Deleted!', text: data.message, timer: 2000, showConfirmButton: false}).then(() => location.reload());
+                    })
+                    .catch(error => {
+                        Swal.fire({icon: 'error', title: 'Error', text: 'Error permanently deleting concerns'});
+                    });
+                }
+            });
+        }
+    });
 }
 
 // View Concern Modal

@@ -2538,32 +2538,60 @@ function batchArchiveSelected() {
     const ids = Array.from(selected).map(cb => cb.value);
     
     if (ids.length === 0) {
-        alert('Please select users to archive');
+        Swal.fire({
+            icon: 'info',
+            title: 'No Users Selected',
+            text: 'Please select users to archive'
+        });
         return;
     }
     
-    if (confirm('Are you sure you want to archive ' + ids.length + ' user(s)?')) {
-        fetch('/admin/users/batch-archive', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ user_ids: ids })
-        }).then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert(data.message);
-                location.reload();
-            } else {
-                alert(data.message || 'Error archiving users');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error archiving users');
-        });
-    }
+    Swal.fire({
+        title: 'Archive Users?',
+        text: `Are you sure you want to archive ${ids.length} user(s)?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ffc107',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, archive them',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch('/admin/users/batch-archive', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ user_ids: ids })
+            }).then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Archived!',
+                        text: data.message,
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => location.reload());
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message || 'Error archiving users'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Error archiving users'
+                });
+            });
+        }
+    });
 }
 
 // Batch delete selected users
@@ -2572,32 +2600,60 @@ function batchDeleteSelected() {
     const ids = Array.from(selected).map(cb => cb.value);
     
     if (ids.length === 0) {
-        alert('Please select users to delete');
+        Swal.fire({
+            icon: 'info',
+            title: 'No Users Selected',
+            text: 'Please select users to delete'
+        });
         return;
     }
     
-    if (confirm('Are you sure you want to delete ' + ids.length + ' user(s)? They will be moved to deleted users.')) {
-        fetch('/admin/users/batch-delete', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ user_ids: ids })
-        }).then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert(data.message);
-                location.reload();
-            } else {
-                alert(data.message || 'Error deleting users');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error deleting users');
-        });
-    }
+    Swal.fire({
+        title: 'Delete Users?',
+        html: `Are you sure you want to delete ${ids.length} user(s)?<br><small>They will be moved to deleted users.</small>`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, delete them',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch('/admin/users/batch-delete', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ user_ids: ids })
+            }).then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Deleted!',
+                        text: data.message,
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => location.reload());
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message || 'Error deleting users'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Error deleting users'
+                });
+            });
+        }
+    });
 }
 
 function prepareArchiveSelected() {
