@@ -374,6 +374,15 @@ body {
     padding: 8px;
 }
 
+/* Login button visibility */
+.btn-login-mobile {
+    display: none;
+}
+
+.btn-login-desktop {
+    display: inline-block;
+}
+
 /* Responsive Styles */
 @media (max-width: 991px) {
     .hero h1 {
@@ -386,6 +395,17 @@ body {
     
     .mobile-menu-btn {
         display: block;
+    }
+    
+    /* Show mobile login button, hide desktop one */
+    .btn-login-mobile {
+        display: inline-block;
+        padding: 8px 20px;
+        font-size: 14px;
+    }
+    
+    .btn-login-desktop {
+        display: none;
     }
     
     .nav-links {
@@ -425,13 +445,6 @@ body {
         color: #f59e0b;
         padding-left: 10px;
         transition: all 0.2s;
-    }
-    
-    .nav-links .btn-login {
-        width: 100%;
-        margin-top: 20px;
-        text-align: center;
-        display: block;
     }
     
     /* Mobile menu overlay */

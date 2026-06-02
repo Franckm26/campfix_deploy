@@ -29,17 +29,24 @@
                 <img src="{{ asset('Campfix/Images/logo.png') }}" alt="CampFix Logo" width="61" height="60" fetchpriority="high">
                 <span class="logo-text"><span class="camp-text">Camp</span><span class="fix-text">fix</span></span>
             </a>
-            <button class="mobile-menu-btn" onclick="toggleMenu()">
-                <i class="fas fa-bars"></i>
-            </button>
+            <div class="d-flex align-items-center gap-3">
+                @auth
+                    <a href="/dashboard" class="btn-login btn-login-mobile">Dashboard</a>
+                @else
+                    <a href="javascript:void(0)" class="btn-login btn-login-mobile" onclick="openLoginModal(event); return false;">Login</a>
+                @endauth
+                <button class="mobile-menu-btn" onclick="toggleMenu()">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
             <div class="d-flex align-items-center gap-3 nav-links" id="navLinks">
                 <a href="/" class="nav-link">Home</a>
                 <a href="#features" class="nav-link" onclick="closeMenu()">Features</a>
                 <a href="#how-it-works" class="nav-link" onclick="closeMenu()">How It Works</a>
                 @auth
-                    <a href="/dashboard" class="btn-login">Dashboard</a>
+                    <a href="/dashboard" class="btn-login btn-login-desktop">Dashboard</a>
                 @else
-                    <a href="javascript:void(0)" class="btn-login" onclick="openLoginModal(event); closeMenu(); return false;">Login</a>
+                    <a href="javascript:void(0)" class="btn-login btn-login-desktop" onclick="openLoginModal(event); closeMenu(); return false;">Login</a>
                 @endauth
             </div>
         </div>
