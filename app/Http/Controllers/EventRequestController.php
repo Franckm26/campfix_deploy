@@ -1372,7 +1372,7 @@ class EventRequestController extends Controller
                 return response()->json(['success' => true, 'message' => 'Event permanently deleted.']);
             }
 
-            return redirect()->route('events.my', ['view' => 'deleted'])->with('success', 'Event permanently deleted.');
+            return redirect()->route('events.my')->with('success', 'Event permanently deleted.');
         }
 
         // Soft delete — move to deleted folder
@@ -1452,7 +1452,7 @@ class EventRequestController extends Controller
             return response()->json(['success' => true, 'message' => 'Event request archived successfully.']);
         }
 
-        return redirect()->route('events.my', ['view' => 'archives'])->with('success', 'Event request archived successfully.');
+        return redirect()->route('events.my')->with('success', 'Event request archived successfully.');
     }
 
     // Restore event request - handles both archive restore and deleted restore
