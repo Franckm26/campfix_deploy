@@ -1927,21 +1927,70 @@ function showEventArchiveModal(eventId) {
     });
 }
 
-// Bulk actions functions (placeholders for now)
+// Bulk actions functions
 function toggleSelectAll(type) {
-    // Implementation for bulk select
+    let checkboxes, selectAllCheckbox, updateFunction;
+    
+    if (type === 'active') {
+        selectAllCheckbox = document.getElementById('selectAllActive');
+        checkboxes = document.querySelectorAll('.active-checkbox');
+        updateFunction = updateActiveBulkActions;
+    } else if (type === 'archive') {
+        selectAllCheckbox = document.getElementById('selectAllArchive');
+        checkboxes = document.querySelectorAll('.archive-checkbox');
+        updateFunction = updateArchiveBulkActions;
+    } else if (type === 'deleted') {
+        selectAllCheckbox = document.getElementById('selectAllDeleted');
+        checkboxes = document.querySelectorAll('.deleted-checkbox');
+        updateFunction = updateDeletedBulkActions;
+    }
+    
+    if (checkboxes && selectAllCheckbox) {
+        checkboxes.forEach(cb => {
+            cb.checked = selectAllCheckbox.checked;
+        });
+        if (updateFunction) updateFunction();
+    }
 }
 
+
 function updateActiveBulkActions() {
-    // Implementation for bulk actions
+    const selected = document.querySelectorAll('.active-checkbox:checked');
+    const bulkActions = document.getElementById('activeBulkActions');
+    const countSpan = document.getElementById('activeSelectedCount');
+    
+    if (selected.length > 0) {
+        bulkActions.style.display = 'block';
+        countSpan.textContent = selected.length + ' selected';
+    } else {
+        bulkActions.style.display = 'none';
+    }
 }
 
 function updateArchiveBulkActions() {
-    // Implementation for bulk actions
+    const selected = document.querySelectorAll('.archive-checkbox:checked');
+    const bulkActions = document.getElementById('archiveBulkActions');
+    const countSpan = document.getElementById('archiveSelectedCount');
+    
+    if (selected.length > 0) {
+        bulkActions.style.display = 'block';
+        countSpan.textContent = selected.length + ' selected';
+    } else {
+        bulkActions.style.display = 'none';
+    }
 }
 
 function updateDeletedBulkActions() {
-    // Implementation for bulk actions
+    const selected = document.querySelectorAll('.deleted-checkbox:checked');
+    const bulkActions = document.getElementById('deletedBulkActions');
+    const countSpan = document.getElementById('deletedSelectedCount');
+    
+    if (selected.length > 0) {
+        bulkActions.style.display = 'block';
+        countSpan.textContent = selected.length + ' selected';
+    } else {
+        bulkActions.style.display = 'none';
+    }
 }
 
 function batchArchiveSelected() {
