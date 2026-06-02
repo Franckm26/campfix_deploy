@@ -34,16 +34,19 @@
             </button>
             <div class="d-flex align-items-center gap-3 nav-links" id="navLinks">
                 <a href="/" class="nav-link">Home</a>
-                <a href="#features" class="nav-link">Features</a>
-                <a href="#how-it-works" class="nav-link">How It Works</a>
+                <a href="#features" class="nav-link" onclick="closeMenu()">Features</a>
+                <a href="#how-it-works" class="nav-link" onclick="closeMenu()">How It Works</a>
                 @auth
                     <a href="/dashboard" class="btn-login">Dashboard</a>
                 @else
-                    <a href="javascript:void(0)" class="btn-login" onclick="openLoginModal(event); return false;">Login</a>
+                    <a href="javascript:void(0)" class="btn-login" onclick="openLoginModal(event); closeMenu(); return false;">Login</a>
                 @endauth
             </div>
         </div>
     </nav>
+    
+    <!-- Mobile Menu Overlay -->
+    <div class="mobile-menu-overlay" id="mobileMenuOverlay" onclick="closeMenu()"></div>
 
     <!-- Hero Carousel -->
     <section class="hero-carousel-section">
@@ -314,7 +317,19 @@
 
         function toggleMenu() {
             const navLinks = document.getElementById('navLinks');
+            const overlay = document.getElementById('mobileMenuOverlay');
             navLinks.classList.toggle('show');
+            overlay.classList.toggle('show');
+            // Prevent body scroll when menu is open
+            document.body.style.overflow = navLinks.classList.contains('show') ? 'hidden' : '';
+        }
+        
+        function closeMenu() {
+            const navLinks = document.getElementById('navLinks');
+            const overlay = document.getElementById('mobileMenuOverlay');
+            navLinks.classList.remove('show');
+            overlay.classList.remove('show');
+            document.body.style.overflow = '';
         }
         
         // Open login modal function
