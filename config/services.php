@@ -63,8 +63,9 @@ return [
     |--------------------------------------------------------------------------
     */
     'supabase' => [
-        'url' => env('SUPABASE_URL'),
-        'key' => env('SUPABASE_KEY'),
+        // Try Vercel integration variables first, then custom variables
+        'url' => env('SUPABASE_URL') ?? env('NEXT_PUBLIC_SUPABASE_URL'),
+        'key' => env('SUPABASE_SERVICE_ROLE_KEY') ?? env('SUPABASE_KEY'),
         'bucket' => env('SUPABASE_BUCKET', 'concerns'),
     ],
 

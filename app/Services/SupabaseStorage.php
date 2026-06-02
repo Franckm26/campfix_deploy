@@ -14,9 +14,22 @@ class SupabaseStorage
 
     public function __construct()
     {
-        $this->url = config('services.supabase.url');
-        $this->key = config('services.supabase.key');
+        // Try integration variables first, fallback to custom variables
+        $this->url = config('services.supabase.url') 
+            ?? env('NEXT_PUBLIC_SUPABASE_URL') 
+            ?? env('SUPABASE_URL');
+        
+        // Use service_role key from integration or custom variable
+        $this->key = config('services.supabase.key') 
+            ?? env('SUPABASE_SERVICE_ROLE_KEY') 
+            ?? env('SUPABASE_KEY');
+        
         $this->bucket = config('services.supabase.bucket', 'concerns');
+        
+        // Clean up URL - remove https:// if present
+        if ($this->url) {
+            $this->url = str_replace(['https://', 'http://'], '', $this->url);
+        }
     }
 
     /**
