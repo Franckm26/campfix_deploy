@@ -873,6 +873,50 @@
     border-color: #dc3545;
 }
 
+/* Dark Mode Support for Approval Steps */
+[data-theme="dark"] .approval-step {
+    background-color: #2a2a45;
+    border-color: #3a3a55;
+}
+
+[data-theme="dark"] .approval-step h6 {
+    color: #e0e0e0 !important;
+}
+
+[data-theme="dark"] .approval-step small {
+    color: #a0a0a0 !important;
+}
+
+[data-theme="dark"] .approval-step.approved {
+    background-color: #1b3a2f;
+    border-color: #28a745;
+}
+
+[data-theme="dark"] .approval-step.approved h6,
+[data-theme="dark"] .approval-step.approved small {
+    color: #80cbc4 !important;
+}
+
+[data-theme="dark"] .approval-step.pending {
+    background-color: #3a3020;
+    border-color: #ffc107;
+}
+
+[data-theme="dark"] .approval-step.pending h6,
+[data-theme="dark"] .approval-step.pending small {
+    color: #ffd54f !important;
+}
+
+[data-theme="dark"] .approval-step.rejected {
+    background-color: #3a2020;
+    border-color: #dc3545;
+}
+
+[data-theme="dark"] .approval-step.rejected h6,
+[data-theme="dark"] .approval-step.rejected small {
+    color: #ef9a9a !important;
+}
+
 .step-icon {
     height: 40px;
     display: flex;
