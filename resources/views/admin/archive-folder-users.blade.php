@@ -2,6 +2,170 @@
 
 @section('styles')
 <link href="{{ asset('css/admin.css') }}" rel="stylesheet">
+<style>
+    /* Mobile Responsive Styles */
+    @media screen and (max-width: 768px) {
+        /* Hide tables on mobile */
+        .table-responsive,
+        .table-responsive table,
+        .card-body .table-responsive,
+        div[class*="table-responsive"] {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            height: 0 !important;
+            overflow: hidden !important;
+        }
+        
+        /* Show mobile cards */
+        .mobile-archived-user-cards {
+            display: block !important;
+        }
+        
+        /* Archived user card styling */
+        .archived-user-card {
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .archived-user-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .archived-user-card-header div {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .archived-user-card-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .archived-user-card-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: #333;
+        }
+        
+        .archived-user-card-body {
+            margin-bottom: 12px;
+        }
+        
+        .archived-user-card-field {
+            display: flex;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .archived-user-card-label {
+            font-weight: 600;
+            min-width: 100px;
+            color: #666;
+        }
+        
+        .archived-user-card-value {
+            color: #333;
+            flex: 1;
+            word-break: break-word;
+        }
+        
+        .archived-user-card-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .archived-user-card-actions .btn {
+            flex: 1;
+            font-size: 12px;
+        }
+        
+        /* Dark mode support */
+        [data-bs-theme="dark"] .archived-user-card {
+            background: #2d3238;
+            border-color: #495057;
+        }
+        
+        [data-bs-theme="dark"] .archived-user-card-header {
+            border-bottom-color: #495057;
+        }
+        
+        [data-bs-theme="dark"] .archived-user-card-name,
+        [data-bs-theme="dark"] .archived-user-card-value {
+            color: #e9ecef;
+        }
+        
+        [data-bs-theme="dark"] .archived-user-card-label {
+            color: #adb5bd;
+        }
+        
+        [data-bs-theme="dark"] .archived-user-card-actions {
+            border-top-color: #495057;
+        }
+        
+        /* Pagination mobile styles */
+        .pagination {
+            flex-wrap: wrap;
+            gap: 4px;
+            justify-content: center;
+        }
+        
+        .pagination .page-item {
+            margin: 0;
+        }
+        
+        .pagination .page-link {
+            font-size: 12px;
+            padding: 4px 8px;
+            min-width: 32px;
+            text-align: center;
+        }
+        
+        .pagination .page-link svg {
+            width: 10px;
+            height: 10px;
+        }
+        
+        /* Hide some page numbers on mobile */
+        .pagination .page-item:not(.active):not(.disabled):not(:first-child):not(:last-child):not(:nth-child(2)):not(:nth-last-child(2)) {
+            display: none;
+        }
+        
+        .pagination .page-item.disabled {
+            display: inline-block;
+        }
+        
+        .d-flex.justify-content-between {
+            flex-direction: column;
+            gap: 10px;
+            align-items: center !important;
+        }
+        
+        .d-flex.justify-content-between > small {
+            width: 100%;
+            text-align: center;
+        }
+    }
+    
+    /* Hide mobile cards on desktop */
+    .mobile-archived-user-cards {
+        display: none;
+    }
+</style>
 @endsection
 
 @section('page_title')
@@ -103,6 +267,64 @@
                         @endforelse
                     </tbody>
                 </table>
+            </div>
+
+            <!-- Mobile Card Layout for Archived Users -->
+            <div class="mobile-archived-user-cards">
+                @forelse($users as $user)
+                    <div class="archived-user-card">
+                        <div class="archived-user-card-header">
+                            <div>
+                                <input type="checkbox" class="archived-user-card-checkbox user-checkbox" value="{{ $user->id }}" onchange="updateSelectedCount()">
+                                <span class="archived-user-card-name">{{ $user->name }}</span>
+                            </div>
+                            @php
+                                $badgeColor = match($user->role) {
+                                    'admin' => 'danger',
+                                    'school_admin' => 'dark',
+                                    'academic_head' => 'warning',
+                                    'program_head' => 'info',
+                                    'maintenance' => 'warning',
+                                    'faculty' => 'info',
+                                    default => 'primary'
+                                };
+                            @endphp
+                            <span class="badge bg-{{ $badgeColor }}">
+                                {{ ucfirst(str_replace('_', ' ', $user->role)) }}
+                            </span>
+                        </div>
+                        <div class="archived-user-card-body">
+                            <div class="archived-user-card-field">
+                                <span class="archived-user-card-label">Name:</span>
+                                <span class="archived-user-card-value">{{ $user->name }}</span>
+                            </div>
+                            <div class="archived-user-card-field">
+                                <span class="archived-user-card-label">Email:</span>
+                                <span class="archived-user-card-value">{{ $user->email }}</span>
+                            </div>
+                            <div class="archived-user-card-field">
+                                <span class="archived-user-card-label">Department:</span>
+                                <span class="archived-user-card-value">{{ $user->department ?? 'N/A' }}</span>
+                            </div>
+                            <div class="archived-user-card-field">
+                                <span class="archived-user-card-label">Archived:</span>
+                                <span class="archived-user-card-value">{{ $user->updated_at->format('M d, Y') }}</span>
+                            </div>
+                        </div>
+                        <div class="archived-user-card-actions">
+                            <button type="button" class="btn btn-sm btn-success" onclick="showRestoreUserModal({{ $user->id }}, '{{ $user->name }}')">
+                                <i class="fas fa-trash-restore"></i> Restore
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger" onclick="showDeleteUserModal('{{ $user->uuid }}', '{{ addslashes($user->name) }}')">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                @empty
+                    <div class="text-center py-5">
+                        <h5 class="text-muted">No users in this archive folder</h5>
+                    </div>
+                @endforelse
             </div>
 
             <div class="d-flex justify-content-between align-items-center px-3 py-2">
