@@ -27,6 +27,15 @@
             overflow: hidden !important;
         }
         
+        /* Hide registration trend chart on mobile to save space */
+        #registrationTrendChart {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            height: 0 !important;
+            overflow: hidden !important;
+        }
+        
         /* Show mobile cards */
         .mobile-dashboard-cards {
             display: block !important;
@@ -220,7 +229,7 @@
         </div>
 
         {{-- Registration Trend --}}
-        <div class="col-12 col-md-7">
+        <div class="col-12 col-md-7" id="registrationTrendChart">
             <div class="card h-100">
                 <div class="card-header py-2 px-3">
                     <h6 class="mb-0"><i class="fas fa-chart-line me-2 text-success"></i>New Registrations — Last 6 Months</h6>
