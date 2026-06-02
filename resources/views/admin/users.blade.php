@@ -2493,7 +2493,7 @@ function contextDelete() {
     }
 }
 
-// Bulk archive functions
+// Bulk archive functions - Updated
 function toggleSelectAll() {
     const selectAll = document.getElementById('selectAll');
     const checkboxes = document.querySelectorAll('.user-checkbox:not(:disabled)');
