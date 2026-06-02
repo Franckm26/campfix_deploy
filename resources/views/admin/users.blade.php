@@ -1849,6 +1849,57 @@ document.getElementById('deleteAllModal')?.addEventListener('hidden.bs.modal', f
     width: 12px;
     height: 12px;
 }
+
+/* Mobile Pagination Styles */
+@media screen and (max-width: 768px) {
+    .pagination {
+        flex-wrap: wrap;
+        gap: 4px;
+        justify-content: center;
+    }
+    
+    .pagination .page-item {
+        margin: 0;
+    }
+    
+    .pagination .page-link {
+        font-size: 12px;
+        padding: 4px 8px;
+        min-width: 32px;
+        text-align: center;
+    }
+    
+    .pagination .page-link svg {
+        width: 10px;
+        height: 10px;
+    }
+    
+    /* Hide some page numbers on very small screens to save space */
+    .pagination .page-item:not(.active):not(.disabled):not(:first-child):not(:last-child):not(:nth-child(2)):not(:nth-last-child(2)) {
+        display: none;
+    }
+    
+    /* Show ellipsis if needed */
+    .pagination .page-item.disabled {
+        display: inline-block;
+    }
+    
+    /* Ensure pagination container is responsive */
+    .d-flex.justify-content-center {
+        padding: 0 10px;
+    }
+    
+    .d-flex.justify-content-between {
+        flex-direction: column;
+        gap: 10px;
+        align-items: center !important;
+    }
+    
+    .d-flex.justify-content-between > div {
+        width: 100%;
+        text-align: center;
+    }
+}
 </style>
 
 <script>
