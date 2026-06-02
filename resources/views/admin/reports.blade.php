@@ -353,6 +353,19 @@
     <!-- Reports Table -->
     <div class="card" style="display: block !important;">
         <div class="card-body" style="display: block !important;">
+            <!-- Bulk Actions for Active Reports -->
+            <div class="bulk-actions mb-3" id="activeBulkActions" style="display: none;">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-warning btn-sm" onclick="batchArchiveSelected()">
+                        <i class="fas fa-archive"></i> Archive Selected
+                    </button>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="batchSoftDeleteSelected()">
+                        <i class="fas fa-trash"></i> Delete Selected
+                    </button>
+                </div>
+                <span class="ms-2 text-muted" id="activeSelectedCount">0 selected</span>
+            </div>
+
             <div class="table-responsive" style="display: block !important; visibility: visible !important; opacity: 1 !important;">
                 <table class="table table-hover" style="display: table !important;">
                     <thead>
@@ -373,7 +386,7 @@
                     <tbody>
                         @forelse($reports as $report)
                             <tr data-id="{{ $report->id }}">
-                                <td class="checkbox-col"><input type="checkbox" class="report-checkbox" value="{{ $report->id }}"></td>
+                                <td class="checkbox-col"><input type="checkbox" class="report-checkbox active-checkbox" value="{{ $report->id }}" onchange="updateActiveBulkActions()"></td>
                                 <td class="ticket-col" style="width: 60px; max-width: 60px; min-width: 60px; white-space: nowrap; text-align: center; padding: 4px;">#{{ str_pad($report->id, 4, '0', STR_PAD_LEFT) }}</td>
                                 <td>{{ $report->title ?? \Illuminate\Support\Str::limit($report->description, 40) }}</td>
                                         <td>{{ $report->category->name ?? 'N/A' }}</td>
@@ -457,7 +470,7 @@
                     <div class="report-card" data-id="{{ $report->id }}">
                         <div class="report-card-header">
                             <div>
-                                <input type="checkbox" class="report-card-checkbox report-checkbox" value="{{ $report->id }}">
+                                <input type="checkbox" class="report-card-checkbox report-checkbox active-checkbox" value="{{ $report->id }}" onchange="updateActiveBulkActions()">
                                 <span class="report-card-ticket">#{{ str_pad($report->id, 4, '0', STR_PAD_LEFT) }}</span>
                             </div>
                             <span class="badge bg-{{
@@ -549,6 +562,19 @@
                 @endif
             </h5>
             
+            <!-- Bulk Actions for Resolved Reports -->
+            <div class="bulk-actions mb-3" id="resolvedBulkActions" style="display: none;">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-warning btn-sm" onclick="batchArchiveResolved()">
+                        <i class="fas fa-archive"></i> Archive Selected
+                    </button>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="batchSoftDeleteResolved()">
+                        <i class="fas fa-trash"></i> Delete Selected
+                    </button>
+                </div>
+                <span class="ms-2 text-muted" id="resolvedSelectedCount">0 selected</span>
+            </div>
+            
             @if(isset($resolvedReports) && $resolvedReports->count() > 0)
                 <div class="table-responsive" style="display: block !important; visibility: visible !important; opacity: 1 !important;">
                     <table class="table table-hover" style="display: table !important;">
@@ -570,7 +596,7 @@
                         <tbody>
                             @foreach($resolvedReports as $report)
                                 <tr data-id="{{ $report->id }}">
-                                    <td class="checkbox-col"><input type="checkbox" class="resolved-report-checkbox" value="{{ $report->id }}"></td>
+                                    <td class="checkbox-col"><input type="checkbox" class="resolved-report-checkbox resolved-checkbox" value="{{ $report->id }}" onchange="updateResolvedBulkActions()"></td>
                                     <td class="ticket-col" style="width: 60px; max-width: 60px; min-width: 60px; white-space: nowrap; text-align: center; padding: 4px;">#{{ str_pad($report->id, 4, '0', STR_PAD_LEFT) }}</td>
                                     <td>{{ $report->title ?? \Illuminate\Support\Str::limit($report->description, 40) }}</td>
                                     <td>{{ $report->category->name ?? 'N/A' }}</td>
@@ -625,7 +651,7 @@
                         <div class="report-card">
                             <div class="report-card-header">
                                 <div>
-                                    <input type="checkbox" class="report-card-checkbox resolved-report-checkbox" value="{{ $report->id }}">
+                                    <input type="checkbox" class="report-card-checkbox resolved-report-checkbox resolved-checkbox" value="{{ $report->id }}" onchange="updateResolvedBulkActions()">
                                     <span class="report-card-ticket">#{{ str_pad($report->id, 4, '0', STR_PAD_LEFT) }}</span>
                                 </div>
                                 <span class="badge bg-success">Resolved</span>
@@ -2939,6 +2965,7 @@ if (retentionDaysElement) {
 function toggleAllReports(checkbox) {
     const checkboxes = document.querySelectorAll('.report-checkbox');
     checkboxes.forEach(cb => cb.checked = checkbox.checked);
+    updateActiveBulkActions();
 }
 
 function getSelectedReports() {
@@ -2950,12 +2977,148 @@ function getSelectedReports() {
 function toggleAllResolvedReports(checkbox) {
     const checkboxes = document.querySelectorAll('.resolved-report-checkbox');
     checkboxes.forEach(cb => cb.checked = checkbox.checked);
+    updateResolvedBulkActions();
 }
 
 function getSelectedResolvedReports() {
     const checkboxes = document.querySelectorAll('.resolved-report-checkbox:checked');
     return Array.from(checkboxes).map(cb => cb.value);
 }
+
+// Update bulk actions visibility for Active Reports
+function updateActiveBulkActions() {
+    const selected = document.querySelectorAll('.active-checkbox:checked');
+    const bulkActions = document.getElementById('activeBulkActions');
+    const countSpan = document.getElementById('activeSelectedCount');
+    
+    if (selected.length > 0) {
+        bulkActions.style.display = 'block';
+        countSpan.textContent = selected.length + ' selected';
+    } else {
+        bulkActions.style.display = 'none';
+    }
+}
+
+// Update bulk actions visibility for Resolved Reports
+function updateResolvedBulkActions() {
+    const selected = document.querySelectorAll('.resolved-checkbox:checked');
+    const bulkActions = document.getElementById('resolvedBulkActions');
+    const countSpan = document.getElementById('resolvedSelectedCount');
+    
+    if (selected.length > 0) {
+        bulkActions.style.display = 'block';
+        countSpan.textContent = selected.length + ' selected';
+    } else {
+        bulkActions.style.display = 'none';
+    }
+}
+
+// Batch archive selected active reports
+function batchArchiveSelected() {
+    const selected = document.querySelectorAll('.active-checkbox:checked');
+    const ids = Array.from(selected).map(cb => cb.value);
+    
+    if (ids.length === 0) return;
+    
+    if (confirm('Are you sure you want to archive ' + ids.length + ' report(s)?')) {
+        fetch('/concerns/batch-archive', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ ids: ids })
+        }).then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            location.reload();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error archiving reports');
+        });
+    }
+}
+
+// Batch soft delete selected active reports
+function batchSoftDeleteSelected() {
+    const selected = document.querySelectorAll('.active-checkbox:checked');
+    const ids = Array.from(selected).map(cb => cb.value);
+    
+    if (ids.length === 0) return;
+    
+    if (confirm('Are you sure you want to delete ' + ids.length + ' report(s)?')) {
+        fetch('/concerns/batch-soft-delete', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ ids: ids })
+        }).then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            location.reload();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting reports');
+        });
+    }
+}
+
+// Batch archive resolved reports
+function batchArchiveResolved() {
+    const selected = document.querySelectorAll('.resolved-checkbox:checked');
+    const ids = Array.from(selected).map(cb => cb.value);
+    
+    if (ids.length === 0) return;
+    
+    if (confirm('Are you sure you want to archive ' + ids.length + ' resolved report(s)?')) {
+        fetch('/concerns/batch-archive', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ ids: ids })
+        }).then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            location.reload();
+        }).catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while archiving reports.');
+        });
+    }
+}
+
+// Batch soft delete resolved reports
+function batchSoftDeleteResolved() {
+    const selected = document.querySelectorAll('.resolved-checkbox:checked');
+    const ids = Array.from(selected).map(cb => cb.value);
+    
+    if (ids.length === 0) return;
+    
+    if (confirm('Are you sure you want to delete ' + ids.length + ' resolved report(s)? They will be moved to the deleted folder.')) {
+        fetch('/concerns/batch-soft-delete', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ ids: ids })
+        }).then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            location.reload();
+        }).catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while deleting reports.');
+        });
+    }
+}
+
 // View Report from table button using SweetAlert2
 function viewReport(id) {
     window.currentReportId = id;
