@@ -680,6 +680,84 @@
                                 </tbody>
                             </table>
                         </div>
+
+                        <!-- Mobile Card Layout for Resolved -->
+                        <div class="mobile-concern-cards">
+                            @foreach($resolvedConcerns as $concern)
+                                <div class="concern-card" data-id="{{ $concern->id }}" data-view="resolved">
+                                    <div class="concern-card-header">
+                                        <div>
+                                            <input type="checkbox" class="concern-card-checkbox resolved-checkbox" value="{{ $concern->id }}" onchange="updateResolvedBulkActions()">
+                                            <span class="concern-card-id">#{{ str_pad($concern->id, 4, '0', STR_PAD_LEFT) }}</span>
+                                        </div>
+                                        <span class="badge bg-success">Resolved</span>
+                                    </div>
+                                    <div class="concern-card-body">
+                                        <div class="concern-card-field">
+                                            <span class="concern-card-label">Issue:</span>
+                                            <span class="concern-card-value">
+                                                <a href="#" onclick="event.preventDefault(); viewConcern({{ $concern->id }});">
+                                                    {{ $concern->title ?? \Illuminate\Support\Str::limit($concern->description, 30) }}
+                                                </a>
+                                                @if($concern->image_path)
+                                                    <i class="fas fa-image text-muted"></i>
+                                                @endif
+                                            </span>
+                                        </div>
+                                        <div class="concern-card-field">
+                                            <span class="concern-card-label">Category:</span>
+                                            <span class="concern-card-value">{{ $concern->categoryRelation->name ?? 'N/A' }}</span>
+                                        </div>
+                                        <div class="concern-card-field">
+                                            <span class="concern-card-label">Location:</span>
+                                            <span class="concern-card-value">{{ $concern->location }}</span>
+                                        </div>
+                                        <div class="concern-card-field">
+                                            <span class="concern-card-label">Priority:</span>
+                                            <span class="concern-card-value">
+                                                <span class="badge bg-{{ 
+                                                    $concern->priority == 'urgent' ? 'danger' : 
+                                                    ($concern->priority == 'high' ? 'warning' : 
+                                                    ($concern->priority == 'medium' ? 'info' : 'secondary'))
+                                                }}">
+                                                    {{ ($concern->priority ? ucfirst($concern->priority) : 'Not Set') }}
+                                                </span>
+                                            </span>
+                                        </div>
+                                        @if(auth()->user()->role === 'mis')
+                                        <div class="concern-card-field">
+                                            <span class="concern-card-label">Reported By:</span>
+                                            <span class="concern-card-value">
+                                                @if($concern->is_anonymous)
+                                                    Anonymous
+                                                @else
+                                                    {{ $concern->user->name ?? 'Unknown' }}
+                                                @endif
+                                            </span>
+                                        </div>
+                                        @endif
+                                        <div class="concern-card-field">
+                                            <span class="concern-card-label">Resolved:</span>
+                                            <span class="concern-card-value">{{ $concern->updated_at->format('M d, Y') }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="concern-card-actions">
+                                        <button type="button" class="btn btn-sm btn-info" onclick="viewConcern({{ $concern->id }})">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-secondary" onclick="showArchiveModal({{ $concern->id }})">
+                                            <i class="fas fa-archive"></i> Archive
+                                        </button>
+                                        @if(!$concern->assigned_to || $concern->status === 'Resolved')
+                                        <button type="button" class="btn btn-sm btn-danger" onclick="softDeleteConcern({{ $concern->id }})">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+
                     @else
                         <div class="text-center py-5">
                             <h4 class="text-muted">No resolved concerns found</h4>
@@ -819,6 +897,76 @@
                                 </tbody>
                             </table>
                         </div>
+
+                        <!-- Mobile Card Layout for Archives -->
+                        <div class="mobile-concern-cards">
+                            @foreach($archivedConcerns as $concern)
+                                <div class="concern-card" data-id="{{ $concern->id }}" data-view="archive">
+                                    <div class="concern-card-header">
+                                        <div>
+                                            <input type="checkbox" class="concern-card-checkbox archive-checkbox" value="{{ $concern->id }}" onchange="updateArchiveBulkActions()">
+                                            <span class="concern-card-id">#{{ str_pad($concern->id, 4, '0', STR_PAD_LEFT) }}</span>
+                                        </div>
+                                        <span class="badge bg-{{ 
+                                            $concern->status == 'Resolved' ? 'success' : 
+                                            ($concern->status == 'In Progress' ? 'warning' : 
+                                            ($concern->status == 'Assigned' ? 'primary' : 'secondary'))
+                                        }}">
+                                            {{ $concern->status }}
+                                        </span>
+                                    </div>
+                                    <div class="concern-card-body">
+                                        <div class="concern-card-field">
+                                            <span class="concern-card-label">Issue:</span>
+                                            <span class="concern-card-value">
+                                                <a href="#" onclick="event.preventDefault(); viewConcern({{ $concern->id }});">
+                                                    {{ $concern->title ?? \Illuminate\Support\Str::limit($concern->description, 30) }}
+                                                </a>
+                                            </span>
+                                        </div>
+                                        <div class="concern-card-field">
+                                            <span class="concern-card-label">Category:</span>
+                                            <span class="concern-card-value">{{ $concern->categoryRelation->name ?? 'N/A' }}</span>
+                                        </div>
+                                        <div class="concern-card-field">
+                                            <span class="concern-card-label">Location:</span>
+                                            <span class="concern-card-value">{{ $concern->location }}</span>
+                                        </div>
+                                        <div class="concern-card-field">
+                                            <span class="concern-card-label">Priority:</span>
+                                            <span class="concern-card-value">
+                                                <span class="badge bg-{{ 
+                                                    $concern->priority == 'urgent' ? 'danger' : 
+                                                    ($concern->priority == 'high' ? 'warning' : 
+                                                    ($concern->priority == 'medium' ? 'info' : 'secondary'))
+                                                }}">
+                                                    {{ ($concern->priority ? ucfirst($concern->priority) : 'Not Set') }}
+                                                </span>
+                                            </span>
+                                        </div>
+                                        <div class="concern-card-field">
+                                            <span class="concern-card-label">Archived By:</span>
+                                            <span class="concern-card-value">{{ $concern->archived_by_user->name ?? 'System' }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="concern-card-actions">
+                                        <button type="button" class="btn btn-sm btn-info" onclick="viewConcern({{ $concern->id }})">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                        <form method="POST" action="{{ route('concerns.restore', $concern->id) }}" style="flex: 1;">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-success w-100">
+                                                <i class="fas fa-trash-restore"></i> Restore
+                                            </button>
+                                        </form>
+                                        <button type="button" class="btn btn-sm btn-danger" onclick="softDeleteArchivedConcern({{ $concern->id }})">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+
                     @else
                         <div class="text-center py-5">
                             <h4 class="text-muted">No archived concerns found</h4>
@@ -1001,6 +1149,80 @@
                                 </tbody>
                             </table>
                         </div>
+
+                        <!-- Mobile Card Layout for Deleted -->
+                        <div class="mobile-concern-cards">
+                            @foreach($deletedConcerns as $concern)
+                                <div class="concern-card" data-id="{{ $concern->id }}" data-view="deleted">
+                                    <div class="concern-card-header">
+                                        <div>
+                                            <input type="checkbox" class="concern-card-checkbox deleted-checkbox" value="{{ $concern->id }}" onchange="updateDeletedBulkActions()">
+                                            <span class="concern-card-id">#{{ str_pad($concern->id, 4, '0', STR_PAD_LEFT) }}</span>
+                                        </div>
+                                        <span class="badge bg-{{ 
+                                            $concern->status == 'Resolved' ? 'success' : 
+                                            ($concern->status == 'In Progress' ? 'warning' : 
+                                            ($concern->status == 'Assigned' ? 'primary' : 'secondary'))
+                                        }}">
+                                            {{ $concern->status }}
+                                        </span>
+                                    </div>
+                                    <div class="concern-card-body">
+                                        <div class="concern-card-field">
+                                            <span class="concern-card-label">Issue:</span>
+                                            <span class="concern-card-value">
+                                                <a href="#" onclick="event.preventDefault(); viewConcern({{ $concern->id }});">
+                                                    {{ $concern->title ?? \Illuminate\Support\Str::limit($concern->description, 30) }}
+                                                </a>
+                                            </span>
+                                        </div>
+                                        <div class="concern-card-field">
+                                            <span class="concern-card-label">Category:</span>
+                                            <span class="concern-card-value">{{ $concern->categoryRelation->name ?? 'N/A' }}</span>
+                                        </div>
+                                        <div class="concern-card-field">
+                                            <span class="concern-card-label">Location:</span>
+                                            <span class="concern-card-value">{{ $concern->location }}</span>
+                                        </div>
+                                        <div class="concern-card-field">
+                                            <span class="concern-card-label">Priority:</span>
+                                            <span class="concern-card-value">
+                                                <span class="badge bg-{{ 
+                                                    $concern->priority == 'urgent' ? 'danger' : 
+                                                    ($concern->priority == 'high' ? 'warning' : 
+                                                    ($concern->priority == 'medium' ? 'info' : 'secondary'))
+                                                }}">
+                                                    {{ ($concern->priority ? ucfirst($concern->priority) : 'Not Set') }}
+                                                </span>
+                                            </span>
+                                        </div>
+                                        <div class="concern-card-field">
+                                            <span class="concern-card-label">Deleted By:</span>
+                                            <span class="concern-card-value">{{ $concern->deletedBy ? $concern->deletedBy->name : 'System' }}</span>
+                                        </div>
+                                        <div class="concern-card-field">
+                                            <span class="concern-card-label">Deleted At:</span>
+                                            <span class="concern-card-value">{{ $concern->deleted_at ? $concern->deleted_at->format('M d, Y g:i A') : 'N/A' }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="concern-card-actions">
+                                        <button type="button" class="btn btn-sm btn-info" onclick="viewConcern({{ $concern->id }})">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                        <form method="POST" action="{{ route('concerns.restore-deleted', $concern->id) }}" style="flex: 1;">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-success w-100">
+                                                <i class="fas fa-trash-restore"></i> Restore
+                                            </button>
+                                        </form>
+                                        <button type="button" class="btn btn-sm btn-danger" onclick="permanentDeleteConcern({{ $concern->id }})">
+                                            <i class="fas fa-ban"></i> Permanent Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+
                     @else
                         <div class="text-center py-5">
                             <h4 class="text-muted">No deleted concerns found</h4>

@@ -2,6 +2,140 @@
 
 @section('styles')
 <link href="{{ asset('css/admin.css') }}" rel="stylesheet">
+<style>
+    /* Mobile Responsive Styles */
+    @media screen and (max-width: 768px) {
+        /* Hide tables on mobile */
+        .card-body .table-responsive {
+            display: none !important;
+        }
+        
+        /* Show mobile cards */
+        .mobile-event-cards {
+            display: block !important;
+        }
+        
+        /* Event card styling */
+        .event-card {
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .event-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .event-card-header div {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .event-card-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .event-card-ticket {
+            font-weight: 600;
+            font-size: 14px;
+            color: #333;
+        }
+        
+        .event-card-body {
+            margin-bottom: 12px;
+        }
+        
+        .event-card-field {
+            display: flex;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .event-card-label {
+            font-weight: 600;
+            min-width: 100px;
+            color: #666;
+        }
+        
+        .event-card-value {
+            color: #333;
+            flex: 1;
+            word-break: break-word;
+        }
+        
+        .event-card-value a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        
+        .event-card-value a:hover {
+            text-decoration: underline;
+        }
+        
+        .event-card-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e9ecef;
+            flex-wrap: wrap;
+        }
+        
+        .event-card-actions .btn {
+            flex: 1;
+            font-size: 12px;
+            min-width: 80px;
+        }
+        
+        .event-card-actions form {
+            flex: 1;
+            display: flex;
+        }
+        
+        .event-card-actions form .btn {
+            width: 100%;
+        }
+        
+        /* Dark mode support */
+        [data-bs-theme="dark"] .event-card {
+            background: #2d3238;
+            border-color: #495057;
+        }
+        
+        [data-bs-theme="dark"] .event-card-header {
+            border-bottom-color: #495057;
+        }
+        
+        [data-bs-theme="dark"] .event-card-ticket,
+        [data-bs-theme="dark"] .event-card-value {
+            color: #e9ecef;
+        }
+        
+        [data-bs-theme="dark"] .event-card-label {
+            color: #adb5bd;
+        }
+        
+        [data-bs-theme="dark"] .event-card-actions {
+            border-top-color: #495057;
+        }
+    }
+    
+    /* Hide mobile cards on desktop */
+    .mobile-event-cards {
+        display: none;
+    }
+</style>
 @endsection
 
 @section('page_title')
@@ -365,6 +499,63 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- Mobile Card Layout for Active Events -->
+        <div class="mobile-event-cards">
+            @foreach($requests as $request)
+                <div class="event-card">
+                    <div class="event-card-header">
+                        <span class="event-card-ticket">EVT-{{ str_pad($request->id, 5, '0', STR_PAD_LEFT) }}</span>
+                        <span class="badge bg-{{ 
+                            $request->status == 'Approved' ? 'success' : 
+                            ($request->status == 'Pending' ? 'warning' : 
+                            ($request->status == 'Rejected' ? 'danger' : 'secondary'))
+                        }}">
+                            {{ $request->status }}
+                        </span>
+                    </div>
+                    <div class="event-card-body">
+                        <div class="event-card-field">
+                            <span class="event-card-label">Requestor:</span>
+                            <span class="event-card-value">{{ $request->user->name ?? 'N/A' }}</span>
+                        </div>
+                        <div class="event-card-field">
+                            <span class="event-card-label">Event Date:</span>
+                            <span class="event-card-value">{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</span>
+                        </div>
+                        <div class="event-card-field">
+                            <span class="event-card-label">Time:</span>
+                            <span class="event-card-value">{{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</span>
+                        </div>
+                        <div class="event-card-field">
+                            <span class="event-card-label">Location:</span>
+                            <span class="event-card-value">{{ $request->location }}</span>
+                        </div>
+                    </div>
+                    <div class="event-card-actions">
+                        <button type="button" class="btn btn-sm btn-info" onclick="viewEvent({{ $request->id }})">
+                            <i class="fas fa-eye"></i> View
+                        </button>
+                        @if(auth()->user()->canAccess('events_approve') && $request->status == 'Pending')
+                        <button type="button" class="btn btn-sm btn-success" onclick="showApproveModal({{ $request->id }}, '{{ $request->title }}')">
+                            <i class="fas fa-check"></i> Approve
+                        </button>
+                        @endif
+                        @if(auth()->user()->canAccess('events_reject') && $request->status == 'Pending')
+                        <button type="button" class="btn btn-sm btn-danger" onclick="showRejectModal({{ $request->id }}, '{{ $request->title }}')">
+                            <i class="fas fa-times"></i> Reject
+                        </button>
+                        @endif
+                        @if(auth()->user()->canAccess('events_delete'))
+                        <button type="button" class="btn btn-sm btn-danger" onclick="showDeleteModal({{ $request->id }}, '{{ $request->title }}')">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                        @endif
+                    </div>
+                </div>
+            @endforeach
+        </div>
+
     @else
         <div class="card">
             <div class="card-body text-center py-5">
@@ -464,6 +655,48 @@
                         </tbody>
                     </table>
                 </div>
+
+                <!-- Mobile Card Layout for Approved Events -->
+                <div class="mobile-event-cards">
+                    @foreach($approvedEvents as $event)
+                        <div class="event-card">
+                            <div class="event-card-header">
+                                <span class="event-card-ticket">EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</span>
+                                <span class="badge bg-success">Approved</span>
+                            </div>
+                            <div class="event-card-body">
+                                <div class="event-card-field">
+                                    <span class="event-card-label">Requestor:</span>
+                                    <span class="event-card-value">{{ $event->user->name ?? 'N/A' }}</span>
+                                </div>
+                                <div class="event-card-field">
+                                    <span class="event-card-label">Event Date:</span>
+                                    <span class="event-card-value">{{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</span>
+                                </div>
+                                <div class="event-card-field">
+                                    <span class="event-card-label">Time:</span>
+                                    <span class="event-card-value">{{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}</span>
+                                </div>
+                                <div class="event-card-field">
+                                    <span class="event-card-label">Location:</span>
+                                    <span class="event-card-value">{{ $event->location }}</span>
+                                </div>
+                            </div>
+                            <div class="event-card-actions">
+                                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#approvedViewModal{{ $event->id }}">
+                                    <i class="fas fa-eye"></i> View
+                                </button>
+                                <button type="button" class="btn btn-sm btn-secondary" onclick="showArchiveEventModal({{ $event->id }})">
+                                    <i class="fas fa-archive"></i> Archive
+                                </button>
+                                <button type="button" class="btn btn-sm btn-danger" onclick="showDeleteEventModal({{ $event->id }})">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+
             @else
                 <div class="text-center py-5">
                     <i class="fas fa-check-circle fa-3x text-muted mb-3"></i>

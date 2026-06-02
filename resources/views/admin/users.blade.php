@@ -2,6 +2,138 @@
 
 @section('styles')
 <link href="{{ asset('css/admin.css') }}" rel="stylesheet">
+<style>
+    /* Mobile Responsive Styles */
+    @media screen and (max-width: 768px) {
+        /* Hide tables on mobile */
+        .card-body .table-responsive {
+            display: none !important;
+        }
+        
+        /* Show mobile cards */
+        .mobile-user-cards {
+            display: block !important;
+        }
+        
+        /* User card styling */
+        .user-card {
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .user-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .user-card-header div {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .user-card-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .user-card-id {
+            font-weight: 600;
+            font-size: 14px;
+            color: #333;
+        }
+        
+        .user-card-body {
+            margin-bottom: 12px;
+        }
+        
+        .user-card-field {
+            display: flex;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .user-card-label {
+            font-weight: 600;
+            min-width: 100px;
+            color: #666;
+        }
+        
+        .user-card-value {
+            color: #333;
+            flex: 1;
+            word-break: break-word;
+        }
+        
+        .user-card-value a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        
+        .user-card-value a:hover {
+            text-decoration: underline;
+        }
+        
+        .user-card-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .user-card-actions .btn {
+            flex: 1;
+            font-size: 12px;
+        }
+        
+        .user-card-actions form {
+            flex: 1;
+            display: flex;
+        }
+        
+        .user-card-actions form .btn {
+            width: 100%;
+        }
+        
+        /* Dark mode support */
+        [data-bs-theme="dark"] .user-card {
+            background: #2d3238;
+            border-color: #495057;
+        }
+        
+        [data-bs-theme="dark"] .user-card-header {
+            border-bottom-color: #495057;
+        }
+        
+        [data-bs-theme="dark"] .user-card-id,
+        [data-bs-theme="dark"] .user-card-value {
+            color: #e9ecef;
+        }
+        
+        [data-bs-theme="dark"] .user-card-label {
+            color: #adb5bd;
+        }
+        
+        [data-bs-theme="dark"] .user-card-actions {
+            border-top-color: #495057;
+        }
+    }
+    
+    /* Hide mobile cards on desktop */
+    .mobile-user-cards {
+        display: none;
+    }
+</style>
 @endsection
 
 @section('page_title')
@@ -479,6 +611,74 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Mobile Card Layout for Active Users -->
+            <div class="mobile-user-cards">
+                @forelse($users as $user)
+                    <div class="user-card" data-id="{{ $user->id }}" data-role="{{ $user->role }}">
+                        <div class="user-card-header">
+                            <div>
+                                <input type="checkbox" class="user-card-checkbox user-checkbox" value="{{ $user->id }}" onchange="updateSelectedCount()">
+                                <span class="user-card-id">{{ $user->name }}</span>
+                            </div>
+                            <span class="badge bg-primary">{{ ucfirst($user->role) }}</span>
+                        </div>
+                        <div class="user-card-body">
+                            <div class="user-card-field">
+                                <span class="user-card-label">ID:</span>
+                                <span class="user-card-value">{{ $user->student_id ?? 'N/A' }}</span>
+                            </div>
+                            <div class="user-card-field">
+                                <span class="user-card-label">Email:</span>
+                                <span class="user-card-value">{{ $user->email }}</span>
+                            </div>
+                            <div class="user-card-field">
+                                <span class="user-card-label">Department:</span>
+                                <span class="user-card-value">
+                                    @php $staffRoles = ['mis','school_admin','building_admin','academic_head','program_head','principal_assistant']; @endphp
+                                    @if($user->department)
+                                        {{ $user->department }}{{ $user->level ? ' - ' . $user->level : '' }}
+                                    @elseif(in_array($user->role, $staffRoles))
+                                        {{ ucfirst(str_replace('_', ' ', $user->role)) }}
+                                    @else
+                                        N/A
+                                    @endif
+                                </span>
+                            </div>
+                            <div class="user-card-field">
+                                <span class="user-card-label">Phone:</span>
+                                <span class="user-card-value">{{ $user->phone ?? 'N/A' }}</span>
+                            </div>
+                        </div>
+                        <div class="user-card-actions">
+                            <button type="button" class="btn btn-sm btn-info" onclick="viewUser({{ $user->id }})">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                            @if(auth()->user()->canAccess('users_edit') && !$user->isProtectedFrom(auth()->user()))
+                            <button type="button" class="btn btn-sm btn-warning" onclick="editUser('{{ $user->uuid ?? $user->id }}')">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            @endif
+                            @if(auth()->user()->canAccess('users_archive') && !$user->isProtectedFrom(auth()->user()))
+                                @if(!$user->is_archived)
+                                <button type="button" class="btn btn-sm btn-secondary" onclick="showUserActionModal('archive', '{{ $user->uuid ?? $user->id }}', '{{ $user->name }}')">
+                                    <i class="fas fa-archive"></i> Archive
+                                </button>
+                                @endif
+                            @endif
+                            @if(auth()->user()->canAccess('users_delete') && $user->id !== auth()->id() && !$user->isProtectedFrom(auth()->user()))
+                            <button type="button" class="btn btn-sm btn-danger" onclick="showUserActionModal('delete', '{{ $user->uuid ?? $user->id }}', '{{ $user->name }}')">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                            @endif
+                        </div>
+                    </div>
+                @empty
+                    <div class="text-center py-5">
+                        <h4 class="text-muted">No users found</h4>
+                    </div>
+                @endforelse
+            </div>
             
             <!-- User Count -->
             <div class="text-muted mt-3 small text-center">
@@ -587,6 +787,44 @@
                         @endforelse
                     </tbody>
                 </table>
+            </div>
+
+            <!-- Mobile Card Layout for Archive Folders -->
+            <div class="mobile-user-cards">
+                @forelse($archiveFolders as $folder)
+                    <div class="user-card">
+                        <div class="user-card-header">
+                            <span class="user-card-id">
+                                <i class="fas fa-folder text-warning"></i> {{ $folder->name }}
+                            </span>
+                            <span class="badge bg-primary">{{ $folder->user_count }} users</span>
+                        </div>
+                        <div class="user-card-body">
+                            <div class="user-card-field">
+                                <span class="user-card-label">Description:</span>
+                                <span class="user-card-value">{{ $folder->description ?? 'No description' }}</span>
+                            </div>
+                            <div class="user-card-field">
+                                <span class="user-card-label">Created:</span>
+                                <span class="user-card-value">{{ $folder->created_at->format('M d, Y') }}</span>
+                            </div>
+                        </div>
+                        <div class="user-card-actions">
+                            <a href="{{ route('admin.archiveFolderUsers', $folder->id) }}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-folder-open"></i> View Users
+                            </a>
+                            <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteFolderModal{{ $folder->id }}">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                @empty
+                    <div class="text-center py-5">
+                        <div class="alert alert-info mb-0">
+                            <i class="fas fa-folder-open"></i> No archive folders yet. Use "Archive All" to create one.
+                        </div>
+                    </div>
+                @endforelse
             </div>
 
             <!-- Pagination -->
@@ -811,6 +1049,76 @@
                             @endforelse
                         </tbody>
                     </table>
+                </div>
+
+                <!-- Mobile Card Layout for Deleted Users -->
+                <div class="mobile-user-cards">
+                    @forelse($deletedUsers as $user)
+                        <div class="user-card" data-id="{{ $user->id }}">
+                            <div class="user-card-header">
+                                <div>
+                                    <input type="checkbox" class="user-card-checkbox deleted-user-checkbox" value="{{ $user->id }}" onchange="deletedUsersUpdateSelectedCount()">
+                                    <span class="user-card-id">{{ $user->name }}</span>
+                                </div>
+                                <span class="badge bg-{{ 
+                                    $user->role == 'admin' ? 'danger' : 
+                                    ($user->role == 'school_admin' ? 'dark' : 
+                                    ($user->role == 'building_admin' ? 'secondary' : 
+                                    ($user->role == 'academic_head' ? 'warning' : 
+                                    ($user->role == 'program_head' ? 'info' : 
+                                    ($user->role == 'maintenance' ? 'warning' : 
+                                    ($user->role == 'faculty' ? 'info' : 'primary'))))))
+                                }}">
+                                    {{ ucfirst(str_replace('_', ' ', $user->role)) }}
+                                </span>
+                            </div>
+                            <div class="user-card-body">
+                                <div class="user-card-field">
+                                    <span class="user-card-label">Email:</span>
+                                    <span class="user-card-value">{{ $user->email }}</span>
+                                </div>
+                                <div class="user-card-field">
+                                    <span class="user-card-label">Department:</span>
+                                    <span class="user-card-value">{{ $user->department ?? 'N/A' }}</span>
+                                </div>
+                                <div class="user-card-field">
+                                    <span class="user-card-label">Deleted Date:</span>
+                                    <span class="user-card-value">{{ $user->updated_at->format('M d, Y h:i A') }}</span>
+                                </div>
+                                <div class="user-card-field">
+                                    <span class="user-card-label">Deleted By:</span>
+                                    <span class="user-card-value">{{ $user->deletedBy ? $user->deletedBy->name : 'System' }}</span>
+                                </div>
+                            </div>
+                            <div class="user-card-actions">
+                                <form action="{{ route('admin.deletedUsers.restore', $user->id) }}" method="POST" style="flex: 1;">
+                                    @csrf
+                                    @method('POST')
+                                    <button type="submit" class="btn btn-sm btn-success w-100">
+                                        <i class="fas fa-trash-restore"></i> Restore
+                                    </button>
+                                </form>
+                                <form action="{{ route('admin.deletedUsers.permanentDelete', $user->id) }}" method="POST" style="flex: 1;">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-danger w-100" onclick="return confirm('Are you sure you want to permanently delete this user?')">
+                                        <i class="fas fa-times-circle"></i> Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="text-center py-5">
+                            <div class="alert alert-info mb-0">
+                                <i class="fas fa-check-circle fa-2x d-block mb-3"></i>
+                                <h5>No Deleted Users</h5>
+                                <p class="mb-0">Deleted users will appear here. You can delete users from the User Management page.</p>
+                                <a href="{{ route('admin.users') }}" class="btn btn-primary mt-3">
+                                    <i class="fas fa-users"></i> Go to User Management
+                                </a>
+                            </div>
+                        </div>
+                    @endforelse
                 </div>
                 
                 {{-- Pagination --}}
