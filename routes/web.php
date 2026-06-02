@@ -250,6 +250,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/events/{id}/archive', [EventRequestController::class, 'archive'])->name('events.archive');
     Route::post('/events/{id}/restore', [EventRequestController::class, 'restore'])->name('events.restore');
     Route::post('/events/{id}/delete', [EventRequestController::class, 'delete'])->name('events.delete');
+    
+    // Batch operations for events
+    Route::post('/events/batch-archive', [EventRequestController::class, 'batchArchive'])->name('events.batchArchive');
+    Route::post('/events/batch-delete', [EventRequestController::class, 'batchDelete'])->name('events.batchDelete');
+    Route::post('/events/batch-restore', [EventRequestController::class, 'batchRestore'])->name('events.batchRestore');
+    Route::post('/events/batch-restore-deleted', [EventRequestController::class, 'batchRestoreDeleted'])->name('events.batchRestoreDeleted');
 
     // Event Discussions - Chat/Forum
     Route::get('/events/{eventRequest}/discussions', [EventDiscussionController::class, 'index']);

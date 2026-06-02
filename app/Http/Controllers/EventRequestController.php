@@ -1521,6 +1521,128 @@ class EventRequestController extends Controller
         return redirect()->route('events.my')->with('success', 'Event request restored successfully.');
     }
 
+    // Batch archive events
+    public function batchArchive(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer|exists:event_requests,id'
+        ]);
+
+        $user = auth()->user();
+        $role = $user->role;
+        $archiveColumn = $role . '_archived';
+        $ids = $request->ids;
+        $archivedCount = 0;
+
+        foreach ($ids as $id) {
+            $event = EventRequest::find($id);
+            if ($event && ((int)$event->user_id === (int)$user->id || $user->canApproveRequests())) {
+                $event->$archiveColumn = true;
+                $event->save();
+                $archivedCount++;
+            }
+        }
+
+        ActivityLog::log('events_batch_archived', "Batch archived {$archivedCount} events");
+
+        return response()->json([
+            'success' => true,
+            'message' => "Successfully archived {$archivedCount} event(s)"
+        ]);
+    }
+
+    // Batch delete events (soft delete)
+    public function batchDelete(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer|exists:event_requests,id'
+        ]);
+
+        $user = auth()->user();
+        $ids = $request->ids;
+        $deletedCount = 0;
+
+        foreach ($ids as $id) {
+            $event = EventRequest::find($id);
+            if ($event && ((int)$event->user_id === (int)$user->id || $user->canApproveRequests())) {
+                $event->is_deleted = true;
+                $event->deleted_by = $user->id;
+                $event->save();
+                $deletedCount++;
+            }
+        }
+
+        ActivityLog::log('events_batch_deleted', "Batch deleted {$deletedCount} events");
+
+        return response()->json([
+            'success' => true,
+            'message' => "Successfully deleted {$deletedCount} event(s)"
+        ]);
+    }
+
+    // Batch restore events from archive
+    public function batchRestore(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer|exists:event_requests,id'
+        ]);
+
+        $user = auth()->user();
+        $role = $user->role;
+        $archiveColumn = $role . '_archived';
+        $ids = $request->ids;
+        $restoredCount = 0;
+
+        foreach ($ids as $id) {
+            $event = EventRequest::find($id);
+            if ($event && ((int)$event->user_id === (int)$user->id || $user->canApproveRequests())) {
+                $event->$archiveColumn = false;
+                $event->save();
+                $restoredCount++;
+            }
+        }
+
+        ActivityLog::log('events_batch_restored', "Batch restored {$restoredCount} events from archive");
+
+        return response()->json([
+            'success' => true,
+            'message' => "Successfully restored {$restoredCount} event(s)"
+        ]);
+    }
+
+    // Batch restore events from deleted
+    public function batchRestoreDeleted(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer'
+        ]);
+
+        $user = auth()->user();
+        $ids = $request->ids;
+        $restoredCount = 0;
+
+        foreach ($ids as $id) {
+            $event = EventRequest::where('id', $id)->first();
+            if ($event && ((int)$event->user_id === (int)$user->id || $user->canApproveRequests())) {
+                $event->is_deleted = false;
+                $event->deleted_by = null;
+                $event->save();
+                $restoredCount++;
+            }
+        }
+
+        ActivityLog::log('events_batch_restored_from_deleted', "Batch restored {$restoredCount} events from deleted");
+
+        return response()->json([
+            'success' => true,
+            'message' => "Successfully restored {$restoredCount} event(s) from deleted"
+        ]);
+    }
+
     // Show all event requests (for admin)
     public function adminIndex(Request $request)
     {
