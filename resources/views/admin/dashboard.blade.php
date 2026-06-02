@@ -13,6 +13,82 @@
     .trend-bar-wrap { height: 6px; background: #e9ecef; border-radius: 3px; overflow: hidden; }
     .trend-bar { height: 100%; border-radius: 3px; background: #0d6efd; transition: width .4s; }
     .avatar-sm { width: 34px; height: 34px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px; }
+    
+    /* Mobile Responsive Styles */
+    @media screen and (max-width: 768px) {
+        /* Hide tables on mobile */
+        .table-responsive,
+        .table-responsive table,
+        div[class*="table-responsive"] {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            height: 0 !important;
+            overflow: hidden !important;
+        }
+        
+        /* Show mobile cards */
+        .mobile-dashboard-cards {
+            display: block !important;
+        }
+        
+        /* Dashboard card styling */
+        .dashboard-user-card {
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .dashboard-user-card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .dashboard-user-card-body {
+            margin-left: 44px;
+        }
+        
+        .dashboard-user-card-field {
+            display: flex;
+            margin-bottom: 6px;
+            font-size: 12px;
+        }
+        
+        .dashboard-user-card-label {
+            font-weight: 600;
+            min-width: 60px;
+            color: #666;
+        }
+        
+        .dashboard-user-card-value {
+            color: #333;
+            flex: 1;
+        }
+        
+        /* Dark mode support */
+        [data-bs-theme="dark"] .dashboard-user-card {
+            background: #2d3238;
+            border-color: #495057;
+        }
+        
+        [data-bs-theme="dark"] .dashboard-user-card-value {
+            color: #e9ecef;
+        }
+        
+        [data-bs-theme="dark"] .dashboard-user-card-label {
+            color: #adb5bd;
+        }
+    }
+    
+    /* Hide mobile cards on desktop */
+    .mobile-dashboard-cards {
+        display: none;
+    }
 </style>
 @endsection
 
@@ -227,6 +303,61 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Mobile Card Layout for Recent Registrations -->
+            <div class="mobile-dashboard-cards">
+                @forelse($recentUsers as $u)
+                    @php
+                        $meta = $roleColors[$u->role] ?? ['bg' => 'bg-secondary', 'label' => ucfirst($u->role)];
+                        $initials = collect(explode(' ', $u->name))->map(fn($w) => strtoupper($w[0] ?? ''))->take(2)->implode('');
+                        $bgList = ['#0d6efd','#198754','#fd7e14','#6f42c1','#0dcaf0','#dc3545'];
+                        $bg = $bgList[crc32($u->email) % count($bgList)];
+                    @endphp
+                    <div class="dashboard-user-card">
+                        <div class="dashboard-user-card-header">
+                            <input type="checkbox" class="user-checkbox" value="{{ $u->id }}" style="width: 18px; height: 18px;">
+                            @if($u->profile_picture)
+                                <img src="{{ asset('storage/'.$u->profile_picture) }}" class="avatar-sm" style="object-fit:cover">
+                            @else
+                                <span class="avatar-sm text-white" style="background:{{ $bg }}">{{ $initials }}</span>
+                            @endif
+                            <div style="flex: 1;">
+                                <div class="fw-semibold" style="font-size: 14px;">{{ $u->name }}</div>
+                                <div class="text-muted" style="font-size: 11px;">{{ $u->email }}</div>
+                            </div>
+                        </div>
+                        <div class="dashboard-user-card-body">
+                            <div class="dashboard-user-card-field">
+                                <span class="dashboard-user-card-label">Role:</span>
+                                <span class="dashboard-user-card-value">
+                                    <span class="badge role-badge {{ $meta['bg'] }}">{{ $meta['label'] }}</span>
+                                </span>
+                            </div>
+                            <div class="dashboard-user-card-field">
+                                <span class="dashboard-user-card-label">Status:</span>
+                                <span class="dashboard-user-card-value">
+                                    @if($u->is_archived)
+                                        <span class="badge bg-warning text-dark">Archived</span>
+                                    @elseif($u->locked_until && now()->lessThan($u->locked_until))
+                                        <span class="badge bg-danger">Locked</span>
+                                    @elseif($u->force_password_change)
+                                        <span class="badge bg-secondary">Pending Reset</span>
+                                    @else
+                                        <span class="badge bg-success">Active</span>
+                                    @endif
+                                </span>
+                            </div>
+                            <div class="dashboard-user-card-field">
+                                <span class="dashboard-user-card-label">Joined:</span>
+                                <span class="dashboard-user-card-value">{{ $u->created_at->format('M d, Y') }}</span>
+                            </div>
+                        </div>
+                    </div>
+                @empty
+                    <div class="text-center py-3 text-muted">No users found.</div>
+                @endforelse
+            </div>
+
         </div>
     </div>
 
