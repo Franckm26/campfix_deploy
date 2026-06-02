@@ -1638,8 +1638,8 @@ document.addEventListener('DOMContentLoaded', function() {
     @endif
 
     // Auto-refresh after delete/restore operations
-    // Intercept delete/restore form submissions and reload the page after success
-    document.querySelectorAll('form[action*="/delete"], form[action*="/restore"]').forEach(function(form) {
+    // Intercept delete/restore/archive form submissions and reload the page after success
+    document.querySelectorAll('form[action*="/delete"], form[action*="/restore"], form[action*="/archive"]').forEach(function(form) {
         const originalSubmit = form.onsubmit;
         form.addEventListener('submit', function(e) {
             // Check if this is from data-confirm button
@@ -1679,14 +1679,19 @@ document.addEventListener('DOMContentLoaded', function() {
                                     const urlParams = new URLSearchParams(window.location.search);
                                     let currentView = urlParams.get('view') || 'active';
                                     
-                                    // If permanently deleting from deleted tab, stay on deleted tab
-                                    // If soft deleting from active, stay on active
-                                    // If restoring from deleted/archive, go to active
+                                    // Redirect logic:
+                                    // - Restore always goes to Active tab
+                                    // - Delete from Active tab goes to Active tab
+                                    // - Archive from Active tab goes to Active tab
+                                    // - Delete from other tabs stays on current tab
                                     if (form.action.includes('/restore')) {
                                         // Restore always goes to active
                                         window.location.href = '{{ route("events.my") }}?view=active';
+                                    } else if (form.action.includes('/archive') || form.action.includes('/delete')) {
+                                        // Archive or delete from any tab goes to active
+                                        window.location.href = '{{ route("events.my") }}?view=active';
                                     } else {
-                                        // For delete operations, preserve current tab
+                                        // For other operations, preserve current tab
                                         window.location.reload();
                                     }
                                 });
