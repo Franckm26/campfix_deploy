@@ -10,6 +10,89 @@
     .log-folder-card { border-radius: 10px; padding: 18px 20px; cursor: pointer; transition: box-shadow .2s; border: 1px solid #dee2e6; }
     .log-folder-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.12); }
     [data-theme="dark"] .log-folder-card { border-color: #2a2a45; background: #1a1a2e; }
+    
+    /* Mobile Responsive Styles */
+    @media screen and (max-width: 768px) {
+        /* Hide tables on mobile */
+        .card-body .table-responsive {
+            display: none !important;
+        }
+        
+        /* Show mobile cards */
+        .mobile-log-cards {
+            display: block !important;
+        }
+        
+        /* Log card styling */
+        .log-card {
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .log-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .log-card-action {
+            font-weight: 600;
+            font-size: 14px;
+            color: #333;
+        }
+        
+        .log-card-body {
+            margin-bottom: 12px;
+        }
+        
+        .log-card-field {
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .log-card-label {
+            font-weight: 600;
+            color: #666;
+            display: block;
+            margin-bottom: 4px;
+        }
+        
+        .log-card-value {
+            color: #333;
+            word-break: break-word;
+        }
+        
+        /* Dark mode support */
+        [data-bs-theme="dark"] .log-card {
+            background: #2d3238;
+            border-color: #495057;
+        }
+        
+        [data-bs-theme="dark"] .log-card-header {
+            border-bottom-color: #495057;
+        }
+        
+        [data-bs-theme="dark"] .log-card-action,
+        [data-bs-theme="dark"] .log-card-value {
+            color: #e9ecef;
+        }
+        
+        [data-bs-theme="dark"] .log-card-label {
+            color: #adb5bd;
+        }
+    }
+    
+    /* Hide mobile cards on desktop */
+    .mobile-log-cards {
+        display: none;
+    }
 </style>
 @endsection
 
@@ -338,6 +421,41 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Mobile Card Layout for Logs -->
+            <div class="mobile-log-cards">
+                @forelse($logs as $log)
+                    <div class="log-card">
+                        <div class="log-card-header">
+                            <span class="log-card-action">{{ ucfirst(str_replace('_', ' ', $log->action)) }}</span>
+                            <small class="text-muted">{{ $log->created_at->format('M d, Y') }}</small>
+                        </div>
+                        <div class="log-card-body">
+                            <div class="log-card-field">
+                                <span class="log-card-label">Description:</span>
+                                <div class="log-card-value">{!! $log->description !!}</div>
+                            </div>
+                            <div class="log-card-field">
+                                <span class="log-card-label">Performed By:</span>
+                                <span class="log-card-value">{{ $log->user ? $log->user->name : 'System' }}</span>
+                            </div>
+                            <div class="log-card-field">
+                                <span class="log-card-label">IP Address:</span>
+                                <span class="log-card-value">{{ $log->ip_address ?? '—' }}</span>
+                            </div>
+                            <div class="log-card-field">
+                                <span class="log-card-label">Time:</span>
+                                <span class="log-card-value">{{ $log->created_at->format('h:i:s A') }}</span>
+                            </div>
+                        </div>
+                    </div>
+                @empty
+                    <div class="text-center py-5">
+                        <h4 class="text-muted">No activity logs found</h4>
+                    </div>
+                @endforelse
+            </div>
+
             <div class="d-flex justify-content-between align-items-center px-3 py-2">
                 <small class="text-muted">Showing {{ $logs->firstItem() ?? 0 }} – {{ $logs->lastItem() ?? 0 }} of {{ $logs->total() }} entries</small>
                 {{ $logs->appends(request()->except('page'))->links('pagination::bootstrap-4') }}
