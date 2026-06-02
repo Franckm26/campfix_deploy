@@ -514,6 +514,85 @@
         font-size: 0.6rem !important;
     }
     
+    /* Hide table headers and make tables display as cards on mobile */
+    .swal2-popup .table thead {
+        display: none !important;
+    }
+    
+    .swal2-popup .table,
+    .swal2-popup .table tbody,
+    .swal2-popup .table tr {
+        display: block !important;
+        width: 100% !important;
+    }
+    
+    .swal2-popup .table tr {
+        margin-bottom: 15px !important;
+        border: 1px solid #dee2e6 !important;
+        border-radius: 8px !important;
+        padding: 12px !important;
+        background: #fff !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+    }
+    
+    .swal2-popup .table td {
+        display: block !important;
+        width: 100% !important;
+        text-align: left !important;
+        padding: 6px 0 !important;
+        border: none !important;
+        font-size: 0.8rem !important;
+    }
+    
+    .swal2-popup .table td::before {
+        content: attr(data-label) !important;
+        font-weight: 600 !important;
+        display: inline-block !important;
+        min-width: 100px !important;
+        color: #666 !important;
+        margin-right: 10px !important;
+    }
+    
+    .swal2-popup .table td:empty {
+        display: none !important;
+    }
+    
+    /* Style for period breakdown rows */
+    .period-breakdown-row {
+        cursor: pointer !important;
+    }
+    
+    .period-breakdown-row:hover {
+        background-color: #f8f9fa !important;
+    }
+    
+    /* Modal table wrapper adjustments */
+    .modal-table-wrapper {
+        margin-top: 15px !important;
+    }
+    
+    /* Compact modal content spacing */
+    .swal2-html-container {
+        padding: 1rem !important;
+    }
+    
+    /* Chart in modal adjustments */
+    .swal2-popup canvas {
+        max-width: 100% !important;
+        height: auto !important;
+    }
+    
+    /* Modal title adjustments */
+    .swal2-title {
+        font-size: 1.2rem !important;
+        padding: 0.8rem 1rem !important;
+    }
+    
+    /* Scrollable content in modals */
+    .table-responsive {
+        overflow-x: visible !important;
+    }
+    
     /* Trend alerts */
     .trend-alert-item {
         padding: 10px 12px;
@@ -2276,10 +2355,10 @@ function showCostTrendModal(alert) {
             if (data.part_breakdown && data.part_breakdown.length > 0) {
                 data.part_breakdown.forEach(function(part) {
                     partsTableHtml += '<tr>';
-                    partsTableHtml += '<td><strong>' + (part.part_name || 'Not Specified') + '</strong></td>';
-                    partsTableHtml += '<td style="text-align: center;"><span class="badge bg-primary">' + part.count + '</span></td>';
-                    partsTableHtml += '<td style="text-align: right;">₱' + parseFloat(part.total_cost).toLocaleString('en-PH', {minimumFractionDigits:2}) + '</td>';
-                    partsTableHtml += '<td>';
+                    partsTableHtml += '<td data-label="Damaged Part"><strong>' + (part.part_name || 'Not Specified') + '</strong></td>';
+                    partsTableHtml += '<td data-label="Times Fixed" style="text-align: center;"><span class="badge bg-primary">' + part.count + '</span></td>';
+                    partsTableHtml += '<td data-label="Total Cost" style="text-align: right;">₱' + parseFloat(part.total_cost).toLocaleString('en-PH', {minimumFractionDigits:2}) + '</td>';
+                    partsTableHtml += '<td data-label="Tickets">';
                     
                     // Show tickets in a collapsible format
                     if (part.tickets && part.tickets.length > 0) {
@@ -2317,9 +2396,9 @@ function showCostTrendModal(alert) {
                     totalCount += parseInt(row.count || 0);
                     totalCost += parseFloat(row.cost || 0);
                     monthlyTableHtml += '<tr>';
-                    monthlyTableHtml += '<td>' + row.month + '</td>';
-                    monthlyTableHtml += '<td style="text-align: center;">' + row.count + '</td>';
-                    monthlyTableHtml += '<td style="text-align: right;">₱' + parseFloat(row.cost).toLocaleString('en-PH', {minimumFractionDigits:2}) + '</td>';
+                    monthlyTableHtml += '<td data-label="Month">' + row.month + '</td>';
+                    monthlyTableHtml += '<td data-label="Repairs" style="text-align: center;">' + row.count + '</td>';
+                    monthlyTableHtml += '<td data-label="Cost" style="text-align: right;">₱' + parseFloat(row.cost).toLocaleString('en-PH', {minimumFractionDigits:2}) + '</td>';
                     monthlyTableHtml += '</tr>';
                 });
             } else {
@@ -2507,12 +2586,12 @@ function showLocationTicketsModal(location, totalCount, totalCost) {
                     const ticketId = ticket.id ? '#' + String(ticket.id).padStart(4, '0') : 'N/A';
                     
                     tableRows += '<tr data-damage-part="' + damagePart.replace(/"/g, '&quot;') + '">' +
-                        '<td class="text-center" style="width: 80px; font-size: 0.85rem;"><strong>' + ticketId + '</strong></td>' +
-                        '<td style="width: 150px; font-size: 0.9rem;">' + damagePart + '</td>' +
-                        '<td style="width: 180px; font-size: 0.9rem;">' + issue + '</td>' +
-                        '<td class="text-center" style="width: 100px;">' + statusBadge + '</td>' +
-                        '<td class="text-center" style="width: 150px; font-size: 0.85rem;">' + resolvedDate + '</td>' +
-                        '<td class="text-end" style="width: 110px;"><span class="cost-badge">' + cost + '</span></td>' +
+                        '<td data-label="Ticket #" class="text-center" style="width: 80px; font-size: 0.85rem;"><strong>' + ticketId + '</strong></td>' +
+                        '<td data-label="Damaged Part" style="width: 150px; font-size: 0.9rem;">' + damagePart + '</td>' +
+                        '<td data-label="Issue" style="width: 180px; font-size: 0.9rem;">' + issue + '</td>' +
+                        '<td data-label="Status" class="text-center" style="width: 100px;">' + statusBadge + '</td>' +
+                        '<td data-label="Resolved Date" class="text-center" style="width: 150px; font-size: 0.85rem;">' + resolvedDate + '</td>' +
+                        '<td data-label="Cost" class="text-end" style="width: 110px;"><span class="cost-badge">' + cost + '</span></td>' +
                         '</tr>';
                 });
             } else {
@@ -2795,15 +2874,15 @@ function showStatusDetailsModal() {
     responseTimeData.forEach(function(item) {
         const ticketIssue = '#' + String(item.id).padStart(4, '0') + ' - ' + item.title;
         responseTimeTable += '<tr>' +
-            '<td title="' + ticketIssue + '">' + ticketIssue + '</td>' +
-            '<td title="' + item.location + '">' + item.location + '</td>' +
-            '<td>' + item.created_at + '</td>' +
-            '<td>' + item.assigned_at + '</td>' +
-            '<td>' + item.resolved_at + '</td>' +
-            '<td>' + item.submitted_to_assigned_formatted + '</td>' +
-            '<td>' + item.assigned_to_resolved_formatted + '</td>' +
-            '<td><strong>' + item.total_time_formatted + '</strong></td>' +
-            '<td title="' + item.assigned_to_name + '">' + item.assigned_to_name + '</td>' +
+            '<td data-label="Ticket" title="' + ticketIssue + '">' + ticketIssue + '</td>' +
+            '<td data-label="Room" title="' + item.location + '">' + item.location + '</td>' +
+            '<td data-label="Created">' + item.created_at + '</td>' +
+            '<td data-label="Assigned">' + item.assigned_at + '</td>' +
+            '<td data-label="Resolved">' + item.resolved_at + '</td>' +
+            '<td data-label="Submit to Assign">' + item.submitted_to_assigned_formatted + '</td>' +
+            '<td data-label="Assign to Resolve">' + item.assigned_to_resolved_formatted + '</td>' +
+            '<td data-label="Total"><strong>' + item.total_time_formatted + '</strong></td>' +
+            '<td data-label="Staff" title="' + item.assigned_to_name + '">' + item.assigned_to_name + '</td>' +
             '</tr>';
     });
     
@@ -2872,9 +2951,9 @@ function showStatusDetailsModal() {
             issuesList += '</div>';
             
             statusTable += '<tr>';
-            statusTable += '<td><strong>' + status + '</strong></td>';
-            statusTable += '<td style="text-align: center;"><span class="badge bg-primary">' + statusCounts[index] + '</span></td>';
-            statusTable += '<td>' + issuesList + '</td>';
+            statusTable += '<td data-label="Status"><strong>' + status + '</strong></td>';
+            statusTable += '<td data-label="Count" style="text-align: center;"><span class="badge bg-primary">' + statusCounts[index] + '</span></td>';
+            statusTable += '<td data-label="Tickets">' + issuesList + '</td>';
             statusTable += '</tr>';
         }
     });
