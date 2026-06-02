@@ -355,8 +355,199 @@
 }
 
 @media (max-width: 768px) {
-    .stats-grid { grid-template-columns: 1fr; }
-    .filter-form { flex-direction: column; align-items: stretch; }
+    .stats-grid { 
+        grid-template-columns: 1fr; 
+        gap: 15px;
+    }
+    
+    .filter-form { 
+        flex-direction: column; 
+        align-items: stretch; 
+    }
+    
+    /* Make stat cards more compact on mobile */
+    .stat-card {
+        padding: 15px;
+    }
+    
+    .stat-value {
+        font-size: 1.5rem;
+    }
+    
+    .stat-label {
+        font-size: 0.8rem;
+    }
+    
+    /* Stack chart rows on mobile */
+    .row.mb-4 {
+        margin-bottom: 1rem !important;
+    }
+    
+    .row.mb-4 > .col-md-6,
+    .row.mb-4 > .col-md-12 {
+        margin-bottom: 20px;
+    }
+    
+    /* Make analytics cards more compact */
+    .analytics-card {
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .analytics-title {
+        font-size: 1.1rem;
+    }
+    
+    .analytics-title small {
+        display: block;
+        margin-top: 4px;
+    }
+    
+    /* Adjust chart container height for mobile */
+    .chart-container {
+        height: 250px;
+    }
+    
+    .chart-container canvas {
+        max-height: 250px;
+    }
+    
+    /* Make dropdowns stack better */
+    .analytics-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .analytics-actions {
+        width: 100%;
+    }
+    
+    .analytics-actions .dropdown {
+        width: 100%;
+    }
+    
+    .analytics-actions .dropdown button {
+        width: 100%;
+    }
+    
+    /* Adjust export button area */
+    .mb-3.d-flex {
+        flex-direction: column !important;
+        gap: 10px;
+    }
+    
+    .mb-3.d-flex > .d-flex {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .mb-3.d-flex .dropdown {
+        width: 100%;
+    }
+    
+    .mb-3.d-flex .dropdown button {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .mb-3.d-flex .btn-danger {
+        width: 100%;
+    }
+    
+    /* Period grid responsiveness */
+    .period-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .period-card {
+        padding: 12px 14px;
+    }
+    
+    .period-value {
+        font-size: 1.3rem;
+    }
+    
+    /* Top categories metrics */
+    .row.mb-3 .col-4 {
+        padding-left: 5px;
+        padding-right: 5px;
+    }
+    
+    .row.mb-3 .col-4 > div {
+        padding: 8px !important;
+    }
+    
+    .row.mb-3 .col-4 div[style*="font-size: 1.1rem"] {
+        font-size: 0.9rem !important;
+    }
+    
+    /* Filter groups on mobile */
+    .filter-group {
+        min-width: 100%;
+    }
+    
+    /* Tables in modals */
+    .swal2-popup table {
+        font-size: 0.75rem !important;
+    }
+    
+    .swal2-popup .table th {
+        padding: 0.5rem 0.3rem !important;
+        font-size: 0.7rem !important;
+    }
+    
+    .swal2-popup .table td {
+        padding: 0.4rem 0.3rem !important;
+        font-size: 0.7rem !important;
+    }
+    
+    /* Modal compact table */
+    .modal-compact-table th {
+        padding: 6px 2px !important;
+        font-size: 0.6rem !important;
+    }
+    
+    .modal-compact-table td {
+        padding: 4px 2px !important;
+        font-size: 0.6rem !important;
+    }
+    
+    /* Trend alerts */
+    .trend-alert-item {
+        padding: 10px 12px;
+        gap: 8px;
+    }
+    
+    .trend-alert-icon {
+        font-size: 1.1rem;
+    }
+    
+    .trend-alert-text strong {
+        font-size: 0.85rem;
+    }
+    
+    .trend-alert-text span {
+        font-size: 0.75rem;
+    }
+    
+    /* Analytics table responsive */
+    .analytics-table {
+        font-size: 0.75rem;
+    }
+    
+    .analytics-table th,
+    .analytics-table td {
+        padding: 8px 4px;
+        font-size: 0.75rem;
+    }
+    
+    /* Make table scrollable on mobile */
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
 }
 </style>
 @endsection
