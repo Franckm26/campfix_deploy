@@ -305,7 +305,8 @@
                                 <thead>
                                     <tr>
                                         <th class="text-nowrap" style="min-width: 100px;">Event Ticket</th>
-                                        <th class="text-nowrap" style="min-width: 100px;">Date</th>
+                                        <th class="text-nowrap" style="min-width: 120px;">Category</th>
+                                        <th class="text-nowrap" style="min-width: 100px;">Event Date</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Time</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Location</th>
                                         <th class="text-nowrap" style="min-width: 100px;">Status</th>
@@ -316,6 +317,11 @@
                                     @foreach($approvedRequests as $request)
                                         <tr data-id="{{ $request->id }}">
                                             <td>EVT-{{ str_pad($request->id, 5, '0', STR_PAD_LEFT) }}</td>
+                                            <td>
+                                                <span class="badge bg-info">
+                                                    {{ ucfirst($request->category) }}
+                                                </span>
+                                            </td>
                                             <td>{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</td>
                                             <td>{{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</td>
                                             <td>{{ $request->location }}</td>
@@ -364,7 +370,8 @@
                                 <thead>
                                     <tr>
                                         <th class="text-nowrap" style="min-width: 100px;">Event Ticket</th>
-                                        <th class="text-nowrap" style="min-width: 100px;">Date</th>
+                                        <th class="text-nowrap" style="min-width: 120px;">Category</th>
+                                        <th class="text-nowrap" style="min-width: 100px;">Event Date</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Time</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Location</th>
                                         <th class="text-nowrap" style="min-width: 100px;">Status</th>
@@ -375,6 +382,11 @@
                                     @foreach($finishedRequests as $request)
                                         <tr data-id="{{ $request->id }}">
                                             <td>EVT-{{ str_pad($request->id, 5, '0', STR_PAD_LEFT) }}</td>
+                                            <td>
+                                                <span class="badge bg-info">
+                                                    {{ ucfirst($request->category) }}
+                                                </span>
+                                            </td>
                                             <td>{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</td>
                                             <td>{{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</td>
                                             <td>{{ $request->location }}</td>
@@ -423,7 +435,8 @@
                                 <thead>
                                     <tr>
                                         <th class="text-nowrap" style="min-width: 100px;">Event Ticket</th>
-                                        <th class="text-nowrap" style="min-width: 100px;">Date</th>
+                                        <th class="text-nowrap" style="min-width: 120px;">Category</th>
+                                        <th class="text-nowrap" style="min-width: 100px;">Event Date</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Time</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Location</th>
                                         <th class="text-nowrap" style="min-width: 100px;">Status</th>
@@ -434,6 +447,11 @@
                                     @foreach($rejectedRequests as $request)
                                         <tr data-id="{{ $request->id }}">
                                             <td>EVT-{{ str_pad($request->id, 5, '0', STR_PAD_LEFT) }}</td>
+                                            <td>
+                                                <span class="badge bg-info">
+                                                    {{ ucfirst($request->category) }}
+                                                </span>
+                                            </td>
                                             <td>{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</td>
                                             <td>{{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</td>
                                             <td>{{ $request->location }}</td>
@@ -548,7 +566,10 @@
                             <table class="table table-hover">
                                 <thead>
                                     <tr>
-                                        <th class="text-nowrap" style="min-width: 50px;"><input type="checkbox" id="selectAllArchive" onchange="toggleSelectAll('archive')"></th>                                        <th class="text-nowrap" style="min-width: 100px;">Date</th>
+                                        <th class="text-nowrap" style="min-width: 50px;"><input type="checkbox" id="selectAllArchive" onchange="toggleSelectAll('archive')"></th>
+                                        <th class="text-nowrap" style="min-width: 100px;">Event Ticket</th>
+                                        <th class="text-nowrap" style="min-width: 120px;">Category</th>
+                                        <th class="text-nowrap" style="min-width: 100px;">Event Date</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Time</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Location</th>
                                         <th class="text-nowrap" style="min-width: 100px;">Status</th>
@@ -559,6 +580,7 @@
                                     @foreach($archivedRequests as $request)
                                         <tr data-id="{{ $request->id }}" data-view="archive">
                                             <td style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" class="archive-checkbox" value="{{ $request->id }}" onchange="updateArchiveBulkActions()"></td>
+                                            <td>EVT-{{ str_pad($request->id, 5, '0', STR_PAD_LEFT) }}</td>
                                             <td>
                                                 <span class="badge bg-info">
                                                     {{ ucfirst($request->category) }}
@@ -686,7 +708,10 @@
                             <table class="table table-hover">
                                 <thead>
                                     <tr>
-                                        <th class="text-nowrap" style="min-width: 50px;"><input type="checkbox" id="selectAllDeleted" onchange="toggleSelectAll('deleted')"></th>                                        <th class="text-nowrap" style="min-width: 100px;">Date</th>
+                                        <th class="text-nowrap" style="min-width: 50px;"><input type="checkbox" id="selectAllDeleted" onchange="toggleSelectAll('deleted')"></th>
+                                        <th class="text-nowrap" style="min-width: 100px;">Event Ticket</th>
+                                        <th class="text-nowrap" style="min-width: 120px;">Category</th>
+                                        <th class="text-nowrap" style="min-width: 100px;">Event Date</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Time</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Location</th>
                                         <th class="text-nowrap" style="min-width: 100px;">Status</th>
@@ -697,6 +722,7 @@
                                     @foreach($deletedRequests as $request)
                                         <tr data-id="{{ $request->id }}" data-view="deleted">
                                             <td style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" class="deleted-checkbox" value="{{ $request->id }}" onchange="updateDeletedBulkActions()"></td>
+                                            <td>EVT-{{ str_pad($request->id, 5, '0', STR_PAD_LEFT) }}</td>
                                             <td>
                                                 <span class="badge bg-info">
                                                     {{ ucfirst($request->category) }}
@@ -712,7 +738,7 @@
                                             </td>
                                             <td class="text-nowrap">
                                                 <div class="btn-group" role="group">
-                                                    <button type="button" class="btn btn-sm btn-info" onclick="viewEvent({{ $request->id }})" title="View">
+                                                    <button type="button" class="btn btn-sm btn-info" onclick="viewDeletedEvent({{ $request->id }})" title="View">
                                                         <i class="fas fa-eye"></i>
                                                     </button>
                                                     <form action="{{ route('events.restore', $request->id) }}" method="POST" class="d-inline">
@@ -1305,6 +1331,124 @@ function deleteDiscussion(discussionId, eventId) {
     });
 }
 
+// View deleted event (includes soft-deleted events)
+function viewDeletedEvent(id) {
+    const modal = new bootstrap.Modal(document.getElementById('viewEventModal'));
+    const contentDiv = document.getElementById('viewEventContent');
+
+    // Store current event ID
+    window.currentEventId = id;
+
+    contentDiv.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+    modal.show();
+
+    fetch('/events/' + id + '/deleted', {
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+            return response.json().then(err => {
+                throw new Error(err.error || 'Request failed with status ' + response.status);
+            }).catch(() => {
+                throw new Error('Failed to load deleted event');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.error) {
+            contentDiv.innerHTML = '<div class="alert alert-danger">' + data.error + '</div>';
+            return;
+        }
+
+        const event = data.event;
+        const userName = event.user ? event.user.name : 'Unknown';
+        const userRole = event.user ? event.user.role : '';
+
+        const statusClass = event.status === 'Approved' ? 'success' :
+            (event.status === 'Rejected' ? 'danger' :
+            (event.status === 'Cancelled' ? 'secondary' : 'warning'));
+
+        const categoryBadge = `<span class="badge bg-info">${event.category.charAt(0).toUpperCase() + event.category.slice(1)}</span>`;
+
+        let materialsHtml = '';
+        if (event.materials_needed && event.materials_needed.length > 0) {
+            materialsHtml = `
+                <div class="mt-3">
+                    <p><strong>Materials Needed:</strong></p>
+                    <table class="table table-bordered table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Qty</th>
+                                <th>Item</th>
+                                <th>Purpose</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${event.materials_needed.map(m => `
+                                <tr>
+                                    <td>${m.qty ?? 1}</td>
+                                    <td>${m.item ?? 'N/A'}</td>
+                                    <td>${m.purpose ?? 'N/A'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        contentDiv.innerHTML = `
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Submitted by:</strong> ${userName} ${userRole ? `(${userRole.replace('_', ' ').toUpperCase()})` : ''}
+            </div>
+            <div class="alert alert-${statusClass}">
+                <strong>Status:</strong> ${event.status}
+                ${event.status === 'Rejected' && event.rejection_reason ? `<br><strong>Reason:</strong> ${event.rejection_reason}` : ''}
+                ${event.status === 'Cancelled' && event.cancellation_reason ? `<br><strong>Reason:</strong> ${event.cancellation_reason}` : ''}
+            </div>
+            <h5 class="mb-3">${event.title}</h5>
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Category:</strong> ${categoryBadge}</p>
+                    <p><strong>Date:</strong> ${new Date(event.event_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                    <p><strong>Time:</strong> ${formatTime12(event.start_time)} - ${formatTime12(event.end_time)}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Location:</strong> ${event.location}</p>
+                    <p><strong>Department:</strong> ${event.department || 'N/A'}</p>
+                    <p><strong>Priority:</strong> <span class="badge bg-${event.priority === 'urgent' ? 'danger' : (event.priority === 'high' ? 'warning' : (event.priority === 'medium' ? 'info' : 'secondary'))}">${event.priority ? event.priority.charAt(0).toUpperCase() + event.priority.slice(1) : 'N/A'}</span></p>
+                    <p><strong>Submitted:</strong> ${new Date(event.created_at).toLocaleString()}</p>
+                </div>
+            </div>
+            <div class="mt-3">
+                <p><strong>Description:</strong></p>
+                <p class="text-muted">${event.description}</p>
+            </div>
+            ${event.notes ? `
+            <div class="mt-3">
+                <p><strong>Notes:</strong></p>
+                <p class="text-muted">${event.notes}</p>
+            </div>
+            ` : ''}
+            ${materialsHtml}
+            <div class="alert alert-warning mt-4">
+                <i class="fas fa-trash me-2"></i><strong>This event has been deleted.</strong>
+            </div>
+        `;
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        contentDiv.innerHTML = '<div class="alert alert-danger">Error loading event details: ' + error.message + '</div>';
+    });
+}
+
 function showEventArchiveModal(eventId) {
     confirmArchive({
         title: 'Archive Event?',
@@ -1492,6 +1636,69 @@ document.addEventListener('DOMContentLoaded', function() {
         const modal = new bootstrap.Modal(document.getElementById('eventRequestModal'));
         modal.show();
     @endif
+
+    // Auto-refresh after delete/restore operations
+    // Intercept delete/restore form submissions and reload the page after success
+    document.querySelectorAll('form[action*="/delete"], form[action*="/restore"]').forEach(function(form) {
+        const originalSubmit = form.onsubmit;
+        form.addEventListener('submit', function(e) {
+            // Check if this is from data-confirm button
+            const submitBtn = form.querySelector('[data-confirm]');
+            if (submitBtn) {
+                e.preventDefault();
+                
+                swalConfirm({
+                    title: submitBtn.dataset.confirmTitle || 'Are you sure?',
+                    text: submitBtn.dataset.confirm,
+                    icon: submitBtn.dataset.confirmIcon || 'warning',
+                    confirmButtonText: submitBtn.dataset.confirmOk || 'Yes',
+                    confirmButtonColor: submitBtn.dataset.confirmColor || '#0d6efd',
+                }).then(result => {
+                    if (result.isConfirmed) {
+                        // Submit form via AJAX to handle success
+                        const formData = new FormData(form);
+                        fetch(form.action, {
+                            method: 'POST',
+                            body: formData,
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json',
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Success!',
+                                    text: data.message || 'Operation completed successfully.',
+                                    timer: 1500,
+                                    showConfirmButton: false
+                                }).then(() => {
+                                    // Reload the page to refresh the table
+                                    window.location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: data.message || 'Operation failed.',
+                                });
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'An error occurred. Please try again.',
+                            });
+                        });
+                    }
+                });
+            }
+        }, true); // Use capture phase to intercept before other handlers
+    });
 });
 </script>
 @endsection

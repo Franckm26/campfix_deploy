@@ -304,6 +304,28 @@ class EventRequestController extends Controller
         return response()->json(['error' => 'Unauthorized'], 403);
     }
 
+    // Show deleted event (includes soft-deleted events)
+    public function showDeleted($id)
+    {
+        $user = auth()->user();
+        
+        if (!$user) {
+            return response()->json(['error' => 'Not authenticated'], 401);
+        }
+
+        $event = EventRequest::with('user:id,name,role')
+            ->where('is_deleted', true)
+            ->findOrFail($id);
+
+        // Check if user can view this deleted event
+        // Allow if: user owns the event OR user can approve requests
+        if ((int)$event->user_id === (int)$user->id || $user->canApproveRequests()) {
+            return response()->json(['event' => $event]);
+        }
+
+        return response()->json(['error' => 'Unauthorized'], 403);
+    }
+
     // Show user's event requests - Only for faculty
     public function myRequests(Request $request)
     {
@@ -1442,6 +1464,9 @@ class EventRequestController extends Controller
 
         // Only owner or admin can restore
         if ((int)$eventRequest->user_id !== (int)$user->id && ! $user->canApproveRequests()) {
+            if (request()->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'You cannot restore this event request.'], 403);
+            }
             return redirect()->route('events.my')->with('error', 'You cannot restore this event request.');
         }
 
@@ -1458,6 +1483,10 @@ class EventRequestController extends Controller
                 null
             );
 
+            if (request()->expectsJson()) {
+                return response()->json(['success' => true, 'message' => 'Event request restored successfully.']);
+            }
+
             return redirect()->route('events.my')->with('success', 'Event request restored successfully.');
         }
 
@@ -1467,6 +1496,9 @@ class EventRequestController extends Controller
 
         // Check if the column exists in the fillable array
         if (! in_array($archiveColumn, $eventRequest->getFillable())) {
+            if (request()->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Invalid role for restoring.'], 400);
+            }
             return redirect()->route('events.my')->with('error', 'Invalid role for restoring.');
         }
 
@@ -1481,6 +1513,10 @@ class EventRequestController extends Controller
             'Event restored: ',
             null
         );
+
+        if (request()->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'Event request restored successfully.']);
+        }
 
         return redirect()->route('events.my')->with('success', 'Event request restored successfully.');
     }

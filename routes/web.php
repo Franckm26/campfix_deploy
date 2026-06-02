@@ -244,6 +244,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/events/create', [EventRequestController::class, 'create'])->name('events.create');
     Route::post('/events', [EventRequestController::class, 'store'])->name('events.store');
     Route::get('/events/{id}', [EventRequestController::class, 'show'])->name('events.show');
+    Route::get('/events/{id}/deleted', [EventRequestController::class, 'showDeleted'])->name('events.show.deleted');
     Route::get('/my-events', [EventRequestController::class, 'myRequests'])->name('events.my');
     Route::post('/events/{id}/cancel', [EventRequestController::class, 'cancel'])->name('events.cancel');
     Route::post('/events/{id}/archive', [EventRequestController::class, 'archive'])->name('events.archive');
