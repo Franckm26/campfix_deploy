@@ -1,5 +1,121 @@
 @extends('layouts.app')
 
+@section('styles')
+<style>
+    /* Mobile Responsive Styles */
+    @media screen and (max-width: 768px) {
+        /* Hide tables on mobile */
+        .card-body .table-responsive {
+            display: none !important;
+        }
+        
+        /* Show mobile cards */
+        .mobile-report-cards {
+            display: block !important;
+        }
+        
+        /* Report card styling */
+        .report-card {
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .report-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .report-card-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: #333;
+            flex: 1;
+        }
+        
+        .report-card-body {
+            margin-bottom: 12px;
+        }
+        
+        .report-card-field {
+            display: flex;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .report-card-label {
+            font-weight: 600;
+            min-width: 80px;
+            color: #666;
+        }
+        
+        .report-card-value {
+            color: #333;
+            flex: 1;
+            word-break: break-word;
+        }
+        
+        .report-card-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e9ecef;
+            flex-wrap: wrap;
+        }
+        
+        .report-card-actions .btn {
+            flex: 1;
+            font-size: 12px;
+        }
+        
+        .report-card-actions form {
+            flex: 1;
+            display: flex;
+        }
+        
+        .report-card-actions form .btn {
+            width: 100%;
+        }
+        
+        /* Dark mode support */
+        [data-bs-theme="dark"] .report-card {
+            background: #2d3238;
+            border-color: #495057;
+        }
+        
+        [data-bs-theme="dark"] .report-card-header {
+            border-bottom-color: #495057;
+        }
+        
+        [data-bs-theme="dark"] .report-card-title,
+        [data-bs-theme="dark"] .report-card-value {
+            color: #e9ecef;
+        }
+        
+        [data-bs-theme="dark"] .report-card-label {
+            color: #adb5bd;
+        }
+        
+        [data-bs-theme="dark"] .report-card-actions {
+            border-top-color: #495057;
+        }
+    }
+    
+    /* Hide mobile cards on desktop */
+    .mobile-report-cards {
+        display: none;
+    }
+</style>
+@endsection
+
 @section('page_title')
 <h2>Reports Management</h2>
 @endsection
@@ -112,6 +228,66 @@
                                 </tbody>
                             </table>
                         </div>
+
+                        <!-- Mobile Card Layout for Reports -->
+                        <div class="mobile-report-cards">
+                            @foreach($reports as $report)
+                                <div class="report-card">
+                                    <div class="report-card-header">
+                                        <span class="report-card-title">{{ $report->title }}</span>
+                                        <span class="badge bg-{{ $report->status === 'Resolved' ? 'success' : ($report->status === 'In Progress' ? 'info' : 'primary') }}">
+                                            {{ $report->status }}
+                                        </span>
+                                    </div>
+                                    <div class="report-card-body">
+                                        <div class="report-card-field">
+                                            <span class="report-card-label">Category:</span>
+                                            <span class="report-card-value">{{ $report->category->name ?? 'N/A' }}</span>
+                                        </div>
+                                        <div class="report-card-field">
+                                            <span class="report-card-label">Location:</span>
+                                            <span class="report-card-value">{{ $report->location }}</span>
+                                        </div>
+                                        <div class="report-card-field">
+                                            <span class="report-card-label">Priority:</span>
+                                            <span class="report-card-value">
+                                                <span class="badge bg-{{ $report->severity === 'critical' ? 'danger' : ($report->severity === 'high' ? 'warning' : 'secondary') }}">
+                                                    {{ ucfirst($report->severity) }}
+                                                </span>
+                                            </span>
+                                        </div>
+                                        <div class="report-card-field">
+                                            <span class="report-card-label">Created:</span>
+                                            <span class="report-card-value">{{ $report->created_at->format('M d, Y') }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="report-card-actions">
+                                        <a href="{{ route('reports.show', $report) }}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                        @if($report->status !== 'Resolved')
+                                            <a href="{{ route('reports.edit', $report) }}" class="btn btn-sm btn-warning">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </a>
+                                            <form action="{{ route('reports.archive', $report) }}" method="POST" onsubmit="return confirm('Are you sure you want to archive this report?')">
+                                                @csrf
+                                                <button type="submit" class="btn btn-sm btn-secondary">
+                                                    <i class="fas fa-archive"></i> Archive
+                                                </button>
+                                            </form>
+                                            <form action="{{ route('reports.destroy', $report) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this report?')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-sm btn-danger">
+                                                    <i class="fas fa-trash"></i> Delete
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+
                     </div>
                 </div>
             @else
