@@ -2,6 +2,118 @@
 
 @section('styles')
 <link href="{{ asset('css/admin.css') }}" rel="stylesheet">
+<style>
+/* Mobile Card Layout for Event Requests */
+@media (max-width: 768px) {
+    /* Hide table on mobile */
+    .table-responsive table {
+        display: none;
+    }
+    
+    /* Show mobile card layout */
+    .mobile-event-cards {
+        display: block !important;
+    }
+    
+    /* Event card styling */
+    .event-card {
+        background: var(--bs-card-bg, #fff);
+        border: 1px solid var(--bs-border-color, #dee2e6);
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 12px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .dark-mode .event-card {
+        background: var(--bs-dark-bg, #1a1d20);
+        border-color: var(--bs-dark-border, #404347);
+    }
+    
+    .event-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--bs-border-color, #dee2e6);
+    }
+    
+    .dark-mode .event-card-header {
+        border-bottom-color: var(--bs-dark-border, #404347);
+    }
+    
+    .event-card-id {
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--bs-body-color, #212529);
+    }
+    
+    .dark-mode .event-card-id {
+        color: var(--bs-dark-text, #e9ecef);
+    }
+    
+    .event-card-body {
+        margin-bottom: 12px;
+    }
+    
+    .event-card-field {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        font-size: 14px;
+    }
+    
+    .event-card-label {
+        font-weight: 500;
+        color: var(--bs-secondary-color, #6c757d);
+        margin-right: 12px;
+    }
+    
+    .dark-mode .event-card-label {
+        color: var(--bs-dark-secondary, #adb5bd);
+    }
+    
+    .event-card-value {
+        text-align: right;
+        color: var(--bs-body-color, #212529);
+    }
+    
+    .dark-mode .event-card-value {
+        color: var(--bs-dark-text, #e9ecef);
+    }
+    
+    .event-card-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        padding-top: 12px;
+        border-top: 1px solid var(--bs-border-color, #dee2e6);
+    }
+    
+    .dark-mode .event-card-actions {
+        border-top-color: var(--bs-dark-border, #404347);
+    }
+    
+    .event-card-actions .btn {
+        flex: 1;
+        min-width: fit-content;
+    }
+    
+    /* Checkbox for mobile cards */
+    .event-card-checkbox {
+        margin-right: 8px;
+    }
+}
+
+/* Desktop: Hide mobile cards */
+@media (min-width: 769px) {
+    .mobile-event-cards {
+        display: none !important;
+    }
+}
+</style>
 @endsection
 
 @section('page_title')
@@ -283,6 +395,79 @@
                             </table>
                         </div>
 
+                        <!-- Mobile Card Layout -->
+                        <div class="mobile-event-cards" style="display: none;">
+                            @foreach($requests as $request)
+                                <div class="event-card" data-id="{{ $request->id }}" data-view="active">
+                                    <div class="event-card-header">
+                                        <div>
+                                            <input type="checkbox" class="event-card-checkbox active-checkbox" value="{{ $request->id }}" onchange="updateActiveBulkActions()">
+                                            <span class="event-card-id">EVT-{{ str_pad($request->id, 5, '0', STR_PAD_LEFT) }}</span>
+                                        </div>
+                                        <span class="badge bg-{{
+                                            $request->status == 'Approved' ? 'success' :
+                                            ($request->status == 'Rejected' ? 'danger' :
+                                            ($request->status == 'Cancelled' ? 'secondary' : 'warning'))
+                                        }}">
+                                            {{ $request->status }}
+                                        </span>
+                                    </div>
+                                    <div class="event-card-body">
+                                        <div class="event-card-field">
+                                            <span class="event-card-label">Category:</span>
+                                            <span class="event-card-value">
+                                                <span class="badge bg-info">{{ ucfirst($request->category) }}</span>
+                                            </span>
+                                        </div>
+                                        <div class="event-card-field">
+                                            <span class="event-card-label">Date:</span>
+                                            <span class="event-card-value">{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</span>
+                                        </div>
+                                        <div class="event-card-field">
+                                            <span class="event-card-label">Time:</span>
+                                            <span class="event-card-value">{{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</span>
+                                        </div>
+                                        <div class="event-card-field">
+                                            <span class="event-card-label">Location:</span>
+                                            <span class="event-card-value">{{ $request->location }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="event-card-actions">
+                                        <button type="button" class="btn btn-sm btn-info" onclick="viewEvent({{ $request->id }})">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                        @if($request->status == 'Cancelled')
+                                            <a href="#" class="btn btn-sm btn-secondary"
+                                                onclick="event.preventDefault(); showEventArchiveModal({{ $request->id }});">
+                                                <i class="fas fa-archive"></i> Archive
+                                            </a>
+                                            <form action="{{ route('events.delete', $request->id) }}" method="POST" style="flex: 1;">
+                                                @csrf
+                                                <button type="submit" class="btn btn-sm btn-danger w-100"
+                                                    data-confirm="Delete this event? It will be moved to deleted events."
+                                                    data-confirm-title="Delete Event"
+                                                    data-confirm-ok="Yes, Delete"
+                                                    data-confirm-color="#dc3545">
+                                                    <i class="fas fa-trash"></i> Delete
+                                                </button>
+                                            </form>
+                                        @elseif($request->status == 'Pending')
+                                            <form action="{{ route('events.cancel', $request->id) }}" method="POST" style="flex: 1;">
+                                                @csrf
+                                                <button type="submit" class="btn btn-sm btn-danger w-100"
+                                                    data-confirm="Cancel this request?"
+                                                    data-confirm-title="Cancel Request"
+                                                    data-confirm-ok="Yes, Cancel"
+                                                    data-confirm-color="#dc3545">
+                                                    <i class="fas fa-times"></i> Cancel
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+
                     @else
                         <div class="text-center py-5">
                             <h4 class="text-muted">No active event requests</h4>
@@ -348,6 +533,50 @@
                                 </tbody>
                             </table>
                         </div>
+
+                        <!-- Mobile Card Layout -->
+                        <div class="mobile-event-cards" style="display: none;">
+                            @foreach($approvedRequests as $request)
+                                <div class="event-card" data-id="{{ $request->id }}">
+                                    <div class="event-card-header">
+                                        <span class="event-card-id">EVT-{{ str_pad($request->id, 5, '0', STR_PAD_LEFT) }}</span>
+                                        <span class="badge bg-success">{{ $request->status }}</span>
+                                    </div>
+                                    <div class="event-card-body">
+                                        <div class="event-card-field">
+                                            <span class="event-card-label">Category:</span>
+                                            <span class="event-card-value">
+                                                <span class="badge bg-info">{{ ucfirst($request->category) }}</span>
+                                            </span>
+                                        </div>
+                                        <div class="event-card-field">
+                                            <span class="event-card-label">Date:</span>
+                                            <span class="event-card-value">{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</span>
+                                        </div>
+                                        <div class="event-card-field">
+                                            <span class="event-card-label">Time:</span>
+                                            <span class="event-card-value">{{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</span>
+                                        </div>
+                                        <div class="event-card-field">
+                                            <span class="event-card-label">Location:</span>
+                                            <span class="event-card-value">{{ $request->location }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="event-card-actions">
+                                        <button type="button" class="btn btn-sm btn-info" onclick="viewEvent({{ $request->id }})">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                        <a href="{{ route('events.pdf', $request->id) }}" class="btn btn-sm btn-primary" target="_blank">
+                                            <i class="fas fa-file-pdf"></i> PDF
+                                        </a>
+                                        <a href="#" class="btn btn-sm btn-secondary"
+                                            onclick="event.preventDefault(); showEventArchiveModal({{ $request->id }});">
+                                            <i class="fas fa-archive"></i> Archive
+                                        </a>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
                     @else
                         <div class="text-center py-5">
                             <i class="fas fa-check-circle fa-3x text-muted mb-3"></i>
@@ -412,6 +641,50 @@
                                     @endforeach
                                 </tbody>
                             </table>
+                        </div>
+
+                        <!-- Mobile Card Layout -->
+                        <div class="mobile-event-cards" style="display: none;">
+                            @foreach($finishedRequests as $request)
+                                <div class="event-card" data-id="{{ $request->id }}">
+                                    <div class="event-card-header">
+                                        <span class="event-card-id">EVT-{{ str_pad($request->id, 5, '0', STR_PAD_LEFT) }}</span>
+                                        <span class="badge bg-secondary">Finished</span>
+                                    </div>
+                                    <div class="event-card-body">
+                                        <div class="event-card-field">
+                                            <span class="event-card-label">Category:</span>
+                                            <span class="event-card-value">
+                                                <span class="badge bg-info">{{ ucfirst($request->category) }}</span>
+                                            </span>
+                                        </div>
+                                        <div class="event-card-field">
+                                            <span class="event-card-label">Date:</span>
+                                            <span class="event-card-value">{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</span>
+                                        </div>
+                                        <div class="event-card-field">
+                                            <span class="event-card-label">Time:</span>
+                                            <span class="event-card-value">{{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</span>
+                                        </div>
+                                        <div class="event-card-field">
+                                            <span class="event-card-label">Location:</span>
+                                            <span class="event-card-value">{{ $request->location }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="event-card-actions">
+                                        <button type="button" class="btn btn-sm btn-info" onclick="viewEvent({{ $request->id }})">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                        <a href="{{ route('events.pdf', $request->id) }}" class="btn btn-sm btn-primary" target="_blank">
+                                            <i class="fas fa-file-pdf"></i> PDF
+                                        </a>
+                                        <a href="#" class="btn btn-sm btn-secondary"
+                                            onclick="event.preventDefault(); showEventArchiveModal({{ $request->id }});">
+                                            <i class="fas fa-archive"></i> Archive
+                                        </a>
+                                    </div>
+                                </div>
+                            @endforeach
                         </div>
                     @else
                         <div class="text-center py-5">
@@ -485,6 +758,57 @@
                                     @endforeach
                                 </tbody>
                             </table>
+                        </div>
+
+                        <!-- Mobile Card Layout -->
+                        <div class="mobile-event-cards" style="display: none;">
+                            @foreach($rejectedRequests as $request)
+                                <div class="event-card" data-id="{{ $request->id }}">
+                                    <div class="event-card-header">
+                                        <span class="event-card-id">EVT-{{ str_pad($request->id, 5, '0', STR_PAD_LEFT) }}</span>
+                                        <span class="badge bg-danger">{{ $request->status }}</span>
+                                    </div>
+                                    <div class="event-card-body">
+                                        <div class="event-card-field">
+                                            <span class="event-card-label">Category:</span>
+                                            <span class="event-card-value">
+                                                <span class="badge bg-info">{{ ucfirst($request->category) }}</span>
+                                            </span>
+                                        </div>
+                                        <div class="event-card-field">
+                                            <span class="event-card-label">Date:</span>
+                                            <span class="event-card-value">{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</span>
+                                        </div>
+                                        <div class="event-card-field">
+                                            <span class="event-card-label">Time:</span>
+                                            <span class="event-card-value">{{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</span>
+                                        </div>
+                                        <div class="event-card-field">
+                                            <span class="event-card-label">Location:</span>
+                                            <span class="event-card-value">{{ $request->location }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="event-card-actions">
+                                        <button type="button" class="btn btn-sm btn-info" onclick="viewEvent({{ $request->id }})">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                        <a href="#" class="btn btn-sm btn-secondary"
+                                            onclick="event.preventDefault(); showEventArchiveModal({{ $request->id }});">
+                                            <i class="fas fa-archive"></i> Archive
+                                        </a>
+                                        <form action="{{ route('events.delete', $request->id) }}" method="POST" style="flex: 1;">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-danger w-100"
+                                                data-confirm="Delete this event? It will be moved to deleted events."
+                                                data-confirm-title="Delete Event"
+                                                data-confirm-ok="Yes, Delete"
+                                                data-confirm-color="#dc3545">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            @endforeach
                         </div>
                     @else
                         <div class="text-center py-5">
@@ -629,6 +953,68 @@
                             </table>
                         </div>
 
+                        <!-- Mobile Card Layout -->
+                        <div class="mobile-event-cards" style="display: none;">
+                            @foreach($archivedRequests as $request)
+                                <div class="event-card" data-id="{{ $request->id }}" data-view="archive">
+                                    <div class="event-card-header">
+                                        <div>
+                                            <input type="checkbox" class="event-card-checkbox archive-checkbox" value="{{ $request->id }}" onchange="updateArchiveBulkActions()">
+                                            <span class="event-card-id">EVT-{{ str_pad($request->id, 5, '0', STR_PAD_LEFT) }}</span>
+                                        </div>
+                                        <span class="badge bg-{{ $request->status == 'Approved' ? 'success' : ($request->status == 'Rejected' ? 'danger' : ($request->status == 'Cancelled' ? 'secondary' : 'warning')) }}">
+                                            {{ $request->status }}
+                                        </span>
+                                    </div>
+                                    <div class="event-card-body">
+                                        <div class="event-card-field">
+                                            <span class="event-card-label">Category:</span>
+                                            <span class="event-card-value">
+                                                <span class="badge bg-info">{{ ucfirst($request->category) }}</span>
+                                            </span>
+                                        </div>
+                                        <div class="event-card-field">
+                                            <span class="event-card-label">Date:</span>
+                                            <span class="event-card-value">{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</span>
+                                        </div>
+                                        <div class="event-card-field">
+                                            <span class="event-card-label">Time:</span>
+                                            <span class="event-card-value">{{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</span>
+                                        </div>
+                                        <div class="event-card-field">
+                                            <span class="event-card-label">Location:</span>
+                                            <span class="event-card-value">{{ $request->location }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="event-card-actions">
+                                        <button type="button" class="btn btn-sm btn-info" onclick="viewEvent({{ $request->id }})">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                        <form action="{{ route('events.restore', $request->id) }}" method="POST" style="flex: 1;">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-success w-100"
+                                                data-confirm="Restore this request?"
+                                                data-confirm-title="Restore Event"
+                                                data-confirm-ok="Yes, Restore"
+                                                data-confirm-color="#198754">
+                                                <i class="fas fa-trash-restore"></i> Restore
+                                            </button>
+                                        </form>
+                                        <form action="{{ route('events.delete', $request->id) }}" method="POST" style="flex: 1;">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-danger w-100"
+                                                data-confirm="Permanently delete this event?"
+                                                data-confirm-title="Permanent Delete"
+                                                data-confirm-ok="Yes, Delete"
+                                                data-confirm-color="#dc3545">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+
                     @else
                         <div class="text-center py-5">
                             <h4 class="text-muted">No archived event requests</h4>
@@ -770,6 +1156,69 @@
                                     @endforeach
                                 </tbody>
                             </table>
+                        </div>
+
+                        <!-- Mobile Card Layout -->
+                        <div class="mobile-event-cards" style="display: none;">
+                            @foreach($deletedRequests as $request)
+                                <div class="event-card" data-id="{{ $request->id }}" data-view="deleted">
+                                    <div class="event-card-header">
+                                        <div>
+                                            <input type="checkbox" class="event-card-checkbox deleted-checkbox" value="{{ $request->id }}" onchange="updateDeletedBulkActions()">
+                                            <span class="event-card-id">EVT-{{ str_pad($request->id, 5, '0', STR_PAD_LEFT) }}</span>
+                                        </div>
+                                        <span class="badge bg-{{ $request->status == 'Approved' ? 'success' : ($request->status == 'Rejected' ? 'danger' : ($request->status == 'Cancelled' ? 'secondary' : 'warning')) }}">
+                                            {{ $request->status }}
+                                        </span>
+                                    </div>
+                                    <div class="event-card-body">
+                                        <div class="event-card-field">
+                                            <span class="event-card-label">Category:</span>
+                                            <span class="event-card-value">
+                                                <span class="badge bg-info">{{ ucfirst($request->category) }}</span>
+                                            </span>
+                                        </div>
+                                        <div class="event-card-field">
+                                            <span class="event-card-label">Date:</span>
+                                            <span class="event-card-value">{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</span>
+                                        </div>
+                                        <div class="event-card-field">
+                                            <span class="event-card-label">Time:</span>
+                                            <span class="event-card-value">{{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</span>
+                                        </div>
+                                        <div class="event-card-field">
+                                            <span class="event-card-label">Location:</span>
+                                            <span class="event-card-value">{{ $request->location }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="event-card-actions">
+                                        <button type="button" class="btn btn-sm btn-info" onclick="viewDeletedEvent({{ $request->id }})">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                        <form action="{{ route('events.restore', $request->id) }}" method="POST" style="flex: 1;">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-success w-100"
+                                                data-confirm="Restore this event?"
+                                                data-confirm-title="Restore Event"
+                                                data-confirm-ok="Yes, Restore"
+                                                data-confirm-color="#198754">
+                                                <i class="fas fa-trash-restore"></i> Restore
+                                            </button>
+                                        </form>
+                                        <form action="{{ route('events.delete', $request->id) }}" method="POST" style="flex: 1;">
+                                            @csrf
+                                            <input type="hidden" name="permanent" value="1">
+                                            <button type="submit" class="btn btn-sm btn-danger w-100"
+                                                data-confirm="Permanently delete this event? This action cannot be undone."
+                                                data-confirm-title="Permanent Delete"
+                                                data-confirm-ok="Yes, Delete Forever"
+                                                data-confirm-color="#dc3545">
+                                                <i class="fas fa-ban"></i> Delete
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            @endforeach
                         </div>
 
                     @else
