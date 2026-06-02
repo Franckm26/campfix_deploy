@@ -795,6 +795,48 @@
                         </tbody>
                     </table>
                 </div>
+
+                <!-- Mobile Card Layout for Finished Events -->
+                <div class="mobile-event-cards">
+                    @foreach($finishedEvents as $event)
+                        <div class="event-card">
+                            <div class="event-card-header">
+                                <span class="event-card-ticket">EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</span>
+                                <span class="badge" style="background:#6f42c1;">Finished</span>
+                            </div>
+                            <div class="event-card-body">
+                                <div class="event-card-field">
+                                    <span class="event-card-label">Requestor:</span>
+                                    <span class="event-card-value">{{ $event->user->name ?? 'N/A' }}</span>
+                                </div>
+                                <div class="event-card-field">
+                                    <span class="event-card-label">Event Date:</span>
+                                    <span class="event-card-value">{{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</span>
+                                </div>
+                                <div class="event-card-field">
+                                    <span class="event-card-label">Time:</span>
+                                    <span class="event-card-value">{{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}</span>
+                                </div>
+                                <div class="event-card-field">
+                                    <span class="event-card-label">Location:</span>
+                                    <span class="event-card-value">{{ $event->location }}</span>
+                                </div>
+                            </div>
+                            <div class="event-card-actions">
+                                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#finishedViewModal{{ $event->id }}">
+                                    <i class="fas fa-eye"></i> View
+                                </button>
+                                <button type="button" class="btn btn-sm btn-secondary" onclick="showArchiveEventModal({{ $event->id }})">
+                                    <i class="fas fa-archive"></i> Archive
+                                </button>
+                                <button type="button" class="btn btn-sm btn-danger" onclick="showDeleteEventModal({{ $event->id }})">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+
             @else
                 <div class="text-center py-5">
                     <i class="fas fa-flag-checkered fa-3x text-muted mb-3"></i>
@@ -895,6 +937,52 @@
                         </tbody>
                     </table>
                 </div>
+
+                <!-- Mobile Card Layout for Rejected Events -->
+                <div class="mobile-event-cards">
+                    @foreach($rejectedEvents as $event)
+                        <div class="event-card">
+                            <div class="event-card-header">
+                                <span class="event-card-ticket">EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</span>
+                                <span class="badge bg-danger">Rejected</span>
+                            </div>
+                            <div class="event-card-body">
+                                <div class="event-card-field">
+                                    <span class="event-card-label">Requestor:</span>
+                                    <span class="event-card-value">{{ $event->user->name ?? 'N/A' }}</span>
+                                </div>
+                                <div class="event-card-field">
+                                    <span class="event-card-label">Event Date:</span>
+                                    <span class="event-card-value">{{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</span>
+                                </div>
+                                <div class="event-card-field">
+                                    <span class="event-card-label">Time:</span>
+                                    <span class="event-card-value">{{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}</span>
+                                </div>
+                                <div class="event-card-field">
+                                    <span class="event-card-label">Location:</span>
+                                    <span class="event-card-value">{{ $event->location }}</span>
+                                </div>
+                                <div class="event-card-field">
+                                    <span class="event-card-label">Reason:</span>
+                                    <span class="event-card-value text-danger">{{ $event->notes ? \Illuminate\Support\Str::limit($event->notes, 40) : '-' }}</span>
+                                </div>
+                            </div>
+                            <div class="event-card-actions">
+                                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#rejectedViewModal{{ $event->id }}">
+                                    <i class="fas fa-eye"></i> View
+                                </button>
+                                <button type="button" class="btn btn-sm btn-secondary" onclick="showArchiveEventModal({{ $event->id }})">
+                                    <i class="fas fa-archive"></i> Archive
+                                </button>
+                                <button type="button" class="btn btn-sm btn-danger" onclick="showDeleteEventModal({{ $event->id }})">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+
             @else
                 <div class="text-center py-5">
                     <i class="fas fa-times-circle fa-3x text-muted mb-3"></i>
@@ -1009,6 +1097,56 @@
                                 </tbody>
                             </table>
                         </div>
+
+                        <!-- Mobile Card Layout for Archived Events -->
+                        <div class="mobile-event-cards">
+                            @foreach($archivedEvents as $event)
+                                <div class="event-card">
+                                    <div class="event-card-header">
+                                        <span class="event-card-ticket">EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</span>
+                                        <span class="badge bg-{{
+                                            $event->status == 'Approved' ? 'success' :
+                                            ($event->status == 'Pending' ? 'warning' :
+                                            ($event->status == 'Rejected' ? 'danger' : 'secondary'))
+                                        }}">
+                                            {{ $event->status }}
+                                        </span>
+                                    </div>
+                                    <div class="event-card-body">
+                                        <div class="event-card-field">
+                                            <span class="event-card-label">Requestor:</span>
+                                            <span class="event-card-value">{{ $event->user->name ?? 'N/A' }}</span>
+                                        </div>
+                                        <div class="event-card-field">
+                                            <span class="event-card-label">Event Date:</span>
+                                            <span class="event-card-value">{{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</span>
+                                        </div>
+                                        <div class="event-card-field">
+                                            <span class="event-card-label">Time:</span>
+                                            <span class="event-card-value">{{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}</span>
+                                        </div>
+                                        <div class="event-card-field">
+                                            <span class="event-card-label">Location:</span>
+                                            <span class="event-card-value">{{ $event->location }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="event-card-actions">
+                                        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#viewModal{{ $event->id }}">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                        <form method="POST" action="{{ route('admin.archive.restore') }}" style="flex: 1;">
+                                            @csrf
+                                            <input type="hidden" name="type" value="event">
+                                            <input type="hidden" name="id" value="{{ $event->id }}">
+                                            <button type="submit" class="btn btn-sm btn-success w-100">
+                                                <i class="fas fa-trash-restore"></i> Restore
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+
                     @else
                         <div class="alert alert-info mb-0">
                             <i class="fas fa-archive"></i> No archived events found.
@@ -1272,6 +1410,94 @@
                         </tbody>
                     </table>
                 </div>
+
+                <!-- Mobile Card Layout for Deleted Events -->
+                <div class="mobile-event-cards">
+                    @forelse($deletedEvents as $event)
+                        <div class="event-card" data-id="{{ $event->id }}">
+                            <div class="event-card-header">
+                                <div>
+                                    <input type="checkbox" class="event-card-checkbox deleted-event-checkbox" value="{{ $event->id }}" onchange="deletedEventsUpdateSelectedCount()">
+                                    <span class="event-card-ticket">EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</span>
+                                </div>
+                                <span class="badge bg-{{ 
+                                    $event->status == 'Approved' ? 'success' : 
+                                    ($event->status == 'Pending' ? 'warning' : 
+                                    ($event->status == 'Rejected' ? 'danger' : 'secondary'))
+                                }}">
+                                    {{ $event->status }}
+                                </span>
+                            </div>
+                            <div class="event-card-body">
+                                <div class="event-card-field">
+                                    <span class="event-card-label">Category:</span>
+                                    <span class="event-card-value">
+                                        <span class="badge bg-info">{{ $event->getCategoryLabel() }}</span>
+                                    </span>
+                                </div>
+                                <div class="event-card-field">
+                                    <span class="event-card-label">Event Date:</span>
+                                    <span class="event-card-value">{{ $event->event_date->format('M d, Y') }}</span>
+                                </div>
+                                <div class="event-card-field">
+                                    <span class="event-card-label">Location:</span>
+                                    <span class="event-card-value">{{ $event->location }}</span>
+                                </div>
+                                <div class="event-card-field">
+                                    <span class="event-card-label">Department:</span>
+                                    <span class="event-card-value">{{ $event->department }}</span>
+                                </div>
+                                <div class="event-card-field">
+                                    <span class="event-card-label">Requested By:</span>
+                                    <span class="event-card-value">{{ $event->user->name ?? 'N/A' }}</span>
+                                </div>
+                                <div class="event-card-field">
+                                    <span class="event-card-label">Deleted By:</span>
+                                    <span class="event-card-value">{{ $event->deletedBy ? $event->deletedBy->name : 'System' }}</span>
+                                </div>
+                                <div class="event-card-field">
+                                    <span class="event-card-label">Deleted Date:</span>
+                                    <span class="event-card-value">{{ $event->updated_at->format('M d, Y h:i A') }}</span>
+                                </div>
+                            </div>
+                            <div class="event-card-actions">
+                                <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#deletedEventsViewModal{{ $event->id }}">
+                                    <i class="fas fa-eye"></i> View
+                                </button>
+                                <form action="{{ route('admin.deletedEvents.restore', $event->id) }}" method="POST" style="flex: 1;">
+                                    @csrf
+                                    @method('POST')
+                                    <button type="submit" class="btn btn-sm btn-success w-100">
+                                        <i class="fas fa-trash-restore"></i> Restore
+                                    </button>
+                                </form>
+                                <form action="{{ route('admin.deletedEvents.permanentDelete', $event->id) }}" method="POST" style="flex: 1;">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-danger w-100" 
+                                        data-confirm="Are you sure you want to permanently delete this event?"
+                                        data-confirm-title="Permanent Delete"
+                                        data-confirm-ok="Yes, Delete Forever"
+                                        data-confirm-color="#dc3545">
+                                        <i class="fas fa-times-circle"></i> Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="text-center py-5">
+                            <div class="alert alert-info mb-0">
+                                <i class="fas fa-check-circle fa-2x d-block mb-3"></i>
+                                <h5>No Deleted Events</h5>
+                                <p class="mb-0">Deleted events will appear here. You can delete events from the Events page.</p>
+                                <a href="{{ route('admin.events') }}" class="btn btn-primary mt-3">
+                                    <i class="fas fa-calendar-alt"></i> Go to Events
+                                </a>
+                            </div>
+                        </div>
+                    @endforelse
+                </div>
+
             @else
                 <div class="card">
                     <div class="card-body text-center py-5">
