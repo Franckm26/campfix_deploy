@@ -53,6 +53,122 @@
 [data-theme="dark"] .swal2-close {
     color: white !important;
 }
+
+/* ==================== MOBILE RESPONSIVE CARD LAYOUT ==================== */
+/* Desktop: Hide mobile cards */
+.mobile-concern-cards {
+    display: none;
+}
+
+/* Mobile Card Layout for Concerns */
+@media screen and (max-width: 768px) {
+    /* Hide table on mobile */
+    .card-body .table-responsive {
+        display: none !important;
+    }
+    
+    /* Show mobile card layout */
+    .mobile-concern-cards {
+        display: block !important;
+    }
+    
+    /* Concern card styling */
+    .concern-card {
+        background: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 12px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .dark-mode .concern-card,
+    [data-theme="dark"] .concern-card {
+        background: #1a1d20;
+        border-color: #404347;
+    }
+    
+    .concern-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .dark-mode .concern-card-header,
+    [data-theme="dark"] .concern-card-header {
+        border-bottom-color: #404347;
+    }
+    
+    .concern-card-id {
+        font-weight: 600;
+        font-size: 14px;
+        color: #212529;
+    }
+    
+    .dark-mode .concern-card-id,
+    [data-theme="dark"] .concern-card-id {
+        color: #e9ecef;
+    }
+    
+    .concern-card-body {
+        margin-bottom: 12px;
+    }
+    
+    .concern-card-field {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        font-size: 14px;
+    }
+    
+    .concern-card-label {
+        font-weight: 500;
+        color: #6c757d;
+        margin-right: 12px;
+    }
+    
+    .dark-mode .concern-card-label,
+    [data-theme="dark"] .concern-card-label {
+        color: #adb5bd;
+    }
+    
+    .concern-card-value {
+        text-align: right;
+        color: #212529;
+    }
+    
+    .dark-mode .concern-card-value,
+    [data-theme="dark"] .concern-card-value {
+        color: #e9ecef;
+    }
+    
+    .concern-card-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        padding-top: 12px;
+        border-top: 1px solid #dee2e6;
+    }
+    
+    .dark-mode .concern-card-actions,
+    [data-theme="dark"] .concern-card-actions {
+        border-top-color: #404347;
+    }
+    
+    .concern-card-actions .btn {
+        flex: 1;
+        min-width: fit-content;
+    }
+    
+    /* Checkbox for mobile cards */
+    .concern-card-checkbox {
+        margin-right: 8px;
+    }
+}
 </style>
 @endsection
 
