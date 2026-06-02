@@ -47,7 +47,7 @@
             @if($concern->image_path)
                 <div class="mb-3">
                     <p><strong>Photo:</strong></p>
-                    <img src="{{ asset('storage/' . $concern->image_path) }}"
+                    <img src="{{ str_starts_with($concern->image_path, 'http') ? $concern->image_path : asset('storage/' . $concern->image_path) }}"
                         alt="Concern photo" class="img-fluid rounded" style="max-width: 100%;">
                 </div>
             @endif

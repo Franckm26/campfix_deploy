@@ -1529,7 +1529,7 @@ class ConcernController extends Controller
                 'assigned_at' => $concern->assigned_at ? $concern->assigned_at->format('M d, Y h:i A') : null,
                 'in_progress_at' => $concern->in_progress_at ? $concern->in_progress_at->format('M d, Y h:i A') : null,
                 'resolved_at' => $concern->resolved_at ? $concern->resolved_at->format('M d, Y h:i A') : null,
-                'image_path' => $concern->image_path ? asset('storage/'.$concern->image_path) : null,
+                'image_path' => $concern->image_path ? (str_starts_with($concern->image_path, 'http') ? $concern->image_path : asset('storage/'.$concern->image_path)) : null,
             ];
 
             // Add sensitive fields only for authorized users
@@ -1619,7 +1619,7 @@ class ConcernController extends Controller
                 'category_id' => $concern->category_id,
                 'priority' => $concern->priority,
                 'status' => $concern->status,
-                'image_path' => $concern->image_path ? asset('storage/'.$concern->image_path) : null,
+                'image_path' => $concern->image_path ? (str_starts_with($concern->image_path, 'http') ? $concern->image_path : asset('storage/'.$concern->image_path)) : null,
             ];
 
             return response()->json([

@@ -41,7 +41,7 @@
                             <div class="mb-3">
                                 <label class="form-label">Current Photo</label>
                                 <br>
-                                <img src="{{ asset('storage/' . $concern->image_path) }}" 
+                                <img src="{{ str_starts_with($concern->image_path, 'http') ? $concern->image_path : asset('storage/' . $concern->image_path) }}" 
                                     alt="Current photo" class="img-thumbnail" style="max-width: 200px;">
                             </div>
                         @endif
