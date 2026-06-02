@@ -255,37 +255,6 @@
     </div>
 
     @if(($viewType ?? 'active') == 'active')
-    <!-- Bulk Archive Section -->
-    <div class="card mb-3" style="display: block !important;">
-        <div class="card-body">
-            <div class="row align-items-center">
-                <div class="col-md-3">
-                    <label class="form-label fw-bold">Select by Role to Archive:</label>
-                    <select id="archiveRoleFilter" class="form-select" onchange="toggleUsersByRole()">
-                        <option value="">Select Role</option>
-                        <option value="faculty">Faculty Only</option>
-                        <option value="student">Student Only</option>
-                    </select>
-                </div>
-                <div class="col-md-9 text-end">
-                    @if(auth()->user()->canAccess('users_archive'))
-                    <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#archiveAllModal">
-                        <i class="fas fa-archive"></i> Archive All
-                    </button>
-                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#archiveSelectedModal" onclick="prepareArchiveSelected()">
-                        <i class="fas fa-check-circle"></i> Archive Selected
-                    </button>
-                    @endif
-                    @if(auth()->user()->canAccess('users_delete'))
-                    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteAllModal">
-                        <i class="fas fa-trash"></i> Delete All
-                    </button>
-                    @endif
-                    <span id="selectedCount" class="text-muted ms-3">0 users selected</span>
-                </div>
-            </div>
-        </div>
-    </div>
     <!-- Users Table -->
     <div class="card" style="display: block !important;">
         <div class="card-body" style="display: block !important;">
@@ -2531,40 +2500,6 @@ function updateSelectedCount() {
     return count;
 }
 
-function toggleUsersByRole() {
-    const roleFilter = document.getElementById('archiveRoleFilter');
-    const selectedRole = roleFilter ? roleFilter.value : '';
-    const rows = document.querySelectorAll('tr[data-role]');
-    const checkboxes = document.querySelectorAll('.user-checkbox');
-    
-    // First uncheck everything
-    const selectAll = document.getElementById('selectAll');
-    if (selectAll) selectAll.checked = false;
-    
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = false;
-        checkbox.disabled = false;
-    });
-    
-    if (selectedRole) {
-        // Enable and check only checkboxes for selected role
-        rows.forEach(row => {
-            const rowRole = row.getAttribute('data-role');
-            const checkbox = row.querySelector('.user-checkbox');
-            
-            if (rowRole === selectedRole) {
-                if (checkbox) {
-                    checkbox.disabled = false;
-                    checkbox.checked = true;
-                }
-            } else {
-                if (checkbox) checkbox.disabled = true;
-            }
-        });
-    }
-    
-    updateSelectedCount();
-}
 
 function prepareArchiveSelected() {
     const checkboxes = document.querySelectorAll('.user-checkbox:checked:not(:disabled)');

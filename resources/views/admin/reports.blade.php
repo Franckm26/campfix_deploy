@@ -737,11 +737,25 @@
                     <h5 class="mb-0"><i class="fas fa-archive"></i> Archived Reports</h5>
                 </div>
                 <div class="card-body">
+                    <!-- Bulk Actions for Archived Reports -->
+                    <div class="bulk-actions mb-3" id="archiveBulkActions" style="display: none;">
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-success btn-sm" onclick="batchRestoreArchived()">
+                                <i class="fas fa-trash-restore"></i> Restore Selected
+                            </button>
+                            <button type="button" class="btn btn-danger btn-sm" onclick="batchSoftDeleteArchived()">
+                                <i class="fas fa-trash"></i> Delete Selected
+                            </button>
+                        </div>
+                        <span class="ms-2 text-muted" id="archiveSelectedCount">0 selected</span>
+                    </div>
+
                     @if(isset($archivedConcerns) && $archivedConcerns->count() > 0)
                         <div class="table-responsive" style="display: block !important; visibility: visible !important; opacity: 1 !important;">
                             <table class="table table-hover" style="display: table !important;">
                                 <thead>
                                     <tr>
+                                        <th class="checkbox-col"><input type="checkbox" id="selectAllArchived" onclick="toggleAllArchived(this)"></th>
                                         <th class="ticket-col" style="width: 60px; max-width: 60px; min-width: 60px; white-space: nowrap; text-align: center;">Ticket</th>
                                         <th>Issue</th>
                                         <th>Category</th>
@@ -757,6 +771,7 @@
                                 <tbody>
                                     @foreach($archivedConcerns as $concern)
                                         <tr data-id="{{ $concern->id }}">
+                                            <td class="checkbox-col"><input type="checkbox" class="archive-checkbox" value="{{ $concern->id }}" onchange="updateArchiveBulkActions()"></td>
                                             <td class="ticket-col" style="width: 60px; max-width: 60px; min-width: 60px; white-space: nowrap; text-align: center; padding: 4px;">#{{ str_pad($concern->id, 4, '0', STR_PAD_LEFT) }}</td>
                                             <td>{{ $concern->title ?? \Illuminate\Support\Str::limit($concern->description, 40) }}</td>
                                             <td>{{ $concern->categoryRelation->name ?? 'N/A' }}</td>
@@ -818,7 +833,10 @@
                             @foreach($archivedConcerns as $concern)
                                 <div class="report-card">
                                     <div class="report-card-header">
-                                        <span class="report-card-ticket">#{{ str_pad($concern->id, 4, '0', STR_PAD_LEFT) }}</span>
+                                        <div>
+                                            <input type="checkbox" class="report-card-checkbox archive-checkbox" value="{{ $concern->id }}" onchange="updateArchiveBulkActions()">
+                                            <span class="report-card-ticket">#{{ str_pad($concern->id, 4, '0', STR_PAD_LEFT) }}</span>
+                                        </div>
                                         <span class="badge bg-{{
                                             $concern->status == 'Resolved' ? 'success' :
                                             ($concern->status == 'In Progress' ? 'warning' :
@@ -966,6 +984,19 @@
     <!-- Deleted Reports Table -->
     <div class="card">
         <div class="card-body">
+            <!-- Bulk Actions for Deleted Reports -->
+            <div class="bulk-actions mb-3" id="deletedBulkActions" style="display: none;">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-success btn-sm" onclick="batchRestoreDeleted()">
+                        <i class="fas fa-trash-restore"></i> Restore Selected
+                    </button>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="batchPermanentDelete()">
+                        <i class="fas fa-ban"></i> Permanently Delete Selected
+                    </button>
+                </div>
+                <span class="ms-2 text-muted" id="deletedSelectedCount">0 selected</span>
+            </div>
+
             @if(isset($deletedReports) && $deletedReports->count() > 0)
                 <div class="table-responsive" style="display: block !important; visibility: visible !important; opacity: 1 !important;">
                     <table class="table table-hover" style="display: table !important;" id="deletedReportsTable">
@@ -987,7 +1018,7 @@
                         <tbody>
                             @forelse($deletedReports as $report)
                                 <tr data-id="{{ $report->id }}">
-                                    <td style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" class="deleted-report-checkbox" value="{{ $report->id }}" onchange="deletedReportsUpdateSelectedCount()"></td>
+                                    <td style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" class="deleted-report-checkbox deleted-checkbox" value="{{ $report->id }}" onchange="deletedReportsUpdateSelectedCount(); updateDeletedBulkActions()"></td>
                                     <td class="ticket-col" style="width: 60px; max-width: 60px; min-width: 60px; white-space: nowrap; text-align: center; padding: 4px;">#{{ str_pad($report->id, 4, '0', STR_PAD_LEFT) }}</td>
                                     <td>{{ $report->title ?? \Illuminate\Support\Str::limit($report->description, 40) }}</td>
                                     <td>{{ $report->categoryRelation ? $report->categoryRelation->name : 'N/A' }}</td>
@@ -1089,7 +1120,7 @@
                         <div class="report-card" data-id="{{ $report->id }}">
                             <div class="report-card-header">
                                 <div>
-                                    <input type="checkbox" class="report-card-checkbox deleted-report-checkbox" value="{{ $report->id }}" onchange="deletedReportsUpdateSelectedCount()">
+                                    <input type="checkbox" class="report-card-checkbox deleted-report-checkbox deleted-checkbox" value="{{ $report->id }}" onchange="deletedReportsUpdateSelectedCount(); updateDeletedBulkActions()">
                                     <span class="report-card-ticket">#{{ str_pad($report->id, 4, '0', STR_PAD_LEFT) }}</span>
                                 </div>
                                 <span class="badge bg-{{
@@ -1988,6 +2019,7 @@ function deletedReportsToggleSelectAll() {
     });
     
     deletedReportsUpdateSelectedCount();
+    updateDeletedBulkActions();
 }
 
 function deletedReportsUpdateSelectedCount() {
@@ -3116,6 +3148,147 @@ function batchSoftDeleteResolved() {
             console.error('Error:', error);
             alert('An error occurred while deleting reports.');
         });
+    }
+}
+
+// Update bulk actions visibility for Archived Reports
+function updateArchiveBulkActions() {
+    const selected = document.querySelectorAll('.archive-checkbox:checked');
+    const bulkActions = document.getElementById('archiveBulkActions');
+    const countSpan = document.getElementById('archiveSelectedCount');
+    
+    if (selected.length > 0) {
+        bulkActions.style.display = 'block';
+        countSpan.textContent = selected.length + ' selected';
+    } else {
+        bulkActions.style.display = 'none';
+    }
+}
+
+// Toggle all archived checkboxes
+function toggleAllArchived(checkbox) {
+    const checkboxes = document.querySelectorAll('.archive-checkbox');
+    checkboxes.forEach(cb => cb.checked = checkbox.checked);
+    updateArchiveBulkActions();
+}
+
+// Batch restore archived reports
+function batchRestoreArchived() {
+    const selected = document.querySelectorAll('.archive-checkbox:checked');
+    const ids = Array.from(selected).map(cb => cb.value);
+    
+    if (ids.length === 0) return;
+    
+    if (confirm('Are you sure you want to restore ' + ids.length + ' archived report(s)?')) {
+        fetch('/concerns/batch-restore', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ ids: ids })
+        }).then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            location.reload();
+        }).catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while restoring reports.');
+        });
+    }
+}
+
+// Batch soft delete archived reports
+function batchSoftDeleteArchived() {
+    const selected = document.querySelectorAll('.archive-checkbox:checked');
+    const ids = Array.from(selected).map(cb => cb.value);
+    
+    if (ids.length === 0) return;
+    
+    if (confirm('Are you sure you want to delete ' + ids.length + ' archived report(s)? They will be moved to the deleted folder.')) {
+        fetch('/concerns/batch-soft-delete', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ ids: ids })
+        }).then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            location.reload();
+        }).catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while deleting reports.');
+        });
+    }
+}
+
+// Update bulk actions visibility for Deleted Reports
+function updateDeletedBulkActions() {
+    const selected = document.querySelectorAll('.deleted-checkbox:checked');
+    const bulkActions = document.getElementById('deletedBulkActions');
+    const countSpan = document.getElementById('deletedSelectedCount');
+    
+    if (selected.length > 0) {
+        bulkActions.style.display = 'block';
+        countSpan.textContent = selected.length + ' selected';
+    } else {
+        bulkActions.style.display = 'none';
+    }
+}
+
+// Batch restore deleted reports
+function batchRestoreDeleted() {
+    const selected = document.querySelectorAll('.deleted-checkbox:checked');
+    const ids = Array.from(selected).map(cb => cb.value);
+    
+    if (ids.length === 0) return;
+    
+    if (confirm('Are you sure you want to restore ' + ids.length + ' deleted report(s)?')) {
+        fetch('/concerns/batch-restore-deleted', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ ids: ids })
+        }).then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            location.reload();
+        }).catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while restoring reports.');
+        });
+    }
+}
+
+// Batch permanent delete reports
+function batchPermanentDelete() {
+    const selected = document.querySelectorAll('.deleted-checkbox:checked');
+    const ids = Array.from(selected).map(cb => cb.value);
+    
+    if (ids.length === 0) return;
+    
+    if (confirm('⚠️ WARNING: Are you sure you want to PERMANENTLY DELETE ' + ids.length + ' report(s)? This action CANNOT be undone!')) {
+        if (confirm('This is your final warning. The selected reports will be permanently deleted. Continue?')) {
+            fetch('/concerns/batch-permanent-delete', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ ids: ids })
+            }).then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                location.reload();
+            }).catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while permanently deleting reports.');
+            });
+        }
     }
 }
 
