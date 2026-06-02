@@ -6,8 +6,8 @@
 /* Mobile Card Layout for Event Requests */
 @media (max-width: 768px) {
     /* Hide table on mobile */
-    .table-responsive table {
-        display: none;
+    .table-responsive {
+        display: none !important;
     }
     
     /* Show mobile card layout */
