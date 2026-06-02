@@ -23,6 +23,36 @@
     min-width: 60px !important;
     max-width: 60px !important;
 }
+
+/* Dark mode support for SweetAlert modals */
+[data-theme="dark"] .swal2-popup {
+    background-color: #1e1e2e !important;
+    color: #e0e0e0 !important;
+}
+
+[data-theme="dark"] .swal2-title {
+    color: #ffffff !important;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+
+[data-theme="dark"] .swal2-html-container {
+    color: #e0e0e0 !important;
+}
+
+[data-theme="dark"] .swal2-html-container h5,
+[data-theme="dark"] .swal2-html-container h6,
+[data-theme="dark"] .swal2-html-container p,
+[data-theme="dark"] .swal2-html-container strong {
+    color: #e0e0e0 !important;
+}
+
+[data-theme="dark"] .swal2-html-container hr {
+    border-color: #3a3a4a !important;
+}
+
+[data-theme="dark"] .swal2-close {
+    color: white !important;
+}
 </style>
 @endsection
 

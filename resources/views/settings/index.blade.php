@@ -103,6 +103,41 @@
         line-height: 1.4;
     }
     
+    /* Dark Mode Support */
+    [data-theme="dark"] .settings-card {
+        background: #1e1e2e;
+        border-color: #2a2a45;
+    }
+    
+    [data-theme="dark"] .settings-header {
+        background: #2a2a45;
+        border-color: #3a3a55;
+    }
+    
+    [data-theme="dark"] .settings-header h6 {
+        color: #e0e0e0;
+    }
+    
+    [data-theme="dark"] .settings-header i {
+        color: #7c7aed;
+    }
+    
+    [data-theme="dark"] .setting-item {
+        border-color: #2a2a45;
+    }
+    
+    [data-theme="dark"] .setting-label {
+        color: #e0e0e0 !important;
+    }
+    
+    [data-theme="dark"] .setting-description {
+        color: #a0a0a0 !important;
+    }
+    
+    [data-theme="dark"] .settings-section h5 {
+        color: #888888;
+    }
+    
     /* Toggle Switch */
     .toggle-switch {
         position: relative;
