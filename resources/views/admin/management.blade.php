@@ -2,6 +2,108 @@
 
 @section('styles')
 <link href="{{ asset('css/admin.css') }}" rel="stylesheet">
+<style>
+    /* Mobile Responsive Styles */
+    @media screen and (max-width: 768px) {
+        /* Hide tables on mobile */
+        .card-body .table-responsive {
+            display: none !important;
+        }
+        
+        /* Show mobile cards */
+        .mobile-management-cards {
+            display: block !important;
+        }
+        
+        /* Management card styling */
+        .management-card {
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .management-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .management-card-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: #333;
+        }
+        
+        .management-card-body {
+            margin-bottom: 12px;
+        }
+        
+        .management-card-field {
+            display: flex;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .management-card-label {
+            font-weight: 600;
+            min-width: 100px;
+            color: #666;
+        }
+        
+        .management-card-value {
+            color: #333;
+            flex: 1;
+            word-break: break-word;
+        }
+        
+        .management-card-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .management-card-actions .btn {
+            flex: 1;
+            font-size: 12px;
+        }
+        
+        /* Dark mode support */
+        [data-bs-theme="dark"] .management-card {
+            background: #2d3238;
+            border-color: #495057;
+        }
+        
+        [data-bs-theme="dark"] .management-card-header {
+            border-bottom-color: #495057;
+        }
+        
+        [data-bs-theme="dark"] .management-card-name,
+        [data-bs-theme="dark"] .management-card-value {
+            color: #e9ecef;
+        }
+        
+        [data-bs-theme="dark"] .management-card-label {
+            color: #adb5bd;
+        }
+        
+        [data-bs-theme="dark"] .management-card-actions {
+            border-top-color: #495057;
+        }
+    }
+    
+    /* Hide mobile cards on desktop */
+    .mobile-management-cards {
+        display: none;
+    }
+</style>
 @endsection
 
 @section('page_title')
@@ -113,6 +215,39 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Mobile Card Layout for Staff -->
+            <div class="mobile-management-cards">
+                @foreach($staff as $member)
+                    <div class="management-card">
+                        <div class="management-card-header">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center"
+                                     style="width:34px;height:34px;font-weight:700;font-size:14px;flex-shrink:0;">
+                                    {{ strtoupper(substr($member->name, 0, 1)) }}
+                                </div>
+                                <span class="management-card-name">{{ $member->name }}</span>
+                            </div>
+                        </div>
+                        <div class="management-card-actions">
+                            <button type="button" class="btn btn-sm btn-primary" onclick="openEditStaffModal({{ $member->id }}, '{{ addslashes($member->name) }}')">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <form action="{{ route('admin.management.staff.destroy', $member->id) }}" method="POST" style="flex: 1;">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="btn btn-sm btn-danger w-100"
+                                        data-confirm="Remove {{ $member->name }} from maintenance staff?"
+                                        data-confirm-title="Remove Staff"
+                                        data-confirm-ok="Yes, Remove"
+                                        data-confirm-color="#dc3545">
+                                    <i class="fas fa-trash"></i> Remove
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
             @else
             <div class="text-center py-5">
                 <i class="fas fa-hard-hat fa-3x text-muted mb-3"></i>
@@ -202,6 +337,35 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Mobile Card Layout for Facilities -->
+            <div class="mobile-management-cards">
+                @foreach($facilities as $facility)
+                    <div class="management-card">
+                        <div class="management-card-header">
+                            <span class="management-card-name">{{ $facility->name }}</span>
+                            <span class="badge bg-info">{{ $facility->type_label }}</span>
+                        </div>
+                        <div class="management-card-actions">
+                            <button type="button" class="btn btn-sm btn-primary" 
+                                    onclick="openEditFacilityModal({{ $facility->id }}, '{{ addslashes($facility->name) }}', '{{ $facility->type }}')">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <form action="{{ route('admin.management.facilities.destroy', $facility->id) }}" method="POST" style="flex: 1;">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="btn btn-sm btn-danger w-100"
+                                        data-confirm="Delete facility '{{ $facility->name }}'?"
+                                        data-confirm-title="Delete Facility"
+                                        data-confirm-ok="Yes, Delete"
+                                        data-confirm-color="#dc3545">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
             @else
             <div class="text-center py-5">
                 <i class="fas fa-building fa-3x text-muted mb-3"></i>
@@ -270,6 +434,35 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Mobile Card Layout for Categories -->
+            <div class="mobile-management-cards">
+                @foreach($categories as $category)
+                    <div class="management-card">
+                        <div class="management-card-header">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
+                                     style="width:34px;height:34px;font-weight:700;font-size:14px;flex-shrink:0;">
+                                    {{ strtoupper(substr($category->name, 0, 1)) }}
+                                </div>
+                                <span class="management-card-name">{{ $category->name }}</span>
+                            </div>
+                        </div>
+                        <div class="management-card-actions">
+                            <button type="button" class="btn btn-sm btn-primary" onclick="openEditCategoryModal({{ $category->id }}, @js($category->name), @js($category->issues ?? []))">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <form action="{{ route('admin.management.categories.destroy', $category->id) }}" method="POST" style="flex: 1;">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="btn btn-sm btn-danger w-100" onclick="return confirm('Delete category \'{{ $category->name }}\'?')">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
             @else
             <div class="text-center py-5">
                 <i class="fas fa-tags fa-3x text-muted mb-3"></i>
