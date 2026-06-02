@@ -443,6 +443,90 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Mobile Card Layout for Active Reports -->
+            <div class="mobile-report-cards">
+                @forelse($reports as $report)
+                    <div class="report-card" data-id="{{ $report->id }}">
+                        <div class="report-card-header">
+                            <div>
+                                <input type="checkbox" class="report-card-checkbox report-checkbox" value="{{ $report->id }}">
+                                <span class="report-card-ticket">#{{ str_pad($report->id, 4, '0', STR_PAD_LEFT) }}</span>
+                            </div>
+                            <span class="badge bg-{{
+                                $report->status == 'Resolved' ? 'success' :
+                                ($report->status == 'In Progress' ? 'warning' :
+                                ($report->status == 'Assigned' ? 'primary' : 'secondary'))
+                            }}">
+                                {{ $report->status }}
+                            </span>
+                        </div>
+                        <div class="report-card-body">
+                            <div class="report-card-field">
+                                <span class="report-card-label">Issue:</span>
+                                <span class="report-card-value">{{ $report->title ?? \Illuminate\Support\Str::limit($report->description, 40) }}</span>
+                            </div>
+                            <div class="report-card-field">
+                                <span class="report-card-label">Category:</span>
+                                <span class="report-card-value">{{ $report->category->name ?? 'N/A' }}</span>
+                            </div>
+                            <div class="report-card-field">
+                                <span class="report-card-label">Location:</span>
+                                <span class="report-card-value">{{ $report->location }}</span>
+                            </div>
+                            <div class="report-card-field">
+                                <span class="report-card-label">Priority:</span>
+                                <span class="report-card-value">
+                                    @if($report->is_safety_hazard)
+                                        <span class="badge" style="background: linear-gradient(135deg, #dc3545 0%, #8b0000 100%); color: white;">
+                                            <i class="fas fa-exclamation-triangle"></i> Safety Hazard
+                                        </span>
+                                    @else
+                                        <span class="badge bg-{{
+                                            $report->severity == 'critical' || $report->severity == 'urgent' ? 'danger' :
+                                            ($report->severity == 'high' ? 'warning' :
+                                            ($report->severity == 'medium' ? 'info' : 'secondary'))
+                                        }}">
+                                            {{ ($report->severity ? ucfirst($report->severity) : 'Not Set') }}
+                                        </span>
+                                    @endif
+                                </span>
+                            </div>
+                            <div class="report-card-field">
+                                <span class="report-card-label">Reported By:</span>
+                                <span class="report-card-value">{{ $report->reported_by_name ?? ($report->user ? $report->user->name : 'Unknown') }}</span>
+                            </div>
+                            <div class="report-card-field">
+                                <span class="report-card-label">Created:</span>
+                                <span class="report-card-value">{{ $report->created_at->format('M d, Y') }}</span>
+                            </div>
+                        </div>
+                        <div class="report-card-actions">
+                            <button type="button" class="btn btn-sm btn-info" onclick="viewReport({{ $report->id }})">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                            <button type="button" class="btn btn-sm btn-primary" onclick="assignReport({{ $report->id }})">
+                                <i class="fas fa-user-plus"></i> Assign
+                            </button>
+                            @if(!$report->isArchivedByUser(auth()->id()))
+                                <button type="button" class="btn btn-sm btn-secondary" onclick="showReportArchiveModal({{ $report->id }})">
+                                    <i class="fas fa-archive"></i> Archive
+                                </button>
+                            @endif
+                            @if(!$report->assigned_to || $report->status === 'Resolved')
+                            <button type="button" class="btn btn-sm btn-danger" onclick="showReportDeleteModal({{ $report->id }})">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                            @endif
+                        </div>
+                    </div>
+                @empty
+                    <div class="text-center py-5">
+                        <h4 class="text-muted">No reports found</h4>
+                    </div>
+                @endforelse
+            </div>
+
         </div>
     </div>
     @endif
@@ -527,6 +611,79 @@
                         </tbody>
                     </table>
                 </div>
+
+                <!-- Mobile Card Layout for Resolved Reports -->
+                <div class="mobile-report-cards">
+                    @foreach($resolvedReports as $report)
+                        <div class="report-card">
+                            <div class="report-card-header">
+                                <div>
+                                    <input type="checkbox" class="report-card-checkbox resolved-report-checkbox" value="{{ $report->id }}">
+                                    <span class="report-card-ticket">#{{ str_pad($report->id, 4, '0', STR_PAD_LEFT) }}</span>
+                                </div>
+                                <span class="badge bg-success">Resolved</span>
+                            </div>
+                            <div class="report-card-body">
+                                <div class="report-card-field">
+                                    <span class="report-card-label">Issue:</span>
+                                    <span class="report-card-value">{{ $report->title ?? \Illuminate\Support\Str::limit($report->description, 40) }}</span>
+                                </div>
+                                <div class="report-card-field">
+                                    <span class="report-card-label">Category:</span>
+                                    <span class="report-card-value">{{ $report->category->name ?? 'N/A' }}</span>
+                                </div>
+                                <div class="report-card-field">
+                                    <span class="report-card-label">Location:</span>
+                                    <span class="report-card-value">{{ $report->location }}</span>
+                                </div>
+                                <div class="report-card-field">
+                                    <span class="report-card-label">Priority:</span>
+                                    <span class="report-card-value">
+                                        @if($report->is_safety_hazard)
+                                            <span class="badge" style="background: linear-gradient(135deg, #dc3545 0%, #8b0000 100%); color: white;">
+                                                <i class="fas fa-exclamation-triangle"></i> Safety Hazard
+                                            </span>
+                                        @else
+                                            <span class="badge bg-{{
+                                                $report->severity == 'critical' || $report->severity == 'urgent' ? 'danger' :
+                                                ($report->severity == 'high' ? 'warning' :
+                                                ($report->severity == 'medium' ? 'info' : 'secondary'))
+                                            }}">
+                                                {{ ($report->severity ? ucfirst($report->severity) : 'Not Set') }}
+                                            </span>
+                                        @endif
+                                    </span>
+                                </div>
+                                <div class="report-card-field">
+                                    <span class="report-card-label">Reported By:</span>
+                                    <span class="report-card-value">{{ $report->reported_by_name ?? ($report->user ? $report->user->name : 'Unknown') }}</span>
+                                </div>
+                                <div class="report-card-field">
+                                    <span class="report-card-label">Resolved:</span>
+                                    <span class="report-card-value">{{ $report->resolved_at ? $report->resolved_at->format('M d, Y g:i A') : '-' }}</span>
+                                </div>
+                                <div class="report-card-field">
+                                    <span class="report-card-label">Cost:</span>
+                                    <span class="report-card-value">PHP{{ number_format($report->cost ?? 0, 2) }}</span>
+                                </div>
+                            </div>
+                            <div class="report-card-actions">
+                                <button type="button" class="btn btn-sm btn-info" onclick="viewReport({{ $report->id }})">
+                                    <i class="fas fa-eye"></i> View
+                                </button>
+                                <button type="button" class="btn btn-sm btn-secondary" onclick="showReportArchiveModal({{ $report->id }})">
+                                    <i class="fas fa-archive"></i> Archive
+                                </button>
+                                @if(!$report->assigned_to || $report->status === 'Resolved')
+                                <button type="button" class="btn btn-sm btn-danger" onclick="showReportDeleteModal({{ $report->id }})">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                                @endif
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+
             @else
                 <div class="text-center py-5">
                     <i class="fas fa-check-circle fa-3x text-muted mb-3"></i>
@@ -622,6 +779,75 @@
                                 </tbody>
                             </table>
                         </div>
+
+                        <!-- Mobile Card Layout for Archived Reports -->
+                        <div class="mobile-report-cards">
+                            @foreach($archivedConcerns as $concern)
+                                <div class="report-card">
+                                    <div class="report-card-header">
+                                        <span class="report-card-ticket">#{{ str_pad($concern->id, 4, '0', STR_PAD_LEFT) }}</span>
+                                        <span class="badge bg-{{
+                                            $concern->status == 'Resolved' ? 'success' :
+                                            ($concern->status == 'In Progress' ? 'warning' :
+                                            ($concern->status == 'Assigned' ? 'primary' : 'secondary'))
+                                        }}">
+                                            {{ $concern->status }}
+                                        </span>
+                                    </div>
+                                    <div class="report-card-body">
+                                        <div class="report-card-field">
+                                            <span class="report-card-label">Issue:</span>
+                                            <span class="report-card-value">{{ $concern->title ?? \Illuminate\Support\Str::limit($concern->description, 40) }}</span>
+                                        </div>
+                                        <div class="report-card-field">
+                                            <span class="report-card-label">Category:</span>
+                                            <span class="report-card-value">{{ $concern->categoryRelation->name ?? 'N/A' }}</span>
+                                        </div>
+                                        <div class="report-card-field">
+                                            <span class="report-card-label">Location:</span>
+                                            <span class="report-card-value">{{ $concern->location }}</span>
+                                        </div>
+                                        <div class="report-card-field">
+                                            <span class="report-card-label">Priority:</span>
+                                            <span class="report-card-value">
+                                                <span class="badge bg-{{
+                                                    $concern->priority == 'urgent' ? 'danger' :
+                                                    ($concern->priority == 'high' ? 'warning' :
+                                                    ($concern->priority == 'medium' ? 'info' : 'secondary'))
+                                                }}">
+                                                    {{ ($concern->priority ? ucfirst($concern->priority) : 'Not Set') }}
+                                                </span>
+                                            </span>
+                                        </div>
+                                        <div class="report-card-field">
+                                            <span class="report-card-label">Reported By:</span>
+                                            <span class="report-card-value">{{ $concern->is_anonymous ? 'Anonymous' : ($concern->user->name ?? 'Unknown') }}</span>
+                                        </div>
+                                        <div class="report-card-field">
+                                            <span class="report-card-label">Created:</span>
+                                            <span class="report-card-value">{{ $concern->created_at->format('M d, Y') }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="report-card-actions">
+                                        <button type="button" class="btn btn-sm btn-info" onclick="viewConcern({{ $concern->id }})">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                        <form method="POST" action="{{ route('admin.archive.restore') }}" style="flex: 1;">
+                                            @csrf
+                                            <input type="hidden" name="type" value="report">
+                                            <input type="hidden" name="id" value="{{ $concern->id }}">
+                                            <button type="submit" class="btn btn-sm btn-success w-100">
+                                                <i class="fas fa-trash-restore"></i> Restore
+                                            </button>
+                                        </form>
+                                        <button type="button" class="btn btn-sm btn-danger" onclick="showReportDeleteModal({{ $concern->id }})">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+
                     @else
                         <div class="alert alert-info mb-0">
                             <i class="fas fa-archive"></i> No archived reports found.
@@ -823,6 +1049,98 @@
                         </tbody>
                     </table>
                 </div>
+
+                <!-- Mobile Card Layout for Deleted Reports -->
+                <div class="mobile-report-cards">
+                    @forelse($deletedReports as $report)
+                        <div class="report-card" data-id="{{ $report->id }}">
+                            <div class="report-card-header">
+                                <div>
+                                    <input type="checkbox" class="report-card-checkbox deleted-report-checkbox" value="{{ $report->id }}" onchange="deletedReportsUpdateSelectedCount()">
+                                    <span class="report-card-ticket">#{{ str_pad($report->id, 4, '0', STR_PAD_LEFT) }}</span>
+                                </div>
+                                <span class="badge bg-{{
+                                    $report->status == 'Resolved' ? 'success' :
+                                    ($report->status == 'In Progress' ? 'warning' :
+                                    ($report->status == 'Assigned' ? 'primary' : 'secondary'))
+                                }}">
+                                    {{ $report->status }}
+                                </span>
+                            </div>
+                            <div class="report-card-body">
+                                <div class="report-card-field">
+                                    <span class="report-card-label">Issue:</span>
+                                    <span class="report-card-value">{{ $report->title ?? \Illuminate\Support\Str::limit($report->description, 40) }}</span>
+                                </div>
+                                <div class="report-card-field">
+                                    <span class="report-card-label">Category:</span>
+                                    <span class="report-card-value">{{ $report->category->name ?? 'N/A' }}</span>
+                                </div>
+                                <div class="report-card-field">
+                                    <span class="report-card-label">Location:</span>
+                                    <span class="report-card-value">{{ $report->location }}</span>
+                                </div>
+                                <div class="report-card-field">
+                                    <span class="report-card-label">Priority:</span>
+                                    <span class="report-card-value">
+                                        @if($report->is_safety_hazard)
+                                            <span class="badge" style="background: linear-gradient(135deg, #dc3545 0%, #8b0000 100%); color: white;">
+                                                <i class="fas fa-exclamation-triangle"></i> Safety Hazard
+                                            </span>
+                                        @else
+                                            <span class="badge bg-{{
+                                                $report->severity == 'critical' || $report->severity == 'urgent' ? 'danger' :
+                                                ($report->severity == 'high' ? 'warning' :
+                                                ($report->severity == 'medium' ? 'info' : 'secondary'))
+                                            }}">
+                                                {{ ($report->severity ? ucfirst($report->severity) : 'Not Set') }}
+                                            </span>
+                                        @endif
+                                    </span>
+                                </div>
+                                <div class="report-card-field">
+                                    <span class="report-card-label">Reported By:</span>
+                                    <span class="report-card-value">{{ $report->reported_by_name ?? ($report->user ? $report->user->name : 'Unknown') }}</span>
+                                </div>
+                                <div class="report-card-field">
+                                    <span class="report-card-label">Deleted Date:</span>
+                                    <span class="report-card-value">{{ $report->updated_at->format('M d, Y h:i A') }}</span>
+                                </div>
+                                <div class="report-card-field">
+                                    <span class="report-card-label">Deleted By:</span>
+                                    <span class="report-card-value">{{ $report->deletedBy ? $report->deletedBy->name : 'System' }}</span>
+                                </div>
+                            </div>
+                            <div class="report-card-actions">
+                                <form action="{{ route('admin.deletedReports.restore', $report->id) }}" method="POST" style="flex: 1;">
+                                    @csrf
+                                    <button type="submit" class="btn btn-sm btn-success w-100">
+                                        <i class="fas fa-trash-restore"></i> Restore
+                                    </button>
+                                </form>
+                                <form action="{{ route('admin.deletedReports.permanentDelete', $report->id) }}" method="POST" style="flex: 1;">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-danger w-100" onclick="return confirm('Are you sure you want to permanently delete this report?')">
+                                        <i class="fas fa-times-circle"></i> Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="text-center py-5">
+                            <div class="alert alert-info mb-0">
+                                <i class="fas fa-check-circle fa-2x d-block mb-3"></i>
+                                <h5>No Deleted Concerns</h5>
+                                <p class="mb-0">Deleted concerns will appear here. You can delete concerns from the Reports page.</p>
+                                <a href="{{ route('admin.reports') }}" class="btn btn-primary mt-3">
+                                    <i class="fas fa-file-alt"></i> Go to Reports
+                                </a>
+                            </div>
+                        </div>
+                    @endforelse
+                </div>
+
             @else
                 <div class="card">
                     <div class="card-body text-center py-5">
