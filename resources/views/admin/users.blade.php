@@ -259,6 +259,23 @@
     <div class="card" style="display: block !important;">
         <div class="card-body" style="display: block !important;">
 
+            <!-- Bulk Actions for Active Users -->
+            <div class="bulk-actions mb-3" id="activeBulkActions" style="display: none;">
+                <div class="btn-group">
+                    @if(auth()->user()->canAccess('users_archive'))
+                    <button type="button" class="btn btn-warning btn-sm" onclick="batchArchiveSelected()">
+                        <i class="fas fa-archive"></i> Archive Selected
+                    </button>
+                    @endif
+                    @if(auth()->user()->canAccess('users_delete'))
+                    <button type="button" class="btn btn-danger btn-sm" onclick="batchDeleteSelected()">
+                        <i class="fas fa-trash"></i> Delete Selected
+                    </button>
+                    @endif
+                </div>
+                <span class="ms-2 text-muted" id="activeSelectedCount">0 selected</span>
+            </div>
+
             {{-- Role Tabs --}}
             <ul class="nav nav-tabs mb-3" id="roleTabNav">
                 <li class="nav-item">
@@ -303,7 +320,7 @@
                     <tbody>
                         @forelse($users as $user)
                             <tr data-id="{{ $user->id }}" data-role="{{ $user->role }}" data-archived="{{ $user->is_archived ? '1' : '0' }}">
-                                <td style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" class="user-checkbox" value="{{ $user->id }}" onchange="updateSelectedCount()"></td>
+                                <td style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" class="user-checkbox active-user-checkbox" value="{{ $user->id }}" onchange="updateSelectedCount(); updateActiveBulkActions()"></td>
                                 <td>{{ $user->student_id ?? 'N/A' }}</td>
                                 <td>{{ $user->name }}</td>
                                 <td>{{ $user->email }}</td>
@@ -594,7 +611,7 @@
                     <div class="user-card" data-id="{{ $user->id }}" data-role="{{ $user->role }}">
                         <div class="user-card-header">
                             <div>
-                                <input type="checkbox" class="user-card-checkbox user-checkbox" value="{{ $user->id }}" onchange="updateSelectedCount()">
+                                <input type="checkbox" class="user-card-checkbox user-checkbox active-user-checkbox" value="{{ $user->id }}" onchange="updateSelectedCount(); updateActiveBulkActions()">
                                 <span class="user-card-id">{{ $user->name }}</span>
                             </div>
                             <span class="badge bg-primary">{{ ucfirst($user->role) }}</span>
@@ -2486,6 +2503,7 @@ function toggleSelectAll() {
     });
     
     updateSelectedCount();
+    updateActiveBulkActions();
 }
 
 function updateSelectedCount() {
@@ -2496,10 +2514,91 @@ function updateSelectedCount() {
     if (selectedCountEl) {
         selectedCountEl.textContent = count + ' user' + (count !== 1 ? 's' : '') + ' selected';
     }
-    
+}    
     return count;
 }
 
+// Update bulk actions visibility for Active Users
+function updateActiveBulkActions() {
+    const selected = document.querySelectorAll('.active-user-checkbox:checked');
+    const bulkActions = document.getElementById('activeBulkActions');
+    const countSpan = document.getElementById('activeSelectedCount');
+    
+    if (selected.length > 0) {
+        bulkActions.style.display = 'block';
+        countSpan.textContent = selected.length + ' selected';
+    } else {
+        bulkActions.style.display = 'none';
+    }
+}
+
+// Batch archive selected users
+function batchArchiveSelected() {
+    const selected = document.querySelectorAll('.active-user-checkbox:checked');
+    const ids = Array.from(selected).map(cb => cb.value);
+    
+    if (ids.length === 0) {
+        alert('Please select users to archive');
+        return;
+    }
+    
+    if (confirm('Are you sure you want to archive ' + ids.length + ' user(s)?')) {
+        fetch('/admin/users/batch-archive', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ user_ids: ids })
+        }).then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert(data.message || 'Error archiving users');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error archiving users');
+        });
+    }
+}
+
+// Batch delete selected users
+function batchDeleteSelected() {
+    const selected = document.querySelectorAll('.active-user-checkbox:checked');
+    const ids = Array.from(selected).map(cb => cb.value);
+    
+    if (ids.length === 0) {
+        alert('Please select users to delete');
+        return;
+    }
+    
+    if (confirm('Are you sure you want to delete ' + ids.length + ' user(s)? They will be moved to deleted users.')) {
+        fetch('/admin/users/batch-delete', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ user_ids: ids })
+        }).then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert(data.message || 'Error deleting users');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting users');
+        });
+    }
+}
 
 function prepareArchiveSelected() {
     const checkboxes = document.querySelectorAll('.user-checkbox:checked:not(:disabled)');

@@ -3072,6 +3072,120 @@ class AdminController extends Controller
         return redirect()->route('admin.users')->with('success', "Successfully deleted {$count} users!");
     }
 
+    // Batch archive users (JSON API)
+    public function batchArchiveUsers(Request $request)
+    {
+        $request->validate([
+            'user_ids' => 'required|array',
+            'user_ids.*' => 'integer|exists:users,id'
+        ]);
+
+        $userIds = $request->user_ids;
+        $currentUserId = auth()->id();
+
+        // Remove current user from the list
+        $userIds = array_filter($userIds, function($id) use ($currentUserId) {
+            return $id != $currentUserId;
+        });
+
+        if (empty($userIds)) {
+            return response()->json(['success' => false, 'message' => 'No valid users to archive'], 400);
+        }
+
+        // Create archive folder with timestamp
+        $folderName = 'Bulk_Archive_' . now()->format('Y_m_d_His');
+        $archiveFolder = UserArchiveFolder::create([
+            'name' => $folderName,
+            'description' => 'Bulk archived on ' . now()->format('M d, Y H:i:s'),
+            'user_count' => 0,
+        ]);
+
+        $archivePath = 'archive/' . $folderName;
+        if (!Storage::disk('public')->exists($archivePath)) {
+            Storage::disk('public')->makeDirectory($archivePath);
+        }
+
+        $users = User::whereIn('id', $userIds)->get();
+        $archivedCount = 0;
+
+        foreach ($users as $user) {
+            // Check if user is protected
+            if ($user->isProtectedFrom(auth()->user())) {
+                continue;
+            }
+
+            // Export user data to JSON
+            $userData = $user->toArray();
+            $fileName = $user->student_id ?? 'user_' . $user->id;
+            $filePath = $archivePath . '/' . $fileName . '.json';
+            Storage::disk('public')->put($filePath, json_encode($userData, JSON_PRETTY_PRINT));
+
+            // Mark as archived
+            $user->is_archived = true;
+            $user->archived_at = now();
+            $user->archive_folder_id = $archiveFolder->id;
+            $user->save();
+
+            $archivedCount++;
+        }
+
+        // Update folder user count
+        $archiveFolder->user_count = $archivedCount;
+        $archiveFolder->save();
+
+        ActivityLog::log('users_batch_archived', "Batch archived {$archivedCount} users to folder: {$folderName}");
+
+        return response()->json([
+            'success' => true,
+            'message' => "Successfully archived {$archivedCount} user(s) to {$folderName}"
+        ]);
+    }
+
+    // Batch delete users (JSON API)
+    public function batchDeleteUsers(Request $request)
+    {
+        $request->validate([
+            'user_ids' => 'required|array',
+            'user_ids.*' => 'integer|exists:users,id'
+        ]);
+
+        $userIds = $request->user_ids;
+        $currentUserId = auth()->id();
+
+        // Remove current user from the list
+        $userIds = array_filter($userIds, function($id) use ($currentUserId) {
+            return $id != $currentUserId;
+        });
+
+        if (empty($userIds)) {
+            return response()->json(['success' => false, 'message' => 'No valid users to delete'], 400);
+        }
+
+        $users = User::whereIn('id', $userIds)->get();
+        $deletedCount = 0;
+
+        foreach ($users as $user) {
+            // Check if user is protected
+            if ($user->isProtectedFrom(auth()->user())) {
+                continue;
+            }
+
+            // Soft delete
+            $user->deleted_at = now();
+            $user->deleted_by = $currentUserId;
+            $user->save();
+
+            $deletedCount++;
+        }
+
+        ActivityLog::log('users_batch_deleted', "Batch deleted {$deletedCount} users");
+
+        return response()->json([
+            'success' => true,
+            'message' => "Successfully deleted {$deletedCount} user(s)"
+        ]);
+    }
+
     // Archive selected users
     public function archiveSelectedUsers(Request $request)
     {

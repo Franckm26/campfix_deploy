@@ -325,6 +325,8 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::post('/admin/reauth', [AdminController::class, 'reauth'])->name('admin.reauth');
     Route::get('/admin/users', [AdminController::class, 'users'])->name('admin.users');
     Route::post('/admin/users', [AdminController::class, 'storeUser'])->name('admin.users.store');
+    Route::post('/admin/users/batch-archive', [AdminController::class, 'batchArchiveUsers'])->name('admin.users.batchArchive');
+    Route::post('/admin/users/batch-delete', [AdminController::class, 'batchDeleteUsers'])->name('admin.users.batchDelete');
     Route::post('/admin/users/archive-all', [AdminController::class, 'archiveAllUsers'])->name('admin.users.archiveAll');
     Route::delete('/admin/users/delete-all', [AdminController::class, 'deleteAllUsers'])->name('admin.users.deleteAll');
     Route::post('/admin/users/unlock/{uuid}', [AdminController::class, 'unlockUser'])->name('admin.users.unlock');
