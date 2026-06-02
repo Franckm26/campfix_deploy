@@ -1675,8 +1675,20 @@ document.addEventListener('DOMContentLoaded', function() {
                                     timer: 1500,
                                     showConfirmButton: false
                                 }).then(() => {
-                                    // Reload the page to refresh the table
-                                    window.location.reload();
+                                    // Get current tab from URL or default to active
+                                    const urlParams = new URLSearchParams(window.location.search);
+                                    let currentView = urlParams.get('view') || 'active';
+                                    
+                                    // If permanently deleting from deleted tab, stay on deleted tab
+                                    // If soft deleting from active, stay on active
+                                    // If restoring from deleted/archive, go to active
+                                    if (form.action.includes('/restore')) {
+                                        // Restore always goes to active
+                                        window.location.href = '{{ route("events.my") }}?view=active';
+                                    } else {
+                                        // For delete operations, preserve current tab
+                                        window.location.reload();
+                                    }
                                 });
                             } else {
                                 Swal.fire({
