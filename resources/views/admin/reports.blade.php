@@ -5,10 +5,16 @@
 <style>
     /* Mobile Responsive Styles */
     @media screen and (max-width: 768px) {
-        /* Hide tables on mobile - more specific selector */
-        .table-responsive {
+        /* Hide tables on mobile - more specific selectors */
+        .table-responsive,
+        .table-responsive table,
+        .card-body .table-responsive,
+        div[class*="table-responsive"] {
             display: none !important;
             visibility: hidden !important;
+            opacity: 0 !important;
+            height: 0 !important;
+            overflow: hidden !important;
         }
         
         /* Show mobile cards */
