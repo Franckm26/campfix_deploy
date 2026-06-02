@@ -3,10 +3,15 @@
 @section('styles')
 <link href="{{ asset('css/admin.css') }}" rel="stylesheet">
 <style>
+/* Desktop: Hide mobile cards */
+.mobile-event-cards {
+    display: none;
+}
+
 /* Mobile Card Layout for Event Requests */
-@media (max-width: 768px) {
+@media screen and (max-width: 768px) {
     /* Hide table on mobile */
-    .table-responsive {
+    .card-body .table-responsive {
         display: none !important;
     }
     
@@ -17,8 +22,8 @@
     
     /* Event card styling */
     .event-card {
-        background: var(--bs-card-bg, #fff);
-        border: 1px solid var(--bs-border-color, #dee2e6);
+        background: #fff;
+        border: 1px solid #dee2e6;
         border-radius: 8px;
         padding: 16px;
         margin-bottom: 12px;
@@ -26,8 +31,8 @@
     }
     
     .dark-mode .event-card {
-        background: var(--bs-dark-bg, #1a1d20);
-        border-color: var(--bs-dark-border, #404347);
+        background: #1a1d20;
+        border-color: #404347;
     }
     
     .event-card-header {
@@ -36,21 +41,21 @@
         align-items: flex-start;
         margin-bottom: 12px;
         padding-bottom: 12px;
-        border-bottom: 1px solid var(--bs-border-color, #dee2e6);
+        border-bottom: 1px solid #dee2e6;
     }
     
     .dark-mode .event-card-header {
-        border-bottom-color: var(--bs-dark-border, #404347);
+        border-bottom-color: #404347;
     }
     
     .event-card-id {
         font-weight: 600;
         font-size: 14px;
-        color: var(--bs-body-color, #212529);
+        color: #212529;
     }
     
     .dark-mode .event-card-id {
-        color: var(--bs-dark-text, #e9ecef);
+        color: #e9ecef;
     }
     
     .event-card-body {
@@ -67,21 +72,21 @@
     
     .event-card-label {
         font-weight: 500;
-        color: var(--bs-secondary-color, #6c757d);
+        color: #6c757d;
         margin-right: 12px;
     }
     
     .dark-mode .event-card-label {
-        color: var(--bs-dark-secondary, #adb5bd);
+        color: #adb5bd;
     }
     
     .event-card-value {
         text-align: right;
-        color: var(--bs-body-color, #212529);
+        color: #212529;
     }
     
     .dark-mode .event-card-value {
-        color: var(--bs-dark-text, #e9ecef);
+        color: #e9ecef;
     }
     
     .event-card-actions {
@@ -89,11 +94,11 @@
         gap: 8px;
         flex-wrap: wrap;
         padding-top: 12px;
-        border-top: 1px solid var(--bs-border-color, #dee2e6);
+        border-top: 1px solid #dee2e6;
     }
     
     .dark-mode .event-card-actions {
-        border-top-color: var(--bs-dark-border, #404347);
+        border-top-color: #404347;
     }
     
     .event-card-actions .btn {
@@ -104,13 +109,6 @@
     /* Checkbox for mobile cards */
     .event-card-checkbox {
         margin-right: 8px;
-    }
-}
-
-/* Desktop: Hide mobile cards */
-@media (min-width: 769px) {
-    .mobile-event-cards {
-        display: none !important;
     }
 }
 </style>
