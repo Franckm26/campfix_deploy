@@ -432,6 +432,100 @@
                                 </tbody>
                             </table>
                         </div>
+
+                        <!-- Mobile Card Layout -->
+                        <div class="mobile-concern-cards">
+                            @foreach($concerns as $concern)
+                                <div class="concern-card" data-id="{{ $concern->id }}" data-view="active">
+                                    <div class="concern-card-header">
+                                        <div>
+                                            <input type="checkbox" class="concern-card-checkbox active-checkbox" value="{{ $concern->id }}" onchange="updateActiveBulkActions()">
+                                            <span class="concern-card-id">#{{ str_pad($concern->id, 4, '0', STR_PAD_LEFT) }}</span>
+                                        </div>
+                                        <span class="badge bg-{{ 
+                                            $concern->status == 'Resolved' ? 'success' : 
+                                            ($concern->status == 'In Progress' ? 'warning' : 
+                                            ($concern->status == 'Assigned' ? 'primary' : 'secondary'))
+                                        }}">
+                                            {{ $concern->status }}
+                                        </span>
+                                    </div>
+                                    <div class="concern-card-body">
+                                        <div class="concern-card-field">
+                                            <span class="concern-card-label">Issue:</span>
+                                            <span class="concern-card-value">
+                                                <a href="#" onclick="event.preventDefault(); viewConcern({{ $concern->id }});">
+                                                    {{ $concern->title ?? \Illuminate\Support\Str::limit($concern->description, 30) }}
+                                                </a>
+                                                @if($concern->image_path)
+                                                    <i class="fas fa-image text-muted" title="Has photo"></i>
+                                                @endif
+                                            </span>
+                                        </div>
+                                        <div class="concern-card-field">
+                                            <span class="concern-card-label">Category:</span>
+                                            <span class="concern-card-value">{{ $concern->categoryRelation->name ?? 'N/A' }}</span>
+                                        </div>
+                                        <div class="concern-card-field">
+                                            <span class="concern-card-label">Location:</span>
+                                            <span class="concern-card-value">{{ $concern->location }}</span>
+                                        </div>
+                                        <div class="concern-card-field">
+                                            <span class="concern-card-label">Priority:</span>
+                                            <span class="concern-card-value">
+                                                <span class="badge bg-{{ 
+                                                    $concern->priority == 'urgent' ? 'danger' : 
+                                                    ($concern->priority == 'high' ? 'warning' : 
+                                                    ($concern->priority == 'medium' ? 'info' : 'secondary'))
+                                                }}">
+                                                    {{ ($concern->priority ? ucfirst($concern->priority) : 'Not Set') }}
+                                                </span>
+                                            </span>
+                                        </div>
+                                        @if(auth()->user()->role === 'mis')
+                                        <div class="concern-card-field">
+                                            <span class="concern-card-label">Reported By:</span>
+                                            <span class="concern-card-value">
+                                                @if($concern->is_anonymous)
+                                                    Anonymous
+                                                @else
+                                                    {{ $concern->user->name ?? 'Unknown' }}
+                                                @endif
+                                            </span>
+                                        </div>
+                                        @endif
+                                        <div class="concern-card-field">
+                                            <span class="concern-card-label">Date:</span>
+                                            <span class="concern-card-value">{{ $concern->created_at->format('M d, Y') }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="concern-card-actions">
+                                        <button type="button" class="btn btn-sm btn-info" onclick="viewConcern({{ $concern->id }})">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                        @if($concern->user_id == auth()->id() && $concern->status == 'Pending')
+                                        <button type="button" class="btn btn-sm btn-warning" onclick="editConcern({{ $concern->id }})">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </button>
+                                        @endif
+                                        @if($concern->status == 'Pending' && !$concern->assigned_to && $concern->created_at->diffInDays(now()) >= 1)
+                                        <button type="button" class="btn btn-sm btn-primary" onclick="sendFollowUp({{ $concern->id }})">
+                                            <i class="fas fa-bell"></i> Follow-up
+                                        </button>
+                                        @endif
+                                        <button type="button" class="btn btn-sm btn-secondary" onclick="showArchiveModal({{ $concern->id }})">
+                                            <i class="fas fa-archive"></i> Archive
+                                        </button>
+                                        @if(!$concern->assigned_to || $concern->status === 'Resolved')
+                                        <button type="button" class="btn btn-sm btn-danger" onclick="softDeleteConcern({{ $concern->id }})">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+
                     @else
                         <div class="text-center py-5">
                             <h4 class="text-muted">No active concerns found</h4>
