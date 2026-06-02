@@ -2514,7 +2514,7 @@ function updateSelectedCount() {
     if (selectedCountEl) {
         selectedCountEl.textContent = count + ' user' + (count !== 1 ? 's' : '') + ' selected';
     }
-}    
+    
     return count;
 }
 
