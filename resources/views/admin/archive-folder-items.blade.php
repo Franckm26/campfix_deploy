@@ -2,6 +2,137 @@
 
 @section('styles')
 <link href="{{ asset('css/admin.css') }}" rel="stylesheet">
+<style>
+    /* Mobile Responsive Styles */
+    @media screen and (max-width: 768px) {
+        /* Hide tables on mobile */
+        .table-responsive,
+        .table-responsive table,
+        .card-body .table-responsive,
+        div[class*="table-responsive"] {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            height: 0 !important;
+            overflow: hidden !important;
+        }
+        
+        /* Show mobile cards */
+        .mobile-archive-cards {
+            display: block !important;
+        }
+        
+        /* Archive item card styling */
+        .archive-item-card {
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .archive-item-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .archive-item-card-header div {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .archive-item-card-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .archive-item-card-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: #333;
+        }
+        
+        .archive-item-card-body {
+            margin-bottom: 12px;
+        }
+        
+        .archive-item-card-field {
+            display: flex;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .archive-item-card-label {
+            font-weight: 600;
+            min-width: 100px;
+            color: #666;
+        }
+        
+        .archive-item-card-value {
+            color: #333;
+            flex: 1;
+            word-break: break-word;
+        }
+        
+        .archive-item-card-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e9ecef;
+            flex-wrap: wrap;
+        }
+        
+        .archive-item-card-actions .btn {
+            flex: 1;
+            font-size: 12px;
+        }
+        
+        .archive-item-card-actions form {
+            flex: 1;
+            display: flex;
+        }
+        
+        .archive-item-card-actions form .btn {
+            width: 100%;
+        }
+        
+        /* Dark mode support */
+        [data-bs-theme="dark"] .archive-item-card {
+            background: #2d3238;
+            border-color: #495057;
+        }
+        
+        [data-bs-theme="dark"] .archive-item-card-header {
+            border-bottom-color: #495057;
+        }
+        
+        [data-bs-theme="dark"] .archive-item-card-title,
+        [data-bs-theme="dark"] .archive-item-card-value {
+            color: #e9ecef;
+        }
+        
+        [data-bs-theme="dark"] .archive-item-card-label {
+            color: #adb5bd;
+        }
+        
+        [data-bs-theme="dark"] .archive-item-card-actions {
+            border-top-color: #495057;
+        }
+    }
+    
+    /* Hide mobile cards on desktop */
+    .mobile-archive-cards {
+        display: none;
+    }
+</style>
 @endsection
 
 @section('page_title')
@@ -134,6 +265,69 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Mobile Card Layout for Concerns -->
+            <div class="mobile-archive-cards">
+                @foreach($concerns as $concern)
+                    <div class="archive-item-card" data-id="{{ $concern->id }}" data-type="concern">
+                        <div class="archive-item-card-header">
+                            <div>
+                                <input type="checkbox" class="archive-item-card-checkbox concern-checkbox" value="{{ $concern->id }}" onchange="updateSelectedCount()">
+                                <span class="archive-item-card-title">{{ \Illuminate\Support\Str::limit($concern->title, 30) }}</span>
+                            </div>
+                            <span class="badge bg-{{ 
+                                $concern->status == 'Resolved' ? 'success' : 
+                                ($concern->status == 'In Progress' ? 'info' : 'warning')
+                            }}">
+                                {{ $concern->status }}
+                            </span>
+                        </div>
+                        <div class="archive-item-card-body">
+                            <div class="archive-item-card-field">
+                                <span class="archive-item-card-label">Title:</span>
+                                <span class="archive-item-card-value">{{ $concern->title }}</span>
+                            </div>
+                            <div class="archive-item-card-field">
+                                <span class="archive-item-card-label">Category:</span>
+                                <span class="archive-item-card-value">{{ $concern->categoryRelation->name ?? 'N/A' }}</span>
+                            </div>
+                            <div class="archive-item-card-field">
+                                <span class="archive-item-card-label">Priority:</span>
+                                <span class="archive-item-card-value">
+                                    <span class="badge bg-{{ 
+                                        $concern->priority == 'urgent' ? 'danger' : 
+                                        ($concern->priority == 'high' ? 'warning' : 
+                                        ($concern->priority == 'medium' ? 'info' : 'secondary'))
+                                    }}">
+                                        {{ ucfirst($concern->priority) }}
+                                    </span>
+                                </span>
+                            </div>
+                            <div class="archive-item-card-field">
+                                <span class="archive-item-card-label">Reported By:</span>
+                                <span class="archive-item-card-value">{{ $concern->user->name ?? 'N/A' }}</span>
+                            </div>
+                            <div class="archive-item-card-field">
+                                <span class="archive-item-card-label">Archived:</span>
+                                <span class="archive-item-card-value">{{ $concern->updated_at->format('M d, Y') }}</span>
+                            </div>
+                        </div>
+                        <div class="archive-item-card-actions">
+                            <button type="button" class="btn btn-sm btn-success" onclick="showRestoreItemModal('concern', {{ $concern->id }}, '{{ $concern->title }}')">
+                                <i class="fas fa-trash-restore"></i> Restore
+                            </button>
+                            <form method="POST" action="{{ route('admin.concerns.softDelete', $concern->id) }}" class="d-inline"
+                                  onsubmit="return confirm('Move this concern to deleted? It can be restored from the deleted folder.')">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-danger">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
         </div>
     </div>
     @endif
@@ -204,6 +398,69 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Mobile Card Layout for Reports -->
+            <div class="mobile-archive-cards">
+                @foreach($reports as $report)
+                    <div class="archive-item-card" data-id="{{ $report->id }}" data-type="report">
+                        <div class="archive-item-card-header">
+                            <div>
+                                <input type="checkbox" class="archive-item-card-checkbox report-checkbox" value="{{ $report->id }}" onchange="updateSelectedCount()">
+                                <span class="archive-item-card-title">{{ \Illuminate\Support\Str::limit($report->title, 30) }}</span>
+                            </div>
+                            <span class="badge bg-{{ 
+                                $report->status == 'Resolved' ? 'success' : 
+                                ($report->status == 'In Progress' ? 'info' : 'warning')
+                            }}">
+                                {{ $report->status }}
+                            </span>
+                        </div>
+                        <div class="archive-item-card-body">
+                            <div class="archive-item-card-field">
+                                <span class="archive-item-card-label">Title:</span>
+                                <span class="archive-item-card-value">{{ $report->title }}</span>
+                            </div>
+                            <div class="archive-item-card-field">
+                                <span class="archive-item-card-label">Category:</span>
+                                <span class="archive-item-card-value">{{ $report->category->name ?? 'N/A' }}</span>
+                            </div>
+                            <div class="archive-item-card-field">
+                                <span class="archive-item-card-label">Priority:</span>
+                                <span class="archive-item-card-value">
+                                    <span class="badge bg-{{ 
+                                        $report->severity == 'critical' ? 'danger' : 
+                                        ($report->severity == 'high' ? 'warning' : 
+                                        ($report->severity == 'medium' ? 'info' : 'secondary'))
+                                    }}">
+                                        {{ ucfirst($report->severity) }}
+                                    </span>
+                                </span>
+                            </div>
+                            <div class="archive-item-card-field">
+                                <span class="archive-item-card-label">Reported By:</span>
+                                <span class="archive-item-card-value">{{ $report->user->name ?? 'N/A' }}</span>
+                            </div>
+                            <div class="archive-item-card-field">
+                                <span class="archive-item-card-label">Archived:</span>
+                                <span class="archive-item-card-value">{{ $report->updated_at->format('M d, Y') }}</span>
+                            </div>
+                        </div>
+                        <div class="archive-item-card-actions">
+                            <button type="button" class="btn btn-sm btn-success" onclick="showRestoreItemModal('report', {{ $report->id }}, '{{ $report->title }}')">
+                                <i class="fas fa-trash-restore"></i> Restore
+                            </button>
+                            <form method="POST" action="{{ route('admin.reports.softDelete', $report->id) }}" class="d-inline"
+                                  onsubmit="return confirm('Move this report to deleted? It can be restored from the deleted folder.')">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-danger">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
         </div>
     </div>
     @endif
@@ -267,6 +524,62 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Mobile Card Layout for Facility Requests -->
+            <div class="mobile-archive-cards">
+                @foreach($facilities as $facility)
+                    <div class="archive-item-card" data-id="{{ $facility->id }}" data-type="facility">
+                        <div class="archive-item-card-header">
+                            <div>
+                                <input type="checkbox" class="archive-item-card-checkbox facility-checkbox" value="{{ $facility->id }}" onchange="updateSelectedCount()">
+                                <span class="archive-item-card-title">{{ \Illuminate\Support\Str::limit($facility->event_title, 30) }}</span>
+                            </div>
+                            <span class="badge bg-{{ 
+                                $facility->status == 'Approved' ? 'success' : 
+                                ($facility->status == 'Pending' ? 'warning' : 
+                                ($facility->status == 'Rejected' ? 'danger' : 'info'))
+                            }}">
+                                {{ $facility->status }}
+                            </span>
+                        </div>
+                        <div class="archive-item-card-body">
+                            <div class="archive-item-card-field">
+                                <span class="archive-item-card-label">Event:</span>
+                                <span class="archive-item-card-value">{{ $facility->event_title }}</span>
+                            </div>
+                            <div class="archive-item-card-field">
+                                <span class="archive-item-card-label">Facility:</span>
+                                <span class="archive-item-card-value">{{ $facility->facility }}</span>
+                            </div>
+                            <div class="archive-item-card-field">
+                                <span class="archive-item-card-label">Event Date:</span>
+                                <span class="archive-item-card-value">{{ $facility->event_date }}</span>
+                            </div>
+                            <div class="archive-item-card-field">
+                                <span class="archive-item-card-label">Requested By:</span>
+                                <span class="archive-item-card-value">{{ $facility->user->name ?? 'N/A' }}</span>
+                            </div>
+                            <div class="archive-item-card-field">
+                                <span class="archive-item-card-label">Archived:</span>
+                                <span class="archive-item-card-value">{{ $facility->updated_at->format('M d, Y') }}</span>
+                            </div>
+                        </div>
+                        <div class="archive-item-card-actions">
+                            <button type="button" class="btn btn-sm btn-success" onclick="showRestoreItemModal('facility', {{ $facility->id }}, '{{ $facility->event_title }}')">
+                                <i class="fas fa-trash-restore"></i> Restore
+                            </button>
+                            <form method="POST" action="{{ route('admin.facilities.softDelete', $facility->id) }}" class="d-inline"
+                                  onsubmit="return confirm('Move this facility request to deleted? It can be restored from the deleted folder.')">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-danger">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
         </div>
     </div>
     @endif
