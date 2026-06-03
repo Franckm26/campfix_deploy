@@ -18,6 +18,10 @@
   ],
   "routes": [
     {
+      "src": "/api/cron/test-auth",
+      "dest": "/api/cron/test-auth.php"
+    },
+    {
       "src": "/api/cron/backup-supabase",
       "dest": "/api/cron/backup-supabase.php"
     },
