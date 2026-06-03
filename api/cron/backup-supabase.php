@@ -27,8 +27,12 @@ try {
     $supabaseUrl = getenv('SUPABASE_URL');
     $supabaseKey = getenv('SUPABASE_KEY');
     
-    if (!$supabaseUrl || !$supabaseKey) {
-        throw new Exception('Supabase credentials not configured');
+    if (!$supabaseUrl) {
+        throw new Exception('SUPABASE_URL not configured in environment variables');
+    }
+    
+    if (!$supabaseKey) {
+        throw new Exception('SUPABASE_KEY not configured in environment variables');
     }
     
     // List of tables to backup (add your tables here)
@@ -109,7 +113,14 @@ try {
     echo json_encode([
         'success' => false,
         'error' => $e->getMessage(),
-        'timestamp' => date('Y-m-d H:i:s')
+        'error_line' => $e->getLine(),
+        'error_file' => basename($e->getFile()),
+        'timestamp' => date('Y-m-d H:i:s'),
+        'env_check' => [
+            'supabase_url_set' => !empty(getenv('SUPABASE_URL')),
+            'supabase_key_set' => !empty(getenv('SUPABASE_KEY')),
+            'supabase_bucket_set' => !empty(getenv('SUPABASE_BUCKET')),
+        ]
     ], JSON_PRETTY_PRINT);
 }
 
