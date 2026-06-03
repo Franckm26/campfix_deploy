@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Supabase-Native Backup Endpoint
+ * Supabase-Native Backup Endpoint (v1.1)
  * 
  * This uses Supabase's native backup features instead of pg_dump
  * Works on Vercel serverless without PostgreSQL client tools
