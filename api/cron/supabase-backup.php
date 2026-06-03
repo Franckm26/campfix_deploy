@@ -128,11 +128,15 @@ function createLogicalBackup($projectRef, $supabaseUrl, $serviceKey) {
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'Authorization: Bearer ' . $serviceKey,
             'Content-Type: application/json',
+            'x-upsert: true'
         ]);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $content);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
         
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
         curl_close($ch);
         
         $success = $httpCode >= 200 && $httpCode < 300;
@@ -146,7 +150,11 @@ function createLogicalBackup($projectRef, $supabaseUrl, $serviceKey) {
             'size_bytes' => strlen($content),
             'size_mb' => round(strlen($content) / 1024 / 1024, 2),
             'timestamp' => date('Y-m-d H:i:s'),
-            'upload_http_code' => $httpCode
+            'upload_http_code' => $httpCode,
+            'upload_error' => $curlError ?: null,
+            'upload_response' => $response ? json_decode($response) : null,
+            'bucket' => $bucket,
+            'upload_url' => $uploadUrl
         ];
         
     } catch (Exception $e) {
