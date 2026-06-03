@@ -30,6 +30,9 @@ try {
         throw new Exception('Missing Supabase configuration');
     }
     
+    // Remove https:// or http:// if it exists (Supabase integration includes it)
+    $supabaseUrl = str_replace(['https://', 'http://'], '', $supabaseUrl);
+    
     // Extract project reference from URL
     $projectRef = explode('.', $supabaseUrl)[0]; // e.g., pclfaksjjprickgppnus
     
