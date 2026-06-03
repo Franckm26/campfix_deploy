@@ -33,6 +33,13 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->command('concerns:auto-resolve-rooms')->everyMinute();
         $schedule->command('concerns:send-follow-ups')->daily();
+        
+        // Database backup every 15 minutes (free-tier friendly)
+        // Change to ->everyFiveMinutes() if you need more frequent backups
+        $schedule->command('db:backup --compress')
+            ->everyFifteenMinutes()
+            ->withoutOverlapping()
+            ->runInBackground();
     })
     ->withMiddleware(function (Middleware $middleware): void {
         // Register security headers middleware globally (OWASP A6)
