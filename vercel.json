@@ -18,6 +18,14 @@
   ],
   "routes": [
     {
+      "src": "/api/cron/list-backups",
+      "dest": "/api/cron/list-backups.php"
+    },
+    {
+      "src": "/api/cron/restore-backup",
+      "dest": "/api/cron/restore-backup.php"
+    },
+    {
       "src": "/api/cron/supabase-backup",
       "dest": "/api/cron/supabase-backup.php"
     },
