@@ -14,6 +14,14 @@
   ],
   "routes": [
     {
+      "src": "/api/cron/backup-status",
+      "dest": "/api/cron/backup-status.php"
+    },
+    {
+      "src": "/api/cron/backup",
+      "dest": "/api/cron/backup.php"
+    },
+    {
       "src": "/sitemap.xml",
       "dest": "/api/index.php"
     },
