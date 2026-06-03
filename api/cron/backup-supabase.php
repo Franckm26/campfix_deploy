@@ -77,7 +77,7 @@ try {
     $backupContent = json_encode($backupData, JSON_PRETTY_PRINT);
     
     // Upload to Supabase Storage
-    $bucket = getenv('SUPABASE_BUCKET') ?: 'backups';
+    $bucket = getenv('SUPABASE_BACKUP_BUCKET') ?: 'backups';
     $uploadUrl = "https://{$supabaseUrl}/storage/v1/object/{$bucket}/database-backups/{$filename}";
     
     $ch = curl_init($uploadUrl);
