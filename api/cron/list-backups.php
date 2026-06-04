@@ -23,8 +23,12 @@ try {
     $supabaseServiceKey = getenv('SUPABASE_KEY');
     $bucket = getenv('SUPABASE_BACKUP_BUCKET') ?: 'backups';
     
-    if (!$supabaseUrl || !$supabaseServiceKey) {
-        throw new Exception('Supabase credentials not configured');
+    if (!$supabaseUrl) {
+        throw new Exception('SUPABASE_URL not configured');
+    }
+    
+    if (!$supabaseServiceKey) {
+        throw new Exception('SUPABASE_KEY not configured');
     }
     
     // Remove protocol if exists
