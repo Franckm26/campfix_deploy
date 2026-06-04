@@ -34,25 +34,33 @@ try {
     // Remove protocol if exists
     $supabaseUrl = str_replace(['https://', 'http://'], '', $supabaseUrl);
     
-    // List files in backup folder
+    // List files in backup folder - Supabase Storage API uses POST for list operations
     $listUrl = "https://{$supabaseUrl}/storage/v1/object/list/{$bucket}";
     
-    // Add query parameters for prefix
-    $params = http_build_query(['prefix' => 'database-backups/', 'limit' => 100, 'offset' => 0]);
-    $listUrl .= '?' . $params;
+    // Prepare request body
+    $requestBody = json_encode([
+        'limit' => 100,
+        'offset' => 0,
+        'sortBy' => ['column' => 'created_at', 'order' => 'desc'],
+        'prefix' => 'database-backups/'
+    ]);
     
     $ch = curl_init($listUrl);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $requestBody);
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
         'Authorization: Bearer ' . $supabaseServiceKey,
+        'Content-Type: application/json'
     ]);
     
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
     curl_close($ch);
     
     if ($httpCode !== 200) {
-        throw new Exception('Failed to list backups. HTTP Code: ' . $httpCode . '. Response: ' . $response);
+        throw new Exception('Failed to list backups. HTTP Code: ' . $httpCode . '. Response: ' . $response . '. Curl Error: ' . $curlError);
     }
     
     $files = json_decode($response, true);

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backup System Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; }
+        h2 { color: #666; margin-top: 0; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        button.danger { background: #dc3545; }
+        button.danger:hover { background: #c82333; }
+        button.success { background: #28a745; }
+        button.success:hover { background: #218838; }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            border: 1px solid #dee2e6;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .status.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .status.info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .backup-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: #f8f9fa;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .backup-info { flex: 1; }
+        .backup-filename { font-weight: bold; color: #333; }
+        .backup-meta { font-size: 12px; color: #666; margin-top: 5px; }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 CampFix Backup System Test</h1>
+    
+    <div class="container">
+        <h2>📋 Instructions</h2>
+        <div class="status info">
+            <strong>Setup Required:</strong><br>
+            1. Install <strong>ModHeader</strong> browser extension<br>
+            2. Add header: <code>Authorization</code> = <code>Bearer XkBrGrCSuzsWoJlgAw9mFZokhvx0lYZXrtj1eV/Estw=</code><br>
+            3. Make sure ModHeader is enabled (toggle on)<br>
+            4. Click the buttons below to test each endpoint
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>1️⃣ Create Backup</h2>
+        <p>Creates a new backup of all database tables</p>
+        <button class="success" onclick="testBackup()">Run Backup Now</button>
+        <div id="backupResult"></div>
+    </div>
+
+    <div class="container">
+        <h2>2️⃣ List Backups</h2>
+        <p>Shows all available backup files</p>
+        <button onclick="listBackups()">List All Backups</button>
+        <div id="listResult"></div>
+    </div>
+
+    <div class="container">
+        <h2>3️⃣ Restore Backup</h2>
+        <p>Restore database from a backup file</p>
+        <input type="text" id="restoreFilename" placeholder="Enter filename (e.g., backup-2026-06-03-120240.json)">
+        <button class="danger" onclick="restoreBackup()">Restore This Backup</button>
+        <div id="restoreResult"></div>
+    </div>
+
+    <script>
+        const CRON_SECRET = 'XkBrGrCSuzsWoJlgAw9mFZokhvx0lYZXrtj1eV/Estw=';
+        
+        function showResult(elementId, data, isError = false) {
+            const el = document.getElementById(elementId);
+            const statusClass = isError ? 'error' : 'success';
+            el.innerHTML = `
+                <div class="status ${statusClass}">
+                    <strong>${isError ? '❌ Error' : '✅ Success'}</strong>
+                </div>
+                <pre>${JSON.stringify(data, null, 2)}</pre>
+            `;
+        }
+
+        async function testBackup() {
+            const resultDiv = document.getElementById('backupResult');
+            resultDiv.innerHTML = '<div class="status info">⏳ Running backup...</div>';
+            
+            try {
+                const response = await fetch('/api/cron/supabase-backup', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${CRON_SECRET}`
+                    }
+                });
+                
+                const data = await response.json();
+                showResult('backupResult', data, !response.ok);
+            } catch (error) {
+                showResult('backupResult', { error: error.message }, true);
+            }
+        }
+
+        async function listBackups() {
+            const resultDiv = document.getElementById('listResult');
+            resultDiv.innerHTML = '<div class="status info">⏳ Loading backups...</div>';
+            
+            try {
+                const response = await fetch('/api/cron/list-backups', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${CRON_SECRET}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success && data.backups) {
+                    // Display backups in a nice format
+                    let html = `<div class="status success">✅ Found ${data.total_backups} backups</div>`;
+                    
+                    data.backups.forEach(backup => {
+                        html += `
+                            <div class="backup-item">
+                                <div class="backup-info">
+                                    <div class="backup-filename">${backup.filename}</div>
+                                    <div class="backup-meta">
+                                        Size: ${backup.size_mb} MB | Created: ${backup.created_at}
+                                    </div>
+                                </div>
+                                <button onclick="restoreBackupByName('${backup.filename}')" class="danger">Restore</button>
+                            </div>
+                        `;
+                    });
+                    
+                    resultDiv.innerHTML = html;
+                } else {
+                    showResult('listResult', data, true);
+                }
+            } catch (error) {
+                showResult('listResult', { error: error.message }, true);
+            }
+        }
+
+        async function restoreBackup() {
+            const filename = document.getElementById('restoreFilename').value.trim();
+            if (!filename) {
+                alert('Please enter a backup filename');
+                return;
+            }
+            restoreBackupByName(filename);
+        }
+
+        async function restoreBackupByName(filename) {
+            if (!confirm(`⚠️ WARNING: This will restore the database from backup: ${filename}\n\nAre you sure you want to continue?`)) {
+                return;
+            }
+            
+            const resultDiv = document.getElementById('restoreResult');
+            resultDiv.innerHTML = '<div class="status info">⏳ Restoring backup (this may take a few minutes)...</div>';
+            
+            try {
+                const response = await fetch(`/api/cron/restore-backup?filename=${encodeURIComponent(filename)}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${CRON_SECRET}`
+                    }
+                });
+                
+                const data = await response.json();
+                showResult('restoreResult', data, !response.ok);
+            } catch (error) {
+                showResult('restoreResult', { error: error.message }, true);
+            }
+        }
+    </script>
+</body>
+</html>
