@@ -35,7 +35,11 @@ try {
     $supabaseUrl = str_replace(['https://', 'http://'], '', $supabaseUrl);
     
     // List files in backup folder
-    $listUrl = "https://{$supabaseUrl}/storage/v1/object/list/{$bucket}?prefix=database-backups/";
+    $listUrl = "https://{$supabaseUrl}/storage/v1/object/list/{$bucket}";
+    
+    // Add query parameters for prefix
+    $params = http_build_query(['prefix' => 'database-backups/', 'limit' => 100, 'offset' => 0]);
+    $listUrl .= '?' . $params;
     
     $ch = curl_init($listUrl);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -48,7 +52,7 @@ try {
     curl_close($ch);
     
     if ($httpCode !== 200) {
-        throw new Exception('Failed to list backups. HTTP Code: ' . $httpCode);
+        throw new Exception('Failed to list backups. HTTP Code: ' . $httpCode . '. Response: ' . $response);
     }
     
     $files = json_decode($response, true);
