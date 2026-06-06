@@ -1477,10 +1477,10 @@
 
                     <div class="mb-3">
                         <label for="new_category_id" class="form-label">Category *</label>
-                        <select class="form-select" id="new_category_id" name="category_id" required>
+                        <select class="form-select" id="new_category_id" name="category_id" required onchange="handleNewCategoryChange()">
                             <option value="" disabled selected>Select a category</option>
                             @foreach($categories as $category)
-                                <option value="{{ $category->id }}" data-name="{{ strtolower(trim($category->name)) }}">{{ $category->name }}</option>
+                                <option value="{{ $category->id }}" data-name="{{ strtolower(trim($category->name)) }}" data-issues='@json($category->issues ?? [])'>{{ $category->name }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -1823,6 +1823,75 @@ function handleEditCategoryChange() {
     if (locationContainer) locationContainer.style.display = 'block';
     if (locationSelect) locationSelect.setAttribute('required', 'required');
 }
+
+function handleNewCategoryChange() {
+    const categorySelect = document.getElementById('new_category_id');
+    const issueContainer = document.getElementById('new_issue_container');
+    const issueSelect = document.getElementById('new_issue');
+    const locationContainer = document.getElementById('new_location_container');
+    const locationSelect = document.getElementById('new_location');
+    const titleInput = document.getElementById('new_title');
+    
+    if (!categorySelect) return;
+    
+    const selectedOption = categorySelect.options[categorySelect.selectedIndex];
+    
+    // Get issues from the data-issues attribute
+    let issues = [];
+    try {
+        const issuesData = selectedOption ? selectedOption.getAttribute('data-issues') : null;
+        issues = issuesData ? JSON.parse(issuesData) : [];
+    } catch (e) {
+        console.error('Error parsing issues:', e);
+        issues = [];
+    }
+    
+    if (issues.length === 0) {
+        // No issues for this category - set title to category name
+        if (issueContainer) issueContainer.style.display = 'none';
+        if (issueSelect) {
+            issueSelect.removeAttribute('required');
+            issueSelect.innerHTML = '<option value="" disabled selected>Select an issue</option>';
+        }
+        // Set title to category name when no issues
+        if (titleInput) {
+            const categoryName = selectedOption ? selectedOption.text : '';
+            titleInput.value = categoryName;
+        }
+    } else {
+        // Has issues — show the dropdown and populate it
+        if (issueContainer) issueContainer.style.display = 'block';
+        if (issueSelect) {
+            issueSelect.setAttribute('required', 'required');
+            issueSelect.innerHTML = '<option value="" disabled selected>Select an issue</option>';
+            issues.forEach(function(issue) {
+                const opt = document.createElement('option');
+                opt.value = issue;
+                opt.textContent = issue;
+                issueSelect.appendChild(opt);
+            });
+        }
+        // Clear title when issues are available (will be set when issue is selected)
+        if (titleInput) titleInput.value = '';
+    }
+    
+    // Show location dropdown for all categories
+    if (locationContainer) locationContainer.style.display = 'block';
+    if (locationSelect) locationSelect.setAttribute('required', 'required');
+}
+
+// Handle issue change in new concern form to update title
+document.addEventListener('DOMContentLoaded', function() {
+    const newIssueSelect = document.getElementById('new_issue');
+    if (newIssueSelect) {
+        newIssueSelect.addEventListener('change', function() {
+            const titleInput = document.getElementById('new_title');
+            if (titleInput) {
+                titleInput.value = this.value;
+            }
+        });
+    }
+});
 
 function updateAutoDeletePeriod(days) {
     if (confirm('Set auto-delete period to ' + days + ' days? Concerns deleted longer than this will be automatically removed.')) {
