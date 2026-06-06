@@ -2139,7 +2139,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         });
-        });
         
         // Listen for override submission event
         document.addEventListener('submitWithOverride', function() {
