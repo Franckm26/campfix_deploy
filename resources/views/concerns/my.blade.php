@@ -1656,8 +1656,10 @@ function confirmSubmit() {
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
-            // Submit the form
-            document.getElementById('newConcernForm').submit();
+            // Trigger form submission event (not direct submit)
+            const form = document.getElementById('newConcernForm');
+            const event = new Event('submit', { cancelable: true, bubbles: true });
+            form.dispatchEvent(event);
         }
     });
 }
@@ -2034,13 +2036,25 @@ document.addEventListener('DOMContentLoaded', function() {
         concernForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
-            const formData = new FormData(this);
-            const submitButton = this.querySelector('button[type="submit"]');
-            const originalButtonText = submitButton.innerHTML;
+            console.log('[DEBUG] Form submit event triggered');
             
-            // Disable submit button and show loading
-            submitButton.disabled = true;
-            submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Submitting...';
+            const formData = new FormData(this);
+            
+            // Log form data for debugging
+            console.log('[DEBUG] Form data:');
+            for (let pair of formData.entries()) {
+                console.log(pair[0] + ': ' + pair[1]);
+            }
+            
+            // Show loading in review modal button
+            const reviewModal = document.getElementById('reviewConcernModal');
+            const submitBtn = reviewModal?.querySelector('button.btn-primary');
+            let originalButtonText = '';
+            if (submitBtn) {
+                originalButtonText = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Submitting...';
+            }
             
             fetch('{{ route("concerns.store") }}', {
                 method: 'POST',
@@ -2049,9 +2063,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     'X-CSRF-TOKEN': '{{ csrf_token() }}',
                     'Accept': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest'
-                }
+                },
+                credentials: 'same-origin'
             })
             .then(response => {
+                console.log('[DEBUG] Response status:', response.status);
                 if (response.status === 409) {
                     // Duplicate concern detected
                     return response.json().then(data => {
@@ -2066,8 +2082,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 return response.json();
             })
             .then(data => {
+                console.log('[DEBUG] Success response:', data);
                 // Success - close modal and reload
-                bootstrap.Modal.getInstance(document.getElementById('newConcernModal')).hide();
+                const newConcernModalEl = document.getElementById('newConcernModal');
+                const reviewModalEl = document.getElementById('reviewConcernModal');
+                
+                if (newConcernModalEl) {
+                    const instance = bootstrap.Modal.getInstance(newConcernModalEl);
+                    if (instance) instance.hide();
+                }
+                if (reviewModalEl) {
+                    const instance = bootstrap.Modal.getInstance(reviewModalEl);
+                    if (instance) instance.hide();
+                }
+                
                 Swal.fire({
                     icon: 'success',
                     title: 'Success!',
@@ -2078,18 +2106,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             })
             .catch(error => {
+                console.error('[DEBUG] Error:', error);
                 // Re-enable submit button
-                submitButton.disabled = false;
-                submitButton.innerHTML = originalButtonText;
+                if (submitBtn && originalButtonText) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalButtonText;
+                }
                 
                 if (error.duplicate) {
                     // Show duplicate concern alert with options
                     const concernData = error.data;
-                    bootstrap.Modal.getInstance(document.getElementById('newConcernModal')).hide();
+                    const reviewModalEl = document.getElementById('reviewConcernModal');
+                    if (reviewModalEl) {
+                        const instance = bootstrap.Modal.getInstance(reviewModalEl);
+                        if (instance) instance.hide();
+                    }
                     
                     // Store form data for potential override
                     window.pendingFormData = formData;
-                    window.pendingSubmitButton = submitButton;
+                    window.pendingSubmitButton = submitBtn;
                     window.pendingOriginalButtonText = originalButtonText;
                     
                     showDuplicateAlert(concernData);
@@ -2098,11 +2133,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
-                        text: error.data?.message || 'Failed to submit concern. Please try again.',
+                        text: error.data?.message || error.message || 'Failed to submit concern. Please try again.',
                         confirmButtonColor: '#d33'
                     });
                 }
             });
+        });
         });
         
         // Listen for override submission event
