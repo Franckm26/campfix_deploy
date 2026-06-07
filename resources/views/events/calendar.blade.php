@@ -888,9 +888,17 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
             return h12 + ':' + m + ' ' + ampm;
         }
         
-        // Always show "Concern Details" as the modal title
+        // Change modal title based on ID prefix
         const modalLabel = document.getElementById('eventModalLabel');
-        modalLabel.innerHTML = '<i class="fas fa-tools me-2"></i>Concern Details';
+        if (id.startsWith('concern_')) {
+            modalLabel.innerHTML = '<i class="fas fa-tools me-2"></i>Concern Details';
+        } else if (id.startsWith('event_')) {
+            modalLabel.innerHTML = '<i class="fas fa-calendar-alt me-2"></i>Event Details';
+        } else if (id.startsWith('facility_')) {
+            modalLabel.innerHTML = '<i class="fas fa-building me-2"></i>Facility Booking Details';
+        } else {
+            modalLabel.innerHTML = '<i class="fas fa-calendar-alt me-2"></i>Event Details';
+        }
         
         document.getElementById('eventTitle').textContent = title;
 
