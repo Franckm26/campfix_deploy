@@ -1207,19 +1207,13 @@ class EventRequestController extends Controller
     {
         $calendarEvents = collect();
 
-        // Event Requests - Get all statuses
-        $eventQuery = EventRequest::whereIn('status', ['Approved', 'Pending', 'Assigned', 'In-Progress']);
+        // Event Requests - Only Approved
+        $eventQuery = EventRequest::where('status', 'Approved');
         $events = $eventQuery->with('user')->orderBy('event_date', 'asc')->get();
 
         $eventCalendarEvents = $events->map(function ($event) {
-            // Set color based on status
-            $backgroundColor = match($event->status) {
-                'Approved' => '#26a69a',      // Green
-                'Pending' => '#ffa726',        // Orange
-                'Assigned' => '#4f6ef7',       // Blue
-                'In-Progress' => '#7c4dff',    // Purple
-                default => '#3788d8'
-            };
+            // All events are Approved, use green color
+            $backgroundColor = '#26a69a';  // Green for Approved
 
             return [
                 'id' => 'event_'.$event->id,
@@ -1229,7 +1223,7 @@ class EventRequestController extends Controller
                 'backgroundColor' => $backgroundColor,
                 'borderColor' => $backgroundColor,
                 'extendedProps' => [
-                    'type' => strtolower(str_replace('-', '_', $event->status)), // approved, pending, assigned, in_progress
+                    'type' => 'approved',
                     'category' => $event->category,
                     'location' => $event->event_location,
                     'description' => $event->description,
@@ -1239,19 +1233,13 @@ class EventRequestController extends Controller
             ];
         });
 
-        // Facility Requests - Get all statuses
-        $facilityQuery = FacilityRequest::whereIn('status', ['Approved', 'Pending', 'Assigned', 'In-Progress']);
+        // Facility Requests - Only Approved
+        $facilityQuery = FacilityRequest::where('status', 'Approved');
         $facilities = $facilityQuery->with('user')->orderBy('event_date', 'asc')->get();
 
         $facilityCalendarEvents = $facilities->map(function ($facility) {
-            // Set color based on status
-            $backgroundColor = match($facility->status) {
-                'Approved' => '#26a69a',      // Green
-                'Pending' => '#ffa726',        // Orange
-                'Assigned' => '#4f6ef7',       // Blue
-                'In-Progress' => '#7c4dff',    // Purple
-                default => '#28a745'
-            };
+            // All facilities are Approved, use green color
+            $backgroundColor = '#26a69a';  // Green for Approved
 
             return [
                 'id' => 'facility_'.$facility->id,
@@ -1261,7 +1249,7 @@ class EventRequestController extends Controller
                 'backgroundColor' => $backgroundColor,
                 'borderColor' => $backgroundColor,
                 'extendedProps' => [
-                    'type' => strtolower(str_replace('-', '_', $facility->status)), // approved, pending, assigned, in_progress
+                    'type' => 'approved',
                     'facility' => $facility->facility,
                     'location' => $facility->facility,
                     'description' => $facility->description,
@@ -1271,22 +1259,16 @@ class EventRequestController extends Controller
             ];
         });
 
-        // Concerns - Get all statuses
-        $concernQuery = Concern::whereIn('status', ['Approved', 'Pending', 'Assigned', 'In-Progress'])->where('is_deleted', false);
+        // Concerns - Only Approved
+        $concernQuery = Concern::where('status', 'Approved')->where('is_deleted', false);
         $concerns = $concernQuery->with('categoryRelation', 'user')->orderBy('created_at', 'asc')->get();
 
         $concernCalendarEvents = $concerns->map(function ($concern) {
             $date = $concern->created_at->format('Y-m-d');
             $title = $concern->title ?? ($concern->categoryRelation->name ?? 'Concern');
 
-            // Set color based on status
-            $backgroundColor = match($concern->status) {
-                'Approved' => '#26a69a',      // Green
-                'Pending' => '#ffa726',        // Orange
-                'Assigned' => '#4f6ef7',       // Blue
-                'In-Progress' => '#7c4dff',    // Purple
-                default => '#dc3545'
-            };
+            // All concerns are Approved, use green color
+            $backgroundColor = '#26a69a';  // Green for Approved
 
             // Construct location from room_number or location field
             $location = $concern->location;
@@ -1302,7 +1284,7 @@ class EventRequestController extends Controller
                 'backgroundColor' => $backgroundColor,
                 'borderColor' => $backgroundColor,
                 'extendedProps' => [
-                    'type' => strtolower(str_replace('-', '_', $concern->status)), // approved, pending, assigned, in_progress
+                    'type' => 'approved',
                     'location' => $location,
                     'description' => $concern->description,
                     'requestedBy' => $concern->user->name ?? 'Anonymous',
