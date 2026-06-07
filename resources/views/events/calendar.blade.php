@@ -394,7 +394,7 @@
 
             <!-- Event Types -->
             <div class="cal-list-card">
-                <h6><i class="fas fa-th-large text-primary"></i> Event Types</h6>
+                <h6><i class="fas fa-info-circle text-primary"></i> Status</h6>
                 <div class="cal-list-item"><div class="cal-dot" style="background:#26a69a"></div> Approved Events</div>
                 <div class="cal-list-item"><div class="cal-dot" style="background:#ffa726"></div> Pending</div>
                 <div class="cal-list-item"><div class="cal-dot" style="background:#4f6ef7"></div> Assigned</div>
@@ -407,7 +407,7 @@
                 <form method="GET" action="{{ route('events.calendar') }}" id="filterForm">
                     <input type="hidden" name="view" value="calendar">
                     <div class="mb-2">
-                        <label class="form-label small">Event Types</label>
+                        <label class="form-label small">Status</label>
                         <div class="form-check form-check-sm">
                             <input class="form-check-input" type="checkbox" name="filter_types[]" value="approved" id="type_approved" {{ in_array('approved', $filterTypes ?? []) ? 'checked' : '' }}>
                             <label class="form-check-label small" for="type_approved">Approved Events</label>
@@ -499,7 +499,7 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
                     <div class="row g-3">
                         <div class="col-md-6">
                             <div class="p-3 bg-light rounded">
-                                <small class="text-muted d-block"><i class="fas fa-tag me-1"></i>Type</small>
+                                <small class="text-muted d-block"><i class="fas fa-info-circle me-1"></i>Status</small>
                                 <span id="eventType" class="badge fs-6"></span>
                             </div>
                         </div>
@@ -822,26 +822,41 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
             return h12 + ':' + m + ' ' + ampm;
         }
         
-        // Update modal title based on type
+        // Always show "Concern Details" as the modal title
         const modalLabel = document.getElementById('eventModalLabel');
-        if (type === 'maintenance') {
-            modalLabel.innerHTML = '<i class="fas fa-tools me-2"></i>Concern Details';
-        } else {
-            modalLabel.innerHTML = '<i class="fas fa-calendar-alt me-2"></i>Event Details';
-        }
+        modalLabel.innerHTML = '<i class="fas fa-tools me-2"></i>Concern Details';
         
         document.getElementById('eventTitle').textContent = title;
 
         var typeBadge = document.getElementById('eventType');
-        typeBadge.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+        // Display the actual status value, not the type
+        var statusText = status || type;
+        // Format status text properly
+        if (statusText === 'in_progress') {
+            statusText = 'In-Progress';
+        } else if (statusText === 'approved') {
+            statusText = 'Approved';
+        } else if (statusText === 'pending') {
+            statusText = 'Pending';
+        } else if (statusText === 'assigned') {
+            statusText = 'Assigned';
+        } else {
+            statusText = statusText.charAt(0).toUpperCase() + statusText.slice(1);
+        }
+        typeBadge.textContent = statusText;
 
-        // Set type badge color
+        // Set status badge color based on status
         var colors = {
-            'event': 'bg-primary',
-            'facility': 'bg-success',
-            'maintenance': 'bg-danger'
+            'approved': 'bg-success',
+            'pending': 'bg-warning',
+            'assigned': 'bg-primary',
+            'in_progress': 'bg-info',
+            'Approved': 'bg-success',
+            'Pending': 'bg-warning',
+            'Assigned': 'bg-primary',
+            'In-Progress': 'bg-info'
         };
-        typeBadge.className = 'badge fs-6 ' + (colors[type] || 'bg-primary');
+        typeBadge.className = 'badge fs-6 ' + (colors[type] || colors[status] || 'bg-primary');
 
         // Format date - parse the date string properly
         var dateParts = date.split('-');
