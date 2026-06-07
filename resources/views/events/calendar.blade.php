@@ -561,7 +561,7 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
             
             // Re-render calendar after loading events
             renderMainCalendar();
-            renderMiniCalendar();
+            // renderMiniCalendar(); // Mini calendar removed from this page
             if (activeView === 'agenda') renderAgenda();
             if (activeView === 'week') renderWeekView();
         } catch (error) {
@@ -591,7 +591,7 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
         mainDate = new Date();
         miniDate = new Date();
         renderMainCalendar();
-        renderMiniCalendar();
+        // renderMiniCalendar(); // Mini calendar removed from this page
         if (activeView === 'week') renderWeekView();
     }
 
@@ -831,7 +831,7 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
 
         // Render calendar immediately with empty data
         renderMainCalendar();
-        renderMiniCalendar();
+        // renderMiniCalendar(); // Mini calendar removed from this page
         
         // Load calendar events and re-render with data
         fetchCalendarEvents();
