@@ -1259,16 +1259,21 @@ class EventRequestController extends Controller
             ];
         });
 
-        // Concerns - Only Approved
-        $concernQuery = Concern::where('status', 'Approved')->where('is_deleted', false);
+        // Concerns - Show Pending, Assigned, and In-Progress (NOT Approved)
+        $concernQuery = Concern::whereIn('status', ['Pending', 'Assigned', 'In-Progress'])->where('is_deleted', false);
         $concerns = $concernQuery->with('categoryRelation', 'user')->orderBy('created_at', 'asc')->get();
 
         $concernCalendarEvents = $concerns->map(function ($concern) {
             $date = $concern->created_at->format('Y-m-d');
             $title = $concern->title ?? ($concern->categoryRelation->name ?? 'Concern');
 
-            // All concerns are Approved, use green color
-            $backgroundColor = '#26a69a';  // Green for Approved
+            // Set color based on status
+            $backgroundColor = match($concern->status) {
+                'Pending' => '#ffa726',        // Orange
+                'Assigned' => '#4f6ef7',       // Blue
+                'In-Progress' => '#7c4dff',    // Purple
+                default => '#dc3545'
+            };
 
             // Construct location from room_number or location field
             $location = $concern->location;
@@ -1284,7 +1289,7 @@ class EventRequestController extends Controller
                 'backgroundColor' => $backgroundColor,
                 'borderColor' => $backgroundColor,
                 'extendedProps' => [
-                    'type' => 'approved',
+                    'type' => strtolower(str_replace('-', '_', $concern->status)),
                     'location' => $location,
                     'description' => $concern->description,
                     'requestedBy' => $concern->user->name ?? 'Anonymous',

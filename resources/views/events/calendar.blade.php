@@ -396,9 +396,9 @@
             <div class="cal-list-card">
                 <h6><i class="fas fa-info-circle text-primary"></i> Status</h6>
                 <div class="cal-list-item"><div class="cal-dot" style="background:#26a69a"></div> Approved Events</div>
-                <div class="cal-list-item"><div class="cal-dot" style="background:#ffa726"></div> Pending</div>
-                <div class="cal-list-item"><div class="cal-dot" style="background:#4f6ef7"></div> Assigned</div>
-                <div class="cal-list-item"><div class="cal-dot" style="background:#7c4dff"></div> In-Progress</div>
+                <div class="cal-list-item"><div class="cal-dot" style="background:#ffa726"></div> Pending Concerns</div>
+                <div class="cal-list-item"><div class="cal-dot" style="background:#4f6ef7"></div> Assigned Concerns</div>
+                <div class="cal-list-item"><div class="cal-dot" style="background:#7c4dff"></div> In-Progress Concerns</div>
             </div>
 
             <!-- Filters -->
@@ -414,15 +414,15 @@
                         </div>
                         <div class="form-check form-check-sm">
                             <input class="form-check-input" type="checkbox" name="filter_types[]" value="pending" id="type_pending" {{ in_array('pending', $filterTypes ?? []) ? 'checked' : '' }}>
-                            <label class="form-check-label small" for="type_pending">Pending</label>
+                            <label class="form-check-label small" for="type_pending">Pending Concerns</label>
                         </div>
                         <div class="form-check form-check-sm">
                             <input class="form-check-input" type="checkbox" name="filter_types[]" value="assigned" id="type_assigned" {{ in_array('assigned', $filterTypes ?? []) ? 'checked' : '' }}>
-                            <label class="form-check-label small" for="type_assigned">Assigned</label>
+                            <label class="form-check-label small" for="type_assigned">Assigned Concerns</label>
                         </div>
                         <div class="form-check form-check-sm">
                             <input class="form-check-input" type="checkbox" name="filter_types[]" value="in_progress" id="type_in_progress" {{ in_array('in_progress', $filterTypes ?? []) ? 'checked' : '' }}>
-                            <label class="form-check-label small" for="type_in_progress">In-Progress</label>
+                            <label class="form-check-label small" for="type_in_progress">In-Progress Concerns</label>
                         </div>
                     </div>
                     <div class="mb-2">
