@@ -1288,6 +1288,12 @@ class EventRequestController extends Controller
                 default => '#dc3545'
             };
 
+            // Construct location from room_number or location field
+            $location = $concern->location;
+            if (empty($location) && $concern->room_number) {
+                $location = 'Room ' . $concern->room_number;
+            }
+
             return [
                 'id' => 'concern_'.$concern->id,
                 'title' => $title,
@@ -1297,7 +1303,7 @@ class EventRequestController extends Controller
                 'borderColor' => $backgroundColor,
                 'extendedProps' => [
                     'type' => strtolower(str_replace('-', '_', $concern->status)), // approved, pending, assigned, in_progress
-                    'location' => $concern->location,
+                    'location' => $location,
                     'description' => $concern->description,
                     'requestedBy' => $concern->user->name ?? 'Anonymous',
                     'status' => $concern->status,
