@@ -789,7 +789,7 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
             const dayEvents = calEvents.filter(e => e.start === dateStr);
             const evHtml = dayEvents.slice(0,2).map(e => {
                 const color = e.type === 'approved' ? 'green' : e.type === 'pending' ? 'orange' : e.type === 'assigned' ? 'blue' : 'purple';
-                const displayTitle = e.title || 'Untitled';
+                const displayTitle = e.title || e.description || 'No description';
                 const escapedTitle = displayTitle.replace(/'/g, "\\'");
                 const escapedDesc = (e.description || '').replace(/'/g, "\\'");
                 const escapedLocation = (e.location || '').replace(/'/g, "\\'");
@@ -832,7 +832,7 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
             return;
         }
         el.innerHTML = upcoming.map(e => {
-            const displayTitle = e.title || 'Untitled';
+            const displayTitle = e.title || e.description || 'No description';
             const escapedTitle = displayTitle.replace(/'/g, "\\'");
             const escapedDesc = (e.description || '').replace(/'/g, "\\'");
             const escapedLocation = (e.location || '').replace(/'/g, "\\'");
