@@ -36,12 +36,9 @@ class ConcernAssignedNotification extends Notification
     {
         $channels = ['database'];
         
+        // Always send email notifications via Brevo/Sendinblue
         if ($notifiable->email_notifications ?? true) {
             $channels[] = 'mail';
-        }
-        
-        if ($notifiable->push_notifications ?? false) {
-            $channels[] = 'onesignal';
         }
         
         return $channels;
@@ -102,31 +99,6 @@ class ConcernAssignedNotification extends Notification
             'assigned_by' => $this->assignedBy,
             'assigned_at' => $this->assignedAt,
             'url' => '/concerns/assigned',
-        ];
-    }
-
-    /**
-     * Get the FCM representation of the notification.
-     *
-     * @return array<string, mixed>
-     */
-    public function toOneSignal(object $notifiable): array
-    {
-        $title = $this->concern->title ?? 'Concern';
-        $categoryName = $this->concern->categoryRelation->name ?? 'N/A';
-
-        return [
-            'title' => '🔔 New Concern Assigned',
-            'body' => "'{$title}' has been assigned to you by {$this->assignedBy}",
-            'icon' => '/favicon.ico',
-            'badge' => '/favicon.ico',
-            'url' => url('/concerns/assigned'),
-            'data' => [
-                'type' => 'concern_assigned',
-                'concern_id' => $this->concern->id,
-                'url' => '/concerns/assigned',
-                'priority' => $this->concern->priority,
-            ],
         ];
     }
 }
