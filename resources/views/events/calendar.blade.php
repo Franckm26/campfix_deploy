@@ -825,7 +825,11 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
         const theme = '{{ auth()->user()->theme ?? "light" }}';
         document.documentElement.setAttribute('data-theme', theme);
 
-        // Load calendar events and render
+        // Render calendar immediately with empty data
+        renderMainCalendar();
+        renderMiniCalendar();
+        
+        // Load calendar events and re-render with data
         fetchCalendarEvents();
     });
 </script>

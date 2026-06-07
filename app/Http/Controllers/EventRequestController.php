@@ -1207,7 +1207,7 @@ class EventRequestController extends Controller
     {
         $calendarEvents = collect();
 
-        // Event Requests
+        // Event Requests - Only Approved
         $eventQuery = EventRequest::where('status', 'Approved');
         if ($request->start) {
             $eventQuery->whereDate('event_date', '>=', $request->start);
@@ -1220,7 +1220,7 @@ class EventRequestController extends Controller
         $eventCalendarEvents = $events->map(function ($event) {
             return [
                 'id' => 'event_'.$event->id,
-                
+                'title' => $event->title,
                 'start' => $event->event_date->format('Y-m-d').'T'.$event->start_time,
                 'end' => $event->event_date->format('Y-m-d').'T'.$event->end_time,
                 'backgroundColor' => '#3788d8', // Blue for events
@@ -1228,14 +1228,14 @@ class EventRequestController extends Controller
                 'extendedProps' => [
                     'type' => 'event',
                     'category' => $event->category,
-                    'location' => $event->location,
+                    'location' => $event->event_location,
                     'description' => $event->description,
                     'requestedBy' => $event->user->name ?? 'Unknown',
                 ],
             ];
         });
 
-        // Facility Requests
+        // Facility Requests - Only Approved
         $facilityQuery = FacilityRequest::where('status', 'Approved');
         if ($request->start) {
             $facilityQuery->whereDate('event_date', '>=', $request->start);
@@ -1263,51 +1263,23 @@ class EventRequestController extends Controller
             ];
         });
 
-        // Maintenance Reports
-        $reportQuery = Report::whereNotNull('resolved_at');
+        // Active Concerns (NOT Resolved) - Show unresolved concerns on calendar
+        $concernQuery = Concern::where('status', '!=', 'Resolved')->where('is_deleted', false);
         if ($request->start) {
-            $reportQuery->whereDate('resolved_at', '>=', $request->start);
+            $concernQuery->whereDate('created_at', '>=', $request->start);
         }
         if ($request->end) {
-            $reportQuery->whereDate('resolved_at', '<=', $request->end);
+            $concernQuery->whereDate('created_at', '<=', $request->end);
         }
-        $reports = $reportQuery->orderBy('resolved_at', 'asc')->get();
-
-        $reportCalendarEvents = $reports->map(function ($report) {
-            $date = $report->resolved_at->format('Y-m-d');
-
-            return [
-                'id' => 'report_'.$report->id,
-                'title' => 'Maintenance: '.($report->damaged_part ?? 'Repair'),
-                'start' => $date.'T09:00', // Default time
-                'end' => $date.'T10:00',
-                'backgroundColor' => '#dc3545', // Red for maintenance
-                'borderColor' => '#dc3545',
-                'extendedProps' => [
-                    'type' => 'maintenance',
-                    'location' => $report->location,
-                    'description' => 'Report resolved',
-                    'requestedBy' => 'Maintenance',
-                ],
-            ];
-        });
-
-        // Maintenance Concerns
-        $concernQuery = Concern::whereNotNull('resolved_at');
-        if ($request->start) {
-            $concernQuery->whereDate('resolved_at', '>=', $request->start);
-        }
-        if ($request->end) {
-            $concernQuery->whereDate('resolved_at', '<=', $request->end);
-        }
-        $concerns = $concernQuery->orderBy('resolved_at', 'asc')->get();
+        $concerns = $concernQuery->with('categoryRelation')->orderBy('created_at', 'asc')->get();
 
         $concernCalendarEvents = $concerns->map(function ($concern) {
-            $date = $concern->resolved_at->format('Y-m-d');
+            $date = $concern->created_at->format('Y-m-d');
+            $title = $concern->title ?? ($concern->categoryRelation->name ?? 'Concern');
 
             return [
                 'id' => 'concern_'.$concern->id,
-                'title' => 'Maintenance: '.($concern->damaged_part ?? 'Concern'),
+                'title' => 'Maintenance: '.$title,
                 'start' => $date.'T09:00',
                 'end' => $date.'T10:00',
                 'backgroundColor' => '#dc3545', // Red for maintenance
@@ -1315,13 +1287,13 @@ class EventRequestController extends Controller
                 'extendedProps' => [
                     'type' => 'maintenance',
                     'location' => $concern->location,
-                    'description' => 'Concern resolved',
-                    'requestedBy' => 'Maintenance',
+                    'description' => $concern->description,
+                    'requestedBy' => $concern->user->name ?? 'Anonymous',
                 ],
             ];
         });
 
-        $calendarEvents = $eventCalendarEvents->concat($facilityCalendarEvents)->concat($reportCalendarEvents)->concat($concernCalendarEvents);
+        $calendarEvents = $eventCalendarEvents->concat($facilityCalendarEvents)->concat($concernCalendarEvents);
 
         return response()->json($calendarEvents);
     }

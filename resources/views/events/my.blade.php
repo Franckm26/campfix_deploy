@@ -267,16 +267,6 @@
                             </select>
                         </div>
                         <div class="col-6 col-md">
-                            <select name="category" class="form-select form-select-sm">
-                                <option value="">All Categories</option>
-                                <option value="event" {{ request('category') == 'event' ? 'selected' : '' }}>Event</option>
-                                <option value="meeting" {{ request('category') == 'meeting' ? 'selected' : '' }}>Meeting</option>
-                                <option value="activity" {{ request('category') == 'activity' ? 'selected' : '' }}>Activity</option>
-                                <option value="training" {{ request('category') == 'training' ? 'selected' : '' }}>Training</option>
-                                <option value="other" {{ request('category') == 'other' ? 'selected' : '' }}>Other</option>
-                            </select>
-                        </div>
-                        <div class="col-6 col-md">
                             <input type="date" name="date_from" class="form-control form-control-sm" placeholder="From Date"
                                 value="{{ request('date_from') }}">
                         </div>
