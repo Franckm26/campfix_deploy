@@ -656,9 +656,10 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
 
             const evHtml = dayEvents.slice(0,3).map(e => {
                 const color = getEventColor(e.type);
-                const escapedTitle = e.title.replace(/'/g, "\\'");
+                const escapedTitle = (e.title || 'Untitled').replace(/'/g, "\\'");
                 const escapedDesc = (e.description || '').replace(/'/g, "\\'");
-                return `<div class="cal-event ${color}" title="${escapedTitle}" onclick="showEventDetails('${e.id}', '${escapedTitle}', '${e.type}', '${e.start}', '${e.startTime}', '${e.endTime}', '${e.location || ''}', '${e.requestedBy}', '${escapedDesc}')">${e.title}</div>`;
+                const escapedLocation = (e.location || '').replace(/'/g, "\\'");
+                return `<div class="cal-event ${color}" title="${escapedTitle}" onclick="showEventDetails('${e.id}', '${escapedTitle}', '${e.type}', '${e.start}', '${e.startTime}', '${e.endTime}', '${escapedLocation}', '${e.requestedBy}', '${escapedDesc}')">${escapedTitle}</div>`;
             }).join('');
 
             html += `<div class="cal-cell ${isToday ? 'today' : ''} ${isOther ? 'other-month' : ''}">
