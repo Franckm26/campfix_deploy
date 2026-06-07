@@ -1225,7 +1225,7 @@ class EventRequestController extends Controller
                 'extendedProps' => [
                     'type' => 'approved',
                     'category' => $event->category,
-                    'location' => $event->event_location,
+                    'location' => $event->location,  // Fixed: use location instead of event_location
                     'description' => $event->description,
                     'requestedBy' => $event->user->name ?? 'Unknown',
                     'status' => $event->status,
