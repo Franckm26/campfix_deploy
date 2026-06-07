@@ -386,10 +386,9 @@
             <!-- Event Types -->
             <div class="cal-list-card">
                 <h6><i class="fas fa-th-large text-primary"></i> Event Types</h6>
-                <div class="cal-list-item"><div class="cal-dot" style="background:#4f6ef7"></div> Events</div>
-                <div class="cal-list-item"><div class="cal-dot" style="background:#7c4dff"></div> Facility Bookings</div>
+                <div class="cal-list-item"><div class="cal-dot" style="background:#4f6ef7"></div> Concerns</div>
                 <div class="cal-list-item"><div class="cal-dot" style="background:#26a69a"></div> Approved Events</div>
-                <div class="cal-list-item"><div class="cal-dot" style="background:#ef5350"></div> Maintenance</div>
+                <div class="cal-list-item"><div class="cal-dot" style="background:#ef5350"></div> Issues</div>
             </div>
 
             <!-- Filters -->
@@ -400,16 +399,16 @@
                     <div class="mb-2">
                         <label class="form-label small">Event Types</label>
                         <div class="form-check form-check-sm">
-                            <input class="form-check-input" type="checkbox" name="filter_types[]" value="event" id="type_event" {{ in_array('event', $filterTypes ?? []) ? 'checked' : '' }}>
-                            <label class="form-check-label small" for="type_event">Events</label>
+                            <input class="form-check-input" type="checkbox" name="filter_types[]" value="concern" id="type_concern" {{ in_array('concern', $filterTypes ?? []) ? 'checked' : '' }}>
+                            <label class="form-check-label small" for="type_concern">Concerns</label>
                         </div>
                         <div class="form-check form-check-sm">
-                            <input class="form-check-input" type="checkbox" name="filter_types[]" value="facility" id="type_facility" {{ in_array('facility', $filterTypes ?? []) ? 'checked' : '' }}>
-                            <label class="form-check-label small" for="type_facility">Facility Bookings</label>
+                            <input class="form-check-input" type="checkbox" name="filter_types[]" value="approved_event" id="type_approved" {{ in_array('approved_event', $filterTypes ?? []) ? 'checked' : '' }}>
+                            <label class="form-check-label small" for="type_approved">Approved Events</label>
                         </div>
                         <div class="form-check form-check-sm">
-                            <input class="form-check-input" type="checkbox" name="filter_types[]" value="maintenance" id="type_maintenance" {{ in_array('maintenance', $filterTypes ?? []) ? 'checked' : '' }}>
-                            <label class="form-check-label small" for="type_maintenance">Maintenance</label>
+                            <input class="form-check-input" type="checkbox" name="filter_types[]" value="issue" id="type_issue" {{ in_array('issue', $filterTypes ?? []) ? 'checked' : '' }}>
+                            <label class="form-check-label small" for="type_issue">Issues</label>
                         </div>
                     </div>
                     <div class="mb-2">
