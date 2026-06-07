@@ -780,13 +780,19 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
         }
         document.getElementById('week-header-grid').innerHTML = headerHtml;
 
-        // All-day cells
+        // All-day cells - only show events without specific times or that span all day
         let alldayHtml = '';
         for (let i = 0; i < 7; i++) {
             const d = new Date(weekStart);
             d.setDate(weekStart.getDate() + i);
             const dateStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-            const dayEvents = calEvents.filter(e => e.start === dateStr);
+            // Only include all-day events (events without time or with time 00:00)
+            const dayEvents = calEvents.filter(e => {
+                if (e.start !== dateStr) return false;
+                // Check if it's an all-day event (no time or midnight time)
+                const time = e.startTime || '';
+                return !time || time === '00:00' || time === '00:00:00';
+            });
             const evHtml = dayEvents.slice(0,2).map(e => {
                 const color = e.type === 'approved' ? 'green' : e.type === 'pending' ? 'orange' : e.type === 'assigned' ? 'blue' : 'purple';
                 const displayTitle = e.title || e.description || 'No description';
@@ -800,7 +806,7 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
         }
         document.getElementById('week-allday-cells').innerHTML = alldayHtml;
 
-        // Time rows
+        // Time rows - show timed events in their proper time slots
         const hours = ['12am','1am','2am','3am','4am','5am','6am','7am','8am','9am','10am','11am',
                        '12pm','1pm','2pm','3pm','4pm','5pm','6pm','7pm','8pm','9pm','10pm','11pm'];
         let timeHtml = '';
@@ -810,7 +816,27 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
                 const d = new Date(weekStart);
                 d.setDate(weekStart.getDate() + i);
                 const dateStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-                cellsHtml += `<div class="week-cell"></div>`;
+                
+                // Get events for this hour
+                const hourEvents = calEvents.filter(e => {
+                    if (e.start !== dateStr) return false;
+                    const time = e.startTime || '';
+                    if (!time || time === '00:00' || time === '00:00:00') return false; // Skip all-day events
+                    const eventHour = parseInt(time.split(':')[0]);
+                    return eventHour === h;
+                });
+                
+                const evHtml = hourEvents.slice(0,2).map(e => {
+                    const color = e.type === 'approved' ? 'green' : e.type === 'pending' ? 'orange' : e.type === 'assigned' ? 'blue' : 'purple';
+                    const displayTitle = e.title || e.description || 'No description';
+                    const escapedTitle = displayTitle.replace(/'/g, "\\'");
+                    const escapedDesc = (e.description || '').replace(/'/g, "\\'");
+                    const escapedLocation = (e.location || '').replace(/'/g, "\\'");
+                    const escapedStatus = (e.status || '').replace(/'/g, "\\'");
+                    return `<div class="week-cell-event ${color}" onclick="showEventDetails('${e.id}', '${escapedTitle}', '${e.type}', '${e.start}', '${e.startTime}', '${e.endTime}', '${escapedLocation}', '${e.requestedBy}', '${escapedDesc}', '${escapedStatus}')">${displayTitle}</div>`;
+                }).join('');
+                
+                cellsHtml += `<div class="week-cell">${evHtml}</div>`;
             }
             timeHtml += `<div class="week-time-row">
                 <div class="week-time-label">${label}</div>
@@ -905,7 +931,7 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
         document.getElementById('eventDate').textContent = dateObj.toLocaleDateString('en-US', options);
 
         document.getElementById('eventTime').textContent = to12hr(startTime) + ' - ' + to12hr(endTime);
-        document.getElementById('eventLocation').textContent = location || 'N/A';
+        document.getElementById('eventLocation').textContent = location || 'Not specified';
         document.getElementById('eventRequestedBy').textContent = requestedBy;
         document.getElementById('eventDescription').textContent = description || 'No description provided.';
 
