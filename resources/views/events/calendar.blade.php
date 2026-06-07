@@ -555,6 +555,36 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
 <script>
     // Get calendar events from the backend
     let calEvents = [];
+    let allEvents = []; // Store all events
+    
+    // Get active filters from URL
+    function getActiveFilters() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const filterTypes = urlParams.getAll('filter_types[]');
+        const filterLocation = urlParams.get('filter_location');
+        console.log('[Calendar] Active filters:', { filterTypes, filterLocation });
+        return { filterTypes, filterLocation };
+    }
+    
+    // Apply filters to events
+    function applyFilters(events) {
+        const { filterTypes, filterLocation } = getActiveFilters();
+        let filtered = events;
+        
+        // Filter by status/type
+        if (filterTypes.length > 0) {
+            filtered = filtered.filter(event => filterTypes.includes(event.type));
+            console.log('[Calendar] After type filter:', filtered.length, 'events');
+        }
+        
+        // Filter by location
+        if (filterLocation) {
+            filtered = filtered.filter(event => event.location === filterLocation);
+            console.log('[Calendar] After location filter:', filtered.length, 'events');
+        }
+        
+        return filtered;
+    }
     
     // Fetch events from API
     async function fetchCalendarEvents() {
@@ -563,7 +593,7 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
             const events = await response.json();
             console.log('[Calendar] Fetched events:', events.length, events);
             
-            calEvents = events.map(event => ({
+            allEvents = events.map(event => ({
                 id: event.id,
                 title: event.title,
                 start: event.start.split('T')[0], // Get date part only
@@ -577,7 +607,11 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
                 backgroundColor: event.backgroundColor
             }));
             
-            console.log('[Calendar] Mapped events:', calEvents.length, calEvents);
+            console.log('[Calendar] Mapped events:', allEvents.length, allEvents);
+            
+            // Apply filters
+            calEvents = applyFilters(allEvents);
+            console.log('[Calendar] Filtered events:', calEvents.length, calEvents);
             
             // Re-render calendar after loading events
             renderMainCalendar();
