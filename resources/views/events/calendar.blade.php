@@ -542,6 +542,8 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
         try {
             const response = await fetch('{{ route("events.calendar.events") }}');
             const events = await response.json();
+            console.log('[Calendar] Fetched events:', events.length, events);
+            
             calEvents = events.map(event => ({
                 id: event.id,
                 title: event.title,
@@ -554,6 +556,8 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
                 requestedBy: event.extendedProps.requestedBy,
                 backgroundColor: event.backgroundColor
             }));
+            
+            console.log('[Calendar] Mapped events:', calEvents.length, calEvents);
             
             // Re-render calendar after loading events
             renderMainCalendar();

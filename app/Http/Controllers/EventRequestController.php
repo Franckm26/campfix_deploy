@@ -1207,14 +1207,8 @@ class EventRequestController extends Controller
     {
         $calendarEvents = collect();
 
-        // Event Requests - Only Approved
+        // Event Requests - Only Approved (get all, let frontend filter by visible month)
         $eventQuery = EventRequest::where('status', 'Approved');
-        if ($request->start) {
-            $eventQuery->whereDate('event_date', '>=', $request->start);
-        }
-        if ($request->end) {
-            $eventQuery->whereDate('event_date', '<=', $request->end);
-        }
         $events = $eventQuery->with('user')->orderBy('event_date', 'asc')->get();
 
         $eventCalendarEvents = $events->map(function ($event) {
@@ -1235,14 +1229,8 @@ class EventRequestController extends Controller
             ];
         });
 
-        // Facility Requests - Only Approved
+        // Facility Requests - Only Approved (get all, let frontend filter by visible month)
         $facilityQuery = FacilityRequest::where('status', 'Approved');
-        if ($request->start) {
-            $facilityQuery->whereDate('event_date', '>=', $request->start);
-        }
-        if ($request->end) {
-            $facilityQuery->whereDate('event_date', '<=', $request->end);
-        }
         $facilities = $facilityQuery->with('user')->orderBy('event_date', 'asc')->get();
 
         $facilityCalendarEvents = $facilities->map(function ($facility) {
@@ -1263,15 +1251,9 @@ class EventRequestController extends Controller
             ];
         });
 
-        // Active Concerns (NOT Resolved) - Show unresolved concerns on calendar
+        // Active Concerns (NOT Resolved) - Show unresolved concerns on calendar (get all, let frontend filter)
         $concernQuery = Concern::where('status', '!=', 'Resolved')->where('is_deleted', false);
-        if ($request->start) {
-            $concernQuery->whereDate('created_at', '>=', $request->start);
-        }
-        if ($request->end) {
-            $concernQuery->whereDate('created_at', '<=', $request->end);
-        }
-        $concerns = $concernQuery->with('categoryRelation')->orderBy('created_at', 'asc')->get();
+        $concerns = $concernQuery->with('categoryRelation', 'user')->orderBy('created_at', 'asc')->get();
 
         $concernCalendarEvents = $concerns->map(function ($concern) {
             $date = $concern->created_at->format('Y-m-d');
