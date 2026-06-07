@@ -120,7 +120,7 @@ class EventRequestController extends Controller
 
             ActivityLog::log(
                 'event_request_created',
-                'Event request submitted',
+                "New event request submitted: '{$eventRequest->title}' (ID: {$eventRequest->id}) by {$user->name} ({$user->role}) - Location: {$eventRequest->event_location}, Date: " . ($eventRequest->start_date ? $eventRequest->start_date->format('M d, Y') : 'N/A') . ", Attendees: {$eventRequest->expected_attendees}, Audience: {$eventRequest->intended_for}",
                 null
             );
 
@@ -572,7 +572,7 @@ class EventRequestController extends Controller
             $eventRequest->status = 'Pending';
             $eventRequest->save();
 
-            ActivityLog::log('event_approved_level_1', 'SHS Event approved by Principal Assistant: ', null);
+            ActivityLog::log('event_approved_level_1', "Event '{$eventRequest->title}' (ID: {$eventRequest->id}) approved by Principal Assistant: {$user->name} - Requestor: {$eventRequest->user->name}, Location: {$eventRequest->event_location}, Date: " . ($eventRequest->start_date ? $eventRequest->start_date->format('M d, Y') : 'N/A'), null);
             $this->sendApprovalNotification($eventRequest, 1, 'Approved');
 
             $notificationService = new NotificationService;
@@ -613,7 +613,7 @@ class EventRequestController extends Controller
             $eventRequest->notes = $request->notes;
             $eventRequest->save();
 
-            ActivityLog::log('event_approved_level_2', 'SHS Event approved by Academic Head: ', null);
+            ActivityLog::log('event_approved_level_2', "Event '{$eventRequest->title}' (ID: {$eventRequest->id}) approved by Academic Head: {$user->name} - Requestor: {$eventRequest->user->name}, Location: {$eventRequest->event_location}, Date: " . ($eventRequest->start_date ? $eventRequest->start_date->format('M d, Y') : 'N/A'), null);
             $this->sendApprovalNotification($eventRequest, 2, 'Approved');
 
             if ($eventRequest->status !== 'Approved') {
@@ -672,7 +672,7 @@ class EventRequestController extends Controller
 
             ActivityLog::log(
                 'event_approved_level_1',
-                'Event approved by Program Head: ',
+                "Event '{$eventRequest->title}' (ID: {$eventRequest->id}) approved by Program Head: {$user->name} - Requestor: {$eventRequest->user->name}, Department: {$eventRequest->department}, Location: {$eventRequest->event_location}, Date: " . ($eventRequest->start_date ? $eventRequest->start_date->format('M d, Y') : 'N/A'),
                 null
             );
 
@@ -730,7 +730,7 @@ class EventRequestController extends Controller
 
             ActivityLog::log(
                 'event_approved_level_2',
-                'Event approved by Academic Head: ',
+                "Event '{$eventRequest->title}' (ID: {$eventRequest->id}) approved by Academic Head: {$user->name} - Requestor: {$eventRequest->user->name}, Department: {$eventRequest->department}, Location: {$eventRequest->event_location}, Date: " . ($eventRequest->start_date ? $eventRequest->start_date->format('M d, Y') : 'N/A'),
                 null
             );
 
@@ -813,7 +813,7 @@ class EventRequestController extends Controller
 
             ActivityLog::log(
                 'event_approved_level_3',
-                'Event approved by Building Admin: ',
+                "Event '{$eventRequest->title}' (ID: {$eventRequest->id}) approved by Building Admin: {$user->name} - Requestor: {$eventRequest->user->name}, Location: {$eventRequest->event_location}, Date: " . ($eventRequest->start_date ? $eventRequest->start_date->format('M d, Y') : 'N/A'),
                 null
             );
 
@@ -870,7 +870,7 @@ class EventRequestController extends Controller
 
             ActivityLog::log(
                 'event_approved',
-                'Event fully approved by School Admin: ',
+                "Event '{$eventRequest->title}' (ID: {$eventRequest->id}) FULLY APPROVED by School Admin: {$user->name} - Requestor: {$eventRequest->user->name}, Location: {$eventRequest->event_location}, Date: " . ($eventRequest->start_date ? $eventRequest->start_date->format('M d, Y') : 'N/A') . ", Attendees: {$eventRequest->expected_attendees}",
                 null
             );
 
@@ -885,7 +885,7 @@ class EventRequestController extends Controller
 
             ActivityLog::log(
                 'event_approved',
-                'Event approved: ',
+                "Event '{$eventRequest->title}' (ID: {$eventRequest->id}) approved by {$user->name} ({$user->role}) - Requestor: {$eventRequest->user->name}, Location: {$eventRequest->event_location}, Date: " . ($eventRequest->start_date ? $eventRequest->start_date->format('M d, Y') : 'N/A'),
                 null
             );
 
@@ -1396,7 +1396,7 @@ class EventRequestController extends Controller
 
         ActivityLog::log(
             'event_deleted',
-            'Event deleted: ',
+            "Event '{$eventRequest->title}' (ID: {$eventRequest->id}) moved to deleted folder by " . auth()->user()->name . " (" . auth()->user()->role . ") - Location: {$eventRequest->event_location}, Date: " . ($eventRequest->start_date ? $eventRequest->start_date->format('M d, Y') : 'N/A'),
             null
         );
 
@@ -1479,7 +1479,7 @@ class EventRequestController extends Controller
 
             ActivityLog::log(
                 'event_restored_from_deleted',
-                'Event restored from deleted: ',
+                "Event '{$eventRequest->title}' (ID: {$eventRequest->id}) restored from deleted folder by " . $user->name . " ({$user->role})",
                 null
             );
 
@@ -1510,7 +1510,7 @@ class EventRequestController extends Controller
 
         ActivityLog::log(
             'event_restored',
-            'Event restored: ',
+            "Event '{$eventRequest->title}' (ID: {$eventRequest->id}) restored from archive by " . $user->name . " ({$user->role})",
             null
         );
 

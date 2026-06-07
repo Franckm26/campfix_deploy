@@ -2663,7 +2663,7 @@ class AdminController extends Controller
                 $oldFolder->save();
             }
 
-            ActivityLog::log('event_restored', "Restored deleted event: {$eventTitle}");
+            ActivityLog::log('event_restored', "Event '{$eventTitle}' (ID: {$event->id}) restored from deleted by " . auth()->user()->name . " (" . auth()->user()->role . ") - Location: {$event->event_location}, Date: {$event->start_date->format('M d, Y')}");
 
             return redirect()->route('admin.deletedEvents')->with('success', "Event '{$eventTitle}' has been restored successfully!");
         } catch (\Exception $e) {
@@ -2701,7 +2701,7 @@ class AdminController extends Controller
                     $oldFolder->save();
                 }
 
-                ActivityLog::log('event_restored', "Restored deleted event: {$event->title}");
+                ActivityLog::log('event_restored', "Event '{$event->title}' (ID: {$event->id}) restored from deleted (batch) by " . auth()->user()->name . " (" . auth()->user()->role . ")");
                 $count++;
             }
         }
