@@ -508,6 +508,12 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
                                 <span id="eventLocation" class="fw-bold"></span>
                             </div>
                         </div>
+                        <div class="col-md-6" id="eventStatusContainer" style="display:none;">
+                            <div class="p-3 bg-light rounded">
+                                <small class="text-muted d-block"><i class="fas fa-info-circle me-1"></i>Status</small>
+                                <span id="eventStatus" class="badge fs-6"></span>
+                            </div>
+                        </div>
                         <div class="col-md-6">
                             <div class="p-3 bg-light rounded">
                                 <small class="text-muted d-block"><i class="fas fa-user me-1"></i>Requested By</small>
@@ -554,6 +560,7 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
                 location: event.extendedProps.location,
                 description: event.extendedProps.description,
                 requestedBy: event.extendedProps.requestedBy,
+                status: event.extendedProps.status || null, // Add status
                 backgroundColor: event.backgroundColor
             }));
             
@@ -656,10 +663,13 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
 
             const evHtml = dayEvents.slice(0,3).map(e => {
                 const color = getEventColor(e.type);
-                const escapedTitle = (e.title || 'Untitled').replace(/'/g, "\\'");
+                // For events without title, use a short version of description
+                const displayTitle = e.title || (e.description ? e.description.substring(0, 30) : 'Event');
+                const escapedTitle = displayTitle.replace(/'/g, "\\'");
                 const escapedDesc = (e.description || '').replace(/'/g, "\\'");
                 const escapedLocation = (e.location || '').replace(/'/g, "\\'");
-                return `<div class="cal-event ${color}" title="${escapedTitle}" onclick="showEventDetails('${e.id}', '${escapedTitle}', '${e.type}', '${e.start}', '${e.startTime}', '${e.endTime}', '${escapedLocation}', '${e.requestedBy}', '${escapedDesc}')">${escapedTitle}</div>`;
+                const escapedStatus = (e.status || '').replace(/'/g, "\\'");
+                return `<div class="cal-event ${color}" title="${escapedTitle}" onclick="showEventDetails('${e.id}', '${escapedTitle}', '${e.type}', '${e.start}', '${e.startTime}', '${e.endTime}', '${escapedLocation}', '${e.requestedBy}', '${escapedDesc}', '${escapedStatus}')">${escapedTitle}</div>`;
             }).join('');
 
             html += `<div class="cal-cell ${isToday ? 'today' : ''} ${isOther ? 'other-month' : ''}">
@@ -788,7 +798,7 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
         renderMiniCalendar();
     }
 
-    function showEventDetails(id, title, type, date, startTime, endTime, location, requestedBy, description) {
+    function showEventDetails(id, title, type, date, startTime, endTime, location, requestedBy, description, status) {
         function to12hr(t) {
             if (!t) return '';
             const [h, m] = t.split(':');
@@ -797,6 +807,15 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
             const h12 = hour % 12 || 12;
             return h12 + ':' + m + ' ' + ampm;
         }
+        
+        // Update modal title based on type
+        const modalLabel = document.getElementById('eventModalLabel');
+        if (type === 'maintenance') {
+            modalLabel.innerHTML = '<i class="fas fa-tools me-2"></i>Concern Details';
+        } else {
+            modalLabel.innerHTML = '<i class="fas fa-calendar-alt me-2"></i>Event Details';
+        }
+        
         document.getElementById('eventTitle').textContent = title;
 
         var typeBadge = document.getElementById('eventType');
@@ -820,6 +839,24 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
         document.getElementById('eventLocation').textContent = location || 'N/A';
         document.getElementById('eventRequestedBy').textContent = requestedBy;
         document.getElementById('eventDescription').textContent = description || 'No description provided.';
+
+        // Handle status field - only show for maintenance/concerns
+        const statusContainer = document.getElementById('eventStatusContainer');
+        const statusBadge = document.getElementById('eventStatus');
+        if (status && type === 'maintenance') {
+            statusContainer.style.display = 'block';
+            statusBadge.textContent = status;
+            // Set status badge color
+            const statusColors = {
+                'Pending': 'bg-warning',
+                'Assigned': 'bg-primary',
+                'In Progress': 'bg-info',
+                'Resolved': 'bg-success'
+            };
+            statusBadge.className = 'badge fs-6 ' + (statusColors[status] || 'bg-secondary');
+        } else {
+            statusContainer.style.display = 'none';
+        }
 
         var modal = new bootstrap.Modal(document.getElementById('eventModal'));
         modal.show();

@@ -1271,6 +1271,7 @@ class EventRequestController extends Controller
                     'location' => $concern->location,
                     'description' => $concern->description,
                     'requestedBy' => $concern->user->name ?? 'Anonymous',
+                    'status' => $concern->status, // Add status
                 ],
             ];
         });
