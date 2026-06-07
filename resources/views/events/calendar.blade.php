@@ -789,11 +789,12 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
             const dayEvents = calEvents.filter(e => e.start === dateStr);
             const evHtml = dayEvents.slice(0,2).map(e => {
                 const color = e.type === 'approved' ? 'green' : e.type === 'pending' ? 'orange' : e.type === 'assigned' ? 'blue' : 'purple';
-                const escapedTitle = e.title.replace(/'/g, "\\'");
+                const displayTitle = e.title || 'Untitled';
+                const escapedTitle = displayTitle.replace(/'/g, "\\'");
                 const escapedDesc = (e.description || '').replace(/'/g, "\\'");
                 const escapedLocation = (e.location || '').replace(/'/g, "\\'");
                 const escapedStatus = (e.status || '').replace(/'/g, "\\'");
-                return `<div class="week-cell-event ${color}" onclick="showEventDetails('${e.id}', '${escapedTitle}', '${e.type}', '${e.start}', '${e.startTime}', '${e.endTime}', '${escapedLocation}', '${e.requestedBy}', '${escapedDesc}', '${escapedStatus}')">${e.title}</div>`;
+                return `<div class="week-cell-event ${color}" onclick="showEventDetails('${e.id}', '${escapedTitle}', '${e.type}', '${e.start}', '${e.startTime}', '${e.endTime}', '${escapedLocation}', '${e.requestedBy}', '${escapedDesc}', '${escapedStatus}')">${displayTitle}</div>`;
             }).join('');
             alldayHtml += `<div class="week-allday-cell">${evHtml}</div>`;
         }
@@ -831,13 +832,14 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
             return;
         }
         el.innerHTML = upcoming.map(e => {
-            const escapedTitle = e.title.replace(/'/g, "\\'");
+            const displayTitle = e.title || 'Untitled';
+            const escapedTitle = displayTitle.replace(/'/g, "\\'");
             const escapedDesc = (e.description || '').replace(/'/g, "\\'");
             const escapedLocation = (e.location || '').replace(/'/g, "\\'");
             const escapedStatus = (e.status || '').replace(/'/g, "\\'");
             return `<div class="agenda-row" style="cursor:pointer;" onclick="showEventDetails('${e.id}', '${escapedTitle}', '${e.type}', '${e.start}', '${e.startTime}', '${e.endTime}', '${escapedLocation}', '${e.requestedBy}', '${escapedDesc}', '${escapedStatus}')">
                 <div class="agenda-date">${e.start}</div>
-                <div style="font-size:13px;font-weight:600;">${e.title}</div>
+                <div style="font-size:13px;font-weight:600;">${displayTitle}</div>
             </div>`;
         }).join('');
     }
