@@ -1207,71 +1207,100 @@ class EventRequestController extends Controller
     {
         $calendarEvents = collect();
 
-        // Event Requests - Only Approved (get all, let frontend filter by visible month)
-        $eventQuery = EventRequest::where('status', 'Approved');
+        // Event Requests - Get all statuses
+        $eventQuery = EventRequest::whereIn('status', ['Approved', 'Pending', 'Assigned', 'In-Progress']);
         $events = $eventQuery->with('user')->orderBy('event_date', 'asc')->get();
 
         $eventCalendarEvents = $events->map(function ($event) {
+            // Set color based on status
+            $backgroundColor = match($event->status) {
+                'Approved' => '#26a69a',      // Green
+                'Pending' => '#ffa726',        // Orange
+                'Assigned' => '#4f6ef7',       // Blue
+                'In-Progress' => '#7c4dff',    // Purple
+                default => '#3788d8'
+            };
+
             return [
                 'id' => 'event_'.$event->id,
                 'title' => $event->title,
                 'start' => $event->event_date->format('Y-m-d').'T'.$event->start_time,
                 'end' => $event->event_date->format('Y-m-d').'T'.$event->end_time,
-                'backgroundColor' => '#3788d8', // Blue for events
-                'borderColor' => '#3788d8',
+                'backgroundColor' => $backgroundColor,
+                'borderColor' => $backgroundColor,
                 'extendedProps' => [
-                    'type' => 'event',
+                    'type' => strtolower(str_replace('-', '_', $event->status)), // approved, pending, assigned, in_progress
                     'category' => $event->category,
                     'location' => $event->event_location,
                     'description' => $event->description,
                     'requestedBy' => $event->user->name ?? 'Unknown',
+                    'status' => $event->status,
                 ],
             ];
         });
 
-        // Facility Requests - Only Approved (get all, let frontend filter by visible month)
-        $facilityQuery = FacilityRequest::where('status', 'Approved');
+        // Facility Requests - Get all statuses
+        $facilityQuery = FacilityRequest::whereIn('status', ['Approved', 'Pending', 'Assigned', 'In-Progress']);
         $facilities = $facilityQuery->with('user')->orderBy('event_date', 'asc')->get();
 
         $facilityCalendarEvents = $facilities->map(function ($facility) {
+            // Set color based on status
+            $backgroundColor = match($facility->status) {
+                'Approved' => '#26a69a',      // Green
+                'Pending' => '#ffa726',        // Orange
+                'Assigned' => '#4f6ef7',       // Blue
+                'In-Progress' => '#7c4dff',    // Purple
+                default => '#28a745'
+            };
+
             return [
                 'id' => 'facility_'.$facility->id,
                 'title' => $facility->event_title.' ('.$facility->facility.')',
                 'start' => $facility->event_date->format('Y-m-d').'T'.$facility->start_time,
                 'end' => $facility->event_date->format('Y-m-d').'T'.$facility->end_time,
-                'backgroundColor' => '#28a745', // Green for facilities
-                'borderColor' => '#28a745',
+                'backgroundColor' => $backgroundColor,
+                'borderColor' => $backgroundColor,
                 'extendedProps' => [
-                    'type' => 'facility',
+                    'type' => strtolower(str_replace('-', '_', $facility->status)), // approved, pending, assigned, in_progress
                     'facility' => $facility->facility,
                     'location' => $facility->facility,
                     'description' => $facility->description,
                     'requestedBy' => $facility->user->name ?? 'Unknown',
+                    'status' => $facility->status,
                 ],
             ];
         });
 
-        // Active Concerns (NOT Resolved) - Show unresolved concerns on calendar (get all, let frontend filter)
-        $concernQuery = Concern::where('status', '!=', 'Resolved')->where('is_deleted', false);
+        // Concerns - Get all statuses
+        $concernQuery = Concern::whereIn('status', ['Approved', 'Pending', 'Assigned', 'In-Progress'])->where('is_deleted', false);
         $concerns = $concernQuery->with('categoryRelation', 'user')->orderBy('created_at', 'asc')->get();
 
         $concernCalendarEvents = $concerns->map(function ($concern) {
             $date = $concern->created_at->format('Y-m-d');
             $title = $concern->title ?? ($concern->categoryRelation->name ?? 'Concern');
 
+            // Set color based on status
+            $backgroundColor = match($concern->status) {
+                'Approved' => '#26a69a',      // Green
+                'Pending' => '#ffa726',        // Orange
+                'Assigned' => '#4f6ef7',       // Blue
+                'In-Progress' => '#7c4dff',    // Purple
+                default => '#dc3545'
+            };
+
             return [
                 'id' => 'concern_'.$concern->id,
-                'title' => 'Maintenance: '.$title,
+                'title' => $title,
                 'start' => $date.'T09:00',
                 'end' => $date.'T10:00',
-                'backgroundColor' => '#dc3545', // Red for maintenance
-                'borderColor' => '#dc3545',
+                'backgroundColor' => $backgroundColor,
+                'borderColor' => $backgroundColor,
                 'extendedProps' => [
-                    'type' => 'maintenance',
+                    'type' => strtolower(str_replace('-', '_', $concern->status)), // approved, pending, assigned, in_progress
                     'location' => $concern->location,
                     'description' => $concern->description,
                     'requestedBy' => $concern->user->name ?? 'Anonymous',
-                    'status' => $concern->status, // Add status
+                    'status' => $concern->status,
                 ],
             ];
         });

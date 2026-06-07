@@ -168,6 +168,9 @@
     .cal-event.purple { background: var(--cal-event-purple-bg); color: var(--cal-event-purple-text); border-left: 3px solid var(--cal-event-purple-border); }
     .cal-event.blue   { background: var(--cal-event-blue-bg);   color: var(--cal-event-blue-text);   border-left: 3px solid var(--cal-event-blue-border); }
     .cal-event.green  { background: var(--cal-event-green-bg);  color: var(--cal-event-green-text);  border-left: 3px solid var(--cal-event-green-border); }
+    .cal-event.orange { background: #fff3e0; color: #e65100; border-left: 3px solid #ffa726; }
+
+    [data-theme="dark"] .cal-event.orange { background: #3d2817; color: #ffb74d; border-left: 3px solid #ffa726; }
 
     /* ── Right Panel ── */
     .cal-right-panel { width: 240px; flex-shrink: 0; display: flex; flex-direction: column; gap: 16px; }
@@ -224,6 +227,12 @@
     .week-cell:hover { background: var(--cal-cell-hover); }
     .week-cell:last-child { border-right: none; }
     .week-cell-event { font-size: 11px; padding: 2px 5px; border-radius: 4px; margin-bottom: 2px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .week-cell-event.purple { background: var(--cal-event-purple-bg); color: var(--cal-event-purple-text); border-left: 3px solid var(--cal-event-purple-border); }
+    .week-cell-event.blue { background: var(--cal-event-blue-bg); color: var(--cal-event-blue-text); border-left: 3px solid var(--cal-event-blue-border); }
+    .week-cell-event.green { background: var(--cal-event-green-bg); color: var(--cal-event-green-text); border-left: 3px solid var(--cal-event-green-border); }
+    .week-cell-event.orange { background: #fff3e0; color: #e65100; border-left: 3px solid #ffa726; }
+
+    [data-theme="dark"] .week-cell-event.orange { background: #3d2817; color: #ffb74d; border-left: 3px solid #ffa726; }
 
     /* Agenda */
     .agenda-row { display: flex; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--cal-agenda-border); color: var(--cal-agenda-text); }
@@ -655,12 +664,13 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
             const isToday = !isOther && today.getDate() === day && today.getMonth() === month && today.getFullYear() === year;
             const dayEvents = calEvents.filter(e => e.start === dateStr);
 
-            // Event type colors
+            // Event type colors based on status
             const getEventColor = (type) => {
                 switch(type) {
-                    case 'event': return 'blue';
-                    case 'facility': return 'green';
-                    case 'maintenance': return 'purple';
+                    case 'approved': return 'green';
+                    case 'pending': return 'orange';
+                    case 'assigned': return 'blue';
+                    case 'in_progress': return 'purple';
                     default: return 'blue';
                 }
             };
@@ -744,7 +754,7 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
             const dateStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
             const dayEvents = calEvents.filter(e => e.start === dateStr);
             const evHtml = dayEvents.slice(0,2).map(e => {
-                const color = e.type === 'event' ? 'blue' : e.type === 'facility' ? 'green' : 'purple';
+                const color = e.type === 'approved' ? 'green' : e.type === 'pending' ? 'orange' : e.type === 'assigned' ? 'blue' : 'purple';
                 const escapedTitle = e.title.replace(/'/g, "\\'");
                 const escapedDesc = (e.description || '').replace(/'/g, "\\'");
                 return `<div class="week-cell-event ${color}" onclick="showEventDetails('${e.id}', '${escapedTitle}', '${e.type}', '${e.start}', '${e.startTime}', '${e.endTime}', '${e.location || ''}', '${e.requestedBy}', '${escapedDesc}')">${e.title}</div>`;
