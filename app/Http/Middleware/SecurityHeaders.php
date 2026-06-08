@@ -34,7 +34,7 @@ class SecurityHeaders
             "script-src 'self' 'unsafe-inline' {$allowedOrigins} https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://vercel.live; " .
             "style-src 'self' 'unsafe-inline' {$allowedOrigins} https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; " .
             "img-src 'self' data: blob: {$allowedOrigins} https://www.sti.edu https://pclfaksjjprickgppnus.supabase.co; " .
-            "font-src 'self' {$allowedOrigins} https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com; " .
+            "font-src 'self' {$allowedOrigins} https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com https://vercel.live; " .
             "connect-src 'self' {$allowedOrigins} https://cdn.jsdelivr.net https://vercel.live; " .
             "frame-src 'self' https://vercel.live; " .
             "worker-src 'self' blob:; " .
