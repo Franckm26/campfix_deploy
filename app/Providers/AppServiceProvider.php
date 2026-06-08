@@ -32,11 +32,6 @@ class AppServiceProvider extends ServiceProvider
             \Illuminate\Support\Facades\URL::forceScheme('https');
         }
         
-        // Register OneSignal notification channel
-        \Illuminate\Support\Facades\Notification::extend('onesignal', function ($app) {
-            return new \App\Channels\OneSignalChannel();
-        });
-        
         // Configure rate limiting for API
         $this->configureRateLimiting();
 
