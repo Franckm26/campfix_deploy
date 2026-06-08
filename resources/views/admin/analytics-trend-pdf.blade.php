@@ -109,12 +109,16 @@
             color: #6c757d;
         }
         .footer {
-            margin-top: 30px;
-            text-align: center;
-            font-size: 10px;
-            color: #666;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 10px 20px;
             border-top: 1px solid #ddd;
-            padding-top: 10px;
+            text-align: center;
+            font-size: 9px;
+            color: #666;
+            background: white;
         }
         .summary-box {
             background-color: #f8f9fa;

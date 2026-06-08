@@ -161,12 +161,16 @@
             line-height: 1.5;
         }
         .footer {
-            margin-top: 20px;
-            text-align: center;
-            font-size: 8px;
-            color: #666;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 10px 20px;
             border-top: 1px solid #ddd;
-            padding-top: 8px;
+            text-align: center;
+            font-size: 9px;
+            color: #666;
+            background: white;
         }
     </style>
 </head>
