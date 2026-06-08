@@ -2415,6 +2415,11 @@ async function openNotificationModal(notificationId, event) {
     
     currentNotificationId = notificationId;
     
+    // Check if modal is already open
+    const modalElement = document.getElementById('notificationDetailModal');
+    const existingModal = bootstrap.Modal.getInstance(modalElement);
+    const isModalOpen = existingModal && modalElement.classList.contains('show');
+    
     try {
         const response = await fetch(`/notifications/${notificationId}`, {
             headers: {
@@ -2476,13 +2481,15 @@ async function openNotificationModal(notificationId, event) {
         // Update badge count
         updateNotificationCount();
         
-        // Show modal
-        const modal = new bootstrap.Modal(document.getElementById('notificationDetailModal'));
-        modal.show();
-        
-        // Close notification dropdown
-        const dropdown = document.getElementById('notificationDropdown');
-        if (dropdown) dropdown.classList.remove('show');
+        // Show modal only if it's not already open
+        if (!isModalOpen) {
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+            
+            // Close notification dropdown
+            const dropdown = document.getElementById('notificationDropdown');
+            if (dropdown) dropdown.classList.remove('show');
+        }
         
     } catch (error) {
         console.error('Error loading notification:', error);
@@ -2494,7 +2501,73 @@ async function openNotificationModal(notificationId, event) {
 async function navigateNotification(direction) {
     const targetId = direction === 'prev' ? currentNotificationData.prev_id : currentNotificationData.next_id;
     if (targetId) {
-        await openNotificationModal(targetId);
+        currentNotificationId = targetId;
+        
+        try {
+            const response = await fetch(`/notifications/${targetId}`, {
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json'
+                }
+            });
+            
+            if (!response.ok) throw new Error('Failed to fetch notification');
+            
+            const data = await response.json();
+            currentNotificationData = data;
+            
+            // Update modal content without creating new instance
+            document.getElementById('modalSenderName').textContent = data.sender?.name || 'System';
+            document.getElementById('modalSenderNameFull').textContent = data.sender?.name || 'System';
+            document.getElementById('modalNotificationTime').textContent = data.created_at;
+            document.getElementById('modalSubject').textContent = data.title;
+            document.getElementById('modalMessage').innerHTML = data.message;
+            
+            // Update avatar
+            const avatar = document.getElementById('modalSenderAvatar');
+            if (data.sender?.profile_picture) {
+                avatar.src = data.sender.profile_picture;
+                avatar.style.display = 'block';
+            } else {
+                avatar.style.display = 'none';
+            }
+            
+            // Show/hide action button
+            if (data.url) {
+                document.getElementById('modalActionBtn').style.display = 'block';
+                document.getElementById('modalViewLink').href = data.url;
+            } else {
+                document.getElementById('modalActionBtn').style.display = 'none';
+            }
+            
+            // Update navigation buttons
+            document.getElementById('modalPrevBtn').disabled = !data.prev_id;
+            document.getElementById('modalNextBtn').disabled = !data.next_id;
+            
+            // Mark as read
+            await fetch(`/notifications/${targetId}/read`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json'
+                }
+            });
+            
+            // Update UI to show as read in the dropdown list
+            const notifItem = document.querySelector(`.notification-item[onclick*="${targetId}"]`);
+            if (notifItem) {
+                notifItem.classList.remove('unread');
+                const statusDot = notifItem.querySelector('.notification-status-dot');
+                if (statusDot) statusDot.remove();
+            }
+            
+            // Update badge count
+            updateNotificationCount();
+            
+        } catch (error) {
+            console.error('Error navigating notification:', error);
+            showNotificationToast('Failed to load notification', 'error');
+        }
     }
 }
 
