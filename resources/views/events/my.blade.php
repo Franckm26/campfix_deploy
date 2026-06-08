@@ -2373,37 +2373,46 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <script>
 // Auto-open event modal if event_id is in URL
+console.log('[Auto-open] Script loaded - events page');
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('[Auto-open] DOMContentLoaded fired');
     const urlParams = new URLSearchParams(window.location.search);
     const eventId = urlParams.get('event_id');
     
+    console.log('[Auto-open] URL params:', window.location.search);
+    console.log('[Auto-open] Event ID:', eventId);
+    
     if (eventId) {
         console.log('[Auto-open] Found event_id:', eventId);
+        console.log('[Auto-open] viewEvent function exists?', typeof viewEvent === 'function');
         
-        // Check if viewEvent function exists
-        if (typeof viewEvent === 'function') {
-            // Wait a bit for the page to fully load
-            setTimeout(function() {
+        // Function to try opening the modal
+        function tryOpenModal(retryCount = 0) {
+            if (typeof viewEvent === 'function') {
                 console.log('[Auto-open] Opening event modal for ID:', eventId);
-                viewEvent(parseInt(eventId));
-                // Clean URL without reloading page
-                const cleanUrl = window.location.pathname + window.location.hash;
-                window.history.replaceState({}, document.title, cleanUrl);
-            }, 800);
-        } else {
-            console.error('[Auto-open] viewEvent function not found, retrying...');
-            // Retry after a longer delay if function not loaded yet
-            setTimeout(function() {
-                if (typeof viewEvent === 'function') {
-                    console.log('[Auto-open] Opening event modal (retry) for ID:', eventId);
+                setTimeout(function() {
                     viewEvent(parseInt(eventId));
+                    // Clean URL without reloading page
                     const cleanUrl = window.location.pathname + window.location.hash;
                     window.history.replaceState({}, document.title, cleanUrl);
+                    console.log('[Auto-open] Modal opened and URL cleaned');
+                }, 300);
+            } else {
+                console.error('[Auto-open] viewEvent function not found, retry count:', retryCount);
+                if (retryCount < 5) {
+                    // Retry after a delay
+                    setTimeout(function() {
+                        tryOpenModal(retryCount + 1);
+                    }, 500);
                 } else {
-                    console.error('[Auto-open] viewEvent function still not available');
+                    console.error('[Auto-open] Failed to find viewEvent function after 5 retries');
                 }
-            }, 1500);
+            }
         }
+        
+        tryOpenModal();
+    } else {
+        console.log('[Auto-open] No event_id in URL');
     }
 });
 </script>

@@ -3760,37 +3760,46 @@ if (assignConcernForm) {
 
 <script>
 // Auto-open concern modal if concern_id is in URL
+console.log('[Auto-open] Script loaded - concerns page');
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('[Auto-open] DOMContentLoaded fired');
     const urlParams = new URLSearchParams(window.location.search);
     const concernId = urlParams.get('concern_id');
     
+    console.log('[Auto-open] URL params:', window.location.search);
+    console.log('[Auto-open] Concern ID:', concernId);
+    
     if (concernId) {
         console.log('[Auto-open] Found concern_id:', concernId);
+        console.log('[Auto-open] viewConcern function exists?', typeof viewConcern === 'function');
         
-        // Check if viewConcern function exists
-        if (typeof viewConcern === 'function') {
-            // Wait a bit for the page to fully load
-            setTimeout(function() {
+        // Function to try opening the modal
+        function tryOpenModal(retryCount = 0) {
+            if (typeof viewConcern === 'function') {
                 console.log('[Auto-open] Opening concern modal for ID:', concernId);
-                viewConcern(parseInt(concernId));
-                // Clean URL without reloading page
-                const cleanUrl = window.location.pathname + window.location.hash;
-                window.history.replaceState({}, document.title, cleanUrl);
-            }, 800);
-        } else {
-            console.error('[Auto-open] viewConcern function not found, retrying...');
-            // Retry after a longer delay if function not loaded yet
-            setTimeout(function() {
-                if (typeof viewConcern === 'function') {
-                    console.log('[Auto-open] Opening concern modal (retry) for ID:', concernId);
+                setTimeout(function() {
                     viewConcern(parseInt(concernId));
+                    // Clean URL without reloading page
                     const cleanUrl = window.location.pathname + window.location.hash;
                     window.history.replaceState({}, document.title, cleanUrl);
+                    console.log('[Auto-open] Modal opened and URL cleaned');
+                }, 300);
+            } else {
+                console.error('[Auto-open] viewConcern function not found, retry count:', retryCount);
+                if (retryCount < 5) {
+                    // Retry after a delay
+                    setTimeout(function() {
+                        tryOpenModal(retryCount + 1);
+                    }, 500);
                 } else {
-                    console.error('[Auto-open] viewConcern function still not available');
+                    console.error('[Auto-open] Failed to find viewConcern function after 5 retries');
                 }
-            }, 1500);
+            }
         }
+        
+        tryOpenModal();
+    } else {
+        console.log('[Auto-open] No concern_id in URL');
     }
 });
 </script>

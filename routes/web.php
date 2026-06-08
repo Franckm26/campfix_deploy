@@ -113,12 +113,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth');
 
 /* NOTIFICATIONS */
 Route::middleware('auth')->group(function () {
-    Route::get('/notifications/{id}', [NotificationController::class, 'show'])->name('notifications.show');
-    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.markRead');
-    Route::get('/notifications/{id}/read', [NotificationController::class, 'read'])->name('notifications.read');
-    Route::delete('/notifications/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
-    
-    // Unread count endpoint (moved from /api/ to avoid Vercel serverless routing)
+    // Unread count endpoint - MUST be before {id} routes to avoid conflicts
     Route::get('/notifications/unread-count', function () {
         try {
             if (!auth()->check()) {
@@ -131,6 +126,11 @@ Route::middleware('auth')->group(function () {
             return response()->json(['count' => 0, 'error' => $e->getMessage()], 500);
         }
     })->name('notifications.unreadCount');
+    
+    Route::get('/notifications/{id}', [NotificationController::class, 'show'])->name('notifications.show');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.markRead');
+    Route::get('/notifications/{id}/read', [NotificationController::class, 'read'])->name('notifications.read');
+    Route::delete('/notifications/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
 });
 
 /* USER FEATURES - For students, faculty */
