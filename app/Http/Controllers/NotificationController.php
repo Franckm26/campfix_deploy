@@ -74,21 +74,21 @@ class NotificationController extends Controller
                 // For follow-up notifications, redirect to the specific concern
                 $concernId = $notification->data['concern_id'] ?? null;
                 if ($concernId) {
-                    return redirect()->route('concerns.my', ['concern_id' => $concernId]);
+                    return redirect('/my-concerns?concern_id=' . $concernId);
                 }
-                return redirect()->route('concerns.my');
+                return redirect('/my-concerns');
             } elseif (str_contains($notification->type, 'ConcernAssigned')) {
                 $concernId = $notification->data['concern_id'] ?? null;
                 if ($concernId) {
-                    return redirect()->route('concerns.my', ['concern_id' => $concernId]);
+                    return redirect('/my-concerns?concern_id=' . $concernId);
                 }
-                return redirect()->route('concerns.my');
+                return redirect('/my-concerns');
             } elseif (str_contains($notification->type, 'ConcernResolved')) {
                 $concernId = $notification->data['concern_id'] ?? null;
                 if ($concernId) {
-                    return redirect()->route('concerns.my', ['concern_id' => $concernId]);
+                    return redirect('/my-concerns?concern_id=' . $concernId);
                 }
-                return redirect()->route('concerns.my');
+                return redirect('/my-concerns');
             } elseif (str_contains($notification->type, 'ReportAssigned') || str_contains($notification->type, 'ReportResolved')) {
                 $reportId = $notification->data['report_id'] ?? null;
                 if ($reportId) {
@@ -98,9 +98,9 @@ class NotificationController extends Controller
             } elseif (str_contains($notification->type, 'EventRequest')) {
                 $eventId = $notification->data['event_id'] ?? null;
                 if ($eventId) {
-                    return redirect()->route('events.my', ['event_id' => $eventId]);
+                    return redirect('/my-events?event_id=' . $eventId);
                 }
-                return redirect()->route('events.my');
+                return redirect('/my-events');
             } elseif (str_contains($notification->type, 'NewEventRequest')) {
                 return redirect()->route('admin.events');
             } else {
