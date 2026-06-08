@@ -2274,13 +2274,19 @@ function contextPermanentDelete() {
 // Auto-open modal if URL contains open_modal=true
 document.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
+    console.log('[Open Modal] Checking for open_modal parameter:', urlParams.get('open_modal'));
+    console.log('[Open Modal] Full URL before:', window.location.href);
+    
     if (urlParams.get('open_modal') === 'true') {
         const modal = new bootstrap.Modal(document.getElementById('eventRequestModal'));
         modal.show();
 
-        // Clean up URL by removing the parameter
-        const newUrl = window.location.pathname + window.location.search.replace(/[?&]open_modal=true/, '');
+        // Clean up URL by removing ONLY the open_modal parameter
+        urlParams.delete('open_modal');
+        const newSearch = urlParams.toString();
+        const newUrl = window.location.pathname + (newSearch ? '?' + newSearch : '') + window.location.hash;
         window.history.replaceState({}, document.title, newUrl);
+        console.log('[Open Modal] URL cleaned to:', newUrl);
     }
 
     // Reopen modal if there are validation errors
