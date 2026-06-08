@@ -2370,6 +2370,25 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+
+<script>
+// Auto-open event modal if event_id is in URL
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const eventId = urlParams.get('event_id');
+    
+    if (eventId) {
+        // Wait a bit for the page to fully load
+        setTimeout(function() {
+            viewEvent(parseInt(eventId));
+            // Clean URL without reloading page
+            const cleanUrl = window.location.pathname + window.location.hash;
+            window.history.replaceState({}, document.title, cleanUrl);
+        }, 500);
+    }
+});
+</script>
+
 @endsection
 
 

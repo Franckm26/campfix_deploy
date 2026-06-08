@@ -3758,6 +3758,22 @@ if (assignConcernForm) {
     </div>
 </div>
 
-
+<script>
+// Auto-open concern modal if concern_id is in URL
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const concernId = urlParams.get('concern_id');
+    
+    if (concernId) {
+        // Wait a bit for the page to fully load
+        setTimeout(function() {
+            viewConcern(parseInt(concernId));
+            // Clean URL without reloading page
+            const cleanUrl = window.location.pathname + window.location.hash;
+            window.history.replaceState({}, document.title, cleanUrl);
+        }, 500);
+    }
+});
+</script>
 
 @endsection
