@@ -36,6 +36,28 @@ class NotificationController extends Controller
             $sender = \App\Models\User::find($notification->data['sender_id']);
         }
 
+        // Determine correct URL based on notification type
+        $url = null;
+        if (str_contains($notification->type, 'Concern')) {
+            $concernId = $notification->data['concern_id'] ?? null;
+            if ($concernId) {
+                $url = '/my-concerns?concern_id=' . $concernId;
+            } else {
+                $url = '/my-concerns';
+            }
+        } elseif (str_contains($notification->type, 'EventRequest')) {
+            $eventId = $notification->data['event_id'] ?? null;
+            if ($eventId) {
+                $url = '/my-events?event_id=' . $eventId;
+            } else {
+                $url = '/my-events';
+            }
+        } elseif (str_contains($notification->type, 'Report')) {
+            $url = $notification->data['url'] ?? '/reports';
+        } else {
+            $url = $notification->data['url'] ?? null;
+        }
+
         return response()->json([
             'id' => $notification->id,
             'title' => $notification->data['title'] ?? 'Notification',
@@ -43,7 +65,7 @@ class NotificationController extends Controller
             'created_at' => $notification->created_at->format('M j, g:i a'),
             'created_at_human' => $notification->created_at->diffForHumans(),
             'read_at' => $notification->read_at,
-            'url' => $notification->data['url'] ?? null,
+            'url' => $url,
             'sender' => $sender ? [
                 'name' => $sender->name,
                 'profile_picture' => $sender->profile_picture ? asset('storage/' . $sender->profile_picture) : null,
