@@ -113,6 +113,8 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth');
 
 /* NOTIFICATIONS */
 Route::middleware('auth')->group(function () {
+    Route::get('/notifications/{id}', [NotificationController::class, 'show'])->name('notifications.show');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.markRead');
     Route::get('/notifications/{id}/read', [NotificationController::class, 'read'])->name('notifications.read');
     Route::delete('/notifications/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
     Route::get('/api/notifications/unread-count', function () {
