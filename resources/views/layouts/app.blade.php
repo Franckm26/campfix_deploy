@@ -2189,7 +2189,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     <div id="modalMessage"></div>
                 </div>
                 <div class="notification-modal-action mt-3" id="modalActionBtn" style="display:none;">
-                    <a href="#" class="btn btn-primary btn-sm" id="modalViewLink" target="_blank">View Details</a>
+                    <a href="#" class="btn btn-primary btn-sm" id="modalViewLink">View Details</a>
                 </div>
             </div>
             <div class="modal-footer d-flex justify-content-between">
