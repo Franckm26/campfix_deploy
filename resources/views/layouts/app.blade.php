@@ -2453,6 +2453,7 @@ async function openNotificationModal(notificationId, event) {
         if (data.url) {
             document.getElementById('modalActionBtn').style.display = 'block';
             document.getElementById('modalViewLink').href = data.url;
+            console.log('[Notification] View Details URL set to:', data.url);
         } else {
             document.getElementById('modalActionBtn').style.display = 'none';
         }
