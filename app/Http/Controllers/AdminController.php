@@ -979,10 +979,16 @@ class AdminController extends Controller
             // Use only concerns for combined stats to avoid double-counting
             // (resolving a report copies cost to the linked concern, so summing both would double-count)
             $combinedLocationStats = $concernsCombined->groupBy('location')->map(function ($group) {
+                $totalCount = $group->count();
+                $totalCost = $group->sum('cost') ?? 0;
+                // Count only fixed concerns (with cost > 0) for average calculation
+                $fixedCount = $group->where('cost', '>', 0)->count();
+                
                 return [
                     'location' => $group->first()->location,
-                    'total_count' => $group->count(),
-                    'total_cost' => $group->sum('cost') ?? 0,
+                    'total_count' => $totalCount,
+                    'total_cost' => $totalCost,
+                    'fixed_count' => $fixedCount,
                 ];
             })->sortByDesc('total_cost')->values();
 
@@ -1034,8 +1040,9 @@ class AdminController extends Controller
                 if ($stat['total_cost'] <= 0) continue;
 
                 $repairCount = $stat['total_count'];
+                $fixedCount = $stat['fixed_count'];
                 $totalCost   = $stat['total_cost'];
-                $avgCost     = $repairCount > 0 ? $totalCost / $repairCount : 0;
+                $avgCost     = $fixedCount > 0 ? $totalCost / $fixedCount : 0;
 
                 // Suggest replacement if total repair cost exceeds threshold
                 if ($totalCost >= $replacementThreshold) {
@@ -4527,7 +4534,8 @@ class AdminController extends Controller
         if ($request->input('ajax') === 'locations') {
             $locationsHtml = '';
             foreach ($paginatedLocationStats as $stat) {
-                $avgCost = $stat['total_count'] > 0 ? $stat['total_cost'] / $stat['total_count'] : 0;
+                $fixedCount = $stat['fixed_count'] ?? $stat['total_count']; // Fallback for backward compatibility
+                $avgCost = $fixedCount > 0 ? $stat['total_cost'] / $fixedCount : 0;
                 $location = addslashes($stat['location']);
                 $locationsHtml .= '<tr style="cursor: pointer; transition: all 0.2s;" 
                     data-location="' . htmlspecialchars($stat['location']) . '"
@@ -6238,6 +6246,7 @@ class AdminController extends Controller
             $monthlyCostData = (clone $baseQuery)
                 ->selectRaw("TO_CHAR(reports.created_at, 'YYYY-MM') as month")
                 ->selectRaw('COUNT(*) as count')
+                ->selectRaw('COUNT(CASE WHEN reports.cost > 0 THEN 1 END) as fixed_count')
                 ->selectRaw('SUM(COALESCE(reports.cost, 0)) as total_cost')
                 ->groupBy('month')
                 ->orderBy('month')
@@ -6273,6 +6282,7 @@ class AdminController extends Controller
             // Initialize data arrays
             $monthCosts = array_fill(0, count($monthKeys), 0);
             $monthCounts = array_fill(0, count($monthKeys), 0);
+            $monthFixedCounts = array_fill(0, count($monthKeys), 0);
 
             // Populate data from query results
             foreach ($monthlyCostData as $item) {
@@ -6280,14 +6290,16 @@ class AdminController extends Controller
                 if ($monthIndex !== false) {
                     $monthCosts[$monthIndex] = (float) $item->total_cost;
                     $monthCounts[$monthIndex] = (int) $item->count;
+                    $monthFixedCounts[$monthIndex] = (int) $item->fixed_count;
                 }
             }
 
             // Calculate statistics
             $totalCost = array_sum($monthCosts);
             $totalCount = array_sum($monthCounts);
+            $totalFixedCount = array_sum($monthFixedCounts);
             $avgCostPerMonth = count($monthKeys) > 0 ? $totalCost / count($monthKeys) : 0;
-            $avgCostPerRepair = $totalCount > 0 ? $totalCost / $totalCount : 0;
+            $avgCostPerRepair = $totalFixedCount > 0 ? $totalCost / $totalFixedCount : 0;
 
             // Find highest and lowest months
             $highestIdx = 0;
@@ -6406,12 +6418,14 @@ class AdminController extends Controller
 
                 $totalCost = $reports->sum('cost');
                 $totalCount = $reports->count();
+                // Count only fixed tickets (with cost > 0) for average calculation
+                $fixedCount = $reports->where('cost', '>', 0)->count();
 
                 return [
                     'location' => $location,
                     'total_count' => $totalCount,
                     'total_cost' => $totalCost,
-                    'avg_cost' => $totalCount > 0 ? ($totalCost / $totalCount) : 0,
+                    'avg_cost' => $fixedCount > 0 ? ($totalCost / $fixedCount) : 0,
                     'tickets' => $tickets,
                 ];
             })->values();
@@ -6419,7 +6433,9 @@ class AdminController extends Controller
             // Calculate totals
             $totalTickets = $combinedLocationStats->sum('total_count');
             $totalCost = $combinedLocationStats->sum('total_cost');
-            $avgCostPerTicket = $totalTickets > 0 ? ($totalCost / $totalTickets) : 0;
+            // Calculate total fixed tickets across all locations for overall average
+            $totalFixedTickets = $query->where('cost', '>', 0)->count();
+            $avgCostPerTicket = $totalFixedTickets > 0 ? ($totalCost / $totalFixedTickets) : 0;
 
             // Date range for display
             $dateRange = 'All Time';
@@ -6474,7 +6490,9 @@ class AdminController extends Controller
             // Calculate statistics
             $totalTickets = $tickets->count();
             $totalCost = $tickets->sum('cost');
-            $avgCostPerTicket = $totalTickets > 0 ? ($totalCost / $totalTickets) : 0;
+            // Count only fixed tickets (with cost > 0) for average calculation
+            $fixedTickets = $tickets->where('cost', '>', 0)->count();
+            $avgCostPerTicket = $fixedTickets > 0 ? ($totalCost / $fixedTickets) : 0;
 
             // Date range for display
             $dateRange = 'All Time';
@@ -6524,7 +6542,9 @@ class AdminController extends Controller
             // Summary stats
             $totalConcerns = (clone $baseQuery)->count();
             $totalCost = (clone $baseQuery)->sum('cost') ?? 0;
-            $avgCost = $totalConcerns > 0 ? $totalCost / $totalConcerns : 0;
+            // Count only fixed concerns (with cost > 0) for average calculation
+            $fixedConcerns = (clone $baseQuery)->where('cost', '>', 0)->count();
+            $avgCost = $fixedConcerns > 0 ? $totalCost / $fixedConcerns : 0;
             $uniqueLocations = (clone $baseQuery)->distinct('location')->count('location');
 
             // 1. Combined Cost by Location (All Tickets)
@@ -6544,12 +6564,14 @@ class AdminController extends Controller
 
                     $totalCost = $reports->sum('cost');
                     $totalCount = $reports->count();
+                    // Count only fixed tickets (with cost > 0) for average calculation
+                    $fixedCount = $reports->where('cost', '>', 0)->count();
 
                     return [
                         'location' => $location,
                         'total_count' => $totalCount,
                         'total_cost' => $totalCost,
-                        'avg_cost' => $totalCount > 0 ? ($totalCost / $totalCount) : 0,
+                        'avg_cost' => $fixedCount > 0 ? ($totalCost / $fixedCount) : 0,
                         'tickets' => $tickets,
                     ];
                 })
@@ -6651,6 +6673,7 @@ class AdminController extends Controller
             $yearlyStats = Report::selectRaw('
                     EXTRACT(YEAR FROM created_at)::integer as year,
                     COUNT(*) as count,
+                    COUNT(CASE WHEN cost > 0 THEN 1 END) as fixed_count,
                     SUM(cost) as total_cost
                 ')
                 ->whereNotNull('location')
@@ -6663,7 +6686,7 @@ class AdminController extends Controller
                 ->get();
 
             $periodData = $yearlyStats->map(function($stat, $index) use ($yearlyStats, $request) {
-                $avgPerRepair = $stat->count > 0 ? $stat->total_cost / $stat->count : 0;
+                $avgPerRepair = $stat->fixed_count > 0 ? $stat->total_cost / $stat->fixed_count : 0;
                 
                 // Determine trend
                 $trend = 'neutral';
@@ -6710,7 +6733,8 @@ class AdminController extends Controller
             $highestIdx = $periodData->isEmpty() ? 0 : $periodData->search(fn($item) => $item['cost'] == $periodData->max('cost'));
             $lowestIdx = $periodData->isEmpty() ? 0 : $periodData->search(fn($item) => $item['cost'] == $periodData->min('cost'));
             $avgCostPerYear = $periodData->isEmpty() ? 0 : $periodData->avg('cost');
-            $avgCostPerRepair = $periodData->sum('count') > 0 ? $periodData->sum('cost') / $periodData->sum('count') : 0;
+            $totalFixedYearly = $yearlyStats->sum('fixed_count');
+            $avgCostPerRepair = $totalFixedYearly > 0 ? $periodData->sum('cost') / $totalFixedYearly : 0;
 
             // Build date range string
             $dateRange = 'All Time';
@@ -6793,6 +6817,7 @@ class AdminController extends Controller
                 
                 $totalRepairs = $reports->count();
                 $totalCost = $reports->sum('cost');
+                $fixedRepairs = $reports->where('cost', '>', 0)->count();
                 
                 $trendAlertsData->push([
                     'location' => $loc,
@@ -6801,7 +6826,7 @@ class AdminController extends Controller
                     'alert_title' => $alertTitle,
                     'total_repairs' => $totalRepairs,
                     'total_cost' => $totalCost,
-                    'avg_cost_per_repair' => $totalRepairs > 0 ? $totalCost / $totalRepairs : 0,
+                    'avg_cost_per_repair' => $fixedRepairs > 0 ? $totalCost / $fixedRepairs : 0,
                     'part_breakdown' => $partBreakdown,
                     'recent_count' => $recent
                 ]);
@@ -6906,7 +6931,8 @@ class AdminController extends Controller
             // Calculate summary stats
             $totalRepairs = $reports->count();
             $totalCost = $reports->sum('cost');
-            $avgCostPerRepair = $totalRepairs > 0 ? $totalCost / $totalRepairs : 0;
+            $fixedRepairs = $reports->where('cost', '>', 0)->count();
+            $avgCostPerRepair = $fixedRepairs > 0 ? $totalCost / $fixedRepairs : 0;
             
             // Determine severity
             $recentCount = Report::where('location', $location)
