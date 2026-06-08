@@ -160,13 +160,16 @@
         }
         
         .footer {
-            margin-top: 50px;
-            padding: 15px 20px;
-            border-top: 2px solid #003087;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 10px 20px;
+            border-top: 1px solid #ddd;
             text-align: center;
             font-size: 9px;
             color: #666;
-            background: #f8f9fa;
+            background: white;
         }
         
         .no-data {
@@ -174,10 +177,6 @@
             padding: 40px;
             color: #999;
             font-style: italic;
-        }
-        
-        @page {
-            margin: 20px;
         }
     </style>
 </head>
