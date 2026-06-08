@@ -6405,30 +6405,46 @@ class AdminController extends Controller
                 ->orderBy('location')
                 ->get();
 
-            // Group by location and collect damaged parts with ticket numbers
-            $combinedLocationStats = $query->groupBy('location')->map(function ($reports, $location) {
-                $tickets = $reports->map(function ($report) {
-                    return [
-                        'ticket_number' => '#' . str_pad($report->id, 4, '0', STR_PAD_LEFT),
-                        'damaged_part' => $report->damaged_part ?: 'N/A',
-                        'cost' => $report->cost ?? 0,
-                        'date_fixed' => $report->resolved_at ? \Carbon\Carbon::parse($report->resolved_at)->format('M d, Y') : 'N/A',
-                    ];
+            // Group by location and issue type (damaged_part)
+            $combinedLocationStats = collect();
+            
+            foreach ($query->groupBy('location') as $location => $locationReports) {
+                // Further group by issue type within this location
+                $issueGroups = $locationReports->groupBy(function($report) {
+                    return $report->title ?: ($report->damaged_part ?: 'N/A');
                 });
+                
+                foreach ($issueGroups as $issueType => $issueReports) {
+                    $tickets = $issueReports->map(function ($report) {
+                        return [
+                            'ticket_number' => '#' . str_pad($report->id, 4, '0', STR_PAD_LEFT),
+                            'damaged_part' => $report->damaged_part ?: 'N/A',
+                            'cost' => $report->cost ?? 0,
+                            'date_fixed' => $report->resolved_at ? \Carbon\Carbon::parse($report->resolved_at)->format('M d, Y') : 'Not Fixed',
+                        ];
+                    });
 
-                $totalCost = $reports->sum('cost');
-                $totalCount = $reports->count();
-                // Count only fixed tickets (with cost > 0) for average calculation
-                $fixedCount = $reports->where('cost', '>', 0)->count();
+                    $totalCost = $issueReports->sum('cost');
+                    $totalCount = $issueReports->count();
+                    // Count only fixed tickets (with cost > 0) for average calculation
+                    $fixedCount = $issueReports->where('cost', '>', 0)->count();
 
-                return [
-                    'location' => $location,
-                    'total_count' => $totalCount,
-                    'total_cost' => $totalCost,
-                    'avg_cost' => $fixedCount > 0 ? ($totalCost / $fixedCount) : 0,
-                    'tickets' => $tickets,
-                ];
-            })->values();
+                    $combinedLocationStats->push([
+                        'location' => $location,
+                        'issue_type' => $issueType,
+                        'total_count' => $totalCount,
+                        'total_cost' => $totalCost,
+                        'avg_cost' => $fixedCount > 0 ? ($totalCost / $fixedCount) : 0,
+                        'tickets' => $tickets,
+                    ]);
+                }
+            }
+            
+            // Sort by location and total cost
+            $combinedLocationStats = $combinedLocationStats->sortBy([
+                ['location', 'asc'],
+                ['total_cost', 'desc']
+            ])->values();
 
             // Calculate totals
             $totalTickets = $combinedLocationStats->sum('total_count');
@@ -6547,13 +6563,18 @@ class AdminController extends Controller
             $avgCost = $fixedConcerns > 0 ? $totalCost / $fixedConcerns : 0;
             $uniqueLocations = (clone $baseQuery)->distinct('location')->count('location');
 
-            // 1. Combined Cost by Location (All Tickets)
-            $combinedLocationStats = (clone $baseQuery)
-                ->orderBy('location')
-                ->get()
-                ->groupBy('location')
-                ->map(function ($reports, $location) {
-                    $tickets = $reports->map(function ($report) {
+            // 1. Combined Cost by Location and Issue Type
+            $allReports = (clone $baseQuery)->orderBy('location')->get();
+            $combinedLocationStats = collect();
+            
+            foreach ($allReports->groupBy('location') as $location => $locationReports) {
+                // Further group by issue type within this location
+                $issueGroups = $locationReports->groupBy(function($report) {
+                    return $report->title ?: ($report->damaged_part ?: 'N/A');
+                });
+                
+                foreach ($issueGroups as $issueType => $issueReports) {
+                    $tickets = $issueReports->map(function ($report) {
                         return [
                             'ticket_number' => '#' . str_pad($report->id, 4, '0', STR_PAD_LEFT),
                             'damaged_part' => $report->damaged_part ?: 'N/A',
@@ -6562,21 +6583,27 @@ class AdminController extends Controller
                         ];
                     });
 
-                    $totalCost = $reports->sum('cost');
-                    $totalCount = $reports->count();
+                    $totalCost = $issueReports->sum('cost');
+                    $totalCount = $issueReports->count();
                     // Count only fixed tickets (with cost > 0) for average calculation
-                    $fixedCount = $reports->where('cost', '>', 0)->count();
+                    $fixedCount = $issueReports->where('cost', '>', 0)->count();
 
-                    return [
+                    $combinedLocationStats->push([
                         'location' => $location,
+                        'issue_type' => $issueType,
                         'total_count' => $totalCount,
                         'total_cost' => $totalCost,
                         'avg_cost' => $fixedCount > 0 ? ($totalCost / $fixedCount) : 0,
                         'tickets' => $tickets,
-                    ];
-                })
-                ->sortByDesc('total_cost')
-                ->values();
+                    ]);
+                }
+            }
+            
+            // Sort by location and total cost
+            $combinedLocationStats = $combinedLocationStats->sortBy([
+                ['location', 'asc'],
+                ['total_cost', 'desc']
+            ])->values();
 
             // 2. Cost by Category Analysis
             $costByCategory = Report::with('category')

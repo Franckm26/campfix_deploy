@@ -244,11 +244,12 @@
     <div class="location-table-container"><table>
         <thead>
             <tr>
-                <th style="width: 18%;">Location</th>
-                <th style="width: 30%;">Damaged Parts (Tickets)</th>
-                <th style="width: 15%;">Date Fixed</th>
+                <th style="width: 15%;">Location</th>
+                <th style="width: 12%;">Issue Type</th>
+                <th style="width: 25%;">Damaged Parts (Tickets)</th>
+                <th style="width: 13%;">Date Fixed</th>
                 <th style="width: 10%;" class="text-center">Total Tickets</th>
-                <th style="width: 15%;" class="text-right">Total Cost</th>
+                <th style="width: 13%;" class="text-right">Total Cost</th>
                 <th style="width: 12%;" class="text-right">Avg Cost</th>
             </tr>
         </thead>
@@ -256,6 +257,7 @@
             @foreach($combinedLocationStats as $stat)
             <tr>
                 <td style="vertical-align: top;"><strong>{{ $stat['location'] }}</strong></td>
+                <td style="vertical-align: top;">{{ $stat['issue_type'] }}</td>
                 <td style="font-size: 10px;">
                     @foreach($stat['tickets'] as $ticket)
                         <div style="margin-bottom: 3px;">

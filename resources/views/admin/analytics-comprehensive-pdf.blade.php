@@ -286,9 +286,10 @@
     <table>
         <thead>
             <tr>
-                <th style="width: 15%;">Location</th>
-                <th style="width: 35%;">Damaged Parts (Tickets)</th>
-                <th style="width: 15%;">Date Fixed</th>
+                <th style="width: 12%;">Location</th>
+                <th style="width: 12%;">Issue Type</th>
+                <th style="width: 28%;">Damaged Parts (Tickets)</th>
+                <th style="width: 13%;">Date Fixed</th>
                 <th style="width: 10%;" class="text-center">Total Tickets</th>
                 <th style="width: 12%;" class="text-right">Total Cost</th>
                 <th style="width: 13%;" class="text-right">Avg Cost</th>
@@ -298,6 +299,7 @@
             @foreach($combinedLocationStats as $stat)
             <tr>
                 <td style="vertical-align: top;"><strong>{{ $stat['location'] }}</strong></td>
+                <td style="vertical-align: top;">{{ $stat['issue_type'] }}</td>
                 <td style="font-size: 9px;">
                     @foreach($stat['tickets'] as $ticket)
                         <div style="margin-bottom: 2px;">
@@ -319,7 +321,7 @@
         </tbody>
         <tfoot>
             <tr style="background: #f0f0f0; font-weight: bold;">
-                <td colspan="3" class="text-right" style="padding: 8px;">TOTAL:</td>
+                <td colspan="4" class="text-right" style="padding: 8px;">TOTAL:</td>
                 <td class="text-center" style="padding: 8px;">{{ $combinedLocationStats->sum('total_count') }}</td>
                 <td class="text-right" style="padding: 8px;">PHP {{ number_format($combinedLocationStats->sum('total_cost'), 2) }}</td>
                 <td></td>
