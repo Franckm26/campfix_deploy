@@ -117,9 +117,20 @@ Route::middleware('auth')->group(function () {
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.markRead');
     Route::get('/notifications/{id}/read', [NotificationController::class, 'read'])->name('notifications.read');
     Route::delete('/notifications/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
-    Route::get('/api/notifications/unread-count', function () {
-        return response()->json(['count' => auth()->user()->unreadNotifications()->count()]);
-    });
+    
+    // Unread count endpoint (moved from /api/ to avoid Vercel serverless routing)
+    Route::get('/notifications/unread-count', function () {
+        try {
+            if (!auth()->check()) {
+                return response()->json(['count' => 0], 401);
+            }
+            $count = auth()->user()->unreadNotifications()->count();
+            return response()->json(['count' => $count], 200, [], JSON_NUMERIC_CHECK);
+        } catch (\Exception $e) {
+            \Log::error('Unread notification count error: ' . $e->getMessage());
+            return response()->json(['count' => 0, 'error' => $e->getMessage()], 500);
+        }
+    })->name('notifications.unreadCount');
 });
 
 /* USER FEATURES - For students, faculty */

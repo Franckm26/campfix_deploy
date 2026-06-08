@@ -2676,7 +2676,7 @@ async function deleteNotification(notificationId, event) {
 // Update notification badge count
 async function updateNotificationCount() {
     try {
-        const response = await fetch('/api/notifications/unread-count');
+        const response = await fetch('/notifications/unread-count');
         const data = await response.json();
         const badge = document.querySelector('.notification-badge');
         const headerCount = document.querySelector('.notification-count');
