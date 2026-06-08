@@ -2378,13 +2378,32 @@ document.addEventListener('DOMContentLoaded', function() {
     const eventId = urlParams.get('event_id');
     
     if (eventId) {
-        // Wait a bit for the page to fully load
-        setTimeout(function() {
-            viewEvent(parseInt(eventId));
-            // Clean URL without reloading page
-            const cleanUrl = window.location.pathname + window.location.hash;
-            window.history.replaceState({}, document.title, cleanUrl);
-        }, 500);
+        console.log('[Auto-open] Found event_id:', eventId);
+        
+        // Check if viewEvent function exists
+        if (typeof viewEvent === 'function') {
+            // Wait a bit for the page to fully load
+            setTimeout(function() {
+                console.log('[Auto-open] Opening event modal for ID:', eventId);
+                viewEvent(parseInt(eventId));
+                // Clean URL without reloading page
+                const cleanUrl = window.location.pathname + window.location.hash;
+                window.history.replaceState({}, document.title, cleanUrl);
+            }, 800);
+        } else {
+            console.error('[Auto-open] viewEvent function not found, retrying...');
+            // Retry after a longer delay if function not loaded yet
+            setTimeout(function() {
+                if (typeof viewEvent === 'function') {
+                    console.log('[Auto-open] Opening event modal (retry) for ID:', eventId);
+                    viewEvent(parseInt(eventId));
+                    const cleanUrl = window.location.pathname + window.location.hash;
+                    window.history.replaceState({}, document.title, cleanUrl);
+                } else {
+                    console.error('[Auto-open] viewEvent function still not available');
+                }
+            }, 1500);
+        }
     }
 });
 </script>

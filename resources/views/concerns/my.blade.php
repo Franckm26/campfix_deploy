@@ -3765,13 +3765,32 @@ document.addEventListener('DOMContentLoaded', function() {
     const concernId = urlParams.get('concern_id');
     
     if (concernId) {
-        // Wait a bit for the page to fully load
-        setTimeout(function() {
-            viewConcern(parseInt(concernId));
-            // Clean URL without reloading page
-            const cleanUrl = window.location.pathname + window.location.hash;
-            window.history.replaceState({}, document.title, cleanUrl);
-        }, 500);
+        console.log('[Auto-open] Found concern_id:', concernId);
+        
+        // Check if viewConcern function exists
+        if (typeof viewConcern === 'function') {
+            // Wait a bit for the page to fully load
+            setTimeout(function() {
+                console.log('[Auto-open] Opening concern modal for ID:', concernId);
+                viewConcern(parseInt(concernId));
+                // Clean URL without reloading page
+                const cleanUrl = window.location.pathname + window.location.hash;
+                window.history.replaceState({}, document.title, cleanUrl);
+            }, 800);
+        } else {
+            console.error('[Auto-open] viewConcern function not found, retrying...');
+            // Retry after a longer delay if function not loaded yet
+            setTimeout(function() {
+                if (typeof viewConcern === 'function') {
+                    console.log('[Auto-open] Opening concern modal (retry) for ID:', concernId);
+                    viewConcern(parseInt(concernId));
+                    const cleanUrl = window.location.pathname + window.location.hash;
+                    window.history.replaceState({}, document.title, cleanUrl);
+                } else {
+                    console.error('[Auto-open] viewConcern function still not available');
+                }
+            }, 1500);
+        }
     }
 });
 </script>
