@@ -223,7 +223,7 @@
                         <input type="hidden" name="view" value="{{ $viewType ?? 'active' }}">
                         <div class="col-auto">
                             <input type="text" name="search" id="searchInput" class="form-control form-control-sm" placeholder="Search Name, Email..." 
-                                value="{{ request('search') }}" onkeyup="filterTable()" enterkeyhint="search" inputmode="search" onkeypress="if(event.key==='Enter'){this.form.submit();}">
+                                value="{{ request('search') }}" oninput="filterTable()" enterkeyhint="search" inputmode="search" onkeypress="if(event.key==='Enter'){this.form.submit();}">
                         </div>
                         <div class="col-auto">
                             <select name="role" class="form-select form-select-sm" onchange="this.form.submit()">
@@ -2107,22 +2107,51 @@ document.addEventListener('DOMContentLoaded', function() {
         const searchInput = document.getElementById('searchInput');
         if (!searchInput) return;
         
-        const filter = searchInput.value.toLowerCase();
+        const filter = searchInput.value.toLowerCase().trim();
         const table = document.querySelector('.card .table');
         if (!table) return;
         
         const rows = table.querySelectorAll('tbody tr');
+        let visibleCount = 0;
         
         rows.forEach(row => {
-            // Get all text content from the row
+            // Skip if it's a "no results" row
+            if (row.classList.contains('no-results-row')) {
+                row.remove();
+                return;
+            }
+            
+            // Get all text content from the row (name, email, role, department, phone)
             const rowText = row.textContent.toLowerCase();
             
-            if (rowText.includes(filter)) {
+            if (filter === '' || rowText.includes(filter)) {
                 row.style.display = '';
+                visibleCount++;
             } else {
                 row.style.display = 'none';
             }
         });
+        
+        // Show "no results" message if no rows are visible
+        const tbody = table.querySelector('tbody');
+        let noResultsRow = tbody.querySelector('.no-results-row');
+        
+        if (visibleCount === 0 && filter !== '') {
+            if (!noResultsRow) {
+                noResultsRow = document.createElement('tr');
+                noResultsRow.className = 'no-results-row';
+                noResultsRow.innerHTML = `
+                    <td colspan="6" class="text-center py-4 text-muted">
+                        <i class="fas fa-search mb-2" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <p class="mb-0">No users found matching "<strong>${searchInput.value}</strong>"</p>
+                        <small>Try pressing Enter to search all users in the database</small>
+                    </td>
+                `;
+                tbody.appendChild(noResultsRow);
+            }
+        } else if (noResultsRow) {
+            noResultsRow.remove();
+        }
     }
 
     // Run filter on page load if there's a search value
