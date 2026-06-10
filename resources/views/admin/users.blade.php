@@ -221,9 +221,13 @@
                 <div class="col-md-7">
                     <form method="GET" action="{{ route('admin.users') }}" class="row g-2 align-items-center" id="userFilterForm">
                         <input type="hidden" name="view" value="{{ $viewType ?? 'active' }}">
-                        <div class="col-auto">
+                        <div class="col-auto position-relative">
                             <input type="text" name="search" id="searchInput" class="form-control form-control-sm" placeholder="Search Name, Email, ID, Phone, Dept..." 
-                                value="{{ request('search') }}" oninput="filterTable()" enterkeyhint="search" inputmode="search" onkeypress="if(event.key==='Enter'){this.form.submit();}">
+                                value="{{ request('search') }}" autocomplete="off">
+                            <div id="searchSpinner" class="spinner-border spinner-border-sm text-primary position-absolute" 
+                                style="right: 10px; top: 50%; transform: translateY(-50%); display: none;" role="status">
+                                <span class="visually-hidden">Searching...</span>
+                            </div>
                         </div>
                         <div class="col-auto">
                             <select name="role" class="form-select form-select-sm" onchange="this.form.submit()">
@@ -1915,6 +1919,36 @@ kbd {
 // Global variable for selected user ID
 window.selectedUserId = null;
 
+// Live search with debouncing
+let searchTimeout = null;
+const searchInput = document.getElementById('searchInput');
+const searchSpinner = document.getElementById('searchSpinner');
+const userFilterForm = document.getElementById('userFilterForm');
+
+if (searchInput) {
+    searchInput.addEventListener('input', function() {
+        // Clear previous timeout
+        clearTimeout(searchTimeout);
+        
+        // Show loading spinner
+        if (searchSpinner) searchSpinner.style.display = 'inline-block';
+        
+        // Wait 500ms after user stops typing before searching
+        searchTimeout = setTimeout(function() {
+            // Get current URL parameters
+            const formData = new FormData(userFilterForm);
+            const params = new URLSearchParams(formData);
+            
+            // Update URL without page reload
+            const newUrl = window.location.pathname + '?' + params.toString();
+            window.history.pushState({}, '', newUrl);
+            
+            // Reload the page to get new results
+            window.location.href = newUrl;
+        }, 500);
+    });
+}
+
 // ── Role default permissions map (mirrors User::defaultPermissions) ──
 const roleDefaults = {
     mis:                  ['concerns','events','users','users_create','users_archive','users_lock','users_unlock','users_edit','users_delete','module_access','categories','logs','mis_tasks','settings'],
@@ -2166,9 +2200,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 noResultsRow.innerHTML = `
                     <td colspan="6" class="text-center py-4 text-muted">
                         <i class="fas fa-search mb-2" style="font-size: 2rem; opacity: 0.5;"></i>
-                        <p class="mb-0">No users found on this page matching "<strong>${searchInput.value}</strong>"</p>
+                        <p class="mb-0">No users found matching "<strong>${searchInput.value}</strong>"</p>
                         <small class="d-block mt-2">
-                            <i class="fas fa-info-circle"></i> Press <kbd>Enter</kbd> to search across all pages in the database
+                            <i class="fas fa-spinner fa-spin"></i> Search results updating automatically...
                         </small>
                     </td>
                 `;
