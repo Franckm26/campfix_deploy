@@ -1919,7 +1919,7 @@ kbd {
 // Global variable for selected user ID
 window.selectedUserId = null;
 
-// Live search with debouncing
+// Live AJAX search with debouncing (no page refresh)
 let searchTimeout = null;
 const searchInput = document.getElementById('searchInput');
 const searchSpinner = document.getElementById('searchSpinner');
@@ -1930,22 +1930,98 @@ if (searchInput) {
         // Clear previous timeout
         clearTimeout(searchTimeout);
         
+        const searchValue = searchInput.value.trim();
+        
         // Show loading spinner
         if (searchSpinner) searchSpinner.style.display = 'inline-block';
         
         // Wait 500ms after user stops typing before searching
         searchTimeout = setTimeout(function() {
-            // Get current URL parameters
-            const formData = new FormData(userFilterForm);
-            const params = new URLSearchParams(formData);
-            
-            // Update URL without page reload
-            const newUrl = window.location.pathname + '?' + params.toString();
-            window.history.pushState({}, '', newUrl);
-            
-            // Reload the page to get new results
-            window.location.href = newUrl;
+            performAjaxSearch(searchValue);
         }, 500);
+    });
+}
+
+function performAjaxSearch(searchTerm) {
+    // Get all form parameters
+    const formData = new FormData(userFilterForm);
+    const params = new URLSearchParams(formData);
+    
+    // Make AJAX request
+    fetch('{{ route("admin.users") }}?' + params.toString(), {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'text/html'
+        }
+    })
+    .then(response => response.text())
+    .then(html => {
+        // Parse the response HTML
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        
+        // Update the table body
+        const newTableBody = doc.querySelector('.table tbody');
+        const currentTableBody = document.querySelector('.table tbody');
+        if (newTableBody && currentTableBody) {
+            currentTableBody.innerHTML = newTableBody.innerHTML;
+        }
+        
+        // Update mobile cards if exists
+        const newMobileCards = doc.querySelector('.mobile-user-cards');
+        const currentMobileCards = document.querySelector('.mobile-user-cards');
+        if (newMobileCards && currentMobileCards) {
+            currentMobileCards.innerHTML = newMobileCards.innerHTML;
+        }
+        
+        // Update pagination
+        const newPagination = doc.querySelector('.pagination');
+        const currentPagination = document.querySelector('.pagination');
+        if (newPagination && currentPagination) {
+            currentPagination.parentElement.innerHTML = newPagination.parentElement.innerHTML;
+        }
+        
+        // Update user count
+        const newUserCount = doc.querySelector('.text-muted.mt-3.small.text-center');
+        const currentUserCount = document.querySelector('.text-muted.mt-3.small.text-center');
+        if (newUserCount && currentUserCount) {
+            currentUserCount.innerHTML = newUserCount.innerHTML;
+        }
+        
+        // Update URL without page reload
+        const newUrl = window.location.pathname + '?' + params.toString();
+        window.history.pushState({}, '', newUrl);
+        
+        // Hide loading spinner
+        if (searchSpinner) searchSpinner.style.display = 'none';
+        
+        // Reinitialize event listeners for new elements
+        initializeUserTableEvents();
+    })
+    .catch(error => {
+        console.error('Search error:', error);
+        if (searchSpinner) searchSpinner.style.display = 'none';
+    });
+}
+
+// Initialize event listeners for table elements
+function initializeUserTableEvents() {
+    // Reinitialize checkboxes
+    document.querySelectorAll('.user-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            updateSelectedCount();
+            updateActiveBulkActions();
+        });
+    });
+    
+    // Reinitialize context menu events
+    document.querySelectorAll('.table tbody tr').forEach(row => {
+        row.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            window.selectedUserId = this.getAttribute('data-id');
+            showContextMenu(e.pageX, e.pageY);
+        });
     });
 }
 
@@ -2201,9 +2277,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td colspan="6" class="text-center py-4 text-muted">
                         <i class="fas fa-search mb-2" style="font-size: 2rem; opacity: 0.5;"></i>
                         <p class="mb-0">No users found matching "<strong>${searchInput.value}</strong>"</p>
-                        <small class="d-block mt-2">
-                            <i class="fas fa-spinner fa-spin"></i> Search results updating automatically...
-                        </small>
+                        <small class="text-muted">Try a different search term</small>
                     </td>
                 `;
                 tbody.appendChild(noResultsRow);
