@@ -1843,6 +1843,22 @@ document.getElementById('deleteAllModal')?.addEventListener('hidden.bs.modal', f
     height: 12px;
 }
 
+/* Keyboard key styling for search hint */
+kbd {
+    background-color: #f7f7f7;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.2), 0 0 0 2px #fff inset;
+    color: #333;
+    display: inline-block;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 11px;
+    line-height: 1.4;
+    margin: 0 2px;
+    padding: 2px 6px;
+    white-space: nowrap;
+}
+
 /* Mobile Pagination Styles */
 @media screen and (max-width: 768px) {
     .pagination {
@@ -2150,8 +2166,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 noResultsRow.innerHTML = `
                     <td colspan="6" class="text-center py-4 text-muted">
                         <i class="fas fa-search mb-2" style="font-size: 2rem; opacity: 0.5;"></i>
-                        <p class="mb-0">No users found matching "<strong>${searchInput.value}</strong>"</p>
-                        <small>Try pressing Enter to search all users in the database</small>
+                        <p class="mb-0">No users found on this page matching "<strong>${searchInput.value}</strong>"</p>
+                        <small class="d-block mt-2">
+                            <i class="fas fa-info-circle"></i> Press <kbd>Enter</kbd> to search across all pages in the database
+                        </small>
                     </td>
                 `;
                 tbody.appendChild(noResultsRow);
