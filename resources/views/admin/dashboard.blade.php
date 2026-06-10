@@ -483,9 +483,17 @@ function unlockUser(uuid, userId, name) {
                 headers: {
                     'X-CSRF-TOKEN': '{{ csrf_token() }}',
                     'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
                 },
             })
-            .then(r => r.json())
+            .then(async r => {
+                if (!r.ok) {
+                    const text = await r.text();
+                    throw new Error(`HTTP ${r.status}: ${text}`);
+                }
+                return r.json();
+            })
             .then(data => {
                 if (data.success) {
                     // Remove the row from the modal
@@ -512,7 +520,8 @@ function unlockUser(uuid, userId, name) {
                     swalAlert(data.error, 'error', 'Error');
                 }
             })
-            .catch(() => {
+            .catch((error) => {
+                console.error('Unlock error:', error);
                 swalAlert('Failed to unlock. Please try again.', 'error', 'Error');
             });
         }

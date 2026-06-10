@@ -44,7 +44,7 @@ class AdminController extends Controller
 
         ActivityLog::log('account_unlocked', "Unlocked account: {$user->name} ({$user->email})", $user->id, 'user');
 
-        if (request()->ajax()) {
+        if (request()->expectsJson() || request()->ajax()) {
             return response()->json(['success' => true]);
         }
 
