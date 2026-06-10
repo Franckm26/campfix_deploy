@@ -1939,15 +1939,15 @@ class AdminController extends Controller
             $q->where('is_archived', false)->orWhereNull('is_archived');
         });
 
-        // Search by name or email
+        // Search by name, email, student_id, phone, or department (case-insensitive)
         if ($request->filled('search')) {
             $search = $request->input('search');
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', '%'.$search.'%')
-                    ->orWhere('email', 'like', '%'.$search.'%')
+                $q->whereRaw('LOWER(name) like ?', ['%'.strtolower($search).'%'])
+                    ->orWhereRaw('LOWER(email) like ?', ['%'.strtolower($search).'%'])
                     ->orWhere('student_id', 'like', '%'.$search.'%')
                     ->orWhere('phone', 'like', '%'.$search.'%')
-                    ->orWhere('department', 'like', '%'.$search.'%');
+                    ->orWhereRaw('LOWER(department) like ?', ['%'.strtolower($search).'%']);
             });
         }
 

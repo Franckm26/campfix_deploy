@@ -222,7 +222,7 @@
                     <form method="GET" action="{{ route('admin.users') }}" class="row g-2 align-items-center" id="userFilterForm">
                         <input type="hidden" name="view" value="{{ $viewType ?? 'active' }}">
                         <div class="col-auto">
-                            <input type="text" name="search" id="searchInput" class="form-control form-control-sm" placeholder="Search Name, Email..." 
+                            <input type="text" name="search" id="searchInput" class="form-control form-control-sm" placeholder="Search Name, Email, ID, Phone, Dept..." 
                                 value="{{ request('search') }}" oninput="filterTable()" enterkeyhint="search" inputmode="search" onkeypress="if(event.key==='Enter'){this.form.submit();}">
                         </div>
                         <div class="col-auto">
@@ -675,7 +675,14 @@
             
             <!-- User Count -->
             <div class="text-muted mt-3 small text-center">
-                Total active users: {{ $users->total() }}
+                @if(request('search'))
+                    Found {{ $users->total() }} user(s) matching "{{ request('search') }}"
+                    @if($users->total() > 0)
+                        <span class="text-muted">| Showing {{ $users->firstItem() }}-{{ $users->lastItem() }}</span>
+                    @endif
+                @else
+                    Total active users: {{ $users->total() }}
+                @endif
             </div>
 
             <!-- Pagination -->
