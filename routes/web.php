@@ -58,13 +58,13 @@ Route::get('/login', function () {
     return redirect('/');
 })->name('login');
 
-/* AUTH */
-Route::middleware(['web', 'throttle:20,1'])->group(function () {
+/* AUTH - Rate Limited */
+Route::middleware(['web', 'throttle:auth'])->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
 });
 
 /* API AUTH - Rate Limited (OWASP A6: Rate Limiting) */
-Route::middleware('throttle:5,1')->group(function () {
+Route::middleware('throttle:auth')->group(function () {
     Route::post('/api/login', [AuthController::class, 'apiLogin']);
 });
 
@@ -78,19 +78,19 @@ Route::get('/otp-choice', function () {
     return view('auth.otp-choice');
 });
 
-Route::post('/otp-delivery', [AuthController::class, 'sendOtp'])->middleware('throttle:10,1');
+Route::post('/otp-delivery', [AuthController::class, 'sendOtp'])->middleware('throttle:otp');
 
-Route::get('/resend-otp', [AuthController::class, 'resendOtp'])->name('resend.otp')->middleware('throttle:10,1');
+Route::get('/resend-otp', [AuthController::class, 'resendOtp'])->name('resend.otp')->middleware('throttle:otp');
 
 /* DASHBOARD - Role-based redirect */
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth')->name('dashboard');
 
 /* PROFILE */
-Route::get('/profile', [ProfileController::class, 'index'])->middleware('auth')->name('profile.index');
-Route::put('/profile', [ProfileController::class, 'update'])->middleware('auth')->name('profile.update');
-Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->middleware('auth')->name('profile.password');
-Route::post('/profile/upload-picture', [ProfileController::class, 'uploadProfilePicture'])->middleware('auth')->name('profile.uploadPicture');
-Route::delete('/profile/remove-picture', [ProfileController::class, 'removeProfilePicture'])->middleware('auth')->name('profile.removePicture');
+Route::get('/profile', [ProfileController::class, 'index'])->middleware(['auth', 'throttle:web'])->name('profile.index');
+Route::put('/profile', [ProfileController::class, 'update'])->middleware(['auth', 'throttle:web'])->name('profile.update');
+Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->middleware(['auth', 'throttle:password'])->name('profile.password');
+Route::post('/profile/upload-picture', [ProfileController::class, 'uploadProfilePicture'])->middleware(['auth', 'throttle:uploads'])->name('profile.uploadPicture');
+Route::delete('/profile/remove-picture', [ProfileController::class, 'removeProfilePicture'])->middleware(['auth', 'throttle:deletes'])->name('profile.removePicture');
 
 /* SETTINGS */
 Route::get('/settings', [SettingsController::class, 'index'])->middleware('auth')->name('settings.index');
@@ -102,17 +102,17 @@ Route::put('/settings/security', [SettingsController::class, 'updateSecurity'])-
 Route::put('/settings/security-misconfiguration', [SettingsController::class, 'updateSecurityMisconfiguration'])->middleware('auth')->name('settings.security-misconfiguration');
 
 /* FIRST LOGIN PASSWORD CHANGE */
-Route::get('/first-login-password', [AuthController::class, 'showFirstLoginPassword'])->middleware('auth')->name('auth.first-login-password');
-Route::post('/first-login-password', [AuthController::class, 'updateFirstLoginPassword'])->middleware('auth')->name('auth.first-login-password.update');
+Route::get('/first-login-password', [AuthController::class, 'showFirstLoginPassword'])->middleware(['auth', 'throttle:web'])->name('auth.first-login-password');
+Route::post('/first-login-password', [AuthController::class, 'updateFirstLoginPassword'])->middleware(['auth', 'throttle:password'])->name('auth.first-login-password.update');
 
 /* SECURITY ACCESS VERIFICATION */
-Route::post('/verify-access-password', [AuthController::class, 'verifyAccessPassword'])->middleware('auth');
+Route::post('/verify-access-password', [AuthController::class, 'verifyAccessPassword'])->middleware(['auth', 'throttle:auth']);
 
 /* LOGOUT */
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth');
 
 /* NOTIFICATIONS */
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'throttle:notifications'])->group(function () {
     // Unread count endpoint - MUST be before {id} routes to avoid conflicts
     Route::get('/notifications/unread-count', function () {
         try {
@@ -134,11 +134,11 @@ Route::middleware('auth')->group(function () {
 });
 
 /* USER FEATURES - For students, faculty */
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'throttle:web'])->group(function () {
     Route::get('/my-concerns', [ConcernController::class, 'myConcerns'])->name('concerns.my');
     Route::get('/user/archive', [ConcernController::class, 'userArchive'])->name('user.archive');
     Route::get('/concerns/create', [ConcernController::class, 'create'])->name('concerns.create');
-    Route::post('/submit-concern', [ConcernController::class, 'store'])->name('concerns.store');
+    Route::post('/submit-concern', [ConcernController::class, 'store'])->middleware('throttle:submissions')->name('concerns.store');
 
     // Maintenance: View assigned concerns - must come before {id} route
     // Maintenance: View assigned reports - must come before {id} route
@@ -151,23 +151,23 @@ Route::middleware('auth')->group(function () {
     Route::get('/concerns/{id}', [ConcernController::class, 'show'])->name('concerns.show');
     Route::get('/concerns/{id}/edit', [ConcernController::class, 'edit'])->name('concerns.edit');
     Route::put('/concerns/{id}', [ConcernController::class, 'update'])->name('concerns.update');
-    Route::delete('/concerns/{id}', [ConcernController::class, 'destroy'])->name('concerns.destroy');
+    Route::delete('/concerns/{id}', [ConcernController::class, 'destroy'])->middleware('throttle:deletes')->name('concerns.destroy');
     Route::post('/concerns/{id}/archive', [ConcernController::class, 'archive'])->name('concerns.archive');
     Route::post('/concerns/{id}/restore', [ConcernController::class, 'restore'])->name('concerns.restore');
-    Route::post('/concerns/{id}/soft-delete', [ConcernController::class, 'softDelete'])->name('concerns.softDelete');
+    Route::post('/concerns/{id}/soft-delete', [ConcernController::class, 'softDelete'])->middleware('throttle:deletes')->name('concerns.softDelete');
     Route::post('/concerns/{id}/restore-deleted', [ConcernController::class, 'restoreDeleted'])->name('concerns.restore-deleted');
-    Route::delete('/concerns/{id}/permanent-delete', [ConcernController::class, 'permanentDelete'])->name('concerns.permanentDelete');
+    Route::delete('/concerns/{id}/permanent-delete', [ConcernController::class, 'permanentDelete'])->middleware('throttle:deletes')->name('concerns.permanentDelete');
     Route::post('/concerns/{id}/send-follow-up', [ConcernController::class, 'sendFollowUp'])->name('concerns.sendFollowUp');
 
     // Assign concern to maintenance staff
     Route::post('/concerns/{id}/assign', [ConcernController::class, 'assign'])->name('concerns.assign');
 
     // Batch operations
-    Route::post('/concerns/batch-archive', [ConcernController::class, 'batchArchive'])->name('concerns.batchArchive');
-    Route::post('/concerns/batch-soft-delete', [ConcernController::class, 'batchSoftDelete'])->name('concerns.batchSoftDelete');
-    Route::post('/concerns/batch-restore', [ConcernController::class, 'batchRestore'])->name('concerns.batchRestore');
-    Route::post('/concerns/batch-restore-deleted', [ConcernController::class, 'batchRestoreDeleted'])->name('concerns.batchRestoreDeleted');
-    Route::post('/concerns/batch-permanent-delete', [ConcernController::class, 'batchPermanentDelete'])->name('concerns.batchPermanentDelete');
+    Route::post('/concerns/batch-archive', [ConcernController::class, 'batchArchive'])->middleware('throttle:batch')->name('concerns.batchArchive');
+    Route::post('/concerns/batch-soft-delete', [ConcernController::class, 'batchSoftDelete'])->middleware('throttle:batch')->name('concerns.batchSoftDelete');
+    Route::post('/concerns/batch-restore', [ConcernController::class, 'batchRestore'])->middleware('throttle:batch')->name('concerns.batchRestore');
+    Route::post('/concerns/batch-restore-deleted', [ConcernController::class, 'batchRestoreDeleted'])->middleware('throttle:batch')->name('concerns.batchRestoreDeleted');
+    Route::post('/concerns/batch-permanent-delete', [ConcernController::class, 'batchPermanentDelete'])->middleware('throttle:batch')->name('concerns.batchPermanentDelete');
 
     // Get maintenance users for assignment
     Route::get('/api/maintenance-users', [ConcernController::class, 'getMaintenanceUsers']);
@@ -185,17 +185,17 @@ Route::middleware('auth')->group(function () {
     // Reports
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/create', [ReportController::class, 'create'])->name('reports.create');
-    Route::post('/reports', [ReportController::class, 'store'])->name('reports.store');
+    Route::post('/reports', [ReportController::class, 'store'])->middleware('throttle:submissions')->name('reports.store');
     Route::get('/reports/{report}', [ReportController::class, 'show'])->name('reports.show');
     Route::get('/reports/{report}/edit', [ReportController::class, 'edit'])->name('reports.edit');
     Route::put('/reports/{report}', [ReportController::class, 'update'])->name('reports.update');
-    Route::delete('/reports/{report}', [ReportController::class, 'destroy'])->name('reports.destroy');
+    Route::delete('/reports/{report}', [ReportController::class, 'destroy'])->middleware('throttle:deletes')->name('reports.destroy');
     Route::post('/reports/{report}/archive', [ReportController::class, 'archive'])->name('reports.archive');
     Route::post('/reports/{report}/restore', [ReportController::class, 'restore'])->name('reports.restore');
 });
 
 /* MAINTENANCE - Update status routes */
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'throttle:status-updates'])->group(function () {
     // Update status for assigned concerns
     Route::post('/update-status/{id}', [AdminController::class, 'updateStatus'])->name('admin.updateStatus');
 
@@ -222,23 +222,23 @@ Route::middleware('auth')->group(function () {
 });
 
 /* FACULTY - Event Requests */
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'throttle:web'])->group(function () {
     // Event requests
     Route::get('/events/create', [EventRequestController::class, 'create'])->name('events.create');
-    Route::post('/events', [EventRequestController::class, 'store'])->name('events.store');
+    Route::post('/events', [EventRequestController::class, 'store'])->middleware('throttle:submissions')->name('events.store');
     Route::get('/events/{id}', [EventRequestController::class, 'show'])->name('events.show');
     Route::get('/events/{id}/deleted', [EventRequestController::class, 'showDeleted'])->name('events.show.deleted');
     Route::get('/my-events', [EventRequestController::class, 'myRequests'])->name('events.my');
     Route::post('/events/{id}/cancel', [EventRequestController::class, 'cancel'])->name('events.cancel');
     Route::post('/events/{id}/archive', [EventRequestController::class, 'archive'])->name('events.archive');
     Route::post('/events/{id}/restore', [EventRequestController::class, 'restore'])->name('events.restore');
-    Route::post('/events/{id}/delete', [EventRequestController::class, 'delete'])->name('events.delete');
+    Route::post('/events/{id}/delete', [EventRequestController::class, 'delete'])->middleware('throttle:deletes')->name('events.delete');
     
     // Batch operations for events
-    Route::post('/events/batch-archive', [EventRequestController::class, 'batchArchive'])->name('events.batchArchive');
-    Route::post('/events/batch-delete', [EventRequestController::class, 'batchDelete'])->name('events.batchDelete');
-    Route::post('/events/batch-restore', [EventRequestController::class, 'batchRestore'])->name('events.batchRestore');
-    Route::post('/events/batch-restore-deleted', [EventRequestController::class, 'batchRestoreDeleted'])->name('events.batchRestoreDeleted');
+    Route::post('/events/batch-archive', [EventRequestController::class, 'batchArchive'])->middleware('throttle:batch')->name('events.batchArchive');
+    Route::post('/events/batch-delete', [EventRequestController::class, 'batchDelete'])->middleware('throttle:batch')->name('events.batchDelete');
+    Route::post('/events/batch-restore', [EventRequestController::class, 'batchRestore'])->middleware('throttle:batch')->name('events.batchRestore');
+    Route::post('/events/batch-restore-deleted', [EventRequestController::class, 'batchRestoreDeleted'])->middleware('throttle:batch')->name('events.batchRestoreDeleted');
 
     // Event Discussions - Chat/Forum
     Route::get('/events/{eventRequest}/discussions', [EventDiscussionController::class, 'index']);
@@ -256,13 +256,13 @@ Route::middleware('auth')->group(function () {
 });
 
 /* APPROVAL - For Principal/Admin */
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'throttle:status-updates'])->group(function () {
     Route::post('/events/{id}/approve', [EventRequestController::class, 'approve'])->name('events.approve');
     Route::post('/events/{id}/reject', [EventRequestController::class, 'reject'])->name('events.reject');
     Route::get('/events-calendar', [EventRequestController::class, 'calendar'])->name('events.calendar');
     Route::get('/events-calendar/events', [EventRequestController::class, 'calendarEvents'])->name('events.calendar.events');
-    Route::post('/events-import', [EventRequestController::class, 'import'])->name('events.import');
-    Route::get('/events/{id}/pdf', [EventRequestController::class, 'generatePdf'])->name('events.pdf');
+    Route::post('/events-import', [EventRequestController::class, 'import'])->middleware('throttle:uploads')->name('events.import');
+    Route::get('/events/{id}/pdf', [EventRequestController::class, 'generatePdf'])->middleware('throttle:exports')->name('events.pdf');
 });
 
 /* BUILDING ADMIN - Management Module */
@@ -287,7 +287,7 @@ Route::middleware('auth')->group(function () {
 });
 
 /* ADMIN PANEL - ADMIN ONLY */
-Route::middleware(['auth', 'admin'])->group(function () {
+Route::middleware(['auth', 'admin', 'throttle:admin'])->group(function () {
     // Main admin dashboard
     Route::get('/admin', [AdminController::class, 'index']);
 
@@ -307,17 +307,17 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     // Reports
     Route::get('/admin/reports', [AdminController::class, 'reports'])->name('admin.reports');
-    Route::get('/admin/export', [AdminController::class, 'exportCsv'])->name('admin.export');
-    Route::get('/admin/export-pdf', [AdminController::class, 'exportPdf'])->name('admin.export.pdf');
+    Route::get('/admin/export', [AdminController::class, 'exportCsv'])->middleware('throttle:exports')->name('admin.export');
+    Route::get('/admin/export-pdf', [AdminController::class, 'exportPdf'])->middleware('throttle:exports')->name('admin.export.pdf');
 
     // User management
     Route::post('/admin/reauth', [AdminController::class, 'reauth'])->name('admin.reauth');
     Route::get('/admin/users', [AdminController::class, 'users'])->name('admin.users');
-    Route::post('/admin/users', [AdminController::class, 'storeUser'])->name('admin.users.store');
-    Route::post('/admin/users/batch-archive', [AdminController::class, 'batchArchiveUsers'])->name('admin.users.batchArchive');
-    Route::post('/admin/users/batch-delete', [AdminController::class, 'batchDeleteUsers'])->name('admin.users.batchDelete');
-    Route::post('/admin/users/archive-all', [AdminController::class, 'archiveAllUsers'])->name('admin.users.archiveAll');
-    Route::delete('/admin/users/delete-all', [AdminController::class, 'deleteAllUsers'])->name('admin.users.deleteAll');
+    Route::post('/admin/users', [AdminController::class, 'storeUser'])->middleware('throttle:user-management')->name('admin.users.store');
+    Route::post('/admin/users/batch-archive', [AdminController::class, 'batchArchiveUsers'])->middleware('throttle:batch')->name('admin.users.batchArchive');
+    Route::post('/admin/users/batch-delete', [AdminController::class, 'batchDeleteUsers'])->middleware('throttle:batch')->name('admin.users.batchDelete');
+    Route::post('/admin/users/archive-all', [AdminController::class, 'archiveAllUsers'])->middleware('throttle:batch')->name('admin.users.archiveAll');
+    Route::delete('/admin/users/delete-all', [AdminController::class, 'deleteAllUsers'])->middleware('throttle:batch')->name('admin.users.deleteAll');
     Route::post('/admin/users/unlock/{uuid}', [AdminController::class, 'unlockUser'])->name('admin.users.unlock');
     Route::post('/admin/users/archive-selected', [AdminController::class, 'archiveSelectedUsers'])->name('admin.users.archiveSelected');
     Route::post('/admin/users/delete-all-archived', [AdminController::class, 'deleteAllArchived'])->name('admin.users.deleteAllArchived');
@@ -395,21 +395,21 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     // Analytics
     Route::get('/admin/analytics', [AdminController::class, 'analytics'])->name('admin.analytics');
-    Route::get('/admin/analytics/export', [AdminController::class, 'exportAnalytics'])->name('admin.analytics.export');
-    Route::get('/admin/analytics/export-pdf', [AdminController::class, 'exportAnalyticsPDF'])->name('admin.analytics.export-pdf');
+    Route::get('/admin/analytics/export', [AdminController::class, 'exportAnalytics'])->middleware('throttle:exports')->name('admin.analytics.export');
+    Route::get('/admin/analytics/export-pdf', [AdminController::class, 'exportAnalyticsPDF'])->middleware('throttle:exports')->name('admin.analytics.export-pdf');
     Route::get('/admin/analytics/period-breakdown', [AdminController::class, 'getPeriodBreakdown'])->name('admin.analytics.period-breakdown');
     Route::get('/admin/analytics/all-periods-breakdown', [AdminController::class, 'getAllPeriodsBreakdown'])->name('admin.analytics.all-periods-breakdown');
-    Route::get('/admin/analytics/period-breakdown-pdf', [AdminController::class, 'exportPeriodBreakdownPDF'])->name('admin.analytics.period-breakdown-pdf');
-    Route::get('/admin/analytics/all-periods-breakdown-pdf', [AdminController::class, 'exportAllPeriodsBreakdownPDF'])->name('admin.analytics.all-periods-breakdown-pdf');
-    Route::get('/admin/analytics/location-report-pdf', [AdminController::class, 'locationReportPDF'])->name('admin.analytics.location-report-pdf');
-    Route::get('/admin/analytics/location-detail-pdf', [AdminController::class, 'locationDetailPDF'])->name('admin.analytics.location-detail-pdf');
-    Route::get('/admin/analytics/combined-location-pdf', [AdminController::class, 'combinedLocationPDF'])->name('admin.analytics.combined-location-pdf');
-    Route::get('/admin/analytics/cost-report-pdf', [AdminController::class, 'costReportPDF'])->name('admin.analytics.cost-report-pdf');
-    Route::get('/admin/analytics/status-report-pdf', [AdminController::class, 'statusReportPDF'])->name('admin.analytics.status-report-pdf');
-    Route::get('/admin/analytics/status-distribution-pdf', [AdminController::class, 'statusDistributionPDF'])->name('admin.analytics.status-pdf');
-    Route::get('/admin/analytics/trend-report-pdf', [AdminController::class, 'trendReportPDF'])->name('admin.analytics.trend-report-pdf');
-    Route::get('/admin/analytics/period-comparison-pdf', [AdminController::class, 'periodComparisonPDF'])->name('admin.analytics.period-comparison-pdf');
-    Route::get('/admin/analytics/alert-detail-pdf', [AdminController::class, 'alertDetailPDF'])->name('admin.analytics.alert-detail-pdf');
+    Route::get('/admin/analytics/period-breakdown-pdf', [AdminController::class, 'exportPeriodBreakdownPDF'])->middleware('throttle:exports')->name('admin.analytics.period-breakdown-pdf');
+    Route::get('/admin/analytics/all-periods-breakdown-pdf', [AdminController::class, 'exportAllPeriodsBreakdownPDF'])->middleware('throttle:exports')->name('admin.analytics.all-periods-breakdown-pdf');
+    Route::get('/admin/analytics/location-report-pdf', [AdminController::class, 'locationReportPDF'])->middleware('throttle:exports')->name('admin.analytics.location-report-pdf');
+    Route::get('/admin/analytics/location-detail-pdf', [AdminController::class, 'locationDetailPDF'])->middleware('throttle:exports')->name('admin.analytics.location-detail-pdf');
+    Route::get('/admin/analytics/combined-location-pdf', [AdminController::class, 'combinedLocationPDF'])->middleware('throttle:exports')->name('admin.analytics.combined-location-pdf');
+    Route::get('/admin/analytics/cost-report-pdf', [AdminController::class, 'costReportPDF'])->middleware('throttle:exports')->name('admin.analytics.cost-report-pdf');
+    Route::get('/admin/analytics/status-report-pdf', [AdminController::class, 'statusReportPDF'])->middleware('throttle:exports')->name('admin.analytics.status-report-pdf');
+    Route::get('/admin/analytics/status-distribution-pdf', [AdminController::class, 'statusDistributionPDF'])->middleware('throttle:exports')->name('admin.analytics.status-pdf');
+    Route::get('/admin/analytics/trend-report-pdf', [AdminController::class, 'trendReportPDF'])->middleware('throttle:exports')->name('admin.analytics.trend-report-pdf');
+    Route::get('/admin/analytics/period-comparison-pdf', [AdminController::class, 'periodComparisonPDF'])->middleware('throttle:exports')->name('admin.analytics.period-comparison-pdf');
+    Route::get('/admin/analytics/alert-detail-pdf', [AdminController::class, 'alertDetailPDF'])->middleware('throttle:exports')->name('admin.analytics.alert-detail-pdf');
     Route::post('/admin/concern/{id}/cost', [AdminController::class, 'updateCost'])->name('admin.concern.updateCost');
 
     // Modal data routes for the session-authenticated admin reports UI.

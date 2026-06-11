@@ -37,19 +37,19 @@ Route::middleware(['api.context', 'api.query.guard', 'api.resource', 'api.securi
     });
 
     // Protected routes - JWT authentication with rate limiting
-    Route::middleware(['jwt.auth', 'throttle:60,1'])->group(function () {
+    Route::middleware(['jwt.auth', 'throttle:api'])->group(function () {
 
     // Concerns - User can only access their own
     Route::get('/concerns', [ConcernController::class, 'apiIndex']);
-    Route::post('/concerns', [ConcernController::class, 'apiStore']);
+    Route::post('/concerns', [ConcernController::class, 'apiStore'])->middleware('throttle:submissions');
     Route::get('/concerns/{id}', [ConcernController::class, 'apiShow']);
     Route::get('/concerns/{id}/edit-data', [ConcernController::class, 'apiEditData']);
     Route::put('/concerns/{id}', [ConcernController::class, 'apiUpdate']);
-    Route::delete('/concerns/{id}', [ConcernController::class, 'apiDestroy']);
+    Route::delete('/concerns/{id}', [ConcernController::class, 'apiDestroy'])->middleware('throttle:deletes');
 
     // Events
     Route::get('/events', [EventRequestController::class, 'apiIndex']);
-    Route::post('/events', [EventRequestController::class, 'apiStore']);
+    Route::post('/events', [EventRequestController::class, 'apiStore'])->middleware('throttle:submissions');
     Route::get('/events/{id}', [EventRequestController::class, 'apiShow']);
 
         // Admin routes - Additional role-based protection

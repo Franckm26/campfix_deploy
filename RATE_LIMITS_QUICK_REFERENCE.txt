@@ -1,0 +1,128 @@
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                        RATE LIMITING QUICK REFERENCE                          ║
+║                              Campfix Application                              ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                                                                               ║
+║  AUTHENTICATION & SECURITY                                                    ║
+║  ━━━━━━━━━━━━━━━━━━━━━━━━━━                                                    ║
+║  Tier: auth         | 5 per minute                                           ║
+║  Tier: otp          | 3 per minute per user                                  ║
+║  Tier: password     | 10 per hour                                            ║
+║                                                                               ║
+║  CONTENT OPERATIONS                                                           ║
+║  ━━━━━━━━━━━━━━━━━━━                                                           ║
+║  Tier: submissions  | 5 per day      (concerns, reports, events)             ║
+║  Tier: uploads      | 5 per day      (files, images)                         ║
+║  Tier: deletes      | 30 per hour    (delete operations)                     ║
+║                                                                               ║
+║  BULK OPERATIONS                                                              ║
+║  ━━━━━━━━━━━━━━━━                                                              ║
+║  Tier: batch        | 10 per hour    (batch archive, delete, restore)        ║
+║  Tier: exports      | 20 per hour    (CSV, PDF exports)                      ║
+║                                                                               ║
+║  STATUS CHANGES                                                               ║
+║  ━━━━━━━━━━━━━━━                                                               ║
+║  Tier: status-updates | 60 per hour  (approve, reject, resolve)              ║
+║                                                                               ║
+║  GENERAL ACCESS                                                               ║
+║  ━━━━━━━━━━━━━━━                                                               ║
+║  Tier: web          | 200 per minute (browsing, reading)                     ║
+║  Tier: api          | 100 per minute (API endpoints)                         ║
+║  Tier: admin        | 120 per minute (admin operations)                      ║
+║  Tier: notifications| 60 per minute  (notification checks)                   ║
+║                                                                               ║
+║  USER MANAGEMENT                                                              ║
+║  ━━━━━━━━━━━━━━━━                                                              ║
+║  Tier: user-management | 30 per hour (user CRUD)                             ║
+║                                                                               ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                           COMMON COMMANDS                                     ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                                                                               ║
+║  Clear Rate Limits:                                                           ║
+║    php artisan cache:clear                                                    ║
+║                                                                               ║
+║  Check Application:                                                           ║
+║    php artisan about                                                          ║
+║                                                                               ║
+║  View Logs:                                                                   ║
+║    php artisan pail                                                           ║
+║    type storage\logs\laravel.log                                              ║
+║                                                                               ║
+║  Test Rate Limits:                                                            ║
+║    test-rate-limits-simple.bat                                                ║
+║    .\test-rate-limiting.ps1                                                   ║
+║                                                                               ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                          ERROR RESPONSE (429)                                 ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                                                                               ║
+║  API (JSON):                                                                  ║
+║  {                                                                            ║
+║    "error": "Too many requests. Please slow down.",                          ║
+║    "retry_after": 60                                                         ║
+║  }                                                                            ║
+║                                                                               ║
+║  Web: Custom 429.blade.php error page                                         ║
+║                                                                               ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                         CONFIGURATION FILES                                   ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                                                                               ║
+║  Core:       app/Providers/RateLimitServiceProvider.php                       ║
+║  Middleware: app/Http/Middleware/RateLimitMiddleware.php                      ║
+║  Bootstrap:  bootstrap/app.php                                                ║
+║  Routes:     routes/web.php, routes/api.php                                   ║
+║  Error Page: resources/views/errors/429.blade.php                             ║
+║                                                                               ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                           DOCUMENTATION                                       ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                                                                               ║
+║  RATE_LIMITING_IMPLEMENTATION.md  - Complete implementation summary           ║
+║  RATE_LIMITING_GUIDE.md           - Comprehensive developer guide             ║
+║  RATE_LIMITING_SUMMARY.md         - Quick reference summary                   ║
+║  DEPLOYMENT_CHECKLIST.md          - Step-by-step deployment guide             ║
+║                                                                               ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                          QUICK ADJUSTMENTS                                    ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                                                                               ║
+║  Edit: app/Providers/RateLimitServiceProvider.php                             ║
+║                                                                               ║
+║  Example - Increase submissions from 20 to 50 per hour:                       ║
+║                                                                               ║
+║  RateLimiter::for('submissions', function (Request $request) {                ║
+║      return Limit::perHour(50)  // Changed from 20                           ║
+║          ->by($request->user()?->id ?: $request->ip());                      ║
+║  });                                                                          ║
+║                                                                               ║
+║  Then run: php artisan cache:clear                                            ║
+║                                                                               ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                       PRODUCTION RECOMMENDATIONS                              ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                                                                               ║
+║  1. Use Redis for caching:                                                    ║
+║     composer require predis/predis                                            ║
+║     Set CACHE_DRIVER=redis in .env                                            ║
+║                                                                               ║
+║  2. Monitor rate limit violations                                             ║
+║  3. Adjust limits based on real usage (after 1-2 weeks)                       ║
+║  4. Set up alerts for high 429 response rates                                 ║
+║                                                                               ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                            SUPPORT                                            ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                                                                               ║
+║  Issues? Check:                                                               ║
+║  1. storage/logs/laravel.log                                                  ║
+║  2. Run: php artisan cache:clear                                              ║
+║  3. Review: RATE_LIMITING_GUIDE.md                                            ║
+║                                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+Implementation Status: ✅ COMPLETE
+Last Updated: June 11, 2026
+Laravel Version: 12.56.0
+PHP Version: 8.2.12

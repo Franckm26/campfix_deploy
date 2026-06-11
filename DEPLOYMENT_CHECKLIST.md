@@ -1,305 +1,268 @@
-# ✅ OneSignal Push Notifications - Deployment Checklist
+# Rate Limiting Deployment Checklist
 
-## 📋 Pre-Deployment Checklist
+## Pre-Deployment
 
-### Local Development Setup
-- [ ] OneSignal account created
-- [ ] OneSignal app created (Web Push)
-- [ ] App ID copied from OneSignal dashboard
-- [ ] REST API Key copied from OneSignal dashboard
-- [ ] `.env` file updated with OneSignal credentials
-- [ ] Local site URL configured in OneSignal (http://localhost)
-- [ ] Application tested locally
-- [ ] Permission prompt appears
-- [ ] User subscribed in OneSignal dashboard
-- [ ] Test notification received
-- [ ] Notification click opens correct page
+- [x] Rate Limit Service Provider created
+- [x] Routes updated with rate limit middleware
+- [x] Bootstrap configured
+- [x] Error page created (429.blade.php)
+- [x] Documentation written
+- [ ] Local testing completed
+- [ ] Staging deployment tested
+- [ ] Production deployment approved
 
-### Code Verification
-- [ ] `app/Channels/OneSignalChannel.php` exists
-- [ ] `app/Providers/AppServiceProvider.php` registers OneSignal channel
-- [ ] `resources/views/layouts/app.blade.php` includes OneSignal SDK
-- [ ] `config/services.php` has OneSignal configuration
-- [ ] All notification classes have `toOneSignal()` method
-- [ ] All notification classes include 'onesignal' in `via()` method
-- [ ] No Firebase/FCM files remaining
-- [ ] `package.json` doesn't include Firebase
+## Testing Steps
 
-### Database & Migrations
-- [ ] No database migrations needed (OneSignal manages tokens)
-- [ ] User table has `push_notifications` column
-- [ ] Settings page allows enabling/disabling push notifications
+### 1. Local Environment Testing
 
-## 🚀 Production Deployment Checklist
+```bash
+# Clear cache
+php artisan cache:clear
 
-### OneSignal Configuration
-- [ ] Production site URL added to OneSignal
-  - Example: `https://campfix.vercel.app`
-- [ ] Production icon URL configured
-  - Example: `https://campfix.vercel.app/favicon.ico`
-- [ ] HTTPS enabled (required for most browsers)
-- [ ] Auto-resubscribe enabled in OneSignal
-- [ ] Welcome notification disabled (handled by Laravel)
+# Test application boots
+php artisan about
 
-### Environment Variables
-- [ ] `ONESIGNAL_APP_ID` added to production environment
-- [ ] `ONESIGNAL_REST_API_KEY` added to production environment
-- [ ] `ONESIGNAL_USER_AUTH_KEY` added (optional)
-- [ ] `ONESIGNAL_SAFARI_WEB_ID` added (if supporting Safari)
+# Run test script (Windows)
+.\test-rate-limits-simple.bat
 
-### Vercel Specific
-- [ ] Environment variables added in Vercel dashboard
-- [ ] Variables added to all environments (Production, Preview, Development)
-- [ ] Deployment triggered after adding variables
-- [ ] Vercel domain added to OneSignal allowed origins
+# OR Run PowerShell test (Windows)
+.\test-rate-limiting.ps1
+```
 
-### Testing on Production
-- [ ] Production site loads without errors
-- [ ] OneSignal SDK loads (check Network tab)
-- [ ] Permission prompt appears
-- [ ] User can subscribe
-- [ ] User appears in OneSignal dashboard
-- [ ] External User ID matches Laravel user ID
-- [ ] Test notification sent from Laravel
-- [ ] Notification received on production
-- [ ] Notification click opens correct page
-- [ ] Background notifications work (browser closed)
+### 2. Manual Testing Checklist
 
-## 🔍 Post-Deployment Verification
+Test each rate limit tier:
 
-### Functional Testing
-- [ ] Create concern → Maintenance receives notification
-- [ ] Resolve concern → Requester receives notification
-- [ ] Submit event request → Approvers receive notification
-- [ ] Approve event → Requester receives notification
-- [ ] Reject event → Requester receives notification
-- [ ] Assign report → Maintenance receives notification
-- [ ] Resolve report → Requester receives notification
+#### Authentication (5 per minute)
+- [ ] Login endpoint (`/login`)
+- [ ] API login endpoint (`/api/login`)
+- [ ] Verify lockout after 5 attempts
+- [ ] Verify unlock after 1 minute
 
-### User Experience Testing
-- [ ] Notification appears within 5 seconds
-- [ ] Notification title is clear and descriptive
-- [ ] Notification body provides context
-- [ ] Notification icon displays correctly
-- [ ] Clicking notification opens correct page
-- [ ] Multiple notifications don't overlap
-- [ ] Notifications work on different browsers
-- [ ] Notifications work on mobile devices
+#### OTP (3 per minute)
+- [ ] OTP delivery (`/otp-delivery`)
+- [ ] OTP resend (`/resend-otp`)
+- [ ] Verify lockout after 3 attempts
+- [ ] Verify unlock after 1 minute
 
-### OneSignal Dashboard Verification
-- [ ] Users appearing in Audience
-- [ ] External User IDs match Laravel user IDs
-- [ ] Delivery rate > 95%
-- [ ] Click-through rate tracked
-- [ ] No failed deliveries
-- [ ] No invalid tokens
+#### Submissions (20 per hour)
+- [ ] Concern submission (`/submit-concern`)
+- [ ] Report submission (`/reports`)
+- [ ] Event submission (`/events`)
+- [ ] Verify lockout after 20 submissions
+- [ ] Verify unlock after 1 hour
 
-### Performance Testing
-- [ ] Page load time not affected
-- [ ] OneSignal SDK loads asynchronously
-- [ ] No JavaScript errors in console
-- [ ] No network errors
-- [ ] API response time < 2 seconds
+#### Deletes (30 per hour)
+- [ ] Concern delete
+- [ ] Report delete
+- [ ] Event delete
+- [ ] Verify lockout after 30 deletes
 
-## 🔒 Security Checklist
+#### Batch Operations (10 per hour)
+- [ ] Batch archive
+- [ ] Batch delete
+- [ ] Batch restore
+- [ ] Verify lockout after 10 operations
 
-### Privacy & Compliance
-- [ ] Users must explicitly allow notifications
-- [ ] Users can disable notifications in Settings
-- [ ] No sensitive data in notification body
-- [ ] User IDs are hashed in OneSignal
-- [ ] HTTPS enforced on production
-- [ ] CORS configured correctly
-- [ ] API keys not exposed in frontend code
+#### Exports (20 per hour)
+- [ ] CSV export
+- [ ] PDF export
+- [ ] Analytics export
+- [ ] Verify lockout after 20 exports
 
-### API Security
-- [ ] `ONESIGNAL_REST_API_KEY` kept secret
-- [ ] API key not in version control
-- [ ] API key not in frontend JavaScript
-- [ ] Rate limiting configured
-- [ ] Error messages don't expose sensitive info
+### 3. Verify Error Responses
 
-## 📊 Monitoring Setup
+- [ ] 429 status code returned
+- [ ] JSON error message for API endpoints
+- [ ] HTML error page for web endpoints
+- [ ] `Retry-After` header included
+- [ ] Clear error message displayed
 
-### OneSignal Dashboard
-- [ ] Delivery metrics monitored
-- [ ] Click-through rates tracked
-- [ ] User growth tracked
-- [ ] Failed deliveries investigated
-- [ ] Unsubscribe rate monitored
+### 4. Check Logs
 
-### Laravel Logging
-- [ ] OneSignal API calls logged
-- [ ] Errors logged to `storage/logs/laravel.log`
-- [ ] Success messages logged (info level)
-- [ ] Failed notifications logged (error level)
+```bash
+# View logs in real-time
+php artisan pail
 
-### Alerts Setup
-- [ ] Alert if delivery rate < 90%
-- [ ] Alert if API errors > 5%
-- [ ] Alert if no users subscribed
-- [ ] Alert if OneSignal API down
+# OR check log file
+type storage\logs\laravel.log
+```
 
-## 📱 Browser Compatibility Testing
+Look for:
+- Rate limit exceeded events
+- No unexpected errors
+- Proper rate limiter identification
 
-### Desktop Browsers
-- [ ] Chrome (Windows) - Tested
-- [ ] Chrome (Mac) - Tested
-- [ ] Firefox (Windows) - Tested
-- [ ] Firefox (Mac) - Tested
-- [ ] Edge (Windows) - Tested
-- [ ] Safari (Mac) - Tested (requires Safari Web ID)
-- [ ] Opera - Tested
+## Staging Deployment
 
-### Mobile Browsers
-- [ ] Chrome (Android) - Tested
-- [ ] Firefox (Android) - Tested
-- [ ] Safari (iOS) - Tested (requires Safari Web ID)
-- [ ] Samsung Internet - Tested
+### Before Deployment
+- [ ] Backup database
+- [ ] Review staging environment configuration
+- [ ] Ensure `.env` is properly configured
+- [ ] Check cache driver (recommend Redis for staging/production)
 
-## 🌍 Multi-Environment Setup
+### Deployment Steps
+```bash
+# Pull latest code
+git pull origin main
 
-### Development
-- [ ] OneSignal app configured for localhost
-- [ ] Test API keys used
-- [ ] Debug logging enabled
-- [ ] Test notifications working
+# Install/update dependencies
+composer install --no-dev --optimize-autoloader
 
-### Staging
-- [ ] Separate OneSignal app (optional)
-- [ ] Staging URL configured
-- [ ] Staging API keys used
-- [ ] Full testing completed
+# Clear all caches
+php artisan cache:clear
+php artisan config:clear
+php artisan route:clear
+php artisan view:clear
 
-### Production
-- [ ] Production OneSignal app
-- [ ] Production URL configured
-- [ ] Production API keys used
-- [ ] Monitoring enabled
+# Optimize for production
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
 
-## 📚 Documentation
+# Run migrations (if any)
+php artisan migrate --force
+```
 
-### Internal Documentation
-- [ ] Setup guide shared with team
-- [ ] API keys documented (securely)
-- [ ] Troubleshooting guide available
-- [ ] Contact information for support
+### Post-Deployment Testing
+- [ ] Test authentication rate limits
+- [ ] Test submission rate limits
+- [ ] Test API endpoints
+- [ ] Monitor logs for 24 hours
+- [ ] Check for false positives (legitimate users blocked)
 
-### User Documentation
-- [ ] Help article: "How to enable notifications"
-- [ ] Help article: "Troubleshooting notifications"
-- [ ] FAQ updated
-- [ ] Settings page has clear instructions
+## Production Deployment
 
-## 🎯 Success Criteria
+### Pre-Production Checklist
+- [ ] Staging tested successfully for 1 week minimum
+- [ ] No rate limit issues found in staging
+- [ ] Performance impact assessed
+- [ ] Monitoring/alerting configured
+- [ ] Rollback plan prepared
 
-### Technical Success
-- ✅ Delivery rate > 95%
-- ✅ Click-through rate > 80%
-- ✅ Page load time < 3 seconds
-- ✅ Zero critical errors
-- ✅ All browsers supported
+### Redis Configuration (Recommended)
+```bash
+# Install Redis (if not already)
+composer require predis/predis
+```
 
-### User Success
-- ✅ Users understand how to enable
-- ✅ Users receive timely notifications
-- ✅ Users can easily disable
-- ✅ Notifications are relevant
-- ✅ Positive user feedback
+Update `.env`:
+```
+CACHE_DRIVER=redis
+REDIS_HOST=127.0.0.1
+REDIS_PASSWORD=null
+REDIS_PORT=6379
+```
 
-### Business Success
-- ✅ Increased user engagement
-- ✅ Faster response times
-- ✅ Reduced email volume
-- ✅ Better user satisfaction
-- ✅ Lower support tickets
+### Deployment Steps
+```bash
+# Same as staging deployment
+# + additional monitoring setup
+```
 
-## 🔄 Maintenance Schedule
+### Monitoring Setup
+- [ ] Set up alerts for high 429 response rates
+- [ ] Monitor average response times
+- [ ] Track rate limit violations by endpoint
+- [ ] Set up dashboard for rate limit metrics
 
-### Daily
-- [ ] Check OneSignal dashboard for issues
-- [ ] Review Laravel logs for errors
-- [ ] Monitor delivery rates
+### Post-Deployment (First 24 Hours)
+- [ ] Monitor logs continuously
+- [ ] Check for unexpected 429 responses
+- [ ] Verify no performance degradation
+- [ ] Collect user feedback
+- [ ] Review rate limit hit patterns
 
-### Weekly
-- [ ] Review user subscription trends
-- [ ] Analyze click-through rates
-- [ ] Check for failed notifications
-- [ ] Review user feedback
+### Post-Deployment (First Week)
+- [ ] Analyze rate limit violation patterns
+- [ ] Adjust limits if needed (based on data)
+- [ ] Document any changes made
+- [ ] Review with team
 
-### Monthly
-- [ ] Audit notification content
-- [ ] Review API usage
-- [ ] Update documentation
-- [ ] Plan improvements
+## Rollback Plan
 
-## 🆘 Rollback Plan
+If issues occur:
 
-### If Issues Occur
-1. [ ] Disable OneSignal in `.env` (set to empty)
-2. [ ] Deploy without OneSignal
-3. [ ] Investigate issue
-4. [ ] Fix and redeploy
-5. [ ] Re-enable OneSignal
+```bash
+# Quick rollback
+git revert <commit-hash>
+php artisan cache:clear
+php artisan config:cache
+php artisan route:cache
 
-### Emergency Contacts
-- OneSignal Support: support@onesignal.com
-- OneSignal Status: status.onesignal.com
-- Documentation: documentation.onesignal.com
+# Emergency: Disable rate limiting temporarily
+# Edit RateLimitServiceProvider.php and increase all limits 10x
+```
 
-## 📈 Future Enhancements
+## Configuration Adjustments
 
-### Phase 2 (Optional)
-- [ ] Add rich media (images) to notifications
-- [ ] Implement action buttons
-- [ ] Add notification scheduling
-- [ ] Implement user segmentation
-- [ ] Add A/B testing
-- [ ] Implement notification preferences per type
-- [ ] Add iOS/Android mobile apps
-- [ ] Implement in-app notifications
+If legitimate users are getting rate limited:
 
-### Analytics Enhancements
-- [ ] Track notification engagement
-- [ ] Measure conversion rates
-- [ ] Analyze optimal send times
-- [ ] Track user retention
+1. Check logs for patterns
+2. Identify problematic tier
+3. Edit `app/Providers/RateLimitServiceProvider.php`
+4. Increase limit for that tier
+5. Deploy change
+6. Monitor
 
-## ✅ Final Sign-Off
+Example:
+```php
+// BEFORE
+RateLimiter::for('submissions', function (Request $request) {
+    return Limit::perHour(20)
+        ->by($request->user()?->id ?: $request->ip());
+});
 
-### Development Team
-- [ ] Code reviewed
-- [ ] Tests passed
-- [ ] Documentation complete
-- [ ] Signed off by: ________________
+// AFTER (increase to 50)
+RateLimiter::for('submissions', function (Request $request) {
+    return Limit::perHour(50)
+        ->by($request->user()?->id ?: $request->ip());
+});
+```
 
-### QA Team
-- [ ] Functional testing complete
-- [ ] Browser testing complete
-- [ ] Mobile testing complete
-- [ ] Signed off by: ________________
+## Performance Optimization
 
-### Product Owner
-- [ ] Requirements met
-- [ ] User acceptance complete
-- [ ] Ready for production
-- [ ] Signed off by: ________________
+### With Redis (Recommended)
+- Rate limiting operations are O(1)
+- Scales horizontally
+- Shared across application instances
+- Better for production
 
----
+### Without Redis (File Cache)
+- Rate limiting uses file cache
+- Works for single-server setups
+- May be slower under high load
+- Good for small deployments
 
-## 🎉 Deployment Complete!
+## Success Metrics
 
-Once all items are checked, your OneSignal push notifications are ready for production!
+After 1 month in production:
 
-**Deployment Date**: ________________  
-**Deployed By**: ________________  
-**Version**: ________________  
-**Status**: ✅ Complete
+- [ ] No legitimate users reporting blocks
+- [ ] Brute force attempts successfully blocked
+- [ ] System resource usage stable
+- [ ] No performance degradation
+- [ ] Rate limits adjusted based on real usage
 
----
+## Documentation Updates
 
-**Need Help?**
-- Quick Start: `ONESIGNAL_QUICK_START.md`
-- Full Setup: `ONESIGNAL_SETUP.md`
-- Visual Guide: `ONESIGNAL_VISUAL_GUIDE.md`
-- Implementation Summary: `IMPLEMENTATION_SUMMARY.md`
+- [ ] Update API documentation with rate limits
+- [ ] Add rate limit info to user guide
+- [ ] Document any custom adjustments made
+- [ ] Update team wiki/knowledge base
+
+## Sign-Off
+
+- [ ] Developer tested: _________________ Date: _______
+- [ ] QA approved: _________________ Date: _______
+- [ ] Security reviewed: _________________ Date: _______
+- [ ] Production deployed: _________________ Date: _______
+
+## Notes
+
+Use this space to document any issues, adjustments, or observations:
+
+___________________________________________________________
+___________________________________________________________
+___________________________________________________________
+___________________________________________________________
