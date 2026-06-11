@@ -1,0 +1,340 @@
+version: "2"
+type: backend
+tech_stack:
+  - PHP 8.2
+  - Laravel 12
+  - PostgreSQL
+  - JWT Authentication
+  - Blade Templates
+  - Supabase Storage
+  - Brevo SMTP
+  - OneSignal Push
+features:
+  - name: Authentication API
+    description: JWT-based authentication with OTP verification
+    files:
+      - app/Http/Controllers/AuthController.php
+      - routes/api.php
+    endpoints:
+      - method: POST
+        path: /api/auth/login
+        description: User login with credentials
+        auth_required: false
+        request_schema:
+          body:
+            email: string
+            password: string
+        response_schema:
+          "200": JWT token and user data
+          "401": Invalid credentials
+      - method: POST
+        path: /api/auth/register
+        description: User registration
+        auth_required: false
+        request_schema:
+          body:
+            name: string
+            email: string
+            password: string
+        response_schema:
+          "201": User created
+          "422": Validation error
+      - method: POST
+        path: /api/auth/logout
+        description: User logout
+        auth_required: true
+        response_schema:
+          "200": Success message
+      - method: GET
+        path: /api/auth/user
+        description: Get authenticated user details
+        auth_required: true
+        response_schema:
+          "200": User object
+      - method: POST
+        path: /api/auth/refresh
+        description: Refresh JWT token
+        auth_required: true
+        response_schema:
+          "200": New JWT token
+    depends_on: []
+  - name: Concerns Management API
+    description: CRUD operations for facility maintenance concerns
+    files:
+      - app/Http/Controllers/ConcernController.php
+      - routes/api.php
+      - routes/web.php
+    endpoints:
+      - method: GET
+        path: /api/concerns
+        description: List user's concerns
+        auth_required: true
+        response_schema:
+          "200": Concern[]
+      - method: POST
+        path: /api/concerns
+        description: Create new concern
+        auth_required: true
+        request_schema:
+          body:
+            title: string
+            description: string
+            category_id: integer
+            location: string
+            image: file
+        response_schema:
+          "201": Concern created
+          "422": Validation error
+      - method: GET
+        path: /api/concerns/{id}
+        description: Get concern details
+        auth_required: true
+        response_schema:
+          "200": Concern object
+          "404": Not found
+      - method: PUT
+        path: /api/concerns/{id}
+        description: Update concern
+        auth_required: true
+        request_schema:
+          body:
+            title: string
+            description: string
+        response_schema:
+          "200": Concern updated
+          "403": Unauthorized
+          "404": Not found
+      - method: DELETE
+        path: /api/concerns/{id}
+        description: Delete concern
+        auth_required: true
+        response_schema:
+          "200": Concern deleted
+          "403": Unauthorized
+    depends_on:
+      - Authentication API
+      - Categories API
+  - name: Event Requests API
+    description: Event booking and approval system
+    files:
+      - app/Http/Controllers/EventRequestController.php
+      - routes/api.php
+      - routes/web.php
+    endpoints:
+      - method: GET
+        path: /api/events
+        description: List events
+        auth_required: true
+        response_schema:
+          "200": Event[]
+      - method: POST
+        path: /api/events
+        description: Create event request
+        auth_required: true
+        request_schema:
+          body:
+            title: string
+            description: string
+            start_date: datetime
+            end_date: datetime
+            room_id: integer
+        response_schema:
+          "201": Event created
+          "422": Validation error
+          "409": Resource conflict
+      - method: GET
+        path: /api/events/{id}
+        description: Get event details
+        auth_required: true
+        response_schema:
+          "200": Event object
+          "404": Not found
+      - method: POST
+        path: /api/check-room-availability
+        description: Check if room is available
+        auth_required: true
+        request_schema:
+          body:
+            room_id: integer
+            start_date: datetime
+            end_date: datetime
+        response_schema:
+          "200": Availability status
+      - method: POST
+        path: /events/{id}/approve
+        description: Approve event request
+        auth_required: true
+        response_schema:
+          "200": Event approved
+          "403": Unauthorized
+      - method: POST
+        path: /events/{id}/reject
+        description: Reject event request
+        auth_required: true
+        request_schema:
+          body:
+            reason: string
+        response_schema:
+          "200": Event rejected
+          "403": Unauthorized
+    depends_on:
+      - Authentication API
+  - name: Categories API
+    description: Manage concern categories
+    files:
+      - app/Http/Controllers/CategoryController.php
+      - routes/api.php
+    endpoints:
+      - method: GET
+        path: /api/categories
+        description: List all categories
+        auth_required: false
+        response_schema:
+          "200": Category[]
+      - method: POST
+        path: /api/categories
+        description: Create category
+        auth_required: true
+        request_schema:
+          body:
+            name: string
+            icon: string
+        response_schema:
+          "201": Category created
+          "403": Unauthorized
+      - method: DELETE
+        path: /api/categories/{id}
+        description: Delete category
+        auth_required: true
+        response_schema:
+          "200": Category deleted
+          "403": Unauthorized
+    depends_on:
+      - Authentication API
+  - name: User Profile Management
+    description: User profile and settings
+    files:
+      - app/Http/Controllers/ProfileController.php
+      - routes/web.php
+    endpoints:
+      - method: GET
+        path: /profile
+        description: View user profile
+        auth_required: true
+        response_schema:
+          "200": Profile page
+      - method: PUT
+        path: /profile
+        description: Update profile
+        auth_required: true
+        request_schema:
+          body:
+            name: string
+            email: string
+        response_schema:
+          "200": Profile updated
+      - method: PUT
+        path: /profile/password
+        description: Change password
+        auth_required: true
+        request_schema:
+          body:
+            current_password: string
+            new_password: string
+        response_schema:
+          "200": Password updated
+          "422": Validation error
+      - method: POST
+        path: /profile/upload-picture
+        description: Upload profile picture
+        auth_required: true
+        request_schema:
+          body:
+            picture: file
+        response_schema:
+          "200": Picture uploaded
+    depends_on:
+      - Authentication API
+  - name: Admin Dashboard
+    description: Administrative functions and analytics
+    files:
+      - app/Http/Controllers/AdminController.php
+      - routes/web.php
+    endpoints:
+      - method: GET
+        path: /admin
+        description: Admin dashboard
+        auth_required: true
+        response_schema:
+          "200": Dashboard page
+          "403": Unauthorized
+      - method: GET
+        path: /admin/analytics
+        description: View analytics
+        auth_required: true
+        response_schema:
+          "200": Analytics data
+      - method: GET
+        path: /admin/users
+        description: User management
+        auth_required: true
+        response_schema:
+          "200": Users list
+      - method: POST
+        path: /admin/users
+        description: Create user
+        auth_required: true
+        request_schema:
+          body:
+            name: string
+            email: string
+            role: string
+        response_schema:
+          "201": User created
+      - method: POST
+        path: /concerns/{id}/assign
+        description: Assign concern to maintenance staff
+        auth_required: true
+        request_schema:
+          body:
+            staff_id: integer
+        response_schema:
+          "200": Concern assigned
+    depends_on:
+      - Authentication API
+  - name: Notifications System
+    description: Multi-channel notification delivery
+    files:
+      - app/Http/Controllers/NotificationController.php
+      - routes/web.php
+    endpoints:
+      - method: GET
+        path: /notifications/{id}/read
+        description: Mark notification as read
+        auth_required: true
+        response_schema:
+          "200": Notification marked as read
+      - method: DELETE
+        path: /notifications/{id}
+        description: Delete notification
+        auth_required: true
+        response_schema:
+          "200": Notification deleted
+      - method: GET
+        path: /api/notifications/unread-count
+        description: Get unread notification count
+        auth_required: true
+        response_schema:
+          "200": Unread count
+    depends_on:
+      - Authentication API
+known_limitations:
+  - issue: Rate limiting set to 5 attempts per minute for login
+    location: routes/api.php
+    impact: Legitimate users may be blocked during troubleshooting
+  - issue: Session-based and JWT authentication mixed
+    location: routes/web.php and routes/api.php
+    impact: Potential confusion between web and API authentication flows
+  - issue: File upload validation may need size limits
+    location: app/Http/Controllers/ConcernController.php
+    impact: Large files could cause server issues

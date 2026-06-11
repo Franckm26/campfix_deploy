@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Socialite\Facades\Socialite;
+use SocialiteProviders\Microsoft\Provider as MicrosoftProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -27,6 +29,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Configure Microsoft OAuth Provider
+        $this->bootMicrosoftSocialite();
+
         // Force HTTPS URLs in production (for Vercel and other reverse proxies)
         if (config('app.env') === 'production') {
             \Illuminate\Support\Facades\URL::forceScheme('https');
@@ -87,6 +92,17 @@ class AppServiceProvider extends ServiceProvider
                     $view->with('facilities', $facilities);
                 }
             }
+        });
+    }
+
+    /**
+     * Configure Microsoft Socialite Provider
+     */
+    protected function bootMicrosoftSocialite(): void
+    {
+        Socialite::extend('microsoft', function ($app) {
+            $config = $app['config']['services.microsoft'];
+            return Socialite::buildProvider(MicrosoftProvider::class, $config);
         });
     }
 

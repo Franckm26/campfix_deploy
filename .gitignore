@@ -46,3 +46,5 @@ Sync/
 # Malformed/leftover files
 dropColumn*
 nullable()
+
+testsprite_tests\tmp\config.json

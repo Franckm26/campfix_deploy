@@ -42,6 +42,22 @@ class ConcernController extends Controller
                 return redirect('/dashboard')->with('error', 'Your role cannot submit concerns.');
             }
 
+            // Check daily submission limit (5 per day)
+            $userId = auth()->id();
+            if (\App\Models\UserRateLimit::hasExceededLimit($userId, 'submission', 5)) {
+                $remaining = \App\Models\UserRateLimit::getRemainingAttempts($userId, 'submission', 5);
+                
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'You have reached your daily submission limit of 5 concerns. Please try again tomorrow.',
+                        'remaining_attempts' => $remaining
+                    ], 429);
+                }
+                
+                return redirect()->back()->with('error', 'You have reached your daily submission limit of 5 concerns. Please try again tomorrow.');
+            }
+
             // Validate user input
             $request->validate([
                 'location' => 'nullable|string|max:255',
@@ -213,6 +229,9 @@ class ConcernController extends Controller
 
         // Auto-assignment removed - Building Admin should manually assign reports
         // Reports will remain in "Pending" status until manually assigned
+
+        // Increment submission counter
+        \App\Models\UserRateLimit::incrementCounter(auth()->id(), 'submission');
 
         // Log concern and report creation
         \Log::info('Concern and Report created: ', ['concern_id' => $concern->id, 'report_id' => $report->id, 'user_id' => auth()->id()]);

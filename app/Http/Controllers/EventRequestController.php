@@ -36,6 +36,22 @@ class EventRequestController extends Controller
                 }
                 return redirect('/dashboard')->with('error', 'You do not have permission to create event requests.');
             }
+
+            // Check daily submission limit (5 per day)
+            $userId = auth()->id();
+            if (\App\Models\UserRateLimit::hasExceededLimit($userId, 'submission', 5)) {
+                $remaining = \App\Models\UserRateLimit::getRemainingAttempts($userId, 'submission', 5);
+                
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'You have reached your daily submission limit of 5 event requests. Please try again tomorrow.',
+                        'remaining_attempts' => $remaining
+                    ], 429);
+                }
+                
+                return redirect()->back()->with('error', 'You have reached your daily submission limit of 5 event requests. Please try again tomorrow.');
+            }
             
             $validatedData = $request->validate([
                 'description' => 'required|string',
@@ -123,6 +139,9 @@ class EventRequestController extends Controller
                 "New event request submitted: '{$eventRequest->title}' (ID: {$eventRequest->id}) by {$user->name} ({$user->role}) - Location: {$eventRequest->event_location}, Date: " . ($eventRequest->start_date ? $eventRequest->start_date->format('M d, Y') : 'N/A') . ", Attendees: {$eventRequest->expected_attendees}, Audience: {$eventRequest->intended_for}",
                 null
             );
+
+            // Increment submission counter
+            \App\Models\UserRateLimit::incrementCounter(auth()->id(), 'submission');
 
             $notificationService = new NotificationService;
 

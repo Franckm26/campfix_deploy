@@ -61,6 +61,10 @@ Route::get('/login', function () {
 /* AUTH - Rate Limited */
 Route::middleware(['web', 'throttle:auth'])->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
+    
+    // Microsoft OAuth Routes
+    Route::get('/auth/microsoft', [AuthController::class, 'redirectToMicrosoft'])->name('auth.microsoft');
+    Route::get('/auth/microsoft/callback', [AuthController::class, 'handleMicrosoftCallback'])->name('auth.microsoft.callback');
 });
 
 /* API AUTH - Rate Limited (OWASP A6: Rate Limiting) */

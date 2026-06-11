@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "testsprite": {
+      "command": "npx",
+      "args": [
+        "@testsprite/testsprite-mcp@latest"
+      ],
+      "env": {
+        "API_KEY": "sk-user-Xmta-raPvf2oF8XupDPltjB-1VZ5NFO4t54A-UvBwqhaWbMb9V35xacdZmBrhSeXZPX6GA37S8ATyOOwCjhjPNrn2ABMLC6EcLUkTC4WuWKbBewb6gwHTL6jMc6BelbWv20"
+      },
+      "disabled": false,
+      "autoApprove": [
+        "testsprite_check_account_info",
+        "testsprite_bootstrap",
+        "testsprite_generate_code_summary",
+        "testsprite_generate_standardized_prd",
+        "testsprite_generate_backend_test_plan",
+        "testsprite_generate_code_and_execute",
+        "testsprite_open_test_result_dashboard"
+      ]
+    }
+  }
+}

@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Tymon\JWTAuth\Exceptions\JWTException;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use Laravel\Socialite\Facades\Socialite;
 
 class AuthController extends Controller
 {
@@ -745,5 +746,102 @@ class AuthController extends Controller
             'token_type' => 'bearer',
             'expires_in' => auth('api')->factory()->getTTL() * 60,
         ];
+    }
+
+    // ============ MICROSOFT OAUTH METHODS ============
+
+    /**
+     * Redirect to Microsoft OAuth Login Page
+     */
+    public function redirectToMicrosoft()
+    {
+        return Socialite::driver('microsoft')
+            ->scopes(['User.Read'])
+            ->redirect();
+    }
+
+    /**
+     * Handle Microsoft OAuth Callback
+     */
+    public function handleMicrosoftCallback()
+    {
+        try {
+            $microsoftUser = Socialite::driver('microsoft')->user();
+            
+            // Find or create user based on Microsoft email
+            $user = User::where('email', strtolower($microsoftUser->getEmail()))->first();
+            
+            // Check if this is a new user with Microsoft account
+            if (!$user) {
+                // Create new user from Microsoft account
+                $user = User::create([
+                    'name' => $microsoftUser->getName(),
+                    'email' => strtolower($microsoftUser->getEmail()),
+                    'password' => Hash::make(bin2hex(random_bytes(16))), // Random password for OAuth users
+                    'email_verified_at' => now(),
+                    'microsoft_id' => $microsoftUser->getId(),
+                    'avatar' => $microsoftUser->getAvatar(),
+                    'role' => 'student', // Default role
+                ]);
+                
+                \Log::info('New user created via Microsoft OAuth: ' . $user->email);
+            } else {
+                // Update existing user with Microsoft ID if not set
+                if (!$user->microsoft_id) {
+                    $user->update([
+                        'microsoft_id' => $microsoftUser->getId(),
+                        'email_verified_at' => $user->email_verified_at ?? now(),
+                    ]);
+                }
+                
+                // Check if account is archived
+                if ($user->is_archived || $user->archive_folder_id) {
+                    return redirect('/')->with('error', 'Your account has been archived and cannot login.');
+                }
+                
+                // Check if account is locked
+                if ($user->locked_until) {
+                    return redirect('/')->with('error', 'Your account has been locked due to too many failed login attempts. Please contact the MIS administrator to unlock your account.');
+                }
+            }
+            
+            // Reset failed login attempts on successful OAuth login
+            $user->update([
+                'failed_login_attempts' => 0,
+                'locked_until' => null,
+                'login_lockout_level' => 0,
+            ]);
+            
+            // Log the user in directly (skip OTP for OAuth)
+            Auth::login($user, true);
+            
+            // ── Single-session enforcement ──────────────────────────────
+            if ($user->active_session_id && $user->active_session_id !== session()->getId()) {
+                \DB::table('sessions')->where('id', $user->active_session_id)->delete();
+            }
+            $user->update(['active_session_id' => session()->getId()]);
+            // ────────────────────────────────────────────────────────────
+            
+            // Check if user needs to change password on first login
+            if ($user->force_password_change) {
+                return redirect('/first-login-password')->with('info', 'Please set your new password and contact number.');
+            }
+            
+            if ($user->is_superadmin || $user->role === 'superadmin') {
+                return redirect()->route('superadmin.dashboard');
+            }
+            
+            if ($user->role == 'mis') {
+                return redirect('/admin');
+            }
+            
+            return redirect('/dashboard')->with('success', 'Logged in successfully with Microsoft!');
+            
+        } catch (\Exception $e) {
+            \Log::error('Microsoft OAuth callback error: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            
+            return redirect('/')->with('error', 'Failed to authenticate with Microsoft. Please try again or use email/password login.');
+        }
     }
 }

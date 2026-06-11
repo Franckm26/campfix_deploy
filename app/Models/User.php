@@ -86,6 +86,10 @@ class User extends Authenticatable implements JWTSubject
         'password_change_frequency_days',
         'file_security_enabled',
         'created_by',
+        // Microsoft OAuth fields
+        'microsoft_id',
+        'avatar',
+        'email_verified_at',
     ];
 
     protected $hidden = [

@@ -29,21 +29,31 @@
                 <img src="<?php echo e(asset('Campfix/Images/logo.png')); ?>" alt="CampFix Logo" width="61" height="60" fetchpriority="high">
                 <span class="logo-text"><span class="camp-text">Camp</span><span class="fix-text">fix</span></span>
             </a>
-            <button class="mobile-menu-btn" onclick="toggleMenu()">
-                <i class="fas fa-bars"></i>
-            </button>
+            <div class="d-flex align-items-center gap-3">
+                <?php if(auth()->guard()->check()): ?>
+                    <a href="/dashboard" class="btn-login btn-login-mobile">Dashboard</a>
+                <?php else: ?>
+                    <a href="javascript:void(0)" class="btn-login btn-login-mobile" onclick="openLoginModal(event); return false;">Login</a>
+                <?php endif; ?>
+                <button class="mobile-menu-btn" onclick="toggleMenu()">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
             <div class="d-flex align-items-center gap-3 nav-links" id="navLinks">
                 <a href="/" class="nav-link">Home</a>
-                <a href="#features" class="nav-link">Features</a>
-                <a href="#how-it-works" class="nav-link">How It Works</a>
+                <a href="#features" class="nav-link" onclick="closeMenu()">Features</a>
+                <a href="#how-it-works" class="nav-link" onclick="closeMenu()">How It Works</a>
                 <?php if(auth()->guard()->check()): ?>
-                    <a href="/dashboard" class="btn-login">Dashboard</a>
+                    <a href="/dashboard" class="btn-login btn-login-desktop">Dashboard</a>
                 <?php else: ?>
-                    <a href="javascript:void(0)" class="btn-login" onclick="openLoginModal(event); return false;">Login</a>
+                    <a href="javascript:void(0)" class="btn-login btn-login-desktop" onclick="openLoginModal(event); closeMenu(); return false;">Login</a>
                 <?php endif; ?>
             </div>
         </div>
     </nav>
+    
+    <!-- Mobile Menu Overlay -->
+    <div class="mobile-menu-overlay" id="mobileMenuOverlay" onclick="closeMenu()"></div>
 
     <!-- Hero Carousel -->
     <section class="hero-carousel-section">
@@ -315,7 +325,19 @@
 
         function toggleMenu() {
             const navLinks = document.getElementById('navLinks');
+            const overlay = document.getElementById('mobileMenuOverlay');
             navLinks.classList.toggle('show');
+            overlay.classList.toggle('show');
+            // Prevent body scroll when menu is open
+            document.body.style.overflow = navLinks.classList.contains('show') ? 'hidden' : '';
+        }
+        
+        function closeMenu() {
+            const navLinks = document.getElementById('navLinks');
+            const overlay = document.getElementById('mobileMenuOverlay');
+            navLinks.classList.remove('show');
+            overlay.classList.remove('show');
+            document.body.style.overflow = '';
         }
         
         // Open login modal function
