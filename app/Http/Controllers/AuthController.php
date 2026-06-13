@@ -766,10 +766,14 @@ class AuthController extends Controller
     public function handleMicrosoftCallback()
     {
         try {
+            \Log::info('Microsoft OAuth callback initiated');
+            
+            // Get Microsoft user data
             $microsoftUser = Socialite::driver('microsoft')->user();
             
-            \Log::info('Microsoft OAuth callback started', [
+            \Log::info('Microsoft user data retrieved', [
                 'email' => $microsoftUser->getEmail(),
+                'name' => $microsoftUser->getName(),
                 'microsoft_id' => $microsoftUser->getId(),
             ]);
             
@@ -842,10 +846,16 @@ class AuthController extends Controller
             // Log the user in directly (skip OTP for OAuth)
             Auth::login($user, true);
             
+            // Force session save
+            session()->save();
+            
             \Log::info('User logged in via OAuth', [
                 'user_id' => $user->id,
+                'user_email' => $user->email,
+                'user_role' => $user->role,
                 'authenticated' => Auth::check(),
                 'session_id' => session()->getId(),
+                'has_session' => session()->has('_token'),
             ]);
             
             // ── Single-session enforcement ──────────────────────────────
@@ -876,11 +886,15 @@ class AuthController extends Controller
             \Log::info('Redirecting to dashboard', ['user_id' => $user->id, 'role' => $user->role]);
             return redirect('/dashboard')->with('success', 'Logged in successfully with Microsoft!');
             
+        } catch (\Laravel\Socialite\Two\InvalidStateException $e) {
+            \Log::error('Microsoft OAuth invalid state: ' . $e->getMessage());
+            return redirect('/')->with('error', 'OAuth session expired. Please try again.');
         } catch (\Exception $e) {
             \Log::error('Microsoft OAuth callback error: ' . $e->getMessage());
+            \Log::error('Error class: ' . get_class($e));
             \Log::error('Stack trace: ' . $e->getTraceAsString());
             
-            return redirect('/')->with('error', 'Failed to authenticate with Microsoft. Please try again or use email/password login.');
+            return redirect('/')->with('error', 'Failed to authenticate with Microsoft: ' . $e->getMessage());
         }
     }
 }
