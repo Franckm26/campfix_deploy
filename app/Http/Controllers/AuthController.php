@@ -907,11 +907,18 @@ class AuthController extends Controller
             
         } catch (\Laravel\Socialite\Two\InvalidStateException $e) {
             \Log::error('Microsoft OAuth invalid state: ' . $e->getMessage());
-            return redirect('/')->with('error', 'OAuth session expired. Please try again.');
+            
+            // Store error in session for debugging
+            session()->flash('oauth_error', 'OAuth state mismatch: ' . $e->getMessage());
+            
+            return redirect('/')->with('error', 'OAuth session expired. Please try logging in again.');
         } catch (\Exception $e) {
             \Log::error('Microsoft OAuth callback error: ' . $e->getMessage());
             \Log::error('Error class: ' . get_class($e));
             \Log::error('Stack trace: ' . $e->getTraceAsString());
+            
+            // Store error in session for debugging
+            session()->flash('oauth_error', get_class($e) . ': ' . $e->getMessage());
             
             return redirect('/')->with('error', 'Failed to authenticate with Microsoft: ' . $e->getMessage());
         }
