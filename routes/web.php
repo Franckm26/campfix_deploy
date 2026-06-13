@@ -88,9 +88,13 @@ Route::get('/test-oauth-status', function() {
 
 // Debug route to test Socialite configuration
 Route::get('/test-socialite-config', function() {
+    $secret = env('MICROSOFT_CLIENT_SECRET');
+    $secretPreview = $secret ? substr($secret, 0, 8) . '...' . substr($secret, -4) : 'Not set';
+    
     return response()->json([
-        'microsoft_client_id' => env('MICROSOFT_CLIENT_ID') ? 'Set' : 'Not set',
-        'microsoft_secret' => env('MICROSOFT_CLIENT_SECRET') ? 'Set' : 'Not set',
+        'microsoft_client_id' => env('MICROSOFT_CLIENT_ID'),
+        'microsoft_secret_preview' => $secretPreview,
+        'microsoft_secret_is_new' => $secret && str_starts_with($secret, '29aa845d') ? 'YES - New secret ✅' : 'NO - Old secret ❌',
         'microsoft_redirect' => env('MICROSOFT_REDIRECT_URI'),
         'microsoft_tenant' => env('MICROSOFT_TENANT_ID'),
         'services_config' => config('services.microsoft'),
