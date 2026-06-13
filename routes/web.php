@@ -67,6 +67,18 @@ Route::middleware(['web', 'throttle:auth'])->group(function () {
     Route::get('/auth/microsoft/callback', [AuthController::class, 'handleMicrosoftCallback'])->name('auth.microsoft.callback');
 });
 
+// Temporary test route to check auth status
+Route::get('/test-oauth-status', function() {
+    return response()->json([
+        'authenticated' => auth()->check(),
+        'user_id' => auth()->id(),
+        'user_email' => auth()->user()?->email,
+        'user_role' => auth()->user()?->role,
+        'session_id' => session()->getId(),
+        'has_session_token' => session()->has('_token'),
+    ]);
+});
+
 /* API AUTH - Rate Limited (OWASP A6: Rate Limiting) */
 Route::middleware('throttle:auth')->group(function () {
     Route::post('/api/login', [AuthController::class, 'apiLogin']);
