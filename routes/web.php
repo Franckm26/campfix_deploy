@@ -81,6 +81,19 @@ Route::get('/test-oauth-status', function() {
         'all_session_keys' => array_keys(session()->all()),
         'oauth_error' => session()->get('oauth_error'),
         'flash_error' => session()->get('error'),
+        'session_driver' => config('session.driver'),
+        'db_connection' => config('database.default'),
+    ]);
+});
+
+// Debug route to test Socialite configuration
+Route::get('/test-socialite-config', function() {
+    return response()->json([
+        'microsoft_client_id' => env('MICROSOFT_CLIENT_ID') ? 'Set' : 'Not set',
+        'microsoft_secret' => env('MICROSOFT_CLIENT_SECRET') ? 'Set' : 'Not set',
+        'microsoft_redirect' => env('MICROSOFT_REDIRECT_URI'),
+        'microsoft_tenant' => env('MICROSOFT_TENANT_ID'),
+        'services_config' => config('services.microsoft'),
     ]);
 });
 
