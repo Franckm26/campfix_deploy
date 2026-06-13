@@ -843,19 +843,29 @@ class AuthController extends Controller
             // Regenerate session to prevent fixation attacks
             request()->session()->regenerate();
             
+            // For cookie-based sessions on Vercel, we need to ensure the user ID is in the session
+            session()->put('user_id', $user->id);
+            session()->put('auth_method', 'microsoft_oauth');
+            
             // Log the user in directly (skip OTP for OAuth)
             Auth::login($user, true);
             
             // Force session save
             session()->save();
             
+            // Verify authentication immediately
+            $authCheck = Auth::check();
+            $sessionUserId = session()->get('user_id');
+            
             \Log::info('User logged in via OAuth', [
                 'user_id' => $user->id,
                 'user_email' => $user->email,
                 'user_role' => $user->role,
-                'authenticated' => Auth::check(),
+                'authenticated' => $authCheck,
                 'session_id' => session()->getId(),
                 'has_session' => session()->has('_token'),
+                'session_user_id' => $sessionUserId,
+                'login_web_guard' => Auth::guard('web')->check(),
             ]);
             
             // ── Single-session enforcement ──────────────────────────────

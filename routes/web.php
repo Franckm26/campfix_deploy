@@ -76,6 +76,9 @@ Route::get('/test-oauth-status', function() {
         'user_role' => auth()->user()?->role,
         'session_id' => session()->getId(),
         'has_session_token' => session()->has('_token'),
+        'session_user_id' => session()->get('user_id'),
+        'session_auth_method' => session()->get('auth_method'),
+        'all_session_keys' => array_keys(session()->all()),
     ]);
 });
 
