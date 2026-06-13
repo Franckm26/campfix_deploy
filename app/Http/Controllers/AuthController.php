@@ -872,19 +872,28 @@ class AuthController extends Controller
                 return redirect('/first-login-password')->with('info', 'Please set your new password and contact number.');
             }
             
-            // Role-based redirect
+            // Role-based redirect - use absolute URLs for better compatibility
+            $redirectUrl = '/dashboard';
+            
             if ($user->is_superadmin || $user->role === 'superadmin') {
                 \Log::info('Redirecting superadmin to dashboard', ['user_id' => $user->id]);
-                return redirect()->route('superadmin.dashboard');
-            }
-            
-            if ($user->role == 'mis') {
+                $redirectUrl = route('superadmin.dashboard');
+            } elseif ($user->role == 'mis') {
                 \Log::info('Redirecting MIS to admin', ['user_id' => $user->id]);
-                return redirect('/admin');
+                $redirectUrl = '/admin';
+            } else {
+                \Log::info('Redirecting to dashboard', ['user_id' => $user->id, 'role' => $user->role]);
             }
             
-            \Log::info('Redirecting to dashboard', ['user_id' => $user->id, 'role' => $user->role]);
-            return redirect('/dashboard')->with('success', 'Logged in successfully with Microsoft!');
+            // Double-check authentication before redirect
+            if (!Auth::check()) {
+                \Log::error('User not authenticated after login!', ['user_id' => $user->id]);
+                return redirect('/')->with('error', 'Authentication failed. Please try again.');
+            }
+            
+            \Log::info('Final redirect', ['url' => $redirectUrl, 'auth_check' => Auth::check()]);
+            
+            return redirect($redirectUrl)->with('success', 'Logged in successfully with Microsoft!');
             
         } catch (\Laravel\Socialite\Two\InvalidStateException $e) {
             \Log::error('Microsoft OAuth invalid state: ' . $e->getMessage());
