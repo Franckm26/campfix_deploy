@@ -755,6 +755,8 @@ class AuthController extends Controller
      */
     public function redirectToMicrosoft()
     {
+        \Log::info('Microsoft OAuth redirect initiated');
+        
         return Socialite::driver('microsoft')
             ->scopes(['User.Read'])
             ->with(['prompt' => 'select_account']) // Force account selection screen
