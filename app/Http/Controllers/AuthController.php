@@ -398,20 +398,36 @@ class AuthController extends Controller
     public function logout()
     {
         $user = Auth::user();
+        
+        \Log::info('Logout initiated', [
+            'user_id' => $user?->id,
+            'user_email' => $user?->email,
+            'session_id' => session()->getId(),
+        ]);
 
         // Clear the stored session ID so the slot is freed
         if ($user) {
             $user->update(['active_session_id' => null]);
         }
 
+        // Perform logout
         Auth::logout();
 
-        // Invalidate the session completely
+        // Clear all session data first
+        request()->session()->flush();
+        
+        // Then invalidate the session ID
         request()->session()->invalidate();
+        
+        // Regenerate CSRF token
         request()->session()->regenerateToken();
         
-        // Force flush all session data
-        request()->session()->flush();
+        // Force a new session to start fresh
+        request()->session()->regenerate(true);
+        
+        \Log::info('Logout complete - session cleared', [
+            'new_session_id' => session()->getId(),
+        ]);
 
         return redirect('/')->with('success', 'Logged out successfully');
     }
@@ -772,13 +788,40 @@ class AuthController extends Controller
         try {
             \Log::info('Microsoft OAuth callback initiated');
             
-            // Clear any existing authentication before OAuth login
+            // AGGRESSIVE SESSION CLEANUP - Clear any existing authentication before OAuth login
             if (Auth::check()) {
-                \Log::info('Clearing existing session before OAuth', ['old_user_id' => Auth::id()]);
+                $oldUserId = Auth::id();
+                $oldUserEmail = Auth::user()->email;
+                \Log::info('Clearing existing session before OAuth', [
+                    'old_user_id' => $oldUserId,
+                    'old_user_email' => $oldUserEmail,
+                ]);
+                
+                // Clear active session from user record
+                $oldUser = Auth::user();
+                if ($oldUser) {
+                    $oldUser->update(['active_session_id' => null]);
+                }
+                
+                // Logout completely
                 Auth::logout();
-                request()->session()->invalidate();
-                request()->session()->regenerateToken();
             }
+            
+            // Force complete session destruction and regeneration
+            request()->session()->flush();      // Clear all session data
+            request()->session()->invalidate(); // Invalidate the session ID
+            request()->session()->regenerate(); // Generate new session ID
+            
+            // Clear any lingering session cookies
+            foreach (request()->cookies as $key => $cookie) {
+                if (str_contains($key, 'laravel_session') || str_contains($key, 'XSRF-TOKEN')) {
+                    \Log::info('Clearing cookie: ' . $key);
+                }
+            }
+            
+            \Log::info('Session completely cleared and regenerated', [
+                'new_session_id' => session()->getId(),
+            ]);
             
             // Get Microsoft user data
             $microsoftUser = Socialite::driver('microsoft')->user();
@@ -872,6 +915,29 @@ class AuthController extends Controller
             
             // Log the user in directly (skip OTP for OAuth)
             Auth::login($user, true);
+            
+            // CRITICAL: Verify we logged in the CORRECT user
+            $loggedInUser = Auth::user();
+            if (!$loggedInUser || $loggedInUser->id !== $user->id) {
+                \Log::error('SECURITY: Wrong user logged in!', [
+                    'expected_user_id' => $user->id,
+                    'expected_email' => $user->email,
+                    'actual_user_id' => $loggedInUser?->id,
+                    'actual_email' => $loggedInUser?->email,
+                ]);
+                
+                // Force logout and fail
+                Auth::logout();
+                request()->session()->flush();
+                request()->session()->invalidate();
+                
+                return redirect('/')->with('error', 'Authentication error: Wrong account was logged in. Please clear your browser cookies and try again.');
+            }
+            
+            \Log::info('Verified correct user logged in', [
+                'user_id' => $loggedInUser->id,
+                'email' => $loggedInUser->email,
+            ]);
             
             // Force session save
             session()->save();
