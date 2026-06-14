@@ -429,7 +429,16 @@ class AuthController extends Controller
             'new_session_id' => session()->getId(),
         ]);
 
-        return redirect('/')->with('success', 'Logged out successfully');
+        // Create response with explicit cookie deletion
+        $response = redirect('/')->with('success', 'Logged out successfully');
+        
+        // Explicitly expire all session-related cookies
+        $cookieName = config('session.cookie');
+        $response->withCookie(cookie()->forget($cookieName));
+        $response->withCookie(cookie()->forget('XSRF-TOKEN'));
+        $response->withCookie(cookie()->forget('laravel_session'));
+        
+        return $response;
     }
 
     // Show first login password change form
@@ -792,9 +801,12 @@ class AuthController extends Controller
             if (Auth::check()) {
                 $oldUserId = Auth::id();
                 $oldUserEmail = Auth::user()->email;
+                $oldSessionId = session()->getId();
+                
                 \Log::info('Clearing existing session before OAuth', [
                     'old_user_id' => $oldUserId,
                     'old_user_email' => $oldUserEmail,
+                    'old_session_id' => $oldSessionId,
                 ]);
                 
                 // Clear active session from user record
@@ -805,18 +817,27 @@ class AuthController extends Controller
                 
                 // Logout completely
                 Auth::logout();
+                
+                // Delete the old session from database
+                try {
+                    \DB::table('sessions')->where('id', $oldSessionId)->delete();
+                    \Log::info('Deleted old session from database', ['session_id' => $oldSessionId]);
+                } catch (\Exception $e) {
+                    \Log::warning('Could not delete old session: ' . $e->getMessage());
+                }
             }
             
             // Force complete session destruction and regeneration
+            $oldSessionId = session()->getId();
             request()->session()->flush();      // Clear all session data
             request()->session()->invalidate(); // Invalidate the session ID
             request()->session()->regenerate(); // Generate new session ID
             
-            // Clear any lingering session cookies
-            foreach (request()->cookies as $key => $cookie) {
-                if (str_contains($key, 'laravel_session') || str_contains($key, 'XSRF-TOKEN')) {
-                    \Log::info('Clearing cookie: ' . $key);
-                }
+            // Delete any sessions from database that might be lingering
+            try {
+                \DB::table('sessions')->where('id', $oldSessionId)->delete();
+            } catch (\Exception $e) {
+                \Log::warning('Could not delete lingering session: ' . $e->getMessage());
             }
             
             \Log::info('Session completely cleared and regenerated', [
@@ -838,6 +859,27 @@ class AuthController extends Controller
             // If not found by Microsoft ID, try by email
             if (!$user) {
                 $user = User::where('email', strtolower($microsoftUser->getEmail()))->first();
+            }
+            
+            // CRITICAL: Clear ALL sessions for this Microsoft user to prevent account confusion
+            if ($user) {
+                \Log::info('Clearing all existing sessions for OAuth user', [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                ]);
+                
+                // Delete all sessions for this user from database
+                try {
+                    \DB::table('sessions')
+                        ->where('user_id', $user->id)
+                        ->delete();
+                    \Log::info('Deleted all existing sessions for user', ['user_id' => $user->id]);
+                } catch (\Exception $e) {
+                    \Log::warning('Could not delete existing user sessions: ' . $e->getMessage());
+                }
+                
+                // Clear active session tracking
+                $user->update(['active_session_id' => null]);
             }
             
             \Log::info('User lookup result', [
@@ -992,7 +1034,21 @@ class AuthController extends Controller
             
             \Log::info('Final redirect', ['url' => $redirectUrl, 'auth_check' => Auth::check()]);
             
-            return redirect($redirectUrl)->with('success', 'Logged in successfully with Microsoft!');
+            // Create response with fresh cookies
+            $response = redirect($redirectUrl)->with('success', 'Logged in successfully with Microsoft!');
+            
+            // Force new session cookie (invalidate old one)
+            $cookieName = config('session.cookie');
+            $response->withCookie(cookie($cookieName, session()->getId(), config('session.lifetime'), 
+                config('session.path'), 
+                config('session.domain'), 
+                config('session.secure'), 
+                config('session.http_only'),
+                false,
+                config('session.same_site')
+            ));
+            
+            return $response;
             
         } catch (\Laravel\Socialite\Two\InvalidStateException $e) {
             \Log::error('Microsoft OAuth invalid state: ' . $e->getMessage());
