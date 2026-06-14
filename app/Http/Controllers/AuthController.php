@@ -398,47 +398,18 @@ class AuthController extends Controller
     public function logout()
     {
         $user = Auth::user();
-        
-        \Log::info('Logout initiated', [
-            'user_id' => $user?->id,
-            'user_email' => $user?->email,
-            'session_id' => session()->getId(),
-        ]);
 
         // Clear the stored session ID so the slot is freed
         if ($user) {
             $user->update(['active_session_id' => null]);
         }
 
-        // Perform logout
         Auth::logout();
 
-        // Clear all session data first
-        request()->session()->flush();
-        
-        // Then invalidate the session ID
         request()->session()->invalidate();
-        
-        // Regenerate CSRF token
         request()->session()->regenerateToken();
-        
-        // Force a new session to start fresh
-        request()->session()->regenerate(true);
-        
-        \Log::info('Logout complete - session cleared', [
-            'new_session_id' => session()->getId(),
-        ]);
 
-        // Create response with explicit cookie deletion
-        $response = redirect('/')->with('success', 'Logged out successfully');
-        
-        // Explicitly expire all session-related cookies
-        $cookieName = config('session.cookie');
-        $response->withCookie(cookie()->forget($cookieName));
-        $response->withCookie(cookie()->forget('XSRF-TOKEN'));
-        $response->withCookie(cookie()->forget('laravel_session'));
-        
-        return $response;
+        return redirect('/')->with('success', 'Logged out successfully');
     }
 
     // Show first login password change form
@@ -786,7 +757,7 @@ class AuthController extends Controller
     {
         return Socialite::driver('microsoft')
             ->scopes(['User.Read'])
-            ->with(['prompt' => 'select_account']) // Force account selection
+            ->with(['prompt' => 'select_account']) // Force account selection screen
             ->redirect();
     }
 
@@ -798,53 +769,6 @@ class AuthController extends Controller
         try {
             \Log::info('Microsoft OAuth callback initiated');
             
-            // AGGRESSIVE SESSION CLEANUP - Clear any existing authentication before OAuth login
-            if (Auth::check()) {
-                $oldUserId = Auth::id();
-                $oldUserEmail = Auth::user()->email;
-                $oldSessionId = session()->getId();
-                
-                \Log::info('Clearing existing session before OAuth', [
-                    'old_user_id' => $oldUserId,
-                    'old_user_email' => $oldUserEmail,
-                    'old_session_id' => $oldSessionId,
-                ]);
-                
-                // Clear active session from user record
-                $oldUser = Auth::user();
-                if ($oldUser) {
-                    $oldUser->update(['active_session_id' => null]);
-                }
-                
-                // Logout completely
-                Auth::logout();
-                
-                // Delete the old session from database
-                try {
-                    \DB::table('sessions')->where('id', $oldSessionId)->delete();
-                    \Log::info('Deleted old session from database', ['session_id' => $oldSessionId]);
-                } catch (\Exception $e) {
-                    \Log::warning('Could not delete old session: ' . $e->getMessage());
-                }
-            }
-            
-            // Force complete session destruction and regeneration
-            $oldSessionId = session()->getId();
-            request()->session()->flush();      // Clear all session data
-            request()->session()->invalidate(); // Invalidate the session ID
-            request()->session()->regenerate(); // Generate new session ID
-            
-            // Delete any sessions from database that might be lingering
-            try {
-                \DB::table('sessions')->where('id', $oldSessionId)->delete();
-            } catch (\Exception $e) {
-                \Log::warning('Could not delete lingering session: ' . $e->getMessage());
-            }
-            
-            \Log::info('Session completely cleared and regenerated', [
-                'new_session_id' => session()->getId(),
-            ]);
-            
             // Get Microsoft user data
             $microsoftUser = Socialite::driver('microsoft')->user();
             
@@ -854,40 +778,8 @@ class AuthController extends Controller
                 'microsoft_id' => $microsoftUser->getId(),
             ]);
             
-            // First, try to find user by Microsoft ID (more reliable)
-            $user = User::where('microsoft_id', $microsoftUser->getId())->first();
-            
-            // If not found by Microsoft ID, try by email
-            if (!$user) {
-                $user = User::where('email', strtolower($microsoftUser->getEmail()))->first();
-            }
-            
-            // CRITICAL: Clear ALL sessions for this Microsoft user to prevent account confusion
-            if ($user) {
-                \Log::info('Clearing all existing sessions for OAuth user', [
-                    'user_id' => $user->id,
-                    'email' => $user->email,
-                ]);
-                
-                // Delete all sessions for this user from database
-                try {
-                    \DB::table('sessions')
-                        ->where('user_id', $user->id)
-                        ->delete();
-                    \Log::info('Deleted all existing sessions for user', ['user_id' => $user->id]);
-                } catch (\Exception $e) {
-                    \Log::warning('Could not delete existing user sessions: ' . $e->getMessage());
-                }
-                
-                // Clear active session tracking
-                $user->update(['active_session_id' => null]);
-            }
-            
-            \Log::info('User lookup result', [
-                'found_user' => $user ? true : false,
-                'user_id' => $user?->id,
-                'lookup_method' => $user && $user->microsoft_id === $microsoftUser->getId() ? 'microsoft_id' : 'email',
-            ]);
+            // Find user based on Microsoft email
+            $user = User::where('email', strtolower($microsoftUser->getEmail()))->first();
             
             // Check if this is a new user with Microsoft account
             if (!$user) {
@@ -959,29 +851,6 @@ class AuthController extends Controller
             // Log the user in directly (skip OTP for OAuth)
             Auth::login($user, true);
             
-            // CRITICAL: Verify we logged in the CORRECT user
-            $loggedInUser = Auth::user();
-            if (!$loggedInUser || $loggedInUser->id !== $user->id) {
-                \Log::error('SECURITY: Wrong user logged in!', [
-                    'expected_user_id' => $user->id,
-                    'expected_email' => $user->email,
-                    'actual_user_id' => $loggedInUser?->id,
-                    'actual_email' => $loggedInUser?->email,
-                ]);
-                
-                // Force logout and fail
-                Auth::logout();
-                request()->session()->flush();
-                request()->session()->invalidate();
-                
-                return redirect('/')->with('error', 'Authentication error: Wrong account was logged in. Please clear your browser cookies and try again.');
-            }
-            
-            \Log::info('Verified correct user logged in', [
-                'user_id' => $loggedInUser->id,
-                'email' => $loggedInUser->email,
-            ]);
-            
             // Force session save
             session()->save();
             
@@ -1035,21 +904,7 @@ class AuthController extends Controller
             
             \Log::info('Final redirect', ['url' => $redirectUrl, 'auth_check' => Auth::check()]);
             
-            // Create response with fresh cookies
-            $response = redirect($redirectUrl)->with('success', 'Logged in successfully with Microsoft!');
-            
-            // Force new session cookie (invalidate old one)
-            $cookieName = config('session.cookie');
-            $response->withCookie(cookie($cookieName, session()->getId(), config('session.lifetime'), 
-                config('session.path'), 
-                config('session.domain'), 
-                config('session.secure'), 
-                config('session.http_only'),
-                false,
-                config('session.same_site')
-            ));
-            
-            return $response;
+            return redirect($redirectUrl)->with('success', 'Logged in successfully with Microsoft!');
             
         } catch (\Laravel\Socialite\Two\InvalidStateException $e) {
             \Log::error('Microsoft OAuth invalid state: ' . $e->getMessage());
