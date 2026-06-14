@@ -406,8 +406,12 @@ class AuthController extends Controller
 
         Auth::logout();
 
+        // Invalidate the session completely
         request()->session()->invalidate();
         request()->session()->regenerateToken();
+        
+        // Force flush all session data
+        request()->session()->flush();
 
         return redirect('/')->with('success', 'Logged out successfully');
     }
@@ -768,6 +772,14 @@ class AuthController extends Controller
         try {
             \Log::info('Microsoft OAuth callback initiated');
             
+            // Clear any existing authentication before OAuth login
+            if (Auth::check()) {
+                \Log::info('Clearing existing session before OAuth', ['old_user_id' => Auth::id()]);
+                Auth::logout();
+                request()->session()->invalidate();
+                request()->session()->regenerateToken();
+            }
+            
             // Get Microsoft user data
             $microsoftUser = Socialite::driver('microsoft')->user();
             
@@ -777,8 +789,19 @@ class AuthController extends Controller
                 'microsoft_id' => $microsoftUser->getId(),
             ]);
             
-            // Find user based on Microsoft email
-            $user = User::where('email', strtolower($microsoftUser->getEmail()))->first();
+            // First, try to find user by Microsoft ID (more reliable)
+            $user = User::where('microsoft_id', $microsoftUser->getId())->first();
+            
+            // If not found by Microsoft ID, try by email
+            if (!$user) {
+                $user = User::where('email', strtolower($microsoftUser->getEmail()))->first();
+            }
+            
+            \Log::info('User lookup result', [
+                'found_user' => $user ? true : false,
+                'user_id' => $user?->id,
+                'lookup_method' => $user && $user->microsoft_id === $microsoftUser->getId() ? 'microsoft_id' : 'email',
+            ]);
             
             // Check if this is a new user with Microsoft account
             if (!$user) {
