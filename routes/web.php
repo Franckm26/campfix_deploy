@@ -101,6 +101,36 @@ Route::get('/test-socialite-config', function() {
     ]);
 });
 
+// Debug: Check user accounts
+Route::get('/test-user-accounts', function() {
+    $gmail = \App\Models\User::where('email', 'mercuriofranck9@gmail.com')->first();
+    $sti = \App\Models\User::where('email', 'mercurio.372282@novaliches.sti.edu.ph')->first();
+    
+    return response()->json([
+        'gmail_account' => $gmail ? [
+            'id' => $gmail->id,
+            'email' => $gmail->email,
+            'name' => $gmail->name,
+            'role' => $gmail->role,
+            'microsoft_id' => $gmail->microsoft_id,
+            'has_avatar' => !empty($gmail->avatar),
+        ] : 'Not found',
+        'sti_account' => $sti ? [
+            'id' => $sti->id,
+            'email' => $sti->email,
+            'name' => $sti->name,
+            'role' => $sti->role,
+            'microsoft_id' => $sti->microsoft_id,
+            'has_avatar' => !empty($sti->avatar),
+        ] : 'Not found',
+        'currently_logged_in' => auth()->check() ? [
+            'id' => auth()->id(),
+            'email' => auth()->user()->email,
+            'name' => auth()->user()->name,
+        ] : 'Not logged in',
+    ]);
+});
+
 /* API AUTH - Rate Limited (OWASP A6: Rate Limiting) */
 Route::middleware('throttle:auth')->group(function () {
     Route::post('/api/login', [AuthController::class, 'apiLogin']);
