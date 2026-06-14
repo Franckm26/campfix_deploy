@@ -786,6 +786,7 @@ class AuthController extends Controller
     {
         return Socialite::driver('microsoft')
             ->scopes(['User.Read'])
+            ->with(['prompt' => 'select_account']) // Force account selection
             ->redirect();
     }
 
