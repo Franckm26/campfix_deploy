@@ -165,8 +165,8 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="profile-header text-center">
                 <div class="profile-avatar-container">
                     <div class="profile-avatar">
-                        @if($user->profile_picture)
-                            <img src="{{ asset('storage/' . $user->profile_picture) }}?t={{ time() }}" alt="Profile Picture" class="profile-image">
+                        @if($user->profile_picture_url)
+                            <img src="{{ $user->profile_picture_url }}?t={{ time() }}" alt="Profile Picture" class="profile-image">
                         @else
                             {{ substr($user->name, 0, 1) }}
                         @endif

@@ -281,8 +281,8 @@
                                 <td class="checkbox-col"><input type="checkbox" class="user-checkbox" value="{{ $u->id }}"></td>
                                 <td>
                                     <div class="d-flex align-items-center gap-2">
-                                        @if($u->profile_picture)
-                                            <img src="{{ asset('storage/'.$u->profile_picture) }}" class="avatar-sm" style="object-fit:cover">
+                                        @if($u->profile_picture_url)
+                                            <img src="{{ $u->profile_picture_url }}" class="avatar-sm" style="object-fit:cover">
                                         @else
                                             <span class="avatar-sm text-white" style="background:{{ $bg }}">{{ $initials }}</span>
                                         @endif
@@ -325,8 +325,8 @@
                     <div class="dashboard-user-card">
                         <div class="dashboard-user-card-header">
                             <input type="checkbox" class="user-checkbox" value="{{ $u->id }}" style="width: 18px; height: 18px;">
-                            @if($u->profile_picture)
-                                <img src="{{ asset('storage/'.$u->profile_picture) }}" class="avatar-sm" style="object-fit:cover">
+                            @if($u->profile_picture_url)
+                                <img src="{{ $u->profile_picture_url }}" class="avatar-sm" style="object-fit:cover">
                             @else
                                 <span class="avatar-sm text-white" style="background:{{ $bg }}">{{ $initials }}</span>
                             @endif
@@ -430,8 +430,8 @@
                             <tr id="locked-row-{{ $lu->id }}">
                                 <td class="ps-3">
                                     <div class="d-flex align-items-center gap-2">
-                                        @if($lu->profile_picture)
-                                            <img src="{{ asset('storage/'.$lu->profile_picture) }}" class="avatar-sm" style="object-fit:cover">
+                                        @if($lu->profile_picture_url)
+                                            <img src="{{ $lu->profile_picture_url }}" class="avatar-sm" style="object-fit:cover">
                                         @else
                                             <span class="avatar-sm text-white" style="background:{{ $bg }}">{{ $initials }}</span>
                                         @endif

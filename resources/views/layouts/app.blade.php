@@ -500,8 +500,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                             $sender = \App\Models\User::find($notification->data['sender_id']);
                                         }
                                     @endphp
-                                    @if($sender && $sender->profile_picture)
-                                        <img src="{{ asset('storage/' . $sender->profile_picture) }}" alt="{{ $sender->name }}">
+                                    @if($sender && $sender->profile_picture_url)
+                                        <img src="{{ $sender->profile_picture_url }}" alt="{{ $sender->name }}">
                                     @elseif($sender)
                                         <div class="notification-avatar-initial">{{ substr($sender->name, 0, 1) }}</div>
                                     @else
@@ -540,8 +540,8 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="user-dropdown-top" onclick="toggleDropdown(event)" style="display:flex;align-items:center;gap:10px;cursor:pointer;">
                 <span style="font-weight:700;font-size:14px;color:var(--header-text,#1e293b);white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis;">{{ auth()->user()->name }}</span>
                 <div class="user-icon" style="pointer-events:none;">
-                    @if(auth()->user()->profile_picture)
-                        <img src="{{ asset('storage/' . auth()->user()->profile_picture) }}" alt="Profile" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                    @if(auth()->user()->profile_picture_url)
+                        <img src="{{ auth()->user()->profile_picture_url }}" alt="Profile" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
                     @else
                         {{ substr(auth()->user()->name, 0, 1) }}
                     @endif

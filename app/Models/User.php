@@ -438,4 +438,33 @@ class User extends Authenticatable implements JWTSubject
     {
         return self::where('role', self::ROLE_ACADEMIC_HEAD)->get();
     }
+
+    /**
+     * Get the full URL for the profile picture
+     * Handles both local storage paths and Supabase URLs
+     * Also handles Microsoft OAuth avatar URLs
+     */
+    public function getProfilePictureUrlAttribute()
+    {
+        // If no picture or avatar is set, return null
+        if (!$this->profile_picture && !$this->avatar) {
+            return null;
+        }
+
+        // Priority: profile_picture over avatar
+        $picture = $this->profile_picture ?? $this->avatar;
+
+        // If it's already a full URL (starts with http:// or https://), return it as-is
+        if (str_starts_with($picture, 'http://') || str_starts_with($picture, 'https://')) {
+            return $picture;
+        }
+
+        // If it's a data URL (base64 image), return it as-is
+        if (str_starts_with($picture, 'data:image/')) {
+            return $picture;
+        }
+
+        // Otherwise, it's a local storage path, prepend asset URL
+        return asset('storage/' . $picture);
+    }
 }
