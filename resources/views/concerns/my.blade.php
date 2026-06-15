@@ -2835,7 +2835,15 @@ function toggleSelectAll(type) {
     const className = type === 'active' ? 'active-checkbox' : 
                      (type === 'resolved' ? 'resolved-checkbox' : 
                      (type === 'archive' ? 'archive-checkbox' : 'deleted-checkbox'));
-    const checkboxes = document.querySelectorAll('.' + className);
+    
+    // Get the container for the specific tab to limit selection scope
+    const tabPaneId = type === 'active' ? 'active-concerns' : 
+                     (type === 'resolved' ? 'resolved-concerns' : 
+                     (type === 'archive' ? 'archived-concerns' : 'deleted-concerns'));
+    const tabPane = document.getElementById(tabPaneId);
+    
+    // Only select checkboxes within the visible tab
+    const checkboxes = tabPane ? tabPane.querySelectorAll('.' + className) : [];
     const selectAll = document.getElementById(checkboxId);
     
     checkboxes.forEach(cb => {
