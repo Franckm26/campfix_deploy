@@ -2852,7 +2852,10 @@ function toggleSelectAll(type) {
     
     console.log('[DEBUG v2] Found', checkboxes.length, 'checkboxes in tab');
     
-    checkboxes.forEach(cb => {
+    // Log each checkbox for debugging
+    checkboxes.forEach((cb, index) => {
+        const isVisible = cb.offsetParent !== null;
+        console.log('[DEBUG v2] Checkbox', index, '- Value:', cb.value, 'Visible:', isVisible, 'Will check:', selectAll.checked);
         cb.checked = selectAll.checked;
     });
     
@@ -2872,6 +2875,11 @@ function updateActiveBulkActions() {
     const selected = tabPane ? tabPane.querySelectorAll('.active-checkbox:checked') : [];
     const bulkActions = document.getElementById('activeBulkActions');
     const countSpan = document.getElementById('activeSelectedCount');
+    
+    console.log('[DEBUG v2] updateActiveBulkActions - Found', selected.length, 'selected checkboxes');
+    selected.forEach((cb, index) => {
+        console.log('[DEBUG v2] Checkbox', index, '- Value:', cb.value, 'Visible:', cb.offsetParent !== null, 'Element:', cb);
+    });
     
     if (selected.length > 0) {
         bulkActions.style.display = 'block';
