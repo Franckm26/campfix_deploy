@@ -3785,6 +3785,25 @@ if (assignConcernForm) {
 </div>
 
 <script>
+// Reset all "Select All" checkboxes and counts on page load
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('[INIT] Resetting all select-all checkboxes and counts');
+    
+    // Reset all "Select All" checkboxes
+    ['selectAllActive', 'selectAllResolved', 'selectAllArchive', 'selectAllDeleted'].forEach(id => {
+        const checkbox = document.getElementById(id);
+        if (checkbox) {
+            checkbox.checked = false;
+        }
+    });
+    
+    // Update all bulk actions to hide them and reset counts
+    updateActiveBulkActions();
+    updateResolvedBulkActions();
+    updateArchiveBulkActions();
+    updateDeletedBulkActions();
+});
+
 // Auto-open concern modal if concern_id is in URL
 console.log('[Auto-open] Script loaded - concerns page');
 document.addEventListener('DOMContentLoaded', function() {
