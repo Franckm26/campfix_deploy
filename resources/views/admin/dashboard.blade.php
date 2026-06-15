@@ -81,16 +81,16 @@
         
         /* Dark mode support */
         [data-theme="dark"] .dashboard-user-card {
-            background: #2d3238;
-            border-color: #495057;
+            background: #2d3238 !important;
+            border-color: #495057 !important;
         }
         
         [data-theme="dark"] .dashboard-user-card-value {
-            color: #e9ecef;
+            color: #e9ecef !important;
         }
         
         [data-theme="dark"] .dashboard-user-card-label {
-            color: #adb5bd;
+            color: #adb5bd !important;
         }
     }
     
