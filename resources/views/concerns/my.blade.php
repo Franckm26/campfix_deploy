@@ -2862,7 +2862,8 @@ function toggleSelectAll(type) {
 }
 
 function updateActiveBulkActions() {
-    const selected = document.querySelectorAll('.active-checkbox:checked');
+    const tabPane = document.getElementById('active-concerns');
+    const selected = tabPane ? tabPane.querySelectorAll('.active-checkbox:checked') : [];
     const bulkActions = document.getElementById('activeBulkActions');
     const countSpan = document.getElementById('activeSelectedCount');
     
@@ -2875,7 +2876,8 @@ function updateActiveBulkActions() {
 }
 
 function updateResolvedBulkActions() {
-    const selected = document.querySelectorAll('.resolved-checkbox:checked');
+    const tabPane = document.getElementById('resolved-concerns');
+    const selected = tabPane ? tabPane.querySelectorAll('.resolved-checkbox:checked') : [];
     const bulkActions = document.getElementById('resolvedBulkActions');
     const countSpan = document.getElementById('resolvedSelectedCount');
     
@@ -2888,7 +2890,8 @@ function updateResolvedBulkActions() {
 }
 
 function updateArchiveBulkActions() {
-    const selected = document.querySelectorAll('.archive-checkbox:checked');
+    const tabPane = document.getElementById('archived-concerns');
+    const selected = tabPane ? tabPane.querySelectorAll('.archive-checkbox:checked') : [];
     const bulkActions = document.getElementById('archiveBulkActions');
     const countSpan = document.getElementById('archiveSelectedCount');
     
@@ -2901,7 +2904,8 @@ function updateArchiveBulkActions() {
 }
 
 function updateDeletedBulkActions() {
-    const selected = document.querySelectorAll('.deleted-checkbox:checked');
+    const tabPane = document.getElementById('deleted-concerns');
+    const selected = tabPane ? tabPane.querySelectorAll('.deleted-checkbox:checked') : [];
     const bulkActions = document.getElementById('deletedBulkActions');
     const countSpan = document.getElementById('deletedSelectedCount');
     
@@ -2914,7 +2918,8 @@ function updateDeletedBulkActions() {
 }
 
 function batchArchiveSelected() {
-    const selected = document.querySelectorAll('.active-checkbox:checked');
+    const tabPane = document.getElementById('active-concerns');
+    const selected = tabPane ? tabPane.querySelectorAll('.active-checkbox:checked') : [];
     const ids = Array.from(selected).map(cb => cb.value);
     
     if (ids.length === 0) return;
@@ -2960,7 +2965,8 @@ function batchArchiveSelected() {
 }
 
 function batchSoftDeleteSelected() {
-    const selected = document.querySelectorAll('.active-checkbox:checked');
+    const tabPane = document.getElementById('active-concerns');
+    const selected = tabPane ? tabPane.querySelectorAll('.active-checkbox:checked') : [];
     const ids = Array.from(selected).map(cb => cb.value);
     
     if (ids.length === 0) return;
@@ -3072,7 +3078,8 @@ function batchSoftDeleteResolved() {
 }
 
 function batchRestoreArchived() {
-    const selected = document.querySelectorAll('.archive-checkbox:checked');
+    const tabPane = document.getElementById('archived-concerns');
+    const selected = tabPane ? tabPane.querySelectorAll('.archive-checkbox:checked') : [];
     const ids = Array.from(selected).map(cb => cb.value);
     
     if (ids.length === 0) return;
@@ -3102,7 +3109,8 @@ function batchRestoreArchived() {
 }
 
 function batchSoftDeleteArchived() {
-    const selected = document.querySelectorAll('.archive-checkbox:checked');
+    const tabPane = document.getElementById('archived-concerns');
+    const selected = tabPane ? tabPane.querySelectorAll('.archive-checkbox:checked') : [];
     const ids = Array.from(selected).map(cb => cb.value);
     
     if (ids.length === 0) return;
@@ -3136,7 +3144,8 @@ function batchSoftDeleteArchived() {
 }
 
 function batchRestoreDeleted() {
-    const selected = document.querySelectorAll('.deleted-checkbox:checked');
+    const tabPane = document.getElementById('deleted-concerns');
+    const selected = tabPane ? tabPane.querySelectorAll('.deleted-checkbox:checked') : [];
     const ids = Array.from(selected).map(cb => cb.value);
     
     if (ids.length === 0) return;
@@ -3166,7 +3175,8 @@ function batchRestoreDeleted() {
 }
 
 function batchPermanentDeleteSelected() {
-    const selected = document.querySelectorAll('.deleted-checkbox:checked');
+    const tabPane = document.getElementById('deleted-concerns');
+    const selected = tabPane ? tabPane.querySelectorAll('.deleted-checkbox:checked') : [];
     const ids = Array.from(selected).map(cb => cb.value);
     
     if (ids.length === 0) return;
