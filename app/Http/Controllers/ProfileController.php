@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\SupabaseStorage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class ProfileController extends Controller
 {
@@ -65,80 +67,122 @@ class ProfileController extends Controller
 
     public function uploadProfilePicture(Request $request)
     {
-        $request->validate([
-            'profile_picture' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048', // 2MB max
-        ]);
+        try {
+            $request->validate([
+                'profile_picture' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048', // 2MB max
+            ]);
 
-        $user = Auth::user();
+            $user = Auth::user();
 
-        if ($request->hasFile('profile_picture')) {
-            // Delete old picture if exists
-            if ($user->profile_picture && Storage::disk('public')->exists($user->profile_picture)) {
-                Storage::disk('public')->delete($user->profile_picture);
+            if ($request->hasFile('profile_picture')) {
+                $supabaseStorage = new SupabaseStorage();
+
+                // Delete old picture if exists and it's a Supabase URL
+                if ($user->profile_picture && str_contains($user->profile_picture, 'supabase')) {
+                    $supabaseStorage->delete($user->profile_picture);
+                    Log::info('Deleted old profile picture from Supabase', ['url' => $user->profile_picture]);
+                }
+
+                // Upload new picture to Supabase Storage
+                $publicUrl = $supabaseStorage->upload($request->file('profile_picture'), 'profile_pictures');
+
+                if (!$publicUrl) {
+                    Log::error('Failed to upload profile picture to Supabase');
+                    
+                    if ($request->expectsJson()) {
+                        return response()->json(['success' => false, 'message' => 'Failed to upload profile picture to storage.'], 500);
+                    }
+                    
+                    return redirect()->route('profile.index')->with('error', 'Failed to upload profile picture.');
+                }
+
+                // Update user with the public URL
+                $user->profile_picture = $publicUrl;
+                $user->save();
+
+                Log::info('Profile picture uploaded successfully', [
+                    'user_id' => $user->id,
+                    'url' => $publicUrl
+                ]);
+
+                // Check if it's an AJAX request
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => true, 
+                        'message' => 'Profile picture updated successfully!',
+                        'url' => $publicUrl
+                    ]);
+                }
+
+                return redirect()->route('profile.index')->with('success', 'Profile picture updated successfully!');
             }
-
-            // Store new picture
-            $path = $request->file('profile_picture')->store('profile_pictures', 'public');
-
-            // For Windows/XAMPP compatibility, also copy to public/storage
-            $sourcePath = storage_path('app/public/'.$path);
-            $destPath = public_path('storage/'.$path);
-            $destDir = dirname($destPath);
-
-            if (! is_dir($destDir)) {
-                mkdir($destDir, 0755, true);
-            }
-
-            if (file_exists($sourcePath)) {
-                copy($sourcePath, $destPath);
-            }
-
-            // Update user
-            $user->profile_picture = $path;
-            $user->save();
 
             // Check if it's an AJAX request
             if ($request->expectsJson()) {
-                return response()->json(['success' => true, 'message' => 'Profile picture updated successfully!']);
+                return response()->json(['success' => false, 'message' => 'No file uploaded.'], 400);
             }
 
-            return redirect()->route('profile.index')->with('success', 'Profile picture updated successfully!');
+            return redirect()->route('profile.index')->with('error', 'No file uploaded.');
+            
+        } catch (\Exception $e) {
+            Log::error('Profile picture upload error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Server error: ' . $e->getMessage()], 500);
+            }
+            
+            return redirect()->route('profile.index')->with('error', 'Failed to upload profile picture: ' . $e->getMessage());
         }
-
-        // Check if it's an AJAX request
-        if ($request->expectsJson()) {
-            return response()->json(['success' => false, 'message' => 'Failed to upload profile picture.'], 400);
-        }
-
-        return redirect()->route('profile.index')->with('error', 'Failed to upload profile picture.');
     }
 
     public function removeProfilePicture(Request $request)
     {
-        $user = Auth::user();
+        try {
+            $user = Auth::user();
 
-        if ($user->profile_picture) {
-            // Delete the file from storage
-            if (Storage::disk('public')->exists($user->profile_picture)) {
-                Storage::disk('public')->delete($user->profile_picture);
+            if ($user->profile_picture) {
+                // Check if it's a Supabase URL and delete from Supabase
+                if (str_contains($user->profile_picture, 'supabase')) {
+                    $supabaseStorage = new SupabaseStorage();
+                    $supabaseStorage->delete($user->profile_picture);
+                    Log::info('Deleted profile picture from Supabase', ['url' => $user->profile_picture]);
+                } else {
+                    // Legacy: Delete from local storage if it exists
+                    if (Storage::disk('public')->exists($user->profile_picture)) {
+                        Storage::disk('public')->delete($user->profile_picture);
+                    }
+
+                    // Also delete from public/storage if it exists (for Windows compatibility)
+                    $publicPath = public_path('storage/'.$user->profile_picture);
+                    if (file_exists($publicPath)) {
+                        unlink($publicPath);
+                    }
+                }
+
+                // Clear the profile_picture field
+                $user->profile_picture = null;
+                $user->save();
+
+                Log::info('Profile picture removed', ['user_id' => $user->id]);
             }
 
-            // Also delete from public/storage if it exists (for Windows compatibility)
-            $publicPath = public_path('storage/'.$user->profile_picture);
-            if (file_exists($publicPath)) {
-                unlink($publicPath);
+            // Check if it's an AJAX request
+            if ($request->expectsJson()) {
+                return response()->json(['success' => true, 'message' => 'Profile picture removed successfully!']);
             }
 
-            // Clear the profile_picture field
-            $user->profile_picture = null;
-            $user->save();
+            return redirect()->route('profile.index')->with('success', 'Profile picture removed successfully!');
+            
+        } catch (\Exception $e) {
+            Log::error('Profile picture removal error: ' . $e->getMessage());
+            
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Failed to remove profile picture.'], 500);
+            }
+            
+            return redirect()->route('profile.index')->with('error', 'Failed to remove profile picture.');
         }
-
-        // Check if it's an AJAX request
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => 'Profile picture removed successfully!']);
-        }
-
-        return redirect()->route('profile.index')->with('success', 'Profile picture removed successfully!');
     }
 }
