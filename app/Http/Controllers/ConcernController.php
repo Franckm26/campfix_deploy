@@ -11,9 +11,11 @@ use App\Models\Report;
 use App\Models\User;
 use App\Notifications\ConcernAssignedNotification;
 use App\Services\SecureFileUpload;
+use App\Services\SupabaseStorage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class ConcernController extends Controller
 {
@@ -1133,37 +1135,78 @@ class ConcernController extends Controller
     // Permanently delete a concern - users can only permanently delete their OWN concerns
     public function permanentDelete(Request $request, $id)
     {
-        $concern = Concern::findOrFail($id);
+        try {
+            $concern = Concern::findOrFail($id);
 
-        // Only owner can permanently delete their own concerns
-        if ($concern->user_id != auth()->id()) {
-            if ($request->expectsJson()) {
-                return response()->json(['error' => 'You cannot permanently delete this concern.'], 403);
+            // Only owner can permanently delete their own concerns
+            if ($concern->user_id != auth()->id()) {
+                Log::warning('Unauthorized permanent delete attempt', [
+                    'user_id' => auth()->id(),
+                    'concern_id' => $id,
+                    'concern_owner' => $concern->user_id
+                ]);
+                
+                if ($request->expectsJson()) {
+                    return response()->json(['error' => 'You cannot permanently delete this concern.'], 403);
+                }
+
+                return back()->with('error', 'You cannot permanently delete this concern.');
             }
 
-            return back()->with('error', 'You cannot permanently delete this concern.');
+            $concernTitle = $concern->title;
+
+            // Delete image if exists
+            if ($concern->image_path) {
+                // Check if it's a Supabase URL
+                if (str_contains($concern->image_path, 'supabase')) {
+                    $supabaseStorage = new SupabaseStorage();
+                    $deleted = $supabaseStorage->delete($concern->image_path);
+                    Log::info('Deleted concern image from Supabase', [
+                        'concern_id' => $id,
+                        'url' => $concern->image_path,
+                        'success' => $deleted
+                    ]);
+                } else {
+                    // Legacy local storage
+                    if (Storage::disk('public')->exists($concern->image_path)) {
+                        Storage::disk('public')->delete($concern->image_path);
+                    }
+                }
+            }
+
+            $concern->delete();
+
+            ActivityLog::log(
+                'concern_permanent_deleted',
+                'Concern permanently deleted: '.$concernTitle,
+                $id
+            );
+
+            Log::info('Concern permanently deleted', [
+                'concern_id' => $id,
+                'title' => $concernTitle,
+                'user_id' => auth()->id()
+            ]);
+
+            if ($request->expectsJson()) {
+                return response()->json(['success' => true, 'message' => 'Concern permanently deleted']);
+            }
+
+            return back()->with('success', 'Concern permanently deleted');
+            
+        } catch (\Exception $e) {
+            Log::error('Error permanently deleting concern', [
+                'concern_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            if ($request->expectsJson()) {
+                return response()->json(['error' => 'Failed to delete concern: ' . $e->getMessage()], 500);
+            }
+            
+            return back()->with('error', 'Failed to delete concern: ' . $e->getMessage());
         }
-
-        $concernTitle = $concern->title;
-
-        // Delete image if exists
-        if ($concern->image_path) {
-            Storage::disk('public')->delete($concern->image_path);
-        }
-
-        $concern->delete();
-
-        ActivityLog::log(
-            'concern_permanent_deleted',
-            'Concern permanently deleted: '.$concernTitle,
-            $id
-        );
-
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => 'Concern permanently deleted']);
-        }
-
-        return back()->with('success', 'Concern permanently deleted');
     }
 
     // Batch archive concerns - users can only archive their OWN concerns
@@ -1364,40 +1407,97 @@ class ConcernController extends Controller
     // Batch permanent delete concerns - users can only permanently delete their OWN concerns
     public function batchPermanentDelete(Request $request)
     {
-        $request->validate([
-            'ids' => 'required|array',
-            'ids.*' => 'exists:concerns,id',
-        ]);
+        try {
+            $request->validate([
+                'ids' => 'required|array',
+                'ids.*' => 'exists:concerns,id',
+            ]);
 
-        $count = 0;
-        foreach ($request->ids as $id) {
-            $concern = Concern::find($id);
-            if ($concern) {
-                // Only owner can permanently delete their own concerns
-                if ($concern->user_id == auth()->id()) {
-                    $concernTitle = $concern->title;
+            $count = 0;
+            $errors = [];
+            
+            foreach ($request->ids as $id) {
+                try {
+                    $concern = Concern::find($id);
+                    if ($concern) {
+                        // Only owner can permanently delete their own concerns
+                        if ($concern->user_id == auth()->id()) {
+                            $concernTitle = $concern->title;
 
-                    // Delete image if exists
-                    if ($concern->image_path) {
-                        Storage::disk('public')->delete($concern->image_path);
+                            // Delete image if exists
+                            if ($concern->image_path) {
+                                // Check if it's a Supabase URL
+                                if (str_contains($concern->image_path, 'supabase')) {
+                                    $supabaseStorage = new SupabaseStorage();
+                                    $deleted = $supabaseStorage->delete($concern->image_path);
+                                    Log::info('Deleted concern image from Supabase', [
+                                        'concern_id' => $id,
+                                        'url' => $concern->image_path,
+                                        'success' => $deleted
+                                    ]);
+                                } else {
+                                    // Legacy local storage
+                                    if (Storage::disk('public')->exists($concern->image_path)) {
+                                        Storage::disk('public')->delete($concern->image_path);
+                                    }
+                                }
+                            }
+
+                            $concern->delete();
+                            $count++;
+
+                            ActivityLog::log(
+                                'concern_permanent_deleted',
+                                'Concern permanently deleted: '.$concernTitle,
+                                $id
+                            );
+                        } else {
+                            $errors[] = "Concern #{$id}: Not authorized";
+                            Log::warning('Unauthorized batch permanent delete attempt', [
+                                'user_id' => auth()->id(),
+                                'concern_id' => $id,
+                                'concern_owner' => $concern->user_id
+                            ]);
+                        }
                     }
-
-                    $concern->delete();
-                    $count++;
-
-                    ActivityLog::log(
-                        'concern_permanent_deleted',
-                        'Concern permanently deleted: '.$concernTitle,
-                        $id
-                    );
+                } catch (\Exception $e) {
+                    $errors[] = "Concern #{$id}: " . $e->getMessage();
+                    Log::error('Error in batch permanent delete', [
+                        'concern_id' => $id,
+                        'error' => $e->getMessage()
+                    ]);
                 }
             }
-        }
 
-        return response()->json([
-            'success' => true,
-            'message' => "{$count} concern(s) permanently deleted",
-        ]);
+            $message = "{$count} concern(s) permanently deleted";
+            if (!empty($errors)) {
+                $message .= ". Errors: " . implode(', ', $errors);
+            }
+
+            Log::info('Batch permanent delete completed', [
+                'count' => $count,
+                'errors' => count($errors),
+                'user_id' => auth()->id()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'deleted_count' => $count,
+                'errors' => $errors
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Batch permanent delete error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error permanently deleting concerns: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     // User archive page - shows user's OWN archived concerns only
