@@ -2829,6 +2829,8 @@ function sendFollowUp(id) {
 
 // Batch Operations for Active
 function toggleSelectAll(type) {
+    console.log('[DEBUG v2] toggleSelectAll called with type:', type);
+    
     const checkboxId = type === 'active' ? 'selectAllActive' : 
                       (type === 'resolved' ? 'selectAllResolved' : 
                       (type === 'archive' ? 'selectAllArchive' : 'selectAllDeleted'));
@@ -2842,9 +2844,13 @@ function toggleSelectAll(type) {
                      (type === 'archive' ? 'archived-concerns' : 'deleted-concerns'));
     const tabPane = document.getElementById(tabPaneId);
     
+    console.log('[DEBUG v2] Tab pane ID:', tabPaneId, 'Tab pane element:', tabPane);
+    
     // Only select checkboxes within the visible tab
     const checkboxes = tabPane ? tabPane.querySelectorAll('.' + className) : [];
     const selectAll = document.getElementById(checkboxId);
+    
+    console.log('[DEBUG v2] Found', checkboxes.length, 'checkboxes in tab');
     
     checkboxes.forEach(cb => {
         cb.checked = selectAll.checked;
@@ -2908,6 +2914,8 @@ function updateDeletedBulkActions() {
     const selected = tabPane ? tabPane.querySelectorAll('.deleted-checkbox:checked') : [];
     const bulkActions = document.getElementById('deletedBulkActions');
     const countSpan = document.getElementById('deletedSelectedCount');
+    
+    console.log('[DEBUG v2] updateDeletedBulkActions - Found', selected.length, 'selected in deleted tab');
     
     if (selected.length > 0) {
         bulkActions.style.display = 'block';
