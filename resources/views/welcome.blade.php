@@ -3,8 +3,12 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="description" content="CampFix - Campus Facility Management System for STI College Novaliches">
 
         <title>{{ config('app.name', 'Laravel') }}</title>
+        
+        <!-- Canonical Tag -->
+        <link rel="canonical" href="{{ url()->current() }}">
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">

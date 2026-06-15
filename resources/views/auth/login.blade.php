@@ -1,8 +1,14 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Campfix Login</title>
+    <meta charset="UTF-8">
+    <title>Login - CampFix</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Login to CampFix - Campus Facility Management System">
+    
+    <!-- Canonical Tag -->
+    <link rel="canonical" href="{{ url()->current() }}">
+    
     <link rel="stylesheet" href="{{ asset('css/auth-login.css') }}">
 </head>
 <body>

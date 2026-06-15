@@ -1,9 +1,14 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
+<meta charset="UTF-8">
 <title>CampFix</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="csrf-token" content="{{ csrf_token() }}">
+<meta name="description" content="CampFix - Campus Facility Management System for STI College Novaliches">
+
+<!-- Canonical Tag -->
+<link rel="canonical" href="{{ url()->current() }}">
 
 <!-- Favicon -->
 <link rel="icon" type="image/png" href="{{ asset('Campfix/Images/logo.png') }}">
