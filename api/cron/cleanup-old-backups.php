@@ -26,8 +26,8 @@ if (!$cronSecret || $authHeader !== 'Bearer ' . $cronSecret) {
 
 try {
     // Configuration
-    // Default: 24 backups = 24 hours (1 day) for hourly backups
-    $keepCount = (int)(getenv('BACKUP_RETENTION_COUNT') ?: 24); // Keep last 24 backups
+    // Default: 168 backups = 7 days for hourly backups
+    $keepCount = (int)(getenv('BACKUP_RETENTION_COUNT') ?: 168);
     
     // Get Supabase credentials
     $supabaseUrl = getenv('SUPABASE_URL');
@@ -35,28 +35,52 @@ try {
     $bucket = getenv('SUPABASE_BACKUP_BUCKET') ?: 'backups';
     
     if (!$supabaseUrl || !$supabaseKey) {
-        throw new Exception('SUPABASE_URL or SUPABASE_KEY not configured');
+        throw new Exception('SUPABASE_URL or SUPABASE_KEY not configured. Check environment variables.');
     }
     
     // Clean URL
     $supabaseUrl = str_replace(['https://', 'http://'], '', $supabaseUrl);
     
     // List all backup files
-    $listUrl = "https://{$supabaseUrl}/storage/v1/object/list/{$bucket}?prefix=database-backups/";
+    $listUrl = "https://{$supabaseUrl}/storage/v1/object/list/{$bucket}";
+    
+    // Add prefix as POST body for Supabase Storage API
+    $postData = json_encode([
+        'prefix' => 'database-backups/',
+        'limit' => 1000,
+        'offset' => 0
+    ]);
     
     $ch = curl_init($listUrl);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
         'Authorization: Bearer ' . $supabaseKey,
         'apikey: ' . $supabaseKey,
+        'Content-Type: application/json'
     ]);
     
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
     curl_close($ch);
     
     if ($httpCode !== 200) {
-        throw new Exception("Failed to list backups: HTTP {$httpCode} - {$response}");
+        // If bucket doesn't exist or no files, return gracefully
+        if ($httpCode === 404 || $httpCode === 400) {
+            echo json_encode([
+                'success' => true,
+                'message' => 'No backups found or backup bucket not created yet',
+                'total_backups' => 0,
+                'deleted_backups' => 0,
+                'space_freed' => '0 B',
+                'timestamp' => date('Y-m-d H:i:s')
+            ], JSON_PRETTY_PRINT);
+            exit;
+        }
+        
+        throw new Exception("Failed to list backups: HTTP {$httpCode} - {$response}" . ($curlError ? " | cURL: {$curlError}" : ""));
     }
     
     $files = json_decode($response, true);
@@ -92,7 +116,9 @@ try {
             $fileSize = $backup['metadata']['size'] ?? 0;
             
             // Delete file from Supabase Storage
-            $deleteUrl = "https://{$supabaseUrl}/storage/v1/object/{$bucket}/database-backups/{$fileName}";
+            // Remove 'database-backups/' prefix if it exists in the name
+            $cleanFileName = str_replace('database-backups/', '', $fileName);
+            $deleteUrl = "https://{$supabaseUrl}/storage/v1/object/{$bucket}/database-backups/{$cleanFileName}";
             
             $ch = curl_init($deleteUrl);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
