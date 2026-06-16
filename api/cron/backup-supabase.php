@@ -36,12 +36,14 @@ try {
     }
     
     // List of tables to backup (add your tables here)
+    // For storage optimization: backup only essential data
+    // Exclude temporary/regenerable data like sessions and notifications
     $tables = [
         'users',
         'concerns',
         'event_requests',
-        'notifications',
-        'sessions',
+        // 'notifications', // Excluded - can be regenerated
+        // 'sessions',      // Excluded - temporary data
         // Add more tables as needed
     ];
     
@@ -74,7 +76,12 @@ try {
     
     // Create backup filename
     $filename = 'supabase-backup-' . date('Y-m-d-His') . '.json';
-    $backupContent = json_encode($backupData, JSON_PRETTY_PRINT);
+    
+    // Compress backup content to save storage space
+    // This can reduce file size by 70-90%
+    $backupJson = json_encode($backupData);
+    $backupContent = gzencode($backupJson, 9); // Max compression
+    $filename = str_replace('.json', '.json.gz', $filename);
     
     // Upload to Supabase Storage
     $bucket = getenv('SUPABASE_BACKUP_BUCKET') ?: 'backups';
@@ -85,7 +92,8 @@ try {
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
         'Authorization: Bearer ' . $supabaseKey,
-        'Content-Type: application/json',
+        'Content-Type: application/gzip',
+        'Content-Encoding: gzip',
     ]);
     curl_setopt($ch, CURLOPT_POSTFIELDS, $backupContent);
     
@@ -104,6 +112,8 @@ try {
         'total_records' => $totalRecords,
         'size_bytes' => strlen($backupContent),
         'size_formatted' => formatBytes(strlen($backupContent)),
+        'uncompressed_size' => formatBytes(strlen($backupJson)),
+        'compression_ratio' => round((1 - strlen($backupContent) / strlen($backupJson)) * 100, 1) . '%',
         'timestamp' => date('Y-m-d H:i:s'),
         'upload_status' => $uploadHttpCode
     ], JSON_PRETTY_PRINT);

@@ -46,6 +46,14 @@
       "dest": "/api/cron/backup.php"
     },
     {
+      "src": "/api/cron/cleanup-old-backups",
+      "dest": "/api/cron/cleanup-old-backups.php"
+    },
+    {
+      "src": "/api/cron/storage-report",
+      "dest": "/api/cron/storage-report.php"
+    },
+    {
       "src": "/sitemap.xml",
       "dest": "/api/index.php"
     },
