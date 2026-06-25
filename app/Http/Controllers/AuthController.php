@@ -780,8 +780,21 @@ class AuthController extends Controller
                 'microsoft_id' => $microsoftUser->getId(),
             ]);
             
+            // CRITICAL SECURITY: Validate email domain
+            $email = strtolower($microsoftUser->getEmail());
+            if (!$this->hasAllowedEmailDomain($email)) {
+                \Log::warning('Unauthorized OAuth login attempt - invalid email domain', [
+                    'email' => $email,
+                    'microsoft_id' => $microsoftUser->getId(),
+                    'ip' => request()->ip(),
+                    'user_agent' => request()->userAgent(),
+                ]);
+                
+                return redirect('/login')->with('error', 'Only @novaliches.sti.edu.ph email addresses are allowed. Your email: ' . $email);
+            }
+            
             // Find user based on Microsoft email
-            $user = User::where('email', strtolower($microsoftUser->getEmail()))->first();
+            $user = User::where('email', $email)->first();
             
             // Check if this is a new user with Microsoft account
             if (!$user) {
@@ -789,7 +802,7 @@ class AuthController extends Controller
                 $user = User::create([
                     'uuid' => (string) \Illuminate\Support\Str::uuid(),
                     'name' => $microsoftUser->getName(),
-                    'email' => strtolower($microsoftUser->getEmail()),
+                    'email' => $email, // Use validated email
                     'password' => Hash::make(bin2hex(random_bytes(16))), // Random password for OAuth users
                     'email_verified_at' => now(),
                     'microsoft_id' => $microsoftUser->getId(),
@@ -805,6 +818,21 @@ class AuthController extends Controller
                     'email' => $user->email,
                     'role' => $user->role,
                 ]);
+                
+                // Log activity for security audit
+                ActivityLog::log(
+                    'user_created_oauth',
+                    "New user created via Microsoft OAuth: {$user->name} ({$user->email})",
+                    $user->id,
+                    'user',
+                    null,
+                    [
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'microsoft_id' => $user->microsoft_id,
+                        'ip_address' => request()->ip(),
+                    ]
+                );
             } else {
                 \Log::info('Existing user found', [
                     'user_id' => $user->id,
@@ -848,6 +876,20 @@ class AuthController extends Controller
             
             // For cookie-based sessions on Vercel, we need to ensure the user ID is in the session
             session()->put('user_id', $user->id);
+            
+            // Log successful OAuth login
+            ActivityLog::log(
+                'microsoft_login',
+                "Successful Microsoft OAuth login: {$user->name} ({$user->email})",
+                $user->id,
+                'user',
+                null,
+                [
+                    'email' => $user->email,
+                    'microsoft_id' => $user->microsoft_id,
+                    'ip_address' => request()->ip(),
+                ]
+            );
             session()->put('auth_method', 'microsoft_oauth');
             
             // Log the user in directly (skip OTP for OAuth)
