@@ -257,29 +257,6 @@
         <p><strong>Generated:</strong> {{ now()->format('F d, Y h:i A') }}</p>
     </div>
 
-    <!-- Summary Section -->
-    <div class="summary-section">
-        <h3>Executive Summary</h3>
-        <div class="summary-grid">
-            <div class="summary-item">
-                <span class="summary-value">{{ number_format($totalConcerns) }}</span>
-                <span class="summary-label">Total Tickets</span>
-            </div>
-            <div class="summary-item">
-                <span class="summary-value">{{ $uniqueLocations }}</span>
-                <span class="summary-label">Unique Locations</span>
-            </div>
-            <div class="summary-item">
-                <span class="summary-value">PHP {{ number_format($totalCost, 2) }}</span>
-                <span class="summary-label">Total Cost</span>
-            </div>
-            <div class="summary-item">
-                <span class="summary-value">PHP {{ number_format($avgCost, 2) }}</span>
-                <span class="summary-label">Average Cost</span>
-            </div>
-        </div>
-    </div>
-
     <!-- 1. Combined Cost by Location -->
     <h3 class="section-title">1. Combined Cost by Location (All Tickets)</h3>
     @if($combinedLocationStats && $combinedLocationStats->count() > 0)

@@ -294,7 +294,7 @@
 
     <!-- Summary Section -->
     <div class="summary-section">
-        <h3>Executive Summary</h3>
+        <h3>Summary</h3>
         <div class="summary-grid">
             <div class="summary-item-3">
                 <span class="summary-value">{{ number_format($totalRepairs) }}</span>
