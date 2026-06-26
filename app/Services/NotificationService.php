@@ -10,6 +10,7 @@ use App\Notifications\ConcernAssignedNotification;
 use App\Notifications\ConcernResolvedNotification;
 use App\Notifications\ConcernUpdatedNotification;
 use App\Notifications\EventRequestApprovalNotification;
+use App\Notifications\NewConcernSubmittedNotification;
 use App\Notifications\NewEventRequestNotification;
 use Illuminate\Support\Facades\Log;
 
@@ -292,6 +293,48 @@ class NotificationService
             ActivityLog::log(
                 'notification_failed',
                 'Failed to send concern update notification: '.$e->getMessage(),
+                $concern->id
+            );
+
+            return false;
+        }
+    }
+
+    /**
+     * Notify building admins when a new concern is submitted.
+     */
+    public function notifyBuildingAdminsOfNewConcern(Concern $concern): bool
+    {
+        try {
+            $buildingAdmins = User::where('role', User::ROLE_BUILDING_ADMIN)
+                ->where('is_archived', false)
+                ->get();
+
+            $notified = 0;
+
+            foreach ($buildingAdmins as $admin) {
+                $admin->notify(new NewConcernSubmittedNotification($concern));
+
+                ActivityLog::log(
+                    'notification_sent',
+                    "New concern notification sent to building admin {$admin->email} for concern: ".($concern->title ?? $concern->id),
+                    $concern->id
+                );
+
+                $notified++;
+            }
+
+            if ($notified === 0) {
+                Log::warning('No building admins found to notify for new concern: '.$concern->id);
+            }
+
+            return $notified > 0;
+        } catch (\Exception $e) {
+            Log::error('Building admin new concern notification failed: '.$e->getMessage());
+
+            ActivityLog::log(
+                'notification_failed',
+                'Failed to send new concern notification to building admins: '.$e->getMessage(),
                 $concern->id
             );
 

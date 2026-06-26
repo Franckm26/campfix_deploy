@@ -267,6 +267,12 @@ class ConcernController extends Controller
             auth()->user()
         );
 
+        try {
+            (new NotificationService)->notifyBuildingAdminsOfNewConcern($concern);
+        } catch (\Exception $e) {
+            Log::error('Building admin new concern notification failed: '.$e->getMessage());
+        }
+
         // Return JSON for AJAX requests
         if ($request->ajax() || $request->wantsJson()) {
             return response()->json([
