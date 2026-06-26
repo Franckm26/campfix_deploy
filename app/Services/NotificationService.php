@@ -8,6 +8,7 @@ use App\Models\EventRequest;
 use App\Models\User;
 use App\Notifications\ConcernAssignedNotification;
 use App\Notifications\ConcernResolvedNotification;
+use App\Notifications\ConcernUpdatedNotification;
 use App\Notifications\EventRequestApprovalNotification;
 use App\Notifications\NewEventRequestNotification;
 use Illuminate\Support\Facades\Log;
@@ -255,6 +256,42 @@ class NotificationService
             ActivityLog::log(
                 'notification_failed',
                 'Failed to send concern assigned notification: '.$e->getMessage(),
+                $concern->id
+            );
+
+            return false;
+        }
+    }
+
+    /**
+     * Send notification to the requester about any concern update.
+     */
+    public function notifyConcernUpdated(Concern $concern, string $updateTitle, string $updateMessage, ?string $updatedBy = null): bool
+    {
+        try {
+            $requester = $concern->user;
+
+            if (! $requester) {
+                Log::warning('Cannot notify concern requester - user not found: '.$concern->user_id);
+
+                return false;
+            }
+
+            $requester->notify(new ConcernUpdatedNotification($concern, $updateTitle, $updateMessage, $updatedBy));
+
+            ActivityLog::log(
+                'notification_sent',
+                "Concern update notification sent to {$requester->email} for concern: ".($concern->title ?? $concern->id),
+                $concern->id
+            );
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Concern update notification failed: '.$e->getMessage());
+
+            ActivityLog::log(
+                'notification_failed',
+                'Failed to send concern update notification: '.$e->getMessage(),
                 $concern->id
             );
 

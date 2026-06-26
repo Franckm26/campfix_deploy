@@ -10,6 +10,7 @@ use App\Models\EventRequest;
 use App\Models\Report;
 use App\Models\User;
 use App\Notifications\ConcernAssignedNotification;
+use App\Services\NotificationService;
 use App\Services\SecureFileUpload;
 use App\Services\SupabaseStorage;
 use Illuminate\Http\Request;
@@ -19,6 +20,20 @@ use Illuminate\Support\Facades\Log;
 
 class ConcernController extends Controller
 {
+    private function sendConcernUpdateNotification(Concern $concern, string $title, string $message, ?User $updatedBy = null): void
+    {
+        try {
+            (new NotificationService)->notifyConcernUpdated(
+                $concern,
+                $title,
+                $message,
+                $updatedBy?->name
+            );
+        } catch (\Exception $e) {
+            Log::error('Concern update notification failed: '.$e->getMessage());
+        }
+    }
+
     // Show the form to submit a new concern
     public function create()
     {
@@ -243,6 +258,13 @@ class ConcernController extends Controller
             'concern_created',
             'New concern submitted: '.($request->title ?? 'Untitled'),
             $concern->id
+        );
+
+        $this->sendConcernUpdateNotification(
+            $concern,
+            'Concern Submitted',
+            'Your concern has been submitted successfully and is now pending review.',
+            auth()->user()
         );
 
         // Return JSON for AJAX requests
@@ -722,6 +744,10 @@ class ConcernController extends Controller
             }
         }
 
+        $oldStatus = $concern->status;
+        $oldPriority = $concern->priority;
+        $oldAssignedTo = $concern->assigned_to;
+
         $concern->update($updateData);
 
         // Also update the corresponding report to keep them in sync
@@ -773,6 +799,24 @@ class ConcernController extends Controller
             'concern_updated',
             'Concern updated: '.$concern->title,
             $concern->id
+        );
+
+        $changes = [];
+        if ($oldStatus !== $concern->status) {
+            $changes[] = "status changed from {$oldStatus} to {$concern->status}";
+        }
+        if ($oldPriority !== $concern->priority) {
+            $changes[] = 'priority updated';
+        }
+        if ($oldAssignedTo !== $concern->assigned_to) {
+            $changes[] = 'assignment updated';
+        }
+
+        $this->sendConcernUpdateNotification(
+            $concern,
+            'Concern Updated',
+            'Your concern has been updated'.($changes ? ': '.implode(', ', $changes).'.' : '.'),
+            $user
         );
 
         if ($request->expectsJson()) {
@@ -1781,6 +1825,13 @@ class ConcernController extends Controller
 
         $concern->update($request->only($updateFields));
 
+        $this->sendConcernUpdateNotification(
+            $concern,
+            'Concern Updated',
+            'Your concern details have been updated.',
+            $user
+        );
+
         return response()->json(['concern' => $concern]);
     }
 
@@ -1832,6 +1883,13 @@ class ConcernController extends Controller
             $concern->id
         );
 
+        $this->sendConcernUpdateNotification(
+            $concern,
+            'Concern In Progress',
+            'Your concern has been acknowledged and is now in progress.',
+            auth()->user()
+        );
+
         if ($request->expectsJson()) {
             return response()->json(['success' => true, 'message' => 'Concern acknowledged! You can now work on it.']);
         }
@@ -1867,6 +1925,13 @@ class ConcernController extends Controller
             'concern_acknowledged',
             'Concern acknowledged by maintenance: '.auth()->user()->name,
             $concern->id
+        );
+
+        $this->sendConcernUpdateNotification(
+            $concern,
+            'Concern In Progress',
+            'Your concern has been acknowledged and is now in progress.',
+            auth()->user()
         );
 
         return back()->with('success', 'Concern acknowledged! You can now work on it.');
@@ -1918,6 +1983,13 @@ class ConcernController extends Controller
             'concern_acknowledged',
             'Concern acknowledged by maintenance: '.auth()->user()->name,
             $concern->id
+        );
+
+        $this->sendConcernUpdateNotification(
+            $concern,
+            'Concern In Progress',
+            'Your concern has been acknowledged and is now in progress.',
+            auth()->user()
         );
 
         return response()->json(['success' => true, 'message' => 'Concern acknowledged successfully!']);
@@ -1977,6 +2049,13 @@ class ConcernController extends Controller
             'concern_assigned',
             "Concern assigned to {$maintenanceStaff->name}",
             $concern->id
+        );
+
+        $this->sendConcernUpdateNotification(
+            $concern,
+            'Concern Assigned',
+            "Your concern has been assigned to {$maintenanceStaff->name}.",
+            $user
         );
 
         if ($request->expectsJson()) {

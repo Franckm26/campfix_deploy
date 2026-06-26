@@ -300,6 +300,15 @@ class AdminController extends Controller
 
         $concern->save();
 
+        if ($newStatus !== 'Resolved') {
+            $this->sendConcernUpdateNotification(
+                $concern,
+                'Concern Status Updated',
+                "Your concern status changed from {$oldStatus} to {$newStatus}.",
+                $user
+            );
+        }
+
         // Log activity
         $activityMessage = "Status changed from {$oldStatus} to {$newStatus}";
         if ($newStatus === 'Resolved' && $user->role === 'maintenance') {
@@ -491,6 +500,13 @@ class AdminController extends Controller
         }
         $concern->save();
 
+        $this->sendConcernUpdateNotification(
+            $concern,
+            'Concern Assigned',
+            "Your concern has been assigned to {$maintenanceStaff->name}.",
+            $user
+        );
+
         // Log activity
         ActivityLog::log(
             'concern_assigned',
@@ -576,6 +592,13 @@ class AdminController extends Controller
                 $concern->assigned_at = now();
                 $concern->status      = 'Assigned';
                 $concern->save();
+
+                $this->sendConcernUpdateNotification(
+                    $concern,
+                    'Concern Assigned',
+                    "Your concern has been assigned to {$assignedName}.",
+                    $user
+                );
             }
 
             // Log activity for report (wrapped in try-catch to prevent failure if ActivityLog has issues)
@@ -650,6 +673,13 @@ class AdminController extends Controller
                 $report->concern->is_safety_hazard = false;
             }
             $report->concern->save();
+
+            $this->sendConcernUpdateNotification(
+                $report->concern,
+                'Concern Priority Updated',
+                'Your concern priority has been updated to '.$request->priority.'.',
+                auth()->user()
+            );
         }
 
         return response()->json(['success' => true, 'priority' => $request->priority]);
@@ -675,6 +705,13 @@ class AdminController extends Controller
         }
         
         $concern->save();
+
+        $this->sendConcernUpdateNotification(
+            $concern,
+            'Concern Priority Updated',
+            'Your concern priority has been updated to '.$request->priority.'.',
+            auth()->user()
+        );
 
         return response()->json(['success' => true, 'priority' => $request->priority]);
     }
@@ -720,6 +757,20 @@ class AdminController extends Controller
         }
     }
 
+    private function sendConcernUpdateNotification(Concern $concern, string $title, string $message, ?User $updatedBy = null): void
+    {
+        try {
+            (new NotificationService)->notifyConcernUpdated(
+                $concern,
+                $title,
+                $message,
+                $updatedBy?->name
+            );
+        } catch (\Exception $e) {
+            \Log::error('Concern update notification failed: '.$e->getMessage());
+        }
+    }
+
     private function sendReportResolvedNotification(Report $report, User $resolvedBy): void
     {
         try {
@@ -760,6 +811,15 @@ class AdminController extends Controller
         }
 
         $concern->save();
+
+        if ($concern->status !== 'Resolved') {
+            $this->sendConcernUpdateNotification(
+                $concern,
+                'Concern Updated',
+                'Resolution notes were added to your concern.',
+                $user
+            );
+        }
 
         // Log activity
         ActivityLog::log(
