@@ -796,80 +796,55 @@ class AuthController extends Controller
             // Find user based on Microsoft email
             $user = User::where('email', $email)->first();
             
-            // Check if this is a new user with Microsoft account
+            // SECURITY: Only allow OAuth login if account already exists (created by admin)
             if (!$user) {
-                // Create new user from Microsoft account
-                $user = User::create([
-                    'uuid' => (string) \Illuminate\Support\Str::uuid(),
+                \Log::warning('OAuth login attempt with no existing account', [
+                    'email' => $email,
                     'name' => $microsoftUser->getName(),
-                    'email' => $email, // Use validated email
-                    'password' => Hash::make(bin2hex(random_bytes(16))), // Random password for OAuth users
-                    'email_verified_at' => now(),
                     'microsoft_id' => $microsoftUser->getId(),
-                    'avatar' => $microsoftUser->getAvatar(),
-                    'role' => 'student', // Default role
-                    'failed_login_attempts' => 0,
-                    'locked_until' => null,
-                    'login_lockout_level' => 0,
+                    'ip' => request()->ip(),
+                    'user_agent' => request()->userAgent(),
                 ]);
                 
-                \Log::info('New user created via Microsoft OAuth', [
-                    'user_id' => $user->id,
-                    'email' => $user->email,
-                    'role' => $user->role,
-                ]);
-                
-                // Log activity for security audit
-                ActivityLog::log(
-                    'user_created_oauth',
-                    "New user created via Microsoft OAuth: {$user->name} ({$user->email})",
-                    $user->id,
-                    'user',
-                    null,
-                    [
-                        'name' => $user->name,
-                        'email' => $user->email,
-                        'microsoft_id' => $user->microsoft_id,
-                        'ip_address' => request()->ip(),
-                    ]
-                );
-            } else {
-                \Log::info('Existing user found', [
-                    'user_id' => $user->id,
-                    'email' => $user->email,
-                    'role' => $user->role,
-                    'has_microsoft_id' => !empty($user->microsoft_id),
-                ]);
-                
-                // Check if account is archived
-                if ($user->is_archived || $user->archive_folder_id) {
-                    \Log::warning('Archived account login attempt via OAuth', ['email' => $user->email]);
-                    return redirect('/')->with('error', 'Your account has been archived and cannot login.');
-                }
-                
-                // Check if account is locked
-                if ($user->locked_until && now()->lessThan($user->locked_until)) {
-                    \Log::warning('Locked account login attempt via OAuth', ['email' => $user->email]);
-                    return redirect('/')->with('error', 'Your account has been locked due to too many failed login attempts. Please contact the MIS administrator to unlock your account.');
-                }
-                
-                // Update existing user with Microsoft ID if not set
-                if (!$user->microsoft_id) {
-                    $user->update([
-                        'microsoft_id' => $microsoftUser->getId(),
-                        'email_verified_at' => $user->email_verified_at ?? now(),
-                        'avatar' => $microsoftUser->getAvatar(),
-                    ]);
-                    \Log::info('Microsoft ID linked to existing account', ['user_id' => $user->id]);
-                }
-                
-                // Reset failed login attempts on successful OAuth login
-                $user->update([
-                    'failed_login_attempts' => 0,
-                    'locked_until' => null,
-                    'login_lockout_level' => 0,
-                ]);
+                return redirect('/login')->with('error', 'No account found for ' . $email . '. Please contact the administrator to create your account first.');
             }
+            
+            // Account exists - proceed with login
+            \Log::info('Existing user found', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'role' => $user->role,
+                'has_microsoft_id' => !empty($user->microsoft_id),
+            ]);
+            
+            // Check if account is archived
+            if ($user->is_archived || $user->archive_folder_id) {
+                \Log::warning('Archived account login attempt via OAuth', ['email' => $user->email]);
+                return redirect('/')->with('error', 'Your account has been archived and cannot login.');
+            }
+            
+            // Check if account is locked
+            if ($user->locked_until && now()->lessThan($user->locked_until)) {
+                \Log::warning('Locked account login attempt via OAuth', ['email' => $user->email]);
+                return redirect('/')->with('error', 'Your account has been locked due to too many failed login attempts. Please contact the MIS administrator to unlock your account.');
+            }
+            
+            // Update existing user with Microsoft ID if not set
+            if (!$user->microsoft_id) {
+                $user->update([
+                    'microsoft_id' => $microsoftUser->getId(),
+                    'email_verified_at' => $user->email_verified_at ?? now(),
+                    'avatar' => $microsoftUser->getAvatar(),
+                ]);
+                \Log::info('Microsoft ID linked to existing account', ['user_id' => $user->id]);
+            }
+            
+            // Reset failed login attempts on successful OAuth login
+            $user->update([
+                'failed_login_attempts' => 0,
+                'locked_until' => null,
+                'login_lockout_level' => 0,
+            ]);
             
             // Regenerate session to prevent fixation attacks
             request()->session()->regenerate();
