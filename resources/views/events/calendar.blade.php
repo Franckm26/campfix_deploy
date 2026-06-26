@@ -326,27 +326,6 @@
 
 @section('content')
 <div class="container-fluid px-3" style="background: var(--cal-bg); min-height: 100vh;">
-    <div class="row mb-3">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center flex-wrap" style="gap: 10px;">
-                <div>
-                </div>
-                <div class="d-flex gap-2">
-                    @if(auth()->user()->role === 'building_admin')
-                    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#importEventsModal">
-                        <i class="fas fa-file-import"></i> Import Events
-                    </button>
-                    @endif
-                    @if(auth()->user()->canApproveRequests())
-                        <a href="{{ route('admin.events') }}" class="btn btn-warning">
-                            <i class="fas fa-tasks"></i> Pending Approvals
-                        </a>
-                    @endif
-                </div>
-            </div>
-        </div>
-    </div>
-
     <div class="home-calendar-wrap">
         <!-- Main Calendar -->
         <div class="main-calendar">
