@@ -39,6 +39,10 @@ class ConcernController extends Controller
 
     private function linkDuplicateReporter(Concern $concern, Request $request): int
     {
+        if (! Concern::supportsLinkedReporters()) {
+            return $concern->report_count ?? 1;
+        }
+
         return DB::transaction(function () use ($concern, $request) {
             ConcernReporter::firstOrCreate(
                 [
@@ -65,10 +69,14 @@ class ConcernController extends Controller
             );
 
             $reportCount = ConcernReporter::where('concern_id', $concern->id)->count();
-            $concern->forceFill(['report_count' => max(1, $reportCount)])->save();
+            if (Concern::supportsReportCount()) {
+                $concern->forceFill(['report_count' => max(1, $reportCount)])->save();
+            }
 
-            Report::where('concern_id', $concern->id)
-                ->update(['report_count' => $concern->report_count]);
+            if (Report::supportsReportCount()) {
+                Report::where('concern_id', $concern->id)
+                    ->update(['report_count' => max(1, $reportCount)]);
+            }
 
             ActivityLog::log(
                 'duplicate_concern_linked',
@@ -76,7 +84,7 @@ class ConcernController extends Controller
                 $concern->id
             );
 
-            return $concern->report_count;
+            return max(1, $reportCount);
         });
     }
 
@@ -280,7 +288,7 @@ class ConcernController extends Controller
 
         // Save concern - always set is_anonymous to false since anonymous submission is disabled
         // user_id is automatically set to authenticated user's ID
-        $concern = Concern::create([
+        $concernData = [
             'title' => $request->title,
             'description' => $request->description,
             'location' => $concernLocation,
@@ -292,20 +300,27 @@ class ConcernController extends Controller
             'priority' => $priority,
             'image_path' => $imagePath,
             'is_anonymous' => false,
-            'report_count' => 1,
-        ]);
+        ];
 
-        ConcernReporter::firstOrCreate(
-            [
-                'concern_id' => $concern->id,
-                'user_id' => auth()->id(),
-            ],
-            [
-                'is_original' => true,
-                'is_anonymous' => false,
-                'reported_at' => now(),
-            ]
-        );
+        if (Concern::supportsReportCount()) {
+            $concernData['report_count'] = 1;
+        }
+
+        $concern = Concern::create($concernData);
+
+        if (Concern::supportsLinkedReporters()) {
+            ConcernReporter::firstOrCreate(
+                [
+                    'concern_id' => $concern->id,
+                    'user_id' => auth()->id(),
+                ],
+                [
+                    'is_original' => true,
+                    'is_anonymous' => false,
+                    'reported_at' => now(),
+                ]
+            );
+        }
 
         // Severity for report — null until building admin sets priority after assignment
         $severity = null;
@@ -317,7 +332,7 @@ class ConcernController extends Controller
         }
 
         // Also create a report entry
-        $report = Report::create([
+        $reportData = [
             'user_id' => auth()->id(),
             'title' => $request->title,
             'concern_id' => $concern->id,
@@ -328,9 +343,14 @@ class ConcernController extends Controller
             'room_number' => $request->room_number,
             'severity' => $severity,
             'status' => 'Pending',
-            'report_count' => 1,
             'photo_path' => $imagePath,
-        ]);
+        ];
+
+        if (Report::supportsReportCount()) {
+            $reportData['report_count'] = 1;
+        }
+
+        $report = Report::create($reportData);
 
         // Auto-assignment removed - Building Admin should manually assign reports
         // Reports will remain in "Pending" status until manually assigned
@@ -686,7 +706,7 @@ class ConcernController extends Controller
         // Only maintenance may view concerns assigned to them.
         $user = auth()->user();
         $isOwner = $concern->user_id === $user->id;
-        $isLinkedReporter = $concern->linkedUsers()->where('users.id', $user->id)->exists();
+        $isLinkedReporter = $concern->hasLinkedReporter($user->id);
         $isAssignedMaintenance = $user->role === 'maintenance' && $concern->assigned_to === $user->id;
 
         if (! $isOwner && ! $isLinkedReporter && ! $isAssignedMaintenance) {
@@ -1008,7 +1028,7 @@ class ConcernController extends Controller
         // Owner can archive their own concerns
         // MIS and Building Admin can archive any concern
         $isOwner = $concern->user_id === $user->id;
-        $isLinkedReporter = $concern->linkedUsers()->where('users.id', $user->id)->exists();
+        $isLinkedReporter = $concern->hasLinkedReporter($user->id);
         $isMIS = $user->role === 'mis';
         $isBuildingAdmin = $user->role === 'building_admin';
 
@@ -1141,7 +1161,7 @@ class ConcernController extends Controller
         // Owner can restore their own concerns
         // MIS and Building Admin can restore any concern
         $isOwner = $concern->user_id === $user->id;
-        $isLinkedReporter = $concern->linkedUsers()->where('users.id', $user->id)->exists();
+        $isLinkedReporter = $concern->hasLinkedReporter($user->id);
         $isMIS = $user->role === 'mis';
         $isBuildingAdmin = $user->role === 'building_admin';
 
@@ -1770,7 +1790,7 @@ class ConcernController extends Controller
 
             // Users can view their own concerns, concerns assigned to them, or MIS/Admin can view all
             $isOwner = $concern->user_id == $user->id;
-            $isLinkedReporter = $concern->linkedUsers()->where('users.id', $user->id)->exists();
+            $isLinkedReporter = $concern->hasLinkedReporter($user->id);
             $isAssigned = $concern->assigned_to == $user->id;
 
             if (! $isOwner && ! $isLinkedReporter && ! $isAssigned && ! $isMIS && ! $isAdmin) {

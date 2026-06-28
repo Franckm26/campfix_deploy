@@ -310,7 +310,7 @@ class NotificationService
             $users->push($concern->user);
         }
 
-        if (method_exists($concern, 'linkedUsers')) {
+        if (method_exists($concern, 'linkedUsers') && Concern::supportsLinkedReporters()) {
             $users = $users->merge($concern->linkedUsers()->get());
         }
 

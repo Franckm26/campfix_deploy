@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Schema;
 
 class Concern extends Model
 {
@@ -102,6 +103,22 @@ class Concern extends Model
         return $this->belongsToMany(User::class, 'concern_reporters')
             ->withPivot('is_original', 'is_anonymous', 'reported_at')
             ->withTimestamps();
+    }
+
+    public static function supportsLinkedReporters(): bool
+    {
+        return Schema::hasTable('concern_reporters');
+    }
+
+    public static function supportsReportCount(): bool
+    {
+        return Schema::hasColumn('concerns', 'report_count');
+    }
+
+    public function hasLinkedReporter(int $userId): bool
+    {
+        return self::supportsLinkedReporters()
+            && $this->linkedUsers()->where('users.id', $userId)->exists();
     }
 
     public function categoryRelation()
@@ -249,10 +266,13 @@ class Concern extends Model
     public function scopeForUser($query, $userId)
     {
         return $query->where(function ($q) use ($userId) {
-            $q->where('user_id', $userId)
-                ->orWhereHas('linkedUsers', function ($linkedQuery) use ($userId) {
+            $q->where('user_id', $userId);
+
+            if (self::supportsLinkedReporters()) {
+                $q->orWhereHas('linkedUsers', function ($linkedQuery) use ($userId) {
                     $linkedQuery->where('users.id', $userId);
                 });
+            }
         });
     }
 
