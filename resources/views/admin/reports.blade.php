@@ -2874,6 +2874,7 @@ function viewReport(id) {
                     <div class="col-md-6">
                         <p><strong>Reported by:</strong> ${report.reported_by_name || 'Unknown'}</p>
                         <p><strong>Date Submitted:</strong> ${report.created_at || 'N/A'}</p>
+                        <p><strong>Report Count:</strong> ${report.report_count || 1}</p>
                         ${report.assigned_at ? '<p><strong>Date Assigned:</strong> ' + report.assigned_at + '</p>' : ''}
                         ${report.in_progress_at ? '<p><strong>Date In Progress:</strong> ' + report.in_progress_at + '</p>' : ''}
                         ${report.resolved_at ? '<p><strong>Date Resolved:</strong> ' + report.resolved_at + '</p>' : ''}
@@ -3385,6 +3386,7 @@ function viewReport(id) {
                     <div class="col-md-6">
                         <p><strong>Reported by:</strong> ${report.reported_by_name || 'Unknown'}</p>
                         <p><strong>Date Submitted:</strong> ${report.created_at || 'N/A'}</p>
+                        <p><strong>Report Count:</strong> ${report.report_count || 1}</p>
                         ${report.assigned_at ? '<p><strong>Date Assigned:</strong> ' + report.assigned_at + '</p>' : ''}
                         ${report.in_progress_at ? '<p><strong>Date In Progress:</strong> ' + report.in_progress_at + '</p>' : ''}
                         ${report.resolved_at ? '<p><strong>Date Resolved:</strong> ' + report.resolved_at + '</p>' : ''}

@@ -29,6 +29,7 @@
                         <div class="col-md-6">
                             <p><strong>Category:</strong> {{ $concern->categoryRelation->name ?? 'N/A' }}</p>
                             <p><strong>Location:</strong> {{ $concern->location }}</p>
+                            <p><strong>Report Count:</strong> {{ $concern->report_count ?? 1 }}</p>
                         </div>
                         <div class="col-md-6">
                             <p><strong>Reported:</strong> {{ $concern->created_at->format('M d, Y h:i A') }}</p>

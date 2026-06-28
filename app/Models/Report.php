@@ -20,6 +20,7 @@ class Report extends Model
         'severity',
         'is_safety_hazard',
         'status',
+        'report_count',
         'photo_path',
         'assigned_to',
         'assigned_at',
@@ -81,6 +82,7 @@ class Report extends Model
         'cost' => 'decimal:2',
         'assigned_to' => 'integer',
         'user_id' => 'integer',
+        'report_count' => 'integer',
     ];
 
     public function user()

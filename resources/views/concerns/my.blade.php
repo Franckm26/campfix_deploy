@@ -2247,8 +2247,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(data => {
                     Swal.fire({
                         icon: 'success',
-                        title: 'Success!',
-                        text: 'Your concern has been submitted successfully.',
+                        title: data.linked_duplicate ? 'Linked to Ticket' : 'Success!',
+                        text: data.message || 'Your concern has been submitted successfully.',
                         confirmButtonColor: '#3085d6'
                     }).then(() => {
                         window.location.reload();
@@ -2368,6 +2368,7 @@ function viewConcernWithBack(id, duplicateData = null) {
                 <div class="row">
                     <div class="col-md-6">
                         <p><strong>Ticket #:</strong> #${String(concern.id).padStart(4, '0')}</p>
+                        <p><strong>Report Count:</strong> ${concern.report_count || 1}</p>
                         <p><strong>Category:</strong> ${categoryName}</p>
                         <p><strong>Location:</strong> ${concern.location || 'N/A'}</p>
                         <p><strong>Issue:</strong> ${concern.issue || 'N/A'}</p>
@@ -2441,11 +2442,13 @@ function showDuplicateAlert(concernData) {
         icon: 'warning',
         title: 'Ticket Already Exists',
         html: `
-            <p>You already have a report for "<strong>${concernData.issue}</strong>" with problem type "<strong>${concernData.problem_type || 'Not specified'}</strong>" in "<strong>${concernData.location}</strong>" and is currently <strong>${concernData.status}</strong>.</p>
-            <p>Is this the same issue? <a href="#" onclick="event.preventDefault(); viewConcernFromDuplicate(${concernData.concern_id}, ${JSON.stringify(concernData).replace(/"/g, '&quot;')});" style="color: #3085d6; text-decoration: underline; cursor: pointer;">Click here to view the ticket</a></p>
+            <p>This same issue is already active as ticket <strong>#${concernData.concern_id}</strong>.</p>
+            <p><strong>${concernData.issue}</strong> - <strong>${concernData.problem_type || 'Not specified'}</strong><br><strong>${concernData.location}</strong> · <strong>${concernData.status}</strong></p>
+            <p>If this is your issue too, you will be linked to the existing ticket and notified when it is updated or resolved. Current report count: <strong>${concernData.report_count || 1}</strong>.</p>
+            <p><a href="#" onclick="event.preventDefault(); viewConcernFromDuplicate(${concernData.concern_id}, ${JSON.stringify(concernData).replace(/"/g, '&quot;')});" style="color: #3085d6; text-decoration: underline; cursor: pointer;">Click here to view the ticket</a></p>
         `,
         showCancelButton: true,
-        confirmButtonText: 'This is New',
+        confirmButtonText: 'Link Me to Ticket',
         cancelButtonText: 'Cancel',
         confirmButtonColor: '#3085d6',
         cancelButtonColor: '#6c757d',
@@ -2455,7 +2458,7 @@ function showDuplicateAlert(concernData) {
         }
     }).then((result) => {
         if (result.isConfirmed) {
-            // User confirms it's a new issue - trigger the override submission
+            // User confirms it is the same issue, so link them to the existing ticket.
             window.duplicateOverrideData = concernData;
             const event = new CustomEvent('submitWithOverride');
             document.dispatchEvent(event);
@@ -3418,6 +3421,7 @@ function viewConcern(id) {
                 <div class="row">
                     <div class="col-md-6">
                         <p><strong>Ticket #:</strong> #${String(concern.id).padStart(4, '0')}</p>
+                        <p><strong>Report Count:</strong> ${concern.report_count || 1}</p>
                         <p><strong>Category:</strong> ${categoryName}</p>
                         <p><strong>Location:</strong> ${concern.location || 'N/A'}</p>
                         <p><strong>Issue:</strong> ${concern.issue || 'N/A'}</p>

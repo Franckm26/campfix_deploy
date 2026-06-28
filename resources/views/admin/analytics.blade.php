@@ -998,79 +998,6 @@
                     </div>
                 </div>
                 
-                <!-- Response Time Metrics -->
-                <div class="row mb-3">
-                    <div class="col-4">
-                        <div class="text-center p-2" style="background: #f0f7ff; border-radius: 8px; border-left: 3px solid #3498db;">
-                            <div style="font-size: 0.7rem; color: #666; margin-bottom: 4px;">Submit to Assign</div>
-                            <div style="font-size: 1.2rem; font-weight: bold; color: #3498db;">
-                                @php
-                                    $totalSeconds = floor($avgSubmittedToAssigned * 3600);
-                                    $days = floor($totalSeconds / 86400);
-                                    $hours = floor(($totalSeconds % 86400) / 3600);
-                                    $minutes = floor(($totalSeconds % 3600) / 60);
-                                    
-                                    if ($days > 0) {
-                                        echo $days . 'd ' . $hours . 'h';
-                                    } elseif ($hours > 0) {
-                                        echo $hours . 'h ' . $minutes . 'm';
-                                    } elseif ($minutes > 0) {
-                                        echo $minutes . 'm';
-                                    } else {
-                                        echo '< 1m';
-                                    }
-                                @endphp
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-4">
-                        <div class="text-center p-2" style="background: #fff8f0; border-radius: 8px; border-left: 3px solid #f39c12;">
-                            <div style="font-size: 0.7rem; color: #666; margin-bottom: 4px;">Assign to Resolve</div>
-                            <div style="font-size: 1.2rem; font-weight: bold; color: #f39c12;">
-                                @php
-                                    $totalSeconds = floor($avgAssignedToResolved * 3600);
-                                    $days = floor($totalSeconds / 86400);
-                                    $hours = floor(($totalSeconds % 86400) / 3600);
-                                    $minutes = floor(($totalSeconds % 3600) / 60);
-                                    
-                                    if ($days > 0) {
-                                        echo $days . 'd ' . $hours . 'h';
-                                    } elseif ($hours > 0) {
-                                        echo $hours . 'h ' . $minutes . 'm';
-                                    } elseif ($minutes > 0) {
-                                        echo $minutes . 'm';
-                                    } else {
-                                        echo '< 1m';
-                                    }
-                                @endphp
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-4">
-                        <div class="text-center p-2" style="background: #f0fff4; border-radius: 8px; border-left: 3px solid #27ae60;">
-                            <div style="font-size: 0.7rem; color: #666; margin-bottom: 4px;">Total Time</div>
-                            <div style="font-size: 1.2rem; font-weight: bold; color: #27ae60;">
-                                @php
-                                    $totalSeconds = floor($avgTotalTime * 3600);
-                                    $days = floor($totalSeconds / 86400);
-                                    $hours = floor(($totalSeconds % 86400) / 3600);
-                                    $minutes = floor(($totalSeconds % 3600) / 60);
-                                    
-                                    if ($days > 0) {
-                                        echo $days . 'd ' . $hours . 'h';
-                                    } elseif ($hours > 0) {
-                                        echo $hours . 'h ' . $minutes . 'm';
-                                    } elseif ($minutes > 0) {
-                                        echo $minutes . 'm';
-                                    } else {
-                                        echo '< 1m';
-                                    }
-                                @endphp
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
                 <div class="chart-container" style="cursor: pointer;" onclick="showStatusDetailsModal()">
                     <canvas id="statusDoughnutChart"></canvas>
                 </div>
@@ -1124,7 +1051,7 @@
     <div class="analytics-card">
         <div class="analytics-header">
             <div class="analytics-title">
-                <i class="fas fa-map-marker-alt"></i> Combined Cost by Location (All Tickets)
+                <i class="fas fa-map-marker-alt"></i> Combined Cost by Location (All Reports)
             </div>
             <div class="analytics-actions d-flex gap-2">
                 <!-- Export PDF Button -->
@@ -1188,7 +1115,7 @@
             <thead>
                 <tr>
                     <th>Location</th>
-                    <th>Total Tickets</th>
+                    <th>Total Reports</th>
                     <th>Total Cost</th>
                     <th>Avg Cost per Ticket</th>
                 </tr>
@@ -2582,6 +2509,7 @@ function showLocationTicketsModal(location, totalCount, totalCost) {
                     
                     const damagePart = ticket.damaged_part || 'N/A';
                     const issue = ticket.title || 'N/A';
+                    const reportCount = ticket.report_count || 1;
                     // Format ticket ID with leading zeros (e.g., #0019)
                     const ticketId = ticket.id ? '#' + String(ticket.id).padStart(4, '0') : 'N/A';
                     
@@ -2589,13 +2517,14 @@ function showLocationTicketsModal(location, totalCount, totalCost) {
                         '<td data-label="Ticket #" class="text-center" style="width: 80px; font-size: 0.85rem;"><strong>' + ticketId + '</strong></td>' +
                         '<td data-label="Damaged Part" style="width: 150px; font-size: 0.9rem;">' + damagePart + '</td>' +
                         '<td data-label="Issue" style="width: 180px; font-size: 0.9rem;">' + issue + '</td>' +
+                        '<td data-label="Reports" class="text-center" style="width: 80px;"><span class="count-badge">' + reportCount + '</span></td>' +
                         '<td data-label="Status" class="text-center" style="width: 100px;">' + statusBadge + '</td>' +
                         '<td data-label="Resolved Date" class="text-center" style="width: 150px; font-size: 0.85rem;">' + resolvedDate + '</td>' +
                         '<td data-label="Cost" class="text-end" style="width: 110px;"><span class="cost-badge">' + cost + '</span></td>' +
                         '</tr>';
                 });
             } else {
-                tableRows = '<tr><td colspan="6" class="text-center text-muted">No tickets found for this location</td></tr>';
+                tableRows = '<tr><td colspan="7" class="text-center text-muted">No tickets found for this location</td></tr>';
             }
             
             const avgCost = totalCount > 0 ? (totalCost / totalCount).toFixed(2) : '0.00';
@@ -2652,7 +2581,7 @@ function showLocationTicketsModal(location, totalCount, totalCost) {
                             '<div class="card border-primary">' +
                                 '<div class="card-body text-center">' +
                                     '<h3 class="text-primary mb-0">' + totalCount + '</h3>' +
-                                    '<small class="text-muted">Total Tickets</small>' +
+                                    '<small class="text-muted">Total Reports</small>' +
                                 '</div>' +
                             '</div>' +
                         '</div>' +
@@ -2668,7 +2597,7 @@ function showLocationTicketsModal(location, totalCount, totalCost) {
                             '<div class="card border-info">' +
                                 '<div class="card-body text-center">' +
                                     '<h3 class="text-info mb-0">₱' + parseFloat(avgCost).toLocaleString('en-PH', {minimumFractionDigits:2}) + '</h3>' +
-                                    '<small class="text-muted">Avg per Ticket</small>' +
+                                    '<small class="text-muted">Avg per Report</small>' +
                                 '</div>' +
                             '</div>' +
                         '</div>' +
@@ -2681,6 +2610,7 @@ function showLocationTicketsModal(location, totalCount, totalCost) {
                                     '<th class="text-center" style="width: 80px; font-size: 0.85rem;">Ticket #</th>' +
                                     '<th style="width: 150px; font-size: 0.9rem;">Damaged Part</th>' +
                                     '<th style="width: 180px; font-size: 0.9rem;">Issue</th>' +
+                                    '<th class="text-center" style="width: 80px; font-size: 0.9rem;">Reports</th>' +
                                     '<th class="text-center" style="width: 100px; font-size: 0.9rem;">Status</th>' +
                                     '<th class="text-center" style="width: 150px; font-size: 0.85rem;">Date Fixed</th>' +
                                     '<th class="text-end" style="width: 110px; font-size: 0.9rem;">Cost</th>' +

@@ -4400,6 +4400,7 @@ class AdminController extends Controller
                             'damaged_part' => $ticket->damaged_part,
                             'title' => $ticket->title,
                             'status' => $ticket->status,
+                            'report_count' => $ticket->report_count ?? 1,
                             'cost' => $ticket->cost,
                             'resolved_at' => $ticket->resolved_at,
                             'created_at' => $ticket->created_at,
@@ -4418,7 +4419,7 @@ class AdminController extends Controller
                 return response()->json([
                     'success' => true,
                     'tickets' => $tickets,
-                    'count' => $tickets->count(),
+                    'count' => $tickets->sum(fn ($ticket) => $ticket['report_count'] ?? 1),
                     'damage_parts' => $damageParts
                 ]);
             }
@@ -4442,6 +4443,16 @@ class AdminController extends Controller
 
         // Apply filters based on period selection
         $period = $request->input('period');
+        
+        // Set default to last 6 months if no filters are specified
+        $hasDateFilters = $request->filled('date_from') || $request->filled('date_to') || 
+                         $request->filled('month') || $request->filled('year') || 
+                         $period;
+        
+        if (!$hasDateFilters) {
+            // Default: Last 6 months
+            $baseQuery->where('created_at', '>=', now()->subMonths(6));
+        }
         
         if ($period === 'monthly' && $request->filled('month') && $request->filled('year')) {
             // Monthly: specific month and year
@@ -4505,13 +4516,13 @@ class AdminController extends Controller
         }
 
         // Summary stats
-        $totalConcerns = (clone $baseQuery)->count();
+        $totalConcerns = (clone $baseQuery)->sum('report_count');
         $totalCost     = (clone $baseQuery)->sum('cost') ?? 0;
 
         // Location stats with individual items - for detailed modal
         $locationStatsDetailed = (clone $baseQuery)
             ->with('category')
-            ->select('id', 'location', 'title', 'damaged_part', 'category_id', 'cost', 'resolved_at')
+            ->select('id', 'location', 'title', 'damaged_part', 'category_id', 'cost', 'resolved_at', 'report_count')
             ->whereNotNull('title')
             ->where('title', '!=', '')
             ->orderBy('location')
@@ -4525,6 +4536,7 @@ class AdminController extends Controller
                     'damaged_part' => $stat->damaged_part ?: 'N/A',
                     'category' => $stat->category ? $stat->category->name : 'Uncategorized',
                     'cost' => $stat->cost ?? 0,
+                    'report_count' => $stat->report_count ?? 1,
                     'resolved_at' => $stat->resolved_at ? $stat->resolved_at->format('M d, Y') : 'N/A',
                 ];
             });
@@ -4532,7 +4544,7 @@ class AdminController extends Controller
         // Location stats grouped - for existing modals and displays
         $locationStats = (clone $baseQuery)
             ->select('location', 'title')
-            ->selectRaw('COUNT(*) as count')
+            ->selectRaw('SUM(COALESCE(report_count, 1)) as count')
             ->selectRaw('SUM(COALESCE(cost, 0)) as total_cost')
             ->whereNotNull('title')
             ->where('title', '!=', '')
@@ -4551,7 +4563,7 @@ class AdminController extends Controller
         // For chart data, we still need aggregated by location only
         $locationChartStats = (clone $baseQuery)
             ->select('location')
-            ->selectRaw('COUNT(*) as count')
+            ->selectRaw('SUM(COALESCE(report_count, 1)) as count')
             ->selectRaw('SUM(COALESCE(cost, 0)) as total_cost')
             ->groupBy('location')
             ->orderByDesc('count')
@@ -4563,7 +4575,7 @@ class AdminController extends Controller
             ->when($request->filled('date_from'), fn($q) => $q->whereDate('created_at', '>=', $request->input('date_from')))
             ->when($request->filled('date_to'),   fn($q) => $q->whereDate('created_at', '<=', $request->input('date_to')))
             ->select('location')
-            ->selectRaw('COUNT(*) as total_count')
+            ->selectRaw('SUM(COALESCE(report_count, 1)) as total_count')
             ->selectRaw('SUM(COALESCE(cost, 0)) as total_cost')
             ->groupBy('location')
             ->orderByDesc('total_count')
@@ -4928,7 +4940,7 @@ class AdminController extends Controller
         $monthlyStats = $monthlyQuery->selectRaw("TO_CHAR(reports.created_at, 'YYYY-MM') as month")
             ->selectRaw("COALESCE(NULLIF(reports.title, ''), LEFT(reports.description, 50)) as title")
             ->selectRaw('reports.status')
-            ->selectRaw('COUNT(*) as count')
+            ->selectRaw('SUM(COALESCE(reports.report_count, 1)) as count')
             ->selectRaw("STRING_AGG(CAST(reports.id AS TEXT), ',' ORDER BY reports.id) as ticket_ids")
             ->selectRaw("STRING_AGG(COALESCE(NULLIF(reports.damaged_part, ''), 'N/A'), '|' ORDER BY reports.id) as damaged_parts")
             ->groupByRaw("month, COALESCE(NULLIF(reports.title, ''), LEFT(reports.description, 50)), reports.status")
@@ -4938,7 +4950,7 @@ class AdminController extends Controller
         // Monthly cost data for period comparison chart
         $monthlyCostQuery = clone $monthlyQuery;
         $monthlyCostData = $monthlyCostQuery->selectRaw("TO_CHAR(reports.created_at, 'YYYY-MM') as month")
-            ->selectRaw('COUNT(*) as count')
+            ->selectRaw('SUM(COALESCE(reports.report_count, 1)) as count')
             ->selectRaw('SUM(COALESCE(reports.cost, 0)) as total_cost')
             ->groupBy('month')
             ->orderBy('month')
@@ -4958,13 +4970,13 @@ class AdminController extends Controller
             $loc   = $li->location;
             $issue = $li->title;
             $recent = Report::where('location', $loc)->where('title', $issue)
-                ->where('created_at', '>=', now()->subMonths(3))->count();
+                ->where('created_at', '>=', now()->subMonths(3))->sum('report_count');
             if ($recent < 1) continue;
             $allTimeCost = Report::where('location', $loc)->where('title', $issue)->sum('cost') ?? 0;
             $recentCost  = Report::where('location', $loc)->where('title', $issue)
                 ->where('created_at', '>=', now()->subMonths(3))->sum('cost') ?? 0;
             $prior = Report::where('location', $loc)->where('title', $issue)
-                ->whereBetween('created_at', [now()->subMonths(6), now()->subMonths(3)])->count();
+                ->whereBetween('created_at', [now()->subMonths(6), now()->subMonths(3)])->sum('report_count');
             $severity   = $recent >= 3 ? 'critical' : ($recent >= 2 ? 'warning' : 'info');
             $alertTitle = $severity === 'critical' ? 'High Frequency Issue' : ($severity === 'warning' ? 'Recurring Issue' : 'Issue Detected');
             
@@ -4973,7 +4985,7 @@ class AdminController extends Controller
                 ->where('title', $issue)
                 ->where('status', 'Resolved')
                 ->where('created_at', '>=', now()->subMonths(12))
-                ->selectRaw("TO_CHAR(reports.created_at, 'YYYY-MM') as month, COUNT(*) as count, SUM(reports.cost) as cost")
+                ->selectRaw("TO_CHAR(reports.created_at, 'YYYY-MM') as month, SUM(COALESCE(reports.report_count, 1)) as count, SUM(reports.cost) as cost")
                 ->groupBy('month')
                 ->orderBy('month', 'desc')
                 ->get()
@@ -7260,4 +7272,3 @@ class AdminController extends Controller
         return back()->with('success', 'Facility request moved to deleted successfully!');
     }
 }
-

@@ -193,23 +193,23 @@ class NotificationService
     public function notifyConcernResolved(Concern $concern, string $resolvedBy = 'Admin'): bool
     {
         try {
-            $requester = $concern->user;
+            $requesters = $this->concernRequesters($concern);
 
-            if (! $requester) {
+            if ($requesters->isEmpty()) {
                 Log::warning('Cannot notify concern requester - user not found: '.$concern->user_id);
 
                 return false;
             }
 
-            // Send notification via Laravel's notification system (both email and database)
-            $requester->notify(new ConcernResolvedNotification($concern, $resolvedBy));
+            foreach ($requesters as $requester) {
+                $requester->notify(new ConcernResolvedNotification($concern, $resolvedBy));
 
-            // Also log in activity log for reference
-            ActivityLog::log(
-                'notification_sent',
-                "Concern resolved notification sent to {$requester->email} for concern: ".($concern->title ?? $concern->id),
-                $concern->id
-            );
+                ActivityLog::log(
+                    'notification_sent',
+                    "Concern resolved notification sent to {$requester->email} for concern: ".($concern->title ?? $concern->id),
+                    $concern->id
+                );
+            }
 
             return true;
 
@@ -270,21 +270,23 @@ class NotificationService
     public function notifyConcernUpdated(Concern $concern, string $updateTitle, string $updateMessage, ?string $updatedBy = null): bool
     {
         try {
-            $requester = $concern->user;
+            $requesters = $this->concernRequesters($concern);
 
-            if (! $requester) {
+            if ($requesters->isEmpty()) {
                 Log::warning('Cannot notify concern requester - user not found: '.$concern->user_id);
 
                 return false;
             }
 
-            $requester->notify(new ConcernUpdatedNotification($concern, $updateTitle, $updateMessage, $updatedBy));
+            foreach ($requesters as $requester) {
+                $requester->notify(new ConcernUpdatedNotification($concern, $updateTitle, $updateMessage, $updatedBy));
 
-            ActivityLog::log(
-                'notification_sent',
-                "Concern update notification sent to {$requester->email} for concern: ".($concern->title ?? $concern->id),
-                $concern->id
-            );
+                ActivityLog::log(
+                    'notification_sent',
+                    "Concern update notification sent to {$requester->email} for concern: ".($concern->title ?? $concern->id),
+                    $concern->id
+                );
+            }
 
             return true;
         } catch (\Exception $e) {
@@ -298,6 +300,24 @@ class NotificationService
 
             return false;
         }
+    }
+
+    private function concernRequesters(Concern $concern)
+    {
+        $users = collect();
+
+        if ($concern->relationLoaded('user') ? $concern->user : $concern->user()->exists()) {
+            $users->push($concern->user);
+        }
+
+        if (method_exists($concern, 'linkedUsers')) {
+            $users = $users->merge($concern->linkedUsers()->get());
+        }
+
+        return $users
+            ->filter()
+            ->unique('id')
+            ->values();
     }
 
     /**

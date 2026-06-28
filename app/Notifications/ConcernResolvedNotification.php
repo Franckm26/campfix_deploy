@@ -50,6 +50,7 @@ class ConcernResolvedNotification extends Notification
             ->line("- Title: {$title}")
             ->line("- Location: {$this->concern->location}")
             ->line("- Category: {$categoryName}")
+            ->line("- Report Count: ".($this->concern->report_count ?? 1))
             ->line("- Priority: {$this->concern->priority}")
             ->line("- Status: {$this->concern->status}");
 
@@ -84,6 +85,7 @@ class ConcernResolvedNotification extends Notification
             'concern_title' => $title,
             'location' => $this->concern->location,
             'category' => $categoryName,
+            'report_count' => $this->concern->report_count ?? 1,
             'priority' => $this->concern->priority,
             'status' => $this->concern->status,
             'resolution_notes' => $this->concern->resolution_notes,

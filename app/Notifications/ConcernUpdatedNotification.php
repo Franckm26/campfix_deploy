@@ -40,6 +40,7 @@ class ConcernUpdatedNotification extends Notification
             ->line("- Title: {$title}")
             ->line("- Location: {$this->concern->location}")
             ->line("- Category: {$categoryName}")
+            ->line("- Report Count: ".($this->concern->report_count ?? 1))
             ->line("- Status: {$this->concern->status}");
 
         if ($this->concern->priority) {
@@ -70,6 +71,7 @@ class ConcernUpdatedNotification extends Notification
             'concern_id' => $this->concern->id,
             'concern_title' => $this->concern->title,
             'location' => $this->concern->location,
+            'report_count' => $this->concern->report_count ?? 1,
             'status' => $this->concern->status,
             'priority' => $this->concern->priority,
             'updated_by' => $this->updatedBy,

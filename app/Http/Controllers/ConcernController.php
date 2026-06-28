@@ -6,6 +6,7 @@ use App\Models\ActivityLog;
 use App\Models\ArchiveFolder;
 use App\Models\Category;
 use App\Models\Concern;
+use App\Models\ConcernReporter;
 use App\Models\EventRequest;
 use App\Models\Report;
 use App\Models\User;
@@ -16,6 +17,7 @@ use App\Services\SecureFileUpload;
 use App\Services\SupabaseStorage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 
@@ -33,6 +35,49 @@ class ConcernController extends Controller
         } catch (\Exception $e) {
             Log::error('Concern update notification failed: '.$e->getMessage());
         }
+    }
+
+    private function linkDuplicateReporter(Concern $concern, Request $request): int
+    {
+        return DB::transaction(function () use ($concern, $request) {
+            ConcernReporter::firstOrCreate(
+                [
+                    'concern_id' => $concern->id,
+                    'user_id' => $concern->user_id,
+                ],
+                [
+                    'is_original' => true,
+                    'is_anonymous' => (bool) $concern->is_anonymous,
+                    'reported_at' => $concern->created_at ?? now(),
+                ]
+            );
+
+            ConcernReporter::firstOrCreate(
+                [
+                    'concern_id' => $concern->id,
+                    'user_id' => auth()->id(),
+                ],
+                [
+                    'is_original' => auth()->id() === $concern->user_id,
+                    'is_anonymous' => (bool) $request->boolean('is_anonymous'),
+                    'reported_at' => now(),
+                ]
+            );
+
+            $reportCount = ConcernReporter::where('concern_id', $concern->id)->count();
+            $concern->forceFill(['report_count' => max(1, $reportCount)])->save();
+
+            Report::where('concern_id', $concern->id)
+                ->update(['report_count' => $concern->report_count]);
+
+            ActivityLog::log(
+                'duplicate_concern_linked',
+                'Duplicate concern reporter linked to ticket #'.$concern->id.': '.auth()->user()->email,
+                $concern->id
+            );
+
+            return $concern->report_count;
+        });
     }
 
     // Show the form to submit a new concern
@@ -121,7 +166,9 @@ class ConcernController extends Controller
 
         // Check if the same issue/problem type in the same room/location already has an active concern.
         // This allows multiple different problem types under the same issue to be reported for the same room.
-        $baseQuery = Concern::whereIn('status', ['Assigned', 'In Progress'])
+        $activeDuplicateStatuses = ['Pending', 'Assigned', 'In Progress'];
+
+        $baseQuery = Concern::whereIn('status', $activeDuplicateStatuses)
             ->where('is_deleted', false)
             ->where('title', $request->title)
             ->where('description', $problemType);
@@ -129,7 +176,7 @@ class ConcernController extends Controller
         if ($isRoomsCategory) {
             $normalizedInput = $normalizeRoomNumber($request->room_number);
             // Fetch candidates matching location_type and title, then normalize room_number for comparison
-            $existingConcern = Concern::whereIn('status', ['Assigned', 'In Progress'])
+            $existingConcern = Concern::whereIn('status', $activeDuplicateStatuses)
                 ->where('is_deleted', false)
                 ->where('title', $request->title) // Same issue
                 ->where('description', $problemType)
@@ -148,7 +195,25 @@ class ConcernController extends Controller
             });
         }
 
-        if ($existingConcern && !$request->input('override_duplicate')) {
+        if ($existingConcern && $request->input('override_duplicate')) {
+            $reportCount = $this->linkDuplicateReporter($existingConcern, $request);
+            \App\Models\UserRateLimit::incrementCounter(auth()->id(), 'submission');
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'linked_duplicate' => true,
+                    'message' => "You were linked to existing ticket #{$existingConcern->id}.",
+                    'concern_id' => $existingConcern->id,
+                    'report_count' => $reportCount,
+                ]);
+            }
+
+            return redirect()->route('concerns.my')
+                ->with('success', "You were linked to existing ticket #{$existingConcern->id}.");
+        }
+
+        if ($existingConcern) {
             $locationLabel = $isRoomsCategory
                 ? $request->location_type . ' ' . $request->room_number
                 : $request->location;
@@ -162,6 +227,7 @@ class ConcernController extends Controller
                     'problem_type' => $existingConcern->description,
                     'location' => $locationLabel,
                     'status' => $existingConcern->status,
+                    'report_count' => $existingConcern->report_count ?? 1,
                     'message' => "You already have a report for \"{$existingConcern->title}\" ({$existingConcern->description}) in \"{$locationLabel}\" and is currently {$existingConcern->status}."
                 ], 409);
             }
@@ -226,7 +292,20 @@ class ConcernController extends Controller
             'priority' => $priority,
             'image_path' => $imagePath,
             'is_anonymous' => false,
+            'report_count' => 1,
         ]);
+
+        ConcernReporter::firstOrCreate(
+            [
+                'concern_id' => $concern->id,
+                'user_id' => auth()->id(),
+            ],
+            [
+                'is_original' => true,
+                'is_anonymous' => false,
+                'reported_at' => now(),
+            ]
+        );
 
         // Severity for report — null until building admin sets priority after assignment
         $severity = null;
@@ -249,6 +328,7 @@ class ConcernController extends Controller
             'room_number' => $request->room_number,
             'severity' => $severity,
             'status' => 'Pending',
+            'report_count' => 1,
             'photo_path' => $imagePath,
         ]);
 
@@ -606,9 +686,10 @@ class ConcernController extends Controller
         // Only maintenance may view concerns assigned to them.
         $user = auth()->user();
         $isOwner = $concern->user_id === $user->id;
+        $isLinkedReporter = $concern->linkedUsers()->where('users.id', $user->id)->exists();
         $isAssignedMaintenance = $user->role === 'maintenance' && $concern->assigned_to === $user->id;
 
-        if (! $isOwner && ! $isAssignedMaintenance) {
+        if (! $isOwner && ! $isLinkedReporter && ! $isAssignedMaintenance) {
             // Return JSON error for AJAX requests
             if (request()->ajax()) {
                 return response()->json([
@@ -927,10 +1008,11 @@ class ConcernController extends Controller
         // Owner can archive their own concerns
         // MIS and Building Admin can archive any concern
         $isOwner = $concern->user_id === $user->id;
+        $isLinkedReporter = $concern->linkedUsers()->where('users.id', $user->id)->exists();
         $isMIS = $user->role === 'mis';
         $isBuildingAdmin = $user->role === 'building_admin';
 
-        if (! $isOwner && ! $isMIS && ! $isBuildingAdmin) {
+        if (! $isOwner && ! $isLinkedReporter && ! $isMIS && ! $isBuildingAdmin) {
             if (request()->expectsJson()) {
                 return response()->json(['success' => false, 'error' => 'You cannot archive this concern.']);
             }
@@ -959,14 +1041,18 @@ class ConcernController extends Controller
             return back()->with('error', 'This concern is already archived by your role.');
         }
 
-        // Set role-specific archive column to true (role-based archiving)
-        $concern->update([$archiveColumn => true]);
+        if ($isOwner || $isMIS || $isBuildingAdmin) {
+            // Set role-specific archive column to true (role-based archiving)
+            $concern->update([$archiveColumn => true]);
+        }
 
         // Also add to user's archive using pivot table (user-based archiving)
         $folderName = $request->archive_folder_name ?? 'My Archive';
-        $concern->archivedByUsers()->attach($user->id, [
+        $concern->archivedByUsers()->syncWithoutDetaching([
+            $user->id => [
             'archived_at' => now(),
             'archive_folder_name' => $folderName,
+            ],
         ]);
 
         ActivityLog::log(
@@ -1055,10 +1141,11 @@ class ConcernController extends Controller
         // Owner can restore their own concerns
         // MIS and Building Admin can restore any concern
         $isOwner = $concern->user_id === $user->id;
+        $isLinkedReporter = $concern->linkedUsers()->where('users.id', $user->id)->exists();
         $isMIS = $user->role === 'mis';
         $isBuildingAdmin = $user->role === 'building_admin';
 
-        if (! $isOwner && ! $isMIS && ! $isBuildingAdmin) {
+        if (! $isOwner && ! $isLinkedReporter && ! $isMIS && ! $isBuildingAdmin) {
             return back()->with('error', 'You cannot restore this concern.');
         }
 
@@ -1070,8 +1157,10 @@ class ConcernController extends Controller
             return back()->with('error', 'Invalid role for restoring.');
         }
 
-        // Set role-specific archive column to false (role-based restoring)
-        $concern->update([$archiveColumn => false]);
+        if ($isOwner || $isMIS || $isBuildingAdmin) {
+            // Set role-specific archive column to false (role-based restoring)
+            $concern->update([$archiveColumn => false]);
+        }
 
         // Also remove from user's archive using pivot table (user-based restoring)
         $concern->archivedByUsers()->detach($user->id);
@@ -1606,7 +1695,7 @@ class ConcernController extends Controller
     public function apiIndex(Request $request)
     {
         $userId = $request->user()->id;
-        $query = Concern::with('categoryRelation', 'user')->where('user_id', $userId);
+        $query = Concern::with('categoryRelation', 'user')->forUser($userId);
         if ($request->archived === '1') {
             $query->where('is_archived', true);
         } elseif ($request->archived !== 'all') {
@@ -1681,9 +1770,10 @@ class ConcernController extends Controller
 
             // Users can view their own concerns, concerns assigned to them, or MIS/Admin can view all
             $isOwner = $concern->user_id == $user->id;
+            $isLinkedReporter = $concern->linkedUsers()->where('users.id', $user->id)->exists();
             $isAssigned = $concern->assigned_to == $user->id;
 
-            if (! $isOwner && ! $isAssigned && ! $isMIS && ! $isAdmin) {
+            if (! $isOwner && ! $isLinkedReporter && ! $isAssigned && ! $isMIS && ! $isAdmin) {
                 return response()->json(['error' => 'Unauthorized'], 403);
             }
 
@@ -1707,6 +1797,7 @@ class ConcernController extends Controller
                 'assigned_to' => $concern->assigned_to,
                 'status' => $concern->status,
                 'priority' => $concern->priority,
+                'report_count' => $concern->report_count ?? 1,
                 'created_at' => $concern->created_at ? $concern->created_at->format('M d, Y h:i A') : null,
                 'assigned_at' => $concern->assigned_at ? $concern->assigned_at->format('M d, Y h:i A') : null,
                 'in_progress_at' => $concern->in_progress_at ? $concern->in_progress_at->format('M d, Y h:i A') : null,

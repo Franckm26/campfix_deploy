@@ -23,6 +23,7 @@ class Concern extends Model
         'resolution_notes',
         'image_path',
         'is_anonymous',
+        'report_count',
         'resolved_at',
         'assigned_at',
         'follow_up_sent',
@@ -58,6 +59,7 @@ class Concern extends Model
 
     protected $casts = [
         'is_anonymous' => 'boolean',
+        'report_count' => 'integer',
         'is_archived' => 'boolean',
         'admin_archived' => 'boolean',
         'student_archived' => 'boolean',
@@ -88,6 +90,18 @@ class Concern extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function reporters()
+    {
+        return $this->hasMany(ConcernReporter::class);
+    }
+
+    public function linkedUsers()
+    {
+        return $this->belongsToMany(User::class, 'concern_reporters')
+            ->withPivot('is_original', 'is_anonymous', 'reported_at')
+            ->withTimestamps();
     }
 
     public function categoryRelation()
@@ -234,7 +248,12 @@ class Concern extends Model
     // Scope for user's concerns
     public function scopeForUser($query, $userId)
     {
-        return $query->where('user_id', $userId);
+        return $query->where(function ($q) use ($userId) {
+            $q->where('user_id', $userId)
+                ->orWhereHas('linkedUsers', function ($linkedQuery) use ($userId) {
+                    $linkedQuery->where('users.id', $userId);
+                });
+        });
     }
 
     // Scope for assigned user
@@ -294,9 +313,8 @@ class Concern extends Model
      */
     public function scopeArchivedByUser($query, $userId)
     {
-        return $query->where('user_id', $userId)
-            ->whereHas('archivedByUsers', function ($q) use ($userId) {
-                $q->where('user_id', $userId);
-            });
+        return $query->whereHas('archivedByUsers', function ($q) use ($userId) {
+            $q->where('user_id', $userId);
+        });
     }
 }
