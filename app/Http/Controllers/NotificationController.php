@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 
 class NotificationController extends Controller
 {
+    private const DISPLAY_TIMEZONE = 'Asia/Manila';
+
     /**
      * Get notification detail with adjacent notification IDs for navigation
      */
@@ -62,8 +64,8 @@ class NotificationController extends Controller
             'id' => $notification->id,
             'title' => $notification->data['title'] ?? 'Notification',
             'message' => $notification->data['message'] ?? '',
-            'created_at' => $notification->created_at->format('M j, g:i a'),
-            'created_at_human' => $notification->created_at->diffForHumans(),
+            'created_at' => $notification->created_at->copy()->timezone(self::DISPLAY_TIMEZONE)->format('M j, g:i a'),
+            'created_at_human' => $notification->created_at->copy()->timezone(self::DISPLAY_TIMEZONE)->diffForHumans(),
             'read_at' => $notification->read_at,
             'url' => $url,
             'sender' => $sender ? [

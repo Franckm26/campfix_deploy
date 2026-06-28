@@ -516,7 +516,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <div class="notification-content">
                                     <div class="notification-sender">{{ $sender->name ?? 'System' }}</div>
                                     <p class="notification-message">{{ $notification->data['message'] ?? 'Notification' }}</p>
-                                    <small class="notification-time">{{ $notification->created_at->format('M j, g:i a') }}</small>
+                                    <small class="notification-time">{{ $notification->created_at->copy()->timezone('Asia/Manila')->format('M j, g:i a') }}</small>
                                 </div>
                                 @if(!$notification->read_at)
                                     <div class="notification-status-dot"></div>
