@@ -15,11 +15,13 @@ use App\Services\DefaultCategoryService;
 use App\Services\NotificationService;
 use App\Services\SecureFileUpload;
 use App\Services\SupabaseStorage;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 
 class ConcernController extends Controller
 {
@@ -39,6 +41,8 @@ class ConcernController extends Controller
 
     private function linkDuplicateReporter(Concern $concern, Request $request): int
     {
+        $this->ensureDuplicateTrackingSchema();
+
         if (! Concern::supportsLinkedReporters()) {
             return $concern->report_count ?? 1;
         }
@@ -86,6 +90,38 @@ class ConcernController extends Controller
 
             return max(1, $reportCount);
         });
+    }
+
+    private function ensureDuplicateTrackingSchema(): void
+    {
+        try {
+            if (! Schema::hasTable('concern_reporters')) {
+                Schema::create('concern_reporters', function (Blueprint $table) {
+                    $table->id();
+                    $table->foreignId('concern_id')->constrained()->onDelete('cascade');
+                    $table->foreignId('user_id')->constrained()->onDelete('cascade');
+                    $table->boolean('is_original')->default(false);
+                    $table->boolean('is_anonymous')->default(false);
+                    $table->timestamp('reported_at')->useCurrent();
+                    $table->timestamps();
+                    $table->unique(['concern_id', 'user_id']);
+                });
+            }
+
+            if (! Schema::hasColumn('concerns', 'report_count')) {
+                Schema::table('concerns', function (Blueprint $table) {
+                    $table->unsignedInteger('report_count')->default(1)->after('is_anonymous');
+                });
+            }
+
+            if (! Schema::hasColumn('reports', 'report_count')) {
+                Schema::table('reports', function (Blueprint $table) {
+                    $table->unsignedInteger('report_count')->default(1)->after('status');
+                });
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Duplicate tracking schema could not be verified: '.$e->getMessage());
+        }
     }
 
     // Show the form to submit a new concern
@@ -211,7 +247,7 @@ class ConcernController extends Controller
                 return response()->json([
                     'success' => true,
                     'linked_duplicate' => true,
-                    'message' => "This issue already exists, so you were linked to ticket #{$existingConcern->id}.",
+                    'message' => 'Concern submitted successfully.',
                     'concern_id' => $existingConcern->id,
                     'issue' => $existingConcern->title,
                     'problem_type' => $existingConcern->description,
@@ -224,7 +260,7 @@ class ConcernController extends Controller
             }
 
             return redirect()->route('concerns.my')
-                ->with('success', "This issue already exists, so you were linked to ticket #{$existingConcern->id}.");
+                ->with('success', 'Concern submitted successfully!');
         }
 
         // Handle image upload with security validation

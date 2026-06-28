@@ -2181,7 +2181,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 Swal.fire({
                     icon: 'success',
-                    title: data.linked_duplicate ? 'Linked to Ticket' : 'Success!',
+                    title: 'Success!',
                     text: data.message || 'Your concern has been submitted successfully.',
                     confirmButtonColor: '#3085d6'
                 }).then(() => {
@@ -2247,7 +2247,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(data => {
                     Swal.fire({
                         icon: 'success',
-                        title: data.linked_duplicate ? 'Linked to Ticket' : 'Success!',
+                        title: 'Success!',
                         text: data.message || 'Your concern has been submitted successfully.',
                         confirmButtonColor: '#3085d6'
                     }).then(() => {
