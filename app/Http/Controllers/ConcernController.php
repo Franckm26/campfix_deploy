@@ -117,11 +117,14 @@ class ConcernController extends Controller
             return trim($value);
         };
 
-        // Check if the same issue (title) in the same room/location already has an active assigned concern
-        // This allows multiple different issues to be reported for the same room
+        $problemType = trim((string) $request->description);
+
+        // Check if the same issue/problem type in the same room/location already has an active concern.
+        // This allows multiple different problem types under the same issue to be reported for the same room.
         $baseQuery = Concern::whereIn('status', ['Assigned', 'In Progress'])
             ->where('is_deleted', false)
-            ->where('title', $request->title); // Check for same issue/title
+            ->where('title', $request->title)
+            ->where('description', $problemType);
 
         if ($isRoomsCategory) {
             $normalizedInput = $normalizeRoomNumber($request->room_number);
@@ -129,6 +132,7 @@ class ConcernController extends Controller
             $existingConcern = Concern::whereIn('status', ['Assigned', 'In Progress'])
                 ->where('is_deleted', false)
                 ->where('title', $request->title) // Same issue
+                ->where('description', $problemType)
                 ->where('location_type', $request->location_type)
                 ->get()
                 ->first(function ($concern) use ($normalizedInput, $normalizeRoomNumber) {
@@ -155,9 +159,10 @@ class ConcernController extends Controller
                     'duplicate' => true,
                     'concern_id' => $existingConcern->id,
                     'issue' => $existingConcern->title,
+                    'problem_type' => $existingConcern->description,
                     'location' => $locationLabel,
                     'status' => $existingConcern->status,
-                    'message' => "You already have a report for \"{$existingConcern->title}\" in \"{$locationLabel}\" and is currently {$existingConcern->status}."
+                    'message' => "You already have a report for \"{$existingConcern->title}\" ({$existingConcern->description}) in \"{$locationLabel}\" and is currently {$existingConcern->status}."
                 ], 409);
             }
 
@@ -166,6 +171,7 @@ class ConcernController extends Controller
                 'duplicate_concern' => true,
                 'existing_concern_id' => $existingConcern->id,
                 'existing_concern_issue' => $existingConcern->title,
+                'existing_concern_problem_type' => $existingConcern->description,
                 'existing_concern_location' => $locationLabel,
                 'existing_concern_status' => $existingConcern->status
             ]);
