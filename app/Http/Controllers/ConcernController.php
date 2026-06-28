@@ -751,15 +751,16 @@ class ConcernController extends Controller
         $concern = Concern::findOrFail($id);
 
         $isOwner = $concern->user_id === $user->id;
+        $isLinkedReporter = $concern->hasLinkedReporter($user->id);
         $isAssignedMis = $user->role === 'mis' && $concern->assigned_to === $user->id;
         $isMisUser = $user->role === 'mis';
         $editableStatusesForOwner = ['Pending', 'Assigned'];
 
-        if (! $isOwner && ! $isAssignedMis && ! $isMisUser) {
+        if (! $isOwner && ! $isLinkedReporter && ! $isAssignedMis && ! $isMisUser) {
             return redirect('/dashboard')->with('error', 'You cannot edit this concern.');
         }
 
-        if (($isOwner || $isAssignedMis) && ! $isMisUser && ! in_array($concern->status, $editableStatusesForOwner, true)) {
+        if (($isOwner || $isLinkedReporter || $isAssignedMis) && ! $isMisUser && ! in_array($concern->status, $editableStatusesForOwner, true)) {
             return redirect('/dashboard')->with('error', 'You cannot edit this concern once work has started or it has been completed.');
         }
 
@@ -779,6 +780,7 @@ class ConcernController extends Controller
         // For MIS users, also allow editing concerns assigned to them because
         // some self-submitted concerns are auto-assigned to MIS immediately.
         $isOwner = $concern->user_id === $user->id;
+        $isLinkedReporter = $concern->hasLinkedReporter($user->id);
         $isAssignedMis = $user->role === 'mis' && $concern->assigned_to === $user->id;
         $isAdmin = in_array($user->role, ['mis', 'school_admin', 'building_admin']);
 
@@ -791,12 +793,20 @@ class ConcernController extends Controller
             return redirect('/dashboard')->with('error', 'Maintenance staff cannot edit concerns.');
         }
 
-        if (! $isOwner && ! $isAssignedMis && ! $isAdmin) {
+        if (! $isOwner && ! $isLinkedReporter && ! $isAssignedMis && ! $isAdmin) {
             if ($request->expectsJson()) {
                 return response()->json(['error' => 'You cannot update this concern.'], 403);
             }
 
             return redirect('/dashboard')->with('error', 'You cannot update this concern.');
+        }
+
+        if ($isLinkedReporter && ! $isOwner && ! $isAdmin && $concern->status !== 'Pending') {
+            if ($request->expectsJson()) {
+                return response()->json(['error' => 'You cannot edit this concern once it has been assigned or work has started.'], 403);
+            }
+
+            return redirect('/dashboard')->with('error', 'You cannot edit this concern once it has been assigned or work has started.');
         }
 
         // Validate
@@ -1224,8 +1234,42 @@ class ConcernController extends Controller
         // Only owner can soft delete their own concerns
         // MIS and Building Admin can soft delete any concern
         $isOwner = $concern->user_id === $user->id;
+        $isLinkedReporter = $concern->hasLinkedReporter($user->id);
         $isMIS = $user->role === 'mis';
         $isBuildingAdmin = $user->role === 'building_admin';
+
+        if ($isLinkedReporter && ! $isOwner && ! $isMIS && ! $isBuildingAdmin) {
+            if (Concern::supportsLinkedReporters()) {
+                ConcernReporter::where('concern_id', $concern->id)
+                    ->where('user_id', $user->id)
+                    ->delete();
+
+                $reportCount = ConcernReporter::where('concern_id', $concern->id)->count();
+                $reportCount = max(1, $reportCount);
+
+                if (Concern::supportsReportCount()) {
+                    $concern->forceFill(['report_count' => $reportCount])->save();
+                }
+
+                if (Report::supportsReportCount()) {
+                    Report::where('concern_id', $concern->id)
+                        ->update(['report_count' => $reportCount]);
+                }
+            }
+
+            ActivityLog::log(
+                'duplicate_concern_unlinked',
+                'Linked concern reporter removed from ticket #'.$concern->id.': '.$user->email,
+                $concern->id
+            );
+
+            if ($request->expectsJson()) {
+                return response()->json(['success' => true, 'message' => 'Concern removed from your list successfully']);
+            }
+
+            return redirect()->route('concerns.my')
+                ->with('success', 'Concern removed from your list successfully');
+        }
 
         if (! $isOwner && ! $isMIS && ! $isBuildingAdmin) {
             if ($request->expectsJson()) {
@@ -1811,6 +1855,7 @@ class ConcernController extends Controller
 
             // Determine if user can see sensitive fields (OWASP API3: Object Property Level Authorization)
             $canSeeSensitiveFields = in_array($user->role, ['building_admin', 'mis', 'school_admin', 'admin']) || $concern->assigned_to === $user->id;
+            $displayUser = ($isLinkedReporter && ! $isOwner) ? $user : $concern->user;
 
             // Format the concern data for the view modal (matching viewConcern expectations)
             $formattedConcern = [
@@ -1820,10 +1865,10 @@ class ConcernController extends Controller
                 'location' => $concern->location,
                 'issue' => $concern->issue ?: $concern->title,
                 'categoryRelation' => $concern->categoryRelation,
-                'user' => $concern->user ? [
-                    'id' => $concern->user->id,
-                    'name' => $concern->user->name,
-                    'role' => $concern->user->role,
+                'user' => $displayUser ? [
+                    'id' => $displayUser->id,
+                    'name' => $displayUser->name,
+                    'role' => $displayUser->role,
                 ] : null,
                 'assignedTo' => $concern->assignedTo,
                 'assigned_to' => $concern->assigned_to,
@@ -1881,16 +1926,17 @@ class ConcernController extends Controller
             // to Assigned. For MIS users, also allow concerns assigned to them, since
             // self-submitted MIS concerns may be auto-assigned back to the same user.
             $isOwner = $concern->user_id == $user->id;
+            $isLinkedReporter = $concern->hasLinkedReporter($user->id);
             $isAssignedMis = $user->role === 'mis' && $concern->assigned_to == $user->id;
             $isMisUser = $user->role === 'mis';
             $isAdmin = in_array($user->role, ['admin', 'school_admin', 'building_admin', 'mis']);
             $editableStatusesForOwner = ['Pending', 'Assigned'];
 
-            if (! $isOwner && ! $isAssignedMis && ! $isMisUser && ! $isAdmin) {
+            if (! $isOwner && ! $isLinkedReporter && ! $isAssignedMis && ! $isMisUser && ! $isAdmin) {
                 return response()->json(['error' => 'You cannot edit this concern.'], 403);
             }
 
-            if (($isOwner || $isAssignedMis) && ! $isMisUser && ! $isAdmin && ! in_array($concern->status, $editableStatusesForOwner, true)) {
+            if (($isOwner || $isLinkedReporter || $isAssignedMis) && ! $isMisUser && ! $isAdmin && ! in_array($concern->status, $editableStatusesForOwner, true)) {
                 return response()->json(['error' => 'You cannot edit this concern once work has started or it has been completed.'], 403);
             }
 
@@ -1948,15 +1994,16 @@ class ConcernController extends Controller
 
         $user = $request->user();
         $isOwner = $concern->user_id === $user->id;
+        $isLinkedReporter = $concern->hasLinkedReporter($user->id);
         $isAssignedMis = $user->role === 'mis' && $concern->assigned_to === $user->id;
         $isAdmin = in_array($user->role, ['mis', 'admin', 'school_admin', 'building_admin']);
         $editableStatusesForOwner = ['Pending', 'Assigned'];
 
-        if (! $isOwner && ! $isAssignedMis && ! $isAdmin) {
+        if (! $isOwner && ! $isLinkedReporter && ! $isAssignedMis && ! $isAdmin) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
-        if (($isOwner || $isAssignedMis) && ! $isAdmin && ! in_array($concern->status, $editableStatusesForOwner, true)) {
+        if (($isOwner || $isLinkedReporter || $isAssignedMis) && ! $isAdmin && ! in_array($concern->status, $editableStatusesForOwner, true)) {
             return response()->json(['error' => 'You cannot edit this concern once work has started or it has been completed.'], 403);
         }
 

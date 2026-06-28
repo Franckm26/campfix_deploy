@@ -403,7 +403,7 @@
                                                     <button type="button" class="btn btn-sm btn-info bg-transparent border-0" onclick="viewConcern({{ $concern->id }})" title="View">
                                                         <i class="fas fa-eye"></i>
                                                     </button>
-                                                    @if($concern->user_id == auth()->id() && $concern->status == 'Pending')
+                                                    @if(($concern->user_id == auth()->id() || $concern->hasLinkedReporter(auth()->id())) && $concern->status == 'Pending')
                                                     <button type="button" class="btn btn-sm btn-warning bg-transparent border-0" onclick="editConcern({{ $concern->id }})" title="Edit">
                                                         <i class="fas fa-edit"></i>
                                                     </button>
@@ -503,7 +503,7 @@
                                         <button type="button" class="btn btn-sm btn-info" onclick="viewConcern({{ $concern->id }})">
                                             <i class="fas fa-eye"></i> View
                                         </button>
-                                        @if($concern->user_id == auth()->id() && $concern->status == 'Pending')
+                                        @if(($concern->user_id == auth()->id() || $concern->hasLinkedReporter(auth()->id())) && $concern->status == 'Pending')
                                         <button type="button" class="btn btn-sm btn-warning" onclick="editConcern({{ $concern->id }})">
                                             <i class="fas fa-edit"></i> Edit
                                         </button>
