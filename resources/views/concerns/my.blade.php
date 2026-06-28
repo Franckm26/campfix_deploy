@@ -2325,6 +2325,7 @@ function viewConcernWithBack(id, duplicateData = null) {
         const categoryName = concern.categoryRelation ? concern.categoryRelation.name : 'N/A';
         const userName = concern.user ? concern.user.name : 'Unknown';
         const userRole = concern.user ? concern.user.role : '';
+        const issueName = concern.issue || concern.title || 'N/A';
         
         const priorityClass = concern.priority === 'urgent' ? 'danger' : 
             (concern.priority === 'high' ? 'warning' : 
@@ -2371,7 +2372,7 @@ function viewConcernWithBack(id, duplicateData = null) {
                         <p><strong>Report Count:</strong> ${concern.report_count || 1}</p>
                         <p><strong>Category:</strong> ${categoryName}</p>
                         <p><strong>Location:</strong> ${concern.location || 'N/A'}</p>
-                        <p><strong>Issue:</strong> ${concern.issue || 'N/A'}</p>
+                        <p><strong>Issue:</strong> ${issueName}</p>
                         <p><strong>Damaged Part:</strong> ${concern.damaged_part || 'N/A'}</p>
                     </div>
                     <div class="col-md-6">
@@ -3378,6 +3379,7 @@ function viewConcern(id) {
         const categoryName = concern.categoryRelation ? concern.categoryRelation.name : 'N/A';
         const userName = concern.user ? concern.user.name : 'Unknown';
         const userRole = concern.user ? concern.user.role : '';
+        const issueName = concern.issue || concern.title || 'N/A';
         
         const priorityClass = concern.priority === 'urgent' ? 'danger' : 
             (concern.priority === 'high' ? 'warning' : 
@@ -3424,7 +3426,7 @@ function viewConcern(id) {
                         <p><strong>Report Count:</strong> ${concern.report_count || 1}</p>
                         <p><strong>Category:</strong> ${categoryName}</p>
                         <p><strong>Location:</strong> ${concern.location || 'N/A'}</p>
-                        <p><strong>Issue:</strong> ${concern.issue || 'N/A'}</p>
+                        <p><strong>Issue:</strong> ${issueName}</p>
                         <p><strong>Damaged Part:</strong> ${concern.damaged_part || 'N/A'}</p>
                     </div>
                     <div class="col-md-6">
