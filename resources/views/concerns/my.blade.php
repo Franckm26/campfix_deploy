@@ -1306,7 +1306,7 @@
                     <p id="edit_review_location" class="mb-0"></p>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-bold">Description:</label>
+                    <label class="form-label fw-bold">Problem Type:</label>
                     <p id="edit_review_description" class="mb-0" style="white-space: pre-wrap;"></p>
                 </div>
                 <div class="mb-3" id="edit_review_current_image_container" style="display: none;">
@@ -1509,10 +1509,10 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="new_description" class="form-label">Description *</label>
-                        <textarea class="form-control" id="new_description" name="description" 
-                            rows="3" placeholder="Describe the problem in detail..." required maxlength="500"></textarea>
-                        <small class="text-muted d-block text-end" id="new_description_count">0 / 500</small>
+                        <label for="new_description" class="form-label">Problem Type *</label>
+                        <select class="form-select" id="new_description" name="description" required disabled>
+                            <option value="" disabled selected>Select an issue first</option>
+                        </select>
                     </div>
 
                     <div class="mb-3">
@@ -1554,7 +1554,7 @@
                     <p id="review_location" class="mb-0"></p>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-bold">Description:</label>
+                    <label class="form-label fw-bold">Problem Type:</label>
                     <p id="review_description" class="mb-0" style="white-space: pre-wrap;"></p>
                 </div>
                 <div class="mb-3" id="review_image_container" style="display: none;">
@@ -1573,6 +1573,66 @@
 </div>
 
 <script>
+const concernProblemTypes = {
+    aircon: ['Not working', 'Weak cooling', 'Leaking', 'Noisy', 'Bad smell', 'Remote/control issue'],
+    'air conditioner': ['Not working', 'Weak cooling', 'Leaking', 'Noisy', 'Bad smell', 'Remote/control issue'],
+    cleaning: ['Needs cleaning', 'Trash removal', 'Spill cleanup', 'Bad odor', 'Dusty area'],
+    door: ['Broken lock', 'Damaged handle', 'Hard to open/close', 'Loose hinge', 'Misaligned door'],
+    window: ['Broken glass', 'Stuck window', 'Loose frame', 'Leaking', 'Lock issue'],
+    'electric outlet': ['No power', 'Loose socket', 'Sparking', 'Damaged cover', 'Burnt smell'],
+    outlet: ['No power', 'Loose socket', 'Sparking', 'Damaged cover', 'Burnt smell'],
+    lights: ['Not working', 'Flickering', 'Dim light', 'Broken switch', 'Exposed wiring'],
+    light: ['Not working', 'Flickering', 'Dim light', 'Broken switch', 'Exposed wiring'],
+    projector: ['Not working', 'No display', 'Blurry display', 'No sound', 'Remote/control issue'],
+    internet: ['No connection', 'Slow connection', 'Intermittent connection', 'Router/access point issue'],
+    wifi: ['No connection', 'Slow connection', 'Intermittent connection', 'Router/access point issue'],
+    toilet: ['Clogged', 'Leaking', 'No water', 'Broken flush', 'Bad odor'],
+    faucet: ['Leaking', 'No water', 'Low pressure', 'Broken handle', 'Loose fixture'],
+    chair: ['Broken leg', 'Loose part', 'Damaged seat', 'Missing chair'],
+    table: ['Broken leg', 'Loose part', 'Damaged surface', 'Unstable table'],
+};
+
+const defaultProblemTypes = ['Not working', 'Damaged', 'Leaking', 'Noisy', 'Missing part', 'Needs repair', 'Needs cleaning'];
+
+function normalizeProblemKey(value) {
+    return String(value || '').toLowerCase().trim();
+}
+
+function getProblemTypesForIssue(issue) {
+    const key = normalizeProblemKey(issue);
+
+    if (concernProblemTypes[key]) {
+        return concernProblemTypes[key];
+    }
+
+    const partialMatch = Object.keys(concernProblemTypes).find(problemKey => key.includes(problemKey) || problemKey.includes(key));
+    return partialMatch ? concernProblemTypes[partialMatch] : defaultProblemTypes;
+}
+
+function populateProblemTypeSelect(selectElement, issue, selectedValue = '') {
+    if (!selectElement) return;
+
+    const problemTypes = issue ? getProblemTypesForIssue(issue) : [];
+    selectElement.innerHTML = '<option value="" disabled selected>' + (issue ? 'Select a problem type' : 'Select an issue first') + '</option>';
+
+    problemTypes.forEach(function(problemType) {
+        const option = document.createElement('option');
+        option.value = problemType;
+        option.textContent = problemType;
+        if (problemType === selectedValue) {
+            option.selected = true;
+        }
+        selectElement.appendChild(option);
+    });
+
+    if (issue) {
+        selectElement.removeAttribute('disabled');
+        selectElement.setAttribute('required', 'required');
+    } else {
+        selectElement.setAttribute('disabled', 'disabled');
+    }
+}
+
 function showReviewModal() {
     // Validate form first
     const form = document.getElementById('newConcernForm');
@@ -1591,7 +1651,8 @@ function showReviewModal() {
     const locationSelect = document.getElementById('new_location');
     const locationText = locationSelect.options[locationSelect.selectedIndex]?.text || '';
     
-    const description = document.getElementById('new_description').value;
+    const problemTypeSelect = document.getElementById('new_description');
+    const description = problemTypeSelect.options[problemTypeSelect.selectedIndex]?.text || '';
     
     const imageInput = document.getElementById('new_image');
     const imageFile = imageInput.files[0];
@@ -1682,8 +1743,8 @@ function showEditReviewModal() {
     const locationSelect = document.querySelector('#editConcernModal select[name="location"]');
     const locationText = locationSelect?.options[locationSelect.selectedIndex]?.text || '';
     
-    const descriptionTextarea = document.querySelector('#editConcernModal textarea[name="description"]');
-    const description = descriptionTextarea?.value || '';
+    const descriptionSelect = document.querySelector('#editConcernModal select[name="description"]');
+    const description = descriptionSelect?.options[descriptionSelect.selectedIndex]?.text || '';
     
     const imageInput = document.querySelector('#editConcernModal input[name="image"]');
     const imageFile = imageInput?.files[0];
@@ -1769,6 +1830,7 @@ function handleEditCategoryChange() {
     const categorySelect = document.getElementById('edit_category_id');
     const issueContainer = document.getElementById('edit_issue_container');
     const issueSelect = document.getElementById('edit_issue');
+    const problemTypeSelect = document.getElementById('edit_description');
     const locationContainer = document.getElementById('edit_location_container');
     const locationSelect = document.getElementById('edit_location');
     
@@ -1793,6 +1855,7 @@ function handleEditCategoryChange() {
             issueSelect.removeAttribute('required');
             issueSelect.innerHTML = '<option value="" disabled selected>Select an issue</option>';
         }
+        populateProblemTypeSelect(problemTypeSelect, '');
     } else {
         // Has issues — show the dropdown and populate it
         if (issueContainer) issueContainer.style.display = 'block';
@@ -1817,8 +1880,10 @@ function handleEditCategoryChange() {
                     document.getElementById('editConcernForm').appendChild(titleInput);
                 }
                 titleInput.value = this.value;
+                populateProblemTypeSelect(problemTypeSelect, this.value);
             });
         }
+        populateProblemTypeSelect(problemTypeSelect, '');
     }
     
     // Show location dropdown for all categories
@@ -1833,6 +1898,7 @@ function handleNewCategoryChange() {
     const locationContainer = document.getElementById('new_location_container');
     const locationSelect = document.getElementById('new_location');
     const titleInput = document.getElementById('new_title');
+    const problemTypeSelect = document.getElementById('new_description');
     
     if (!categorySelect) return;
     
@@ -1860,6 +1926,7 @@ function handleNewCategoryChange() {
             const categoryName = selectedOption ? selectedOption.text : '';
             titleInput.value = categoryName;
         }
+        populateProblemTypeSelect(problemTypeSelect, '');
     } else {
         // Has issues — show the dropdown and populate it
         if (issueContainer) issueContainer.style.display = 'block';
@@ -1875,6 +1942,7 @@ function handleNewCategoryChange() {
         }
         // Clear title when issues are available (will be set when issue is selected)
         if (titleInput) titleInput.value = '';
+        populateProblemTypeSelect(problemTypeSelect, '');
     }
     
     // Show location dropdown for all categories
@@ -1891,6 +1959,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (titleInput) {
                 titleInput.value = this.value;
             }
+            populateProblemTypeSelect(document.getElementById('new_description'), this.value);
         });
     }
 });
@@ -2021,9 +2090,7 @@ function openNewConcernModal() {
     if (roomCont) roomCont.style.display = 'none';
     if (roomEl) { roomEl.value = ''; roomEl.removeAttribute('required'); }
     const descEl = document.getElementById('new_description');
-    if (descEl) descEl.value = '';
-    const descCount = document.getElementById('new_description_count');
-    if (descCount) descCount.textContent = '0 / 500';
+    populateProblemTypeSelect(descEl, '');
 
     const modal = new bootstrap.Modal(document.getElementById('newConcernModal'));
     modal.show();
@@ -2303,7 +2370,7 @@ function viewConcernWithBack(id, duplicateData = null) {
                 <hr>
                 <div class="row mt-3">
                     <div class="col-12">
-                        <p><strong>Description:</strong></p>
+                        <p><strong>Problem Type:</strong></p>
                         <p style="white-space: pre-wrap;">${concern.description || 'No description provided'}</p>
                         ${imageHtml}
                         ${resolutionHtml}
@@ -2389,18 +2456,10 @@ function viewConcernFromDuplicate(concernId, concernData) {
 // Handle category change for concerns modal
 document.addEventListener('DOMContentLoaded', function() {
 
-    // Description character counter
-    const descTextarea = document.getElementById('new_description');
-    const descCount = document.getElementById('new_description_count');
-    if (descTextarea && descCount) {
-        descTextarea.addEventListener('input', function() {
-            descCount.textContent = this.value.length + ' / 500';
-        });
-    }
-
     const categorySelect = document.getElementById('new_category_id');
     const issueSelect = document.getElementById('new_issue');
     const titleHidden = document.getElementById('new_title');
+    const problemTypeSelect = document.getElementById('new_description');
     const locationContainer = document.getElementById('new_location_container');
     const locationSelect = document.getElementById('new_location');
 
@@ -2424,6 +2483,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (issueSelect) issueSelect.removeAttribute('required');
             issueSelect.innerHTML = '<option value="" disabled selected>Select an issue</option>';
             if (titleHidden) titleHidden.value = '';
+            populateProblemTypeSelect(problemTypeSelect, '');
             return;
         }
 
@@ -2439,11 +2499,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         issueSelect.value = '';
         if (titleHidden) titleHidden.value = '';
+        populateProblemTypeSelect(problemTypeSelect, '');
     }
 
     if (issueSelect) {
         issueSelect.addEventListener('change', function() {
             if (titleHidden) titleHidden.value = this.value;
+            populateProblemTypeSelect(problemTypeSelect, this.value);
         });
     }
 
@@ -3354,7 +3416,7 @@ function viewConcern(id) {
                 <hr>
                 <div class="row mt-3">
                     <div class="col-12">
-                        <p><strong>Description:</strong></p>
+                        <p><strong>Problem Type:</strong></p>
                         <p style="white-space: pre-wrap;">${concern.description || 'No description provided'}</p>
                         ${imageHtml}
                         ${resolutionHtml}
@@ -3463,6 +3525,12 @@ function editConcern(id) {
             const selected = user.id === concern.assigned_to ? 'selected' : '';
             maintenanceOptions += `<option value="${user.id}" ${selected}>${user.name}</option>`;
         });
+
+        let problemTypeOptions = '<option value="" disabled>Select a problem type</option>';
+        getProblemTypesForIssue(concern.title || '').forEach(problemType => {
+            const selected = problemType === concern.description ? 'selected' : '';
+            problemTypeOptions += `<option value="${problemType}" ${selected}>${problemType}</option>`;
+        });
         
         let imageHtml = '';
         if (concern.image_path) {
@@ -3520,8 +3588,10 @@ function editConcern(id) {
                 </select>
             </div>
             <div class="mb-3">
-                <label class="form-label">Description *</label>
-                <textarea name="description" class="form-control" rows="4" required>${concern.description}</textarea>
+                <label class="form-label">Problem Type *</label>
+                <select name="description" class="form-select" id="edit_description" required>
+                    ${problemTypeOptions}
+                </select>
             </div>
             ${imageHtml}
         `;
@@ -3542,6 +3612,7 @@ function editConcern(id) {
                         // Trigger change to update hidden title field
                         const event = new Event('change');
                         issueSelect.dispatchEvent(event);
+                        populateProblemTypeSelect(document.getElementById('edit_description'), concern.title, concern.description);
                     }
                 }
                 
