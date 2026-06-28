@@ -636,7 +636,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Issues</label>
-                        <small class="text-muted d-block mb-2">Each issue will appear in the dropdown when this category is selected.</small>
+                        <small class="text-muted d-block mb-2">Each issue will appear in the dropdown when this category is selected. Use the list button to add problem types for that issue.</small>
                         <div id="addIssuesList">
                             {{-- rows injected by JS --}}
                         </div>
@@ -671,7 +671,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Issues</label>
-                        <small class="text-muted d-block mb-2">Each issue will appear in the dropdown when this category is selected.</small>
+                        <small class="text-muted d-block mb-2">Each issue will appear in the dropdown when this category is selected. Use the list button to add problem types for that issue.</small>
                         <div id="editIssuesList">
                             {{-- rows injected by JS --}}
                         </div>
@@ -706,22 +706,97 @@ function openEditStaffModal(id, fullName) {
 }
 
 // ── Category modal helpers ────────────────────────────────────────────────────
+let issueRowCounter = 0;
+
+function normalizeIssueEntry(issue) {
+    if (typeof issue === 'string') {
+        return { name: issue, problem_types: [] };
+    }
+
+    return {
+        name: issue?.name || '',
+        problem_types: Array.isArray(issue?.problem_types) ? issue.problem_types : [],
+    };
+}
+
 function addIssueRow(listId, value) {
     const list = document.getElementById(listId);
+    const issue = normalizeIssueEntry(value);
+    const index = issueRowCounter++;
     const row = document.createElement('div');
-    row.className = 'd-flex align-items-center gap-2 mb-2 issue-row';
+    row.className = 'mb-2 issue-row';
+    row.dataset.issueIndex = index;
+
+    const mainRow = document.createElement('div');
+    mainRow.className = 'd-flex align-items-center gap-2';
 
     const input = document.createElement('input');
     input.type = 'text';
-    input.name = 'issues[]';
+    input.name = `issues[${index}][name]`;
     input.className = 'form-control form-control-sm';
-    input.value = value || '';
+    input.value = issue.name;
     input.placeholder = 'e.g., Aircon';
+
+    const problemButton = document.createElement('button');
+    problemButton.type = 'button';
+    problemButton.className = 'btn btn-sm btn-outline-primary flex-shrink-0';
+    problemButton.title = 'Add problem types';
+    problemButton.innerHTML = '<i class="fas fa-list-ul"></i>';
 
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'btn btn-sm btn-danger flex-shrink-0';
     button.title = 'Remove';
+    button.innerHTML = '<i class="fas fa-trash"></i>';
+    button.addEventListener('click', function() {
+        row.remove();
+    });
+
+    const problemPanel = document.createElement('div');
+    problemPanel.className = 'mt-2 ms-4 p-2 border rounded bg-light';
+    problemPanel.style.display = 'none';
+    problemPanel.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <small class="fw-semibold text-muted">Problem Types</small>
+            <button type="button" class="btn btn-outline-primary btn-sm py-0 add-problem-type-btn">
+                <i class="fas fa-plus"></i> Add
+            </button>
+        </div>
+        <div class="problem-type-list"></div>
+    `;
+
+    problemButton.addEventListener('click', function() {
+        problemPanel.style.display = problemPanel.style.display === 'none' ? 'block' : 'none';
+    });
+
+    problemPanel.querySelector('.add-problem-type-btn').addEventListener('click', function() {
+        addProblemTypeRow(problemPanel.querySelector('.problem-type-list'), index);
+    });
+
+    mainRow.append(input, problemButton, button);
+    row.append(mainRow, problemPanel);
+    list.appendChild(row);
+
+    issue.problem_types.forEach(problemType => addProblemTypeRow(problemPanel.querySelector('.problem-type-list'), index, problemType));
+
+    input.focus();
+}
+
+function addProblemTypeRow(list, issueIndex, value = '') {
+    const row = document.createElement('div');
+    row.className = 'd-flex align-items-center gap-2 mb-2';
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.name = `issues[${issueIndex}][problem_types][]`;
+    input.className = 'form-control form-control-sm';
+    input.value = value;
+    input.placeholder = 'e.g., Not working';
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'btn btn-sm btn-danger flex-shrink-0';
+    button.title = 'Remove problem type';
     button.innerHTML = '<i class="fas fa-trash"></i>';
     button.addEventListener('click', function() {
         row.remove();

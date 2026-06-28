@@ -201,12 +201,31 @@ class ManagementController extends Controller
         $request->validate([
             'name'     => 'required|string|max:255|unique:categories,name',
             'issues'   => 'nullable|array',
-            'issues.*' => 'nullable|string|max:255',
+            'issues.*.name' => 'nullable|string|max:255',
+            'issues.*.problem_types' => 'nullable|array',
+            'issues.*.problem_types.*' => 'nullable|string|max:255',
         ]);
 
         $issues = collect($request->input('issues', []))
-            ->map(fn ($issue) => trim((string) $issue))
-            ->filter()
+            ->map(function ($issue) {
+                $name = trim((string) ($issue['name'] ?? ''));
+                if ($name === '') {
+                    return null;
+                }
+
+                $problemTypes = collect($issue['problem_types'] ?? [])
+                    ->map(fn ($problemType) => trim((string) $problemType))
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                return [
+                    'name' => $name,
+                    'problem_types' => $problemTypes,
+                ];
+            })
+            ->filter(fn ($issue) => $issue !== null)
             ->values()
             ->all();
 
@@ -225,12 +244,31 @@ class ManagementController extends Controller
         $request->validate([
             'name'     => 'required|string|max:255|unique:categories,name,'.$id,
             'issues'   => 'nullable|array',
-            'issues.*' => 'nullable|string|max:255',
+            'issues.*.name' => 'nullable|string|max:255',
+            'issues.*.problem_types' => 'nullable|array',
+            'issues.*.problem_types.*' => 'nullable|string|max:255',
         ]);
 
         $issues = collect($request->input('issues', []))
-            ->map(fn ($issue) => trim((string) $issue))
-            ->filter()
+            ->map(function ($issue) {
+                $name = trim((string) ($issue['name'] ?? ''));
+                if ($name === '') {
+                    return null;
+                }
+
+                $problemTypes = collect($issue['problem_types'] ?? [])
+                    ->map(fn ($problemType) => trim((string) $problemType))
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                return [
+                    'name' => $name,
+                    'problem_types' => $problemTypes,
+                ];
+            })
+            ->filter(fn ($issue) => $issue !== null)
             ->values()
             ->all();
 

@@ -1609,10 +1609,18 @@ function getProblemTypesForIssue(issue) {
     return partialMatch ? concernProblemTypes[partialMatch] : defaultProblemTypes;
 }
 
-function populateProblemTypeSelect(selectElement, issue, selectedValue = '') {
+function getIssueName(issue) {
+    return typeof issue === 'string' ? issue : (issue && issue.name ? issue.name : '');
+}
+
+function getIssueProblemTypes(issue) {
+    return typeof issue === 'object' && Array.isArray(issue.problem_types) ? issue.problem_types : [];
+}
+
+function populateProblemTypeSelect(selectElement, issue, selectedValue = '', explicitProblemTypes = []) {
     if (!selectElement) return;
 
-    const problemTypes = issue ? getProblemTypesForIssue(issue) : [];
+    const problemTypes = issue ? (explicitProblemTypes.length ? explicitProblemTypes : getProblemTypesForIssue(issue)) : [];
     selectElement.innerHTML = '<option value="" disabled selected>' + (issue ? 'Select a problem type' : 'Select an issue first') + '</option>';
 
     problemTypes.forEach(function(problemType) {
@@ -1863,9 +1871,11 @@ function handleEditCategoryChange() {
             issueSelect.setAttribute('required', 'required');
             issueSelect.innerHTML = '<option value="" disabled selected>Select an issue</option>';
             issues.forEach(function(issue) {
+                const issueName = getIssueName(issue);
                 const opt = document.createElement('option');
-                opt.value = issue;
-                opt.textContent = issue;
+                opt.value = issueName;
+                opt.textContent = issueName;
+                opt.dataset.problemTypes = JSON.stringify(getIssueProblemTypes(issue));
                 issueSelect.appendChild(opt);
             });
             
@@ -1880,7 +1890,9 @@ function handleEditCategoryChange() {
                     document.getElementById('editConcernForm').appendChild(titleInput);
                 }
                 titleInput.value = this.value;
-                populateProblemTypeSelect(problemTypeSelect, this.value);
+                const selectedIssue = this.options[this.selectedIndex];
+                const problemTypes = selectedIssue?.dataset.problemTypes ? JSON.parse(selectedIssue.dataset.problemTypes) : [];
+                populateProblemTypeSelect(problemTypeSelect, this.value, '', problemTypes);
             });
         }
         populateProblemTypeSelect(problemTypeSelect, '');
@@ -1934,9 +1946,11 @@ function handleNewCategoryChange() {
             issueSelect.setAttribute('required', 'required');
             issueSelect.innerHTML = '<option value="" disabled selected>Select an issue</option>';
             issues.forEach(function(issue) {
+                const issueName = getIssueName(issue);
                 const opt = document.createElement('option');
-                opt.value = issue;
-                opt.textContent = issue;
+                opt.value = issueName;
+                opt.textContent = issueName;
+                opt.dataset.problemTypes = JSON.stringify(getIssueProblemTypes(issue));
                 issueSelect.appendChild(opt);
             });
         }
@@ -1959,7 +1973,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (titleInput) {
                 titleInput.value = this.value;
             }
-            populateProblemTypeSelect(document.getElementById('new_description'), this.value);
+            const selectedIssue = this.options[this.selectedIndex];
+            const problemTypes = selectedIssue?.dataset.problemTypes ? JSON.parse(selectedIssue.dataset.problemTypes) : [];
+            populateProblemTypeSelect(document.getElementById('new_description'), this.value, '', problemTypes);
         });
     }
 });
@@ -2492,9 +2508,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (issueSelect) issueSelect.setAttribute('required', 'required');
         issueSelect.innerHTML = '<option value="" disabled selected>Select an issue</option>';
         issues.forEach(function(issue) {
+            const issueName = getIssueName(issue);
             const opt = document.createElement('option');
-            opt.value = issue;
-            opt.textContent = issue;
+            opt.value = issueName;
+            opt.textContent = issueName;
+            opt.dataset.problemTypes = JSON.stringify(getIssueProblemTypes(issue));
             issueSelect.appendChild(opt);
         });
         issueSelect.value = '';
@@ -2505,7 +2523,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (issueSelect) {
         issueSelect.addEventListener('change', function() {
             if (titleHidden) titleHidden.value = this.value;
-            populateProblemTypeSelect(problemTypeSelect, this.value);
+            const selectedIssue = this.options[this.selectedIndex];
+            const problemTypes = selectedIssue?.dataset.problemTypes ? JSON.parse(selectedIssue.dataset.problemTypes) : [];
+            populateProblemTypeSelect(problemTypeSelect, this.value, '', problemTypes);
         });
     }
 
@@ -3526,8 +3546,11 @@ function editConcern(id) {
             maintenanceOptions += `<option value="${user.id}" ${selected}>${user.name}</option>`;
         });
 
+        const selectedCategory = categories.find(cat => cat.id === concern.category_id);
+        const selectedIssue = (selectedCategory?.issues || []).find(issue => getIssueName(issue) === concern.title);
+        const savedProblemTypes = selectedIssue ? getIssueProblemTypes(selectedIssue) : [];
         let problemTypeOptions = '<option value="" disabled>Select a problem type</option>';
-        getProblemTypesForIssue(concern.title || '').forEach(problemType => {
+        (savedProblemTypes.length ? savedProblemTypes : getProblemTypesForIssue(concern.title || '')).forEach(problemType => {
             const selected = problemType === concern.description ? 'selected' : '';
             problemTypeOptions += `<option value="${problemType}" ${selected}>${problemType}</option>`;
         });
@@ -3612,7 +3635,9 @@ function editConcern(id) {
                         // Trigger change to update hidden title field
                         const event = new Event('change');
                         issueSelect.dispatchEvent(event);
-                        populateProblemTypeSelect(document.getElementById('edit_description'), concern.title, concern.description);
+                        const selectedIssue = issueSelect.options[issueSelect.selectedIndex];
+                        const problemTypes = selectedIssue?.dataset.problemTypes ? JSON.parse(selectedIssue.dataset.problemTypes) : [];
+                        populateProblemTypeSelect(document.getElementById('edit_description'), concern.title, concern.description, problemTypes);
                     }
                 }
                 
