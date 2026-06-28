@@ -203,7 +203,7 @@ class ConcernController extends Controller
             });
         }
 
-        if ($existingConcern && $request->input('override_duplicate')) {
+        if ($existingConcern) {
             $reportCount = $this->linkDuplicateReporter($existingConcern, $request);
             \App\Models\UserRateLimit::incrementCounter(auth()->id(), 'submission');
 
@@ -211,44 +211,20 @@ class ConcernController extends Controller
                 return response()->json([
                     'success' => true,
                     'linked_duplicate' => true,
-                    'message' => "You were linked to existing ticket #{$existingConcern->id}.",
+                    'message' => "This issue already exists, so you were linked to ticket #{$existingConcern->id}.",
                     'concern_id' => $existingConcern->id,
+                    'issue' => $existingConcern->title,
+                    'problem_type' => $existingConcern->description,
+                    'location' => $isRoomsCategory
+                        ? $request->location_type . ' ' . $request->room_number
+                        : $request->location,
+                    'status' => $existingConcern->status,
                     'report_count' => $reportCount,
                 ]);
             }
 
             return redirect()->route('concerns.my')
-                ->with('success', "You were linked to existing ticket #{$existingConcern->id}.");
-        }
-
-        if ($existingConcern) {
-            $locationLabel = $isRoomsCategory
-                ? $request->location_type . ' ' . $request->room_number
-                : $request->location;
-
-            // Return JSON response with existing concern details for AJAX handling
-            if ($request->ajax() || $request->wantsJson()) {
-                return response()->json([
-                    'duplicate' => true,
-                    'concern_id' => $existingConcern->id,
-                    'issue' => $existingConcern->title,
-                    'problem_type' => $existingConcern->description,
-                    'location' => $locationLabel,
-                    'status' => $existingConcern->status,
-                    'report_count' => $existingConcern->report_count ?? 1,
-                    'message' => "You already have a report for \"{$existingConcern->title}\" ({$existingConcern->description}) in \"{$locationLabel}\" and is currently {$existingConcern->status}."
-                ], 409);
-            }
-
-            // For non-AJAX requests, redirect with session data
-            return redirect()->back()->withInput()->with([
-                'duplicate_concern' => true,
-                'existing_concern_id' => $existingConcern->id,
-                'existing_concern_issue' => $existingConcern->title,
-                'existing_concern_problem_type' => $existingConcern->description,
-                'existing_concern_location' => $locationLabel,
-                'existing_concern_status' => $existingConcern->status
-            ]);
+                ->with('success', "This issue already exists, so you were linked to ticket #{$existingConcern->id}.");
         }
 
         // Handle image upload with security validation

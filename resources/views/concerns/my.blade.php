@@ -2181,8 +2181,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 Swal.fire({
                     icon: 'success',
-                    title: 'Success!',
-                    text: 'Your concern has been submitted successfully.',
+                    title: data.linked_duplicate ? 'Linked to Ticket' : 'Success!',
+                    text: data.message || 'Your concern has been submitted successfully.',
                     confirmButtonColor: '#3085d6'
                 }).then(() => {
                     window.location.reload();
