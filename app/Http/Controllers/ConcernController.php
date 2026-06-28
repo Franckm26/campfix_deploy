@@ -10,6 +10,7 @@ use App\Models\EventRequest;
 use App\Models\Report;
 use App\Models\User;
 use App\Notifications\ConcernAssignedNotification;
+use App\Services\DefaultCategoryService;
 use App\Services\NotificationService;
 use App\Services\SecureFileUpload;
 use App\Services\SupabaseStorage;
@@ -44,6 +45,7 @@ class ConcernController extends Controller
             return redirect()->route('concerns.my')->with('error', 'Your role cannot submit concerns.');
         }
 
+        DefaultCategoryService::ensureDefaults();
         $categories = Category::all();
 
         return view('concerns.create', compact('categories'));
@@ -305,6 +307,8 @@ class ConcernController extends Controller
     // IMPORTANT: Each user (including admin) can only see their OWN concerns
     public function myConcerns(Request $request)
     {
+        DefaultCategoryService::ensureDefaults();
+
         // Only maintenance cannot access this page to view their own concerns
         // Building Admin, School Admin, Academic Head, Program Head, Faculty, and Students can access
         $role = auth()->user()->role;
@@ -640,6 +644,7 @@ class ConcernController extends Controller
             return redirect('/dashboard')->with('error', 'You cannot edit this concern once work has started or it has been completed.');
         }
 
+        DefaultCategoryService::ensureDefaults();
         $categories = Category::all();
 
         return view('concerns.edit', compact('concern', 'categories'));
@@ -648,6 +653,7 @@ class ConcernController extends Controller
     public function update(Request $request, $id)
     {
         $user = auth()->user();
+        DefaultCategoryService::ensureDefaults();
         $concern = Concern::findOrFail($id);
 
         // Allow the submitter to update their own concern.
@@ -837,6 +843,7 @@ class ConcernController extends Controller
     public function apiEdit($id)
     {
         $user = auth()->user();
+        DefaultCategoryService::ensureDefaults();
         $concern = Concern::findOrFail($id);
 
         $isOwner = $concern->user_id === $user->id;
@@ -1759,6 +1766,7 @@ class ConcernController extends Controller
             }
 
             // Get categories with their issues
+            DefaultCategoryService::ensureDefaults();
             $categories = Category::select('id', 'name', 'issues')->get();
 
             // Check if user can assign (owner or admin)

@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\Facility;
 use App\Models\MaintenanceStaff;
 use App\Models\User;
+use App\Services\DefaultCategoryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -26,6 +27,7 @@ class ManagementController extends Controller
         $this->guardBuildingAdmin();
 
         $tab = $request->get('tab', 'staff');
+        DefaultCategoryService::ensureDefaults();
 
         // Maintenance staff
         $staffQuery = MaintenanceStaff::query();
