@@ -715,7 +715,90 @@ class AuthController extends Controller
 
     protected function hasAllowedEmailDomain(string $email): bool
     {
-        return str_ends_with(strtolower($email), '@novaliches.sti.edu.ph');
+        $domain = strtolower(substr(strrchr($email, '@') ?: '', 1));
+        $allowedDomains = collect(config('services.microsoft.allowed_domains', ['novaliches.sti.edu.ph']))
+            ->map(fn ($allowedDomain) => strtolower(trim($allowedDomain)))
+            ->filter()
+            ->all();
+
+        return in_array($domain, $allowedDomains, true);
+    }
+
+    protected function validateMicrosoftRedirectUri(): void
+    {
+        $configuredRedirect = (string) config('services.microsoft.redirect');
+        $expectedRedirect = rtrim((string) config('app.url'), '/').'/auth/microsoft/callback';
+
+        if ($configuredRedirect === '' || str_contains($configuredRedirect, '*')) {
+            throw new \RuntimeException('Microsoft OAuth redirect URI is not configured securely.');
+        }
+
+        if (rtrim($configuredRedirect, '/') !== rtrim($expectedRedirect, '/')) {
+            \Log::warning('Microsoft OAuth redirect URI mismatch', [
+                'configured_host' => parse_url($configuredRedirect, PHP_URL_HOST),
+                'expected_host' => parse_url($expectedRedirect, PHP_URL_HOST),
+            ]);
+
+            throw new \RuntimeException('Microsoft OAuth redirect URI does not match this application.');
+        }
+    }
+
+    protected function microsoftOauthScopes(): array
+    {
+        return array_values(array_unique(array_filter(config('services.microsoft.scopes', ['User.Read']))));
+    }
+
+    protected function decodeJwtClaims(?string $jwt): array
+    {
+        if (! $jwt || substr_count($jwt, '.') !== 2) {
+            return [];
+        }
+
+        [, $payload] = explode('.', $jwt);
+        $payload = strtr($payload, '-_', '+/');
+        $payload .= str_repeat('=', (4 - strlen($payload) % 4) % 4);
+        $decoded = json_decode(base64_decode($payload) ?: '', true);
+
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    protected function validateMicrosoftOAuthProfile($microsoftUser): void
+    {
+        $rawUser = $microsoftUser->user ?? [];
+        $email = strtolower((string) ($microsoftUser->getEmail() ?: ($rawUser['mail'] ?? $rawUser['userPrincipalName'] ?? '')));
+        $microsoftId = (string) $microsoftUser->getId();
+
+        if ($email === '' || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new \RuntimeException('Microsoft account did not provide a valid email address.');
+        }
+
+        if ($microsoftId === '') {
+            throw new \RuntimeException('Microsoft account did not provide a stable user identifier.');
+        }
+
+        if (! $this->hasAllowedEmailDomain($email)) {
+            throw new \DomainException('Microsoft email domain is not allowed.');
+        }
+
+        $accessTokenClaims = $this->decodeJwtClaims($microsoftUser->token ?? null);
+        $tenantId = (string) config('services.microsoft.tenant', 'common');
+
+        if (filter_var(config('services.microsoft.enforce_tenant'), FILTER_VALIDATE_BOOL)
+            && ! in_array($tenantId, ['common', 'organizations', 'consumers'], true)
+            && isset($accessTokenClaims['tid'])
+            && ! hash_equals(strtolower($tenantId), strtolower((string) $accessTokenClaims['tid']))) {
+            throw new \RuntimeException('Microsoft token tenant does not match this application.');
+        }
+
+        if (isset($accessTokenClaims['scp'])) {
+            $grantedScopes = array_filter(explode(' ', (string) $accessTokenClaims['scp']));
+            $allowedScopes = $this->microsoftOauthScopes();
+            $extraScopes = array_diff($grantedScopes, $allowedScopes);
+
+            if ($extraScopes !== []) {
+                throw new \RuntimeException('Microsoft granted unexpected OAuth permissions.');
+            }
+        }
     }
 
     protected function isAccountArchived(User $user): bool
@@ -756,10 +839,14 @@ class AuthController extends Controller
     public function redirectToMicrosoft()
     {
         \Log::info('Microsoft OAuth redirect initiated');
+        $this->validateMicrosoftRedirectUri();
         
         return Socialite::driver('microsoft')
-            ->scopes(['User.Read'])
-            ->with(['prompt' => 'select_account']) // Force account selection screen
+            ->scopes($this->microsoftOauthScopes())
+            ->with([
+                'prompt' => 'select_account',
+                'response_mode' => 'query',
+            ])
             ->redirect();
     }
 
@@ -770,14 +857,36 @@ class AuthController extends Controller
     {
         try {
             \Log::info('Microsoft OAuth callback initiated');
+
+            $this->validateMicrosoftRedirectUri();
+
+            if (request()->filled('error')) {
+                \Log::warning('Microsoft OAuth returned an error', [
+                    'error' => request('error'),
+                    'ip' => request()->ip(),
+                ]);
+
+                return redirect('/')->with('error', 'Microsoft sign-in was cancelled or denied.');
+            }
+
+            if (! request()->filled('code') || ! request()->filled('state')) {
+                \Log::warning('Microsoft OAuth callback missing required parameters', [
+                    'has_code' => request()->filled('code'),
+                    'has_state' => request()->filled('state'),
+                    'ip' => request()->ip(),
+                ]);
+
+                return redirect('/')->with('error', 'Invalid Microsoft sign-in response. Please try again.');
+            }
             
             // Get Microsoft user data
             $microsoftUser = Socialite::driver('microsoft')->user();
+            $this->validateMicrosoftOAuthProfile($microsoftUser);
             
             \Log::info('Microsoft user data retrieved', [
                 'email' => $microsoftUser->getEmail(),
                 'name' => $microsoftUser->getName(),
-                'microsoft_id' => $microsoftUser->getId(),
+                'microsoft_id_present' => ! empty($microsoftUser->getId()),
             ]);
             
             // CRITICAL SECURITY: Validate email domain
@@ -790,7 +899,7 @@ class AuthController extends Controller
                     'user_agent' => request()->userAgent(),
                 ]);
                 
-                return redirect('/login')->with('error', 'Only @novaliches.sti.edu.ph email addresses are allowed. Your email: ' . $email);
+                return redirect('/login')->with('error', 'Only approved school Microsoft accounts are allowed.');
             }
             
             // Find user based on Microsoft email
@@ -806,7 +915,7 @@ class AuthController extends Controller
                     'user_agent' => request()->userAgent(),
                 ]);
                 
-                return redirect('/login')->with('error', 'No account found for ' . $email . '. Please contact the administrator to create your account first.');
+                return redirect('/login')->with('error', 'No account was found for this Microsoft email. Please contact the administrator.');
             }
             
             // Account exists - proceed with login
@@ -827,6 +936,16 @@ class AuthController extends Controller
             if ($user->locked_until && now()->lessThan($user->locked_until)) {
                 \Log::warning('Locked account login attempt via OAuth', ['email' => $user->email]);
                 return redirect('/')->with('error', 'Your account has been locked due to too many failed login attempts. Please contact the MIS administrator to unlock your account.');
+            }
+
+            if ($user->microsoft_id && ! hash_equals((string) $user->microsoft_id, (string) $microsoftUser->getId())) {
+                \Log::warning('Microsoft OAuth ID mismatch for existing account', [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'ip' => request()->ip(),
+                ]);
+
+                return redirect('/')->with('error', 'This Microsoft account is not linked to your CampFix account. Please contact the administrator.');
             }
             
             // Update existing user with Microsoft ID if not set
@@ -929,18 +1048,27 @@ class AuthController extends Controller
             \Log::error('Microsoft OAuth invalid state: ' . $e->getMessage());
             
             // Store error in session for debugging
-            session()->flash('oauth_error', 'OAuth state mismatch: ' . $e->getMessage());
+            session()->flash('oauth_error', 'OAuth state mismatch');
             
             return redirect('/')->with('error', 'OAuth session expired. Please try logging in again.');
+        } catch (\DomainException $e) {
+            \Log::warning('Microsoft OAuth policy rejected login', [
+                'reason' => $e->getMessage(),
+                'ip' => request()->ip(),
+            ]);
+
+            session()->flash('oauth_error', 'OAuth account rejected by policy');
+
+            return redirect('/')->with('error', 'Only approved school Microsoft accounts are allowed.');
         } catch (\Exception $e) {
             \Log::error('Microsoft OAuth callback error: ' . $e->getMessage());
             \Log::error('Error class: ' . get_class($e));
             \Log::error('Stack trace: ' . $e->getTraceAsString());
             
             // Store error in session for debugging
-            session()->flash('oauth_error', get_class($e) . ': ' . $e->getMessage());
+            session()->flash('oauth_error', get_class($e));
             
-            return redirect('/')->with('error', 'Failed to authenticate with Microsoft: ' . $e->getMessage());
+            return redirect('/')->with('error', 'Failed to authenticate with Microsoft. Please try again.');
         }
     }
 }

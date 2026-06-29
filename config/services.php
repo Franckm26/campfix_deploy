@@ -68,6 +68,9 @@ return [
         'client_secret' => env('MICROSOFT_CLIENT_SECRET'),
         'redirect' => env('MICROSOFT_REDIRECT_URI'),
         'tenant' => env('MICROSOFT_TENANT_ID', 'common'), // 'common', 'organizations', 'consumers', or specific tenant ID
+        'scopes' => array_values(array_filter(array_map('trim', explode(',', env('MICROSOFT_OAUTH_SCOPES', 'User.Read'))))),
+        'allowed_domains' => array_values(array_filter(array_map('trim', explode(',', env('MICROSOFT_ALLOWED_DOMAINS', 'novaliches.sti.edu.ph'))))),
+        'enforce_tenant' => env('MICROSOFT_ENFORCE_TENANT', false),
     ],
 
 ];
