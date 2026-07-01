@@ -727,19 +727,15 @@ class AuthController extends Controller
     protected function validateMicrosoftRedirectUri(): void
     {
         $configuredRedirect = (string) config('services.microsoft.redirect');
-        $expectedRedirect = rtrim((string) config('app.url'), '/').'/auth/microsoft/callback';
 
         if ($configuredRedirect === '' || str_contains($configuredRedirect, '*')) {
             throw new \RuntimeException('Microsoft OAuth redirect URI is not configured securely.');
         }
 
-        if (rtrim($configuredRedirect, '/') !== rtrim($expectedRedirect, '/')) {
-            \Log::warning('Microsoft OAuth redirect URI mismatch', [
-                'configured_host' => parse_url($configuredRedirect, PHP_URL_HOST),
-                'expected_host' => parse_url($expectedRedirect, PHP_URL_HOST),
-            ]);
+        $parts = parse_url($configuredRedirect);
 
-            throw new \RuntimeException('Microsoft OAuth redirect URI does not match this application.');
+        if (! isset($parts['scheme'], $parts['host']) || ($parts['path'] ?? '') !== '/auth/microsoft/callback') {
+            throw new \RuntimeException('Microsoft OAuth redirect URI is invalid.');
         }
     }
 
@@ -1061,9 +1057,15 @@ class AuthController extends Controller
 
             return redirect('/')->with('error', 'Only approved school Microsoft accounts are allowed.');
         } catch (\Exception $e) {
-            \Log::error('Microsoft OAuth callback error: ' . $e->getMessage());
-            \Log::error('Error class: ' . get_class($e));
-            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            \Log::error('Microsoft OAuth callback error', [
+                'message' => $e->getMessage(),
+                'class' => get_class($e),
+                'redirect_host' => parse_url((string) config('services.microsoft.redirect'), PHP_URL_HOST),
+                'ip' => request()->ip(),
+            ]);
+            \Log::debug('Microsoft OAuth callback stack trace', [
+                'trace' => $e->getTraceAsString(),
+            ]);
             
             // Store error in session for debugging
             session()->flash('oauth_error', get_class($e));
