@@ -734,7 +734,7 @@ class AuthController extends Controller
 
         $parts = parse_url($configuredRedirect);
 
-        if (! isset($parts['scheme'], $parts['host']) || ($parts['path'] ?? '') !== '/auth/microsoft/callback') {
+        if (! isset($parts['scheme'], $parts['host']) || rtrim($parts['path'] ?? '', '/') !== '/auth/microsoft/callback') {
             throw new \RuntimeException('Microsoft OAuth redirect URI is invalid.');
         }
     }
@@ -788,7 +788,7 @@ class AuthController extends Controller
 
         if (isset($accessTokenClaims['scp'])) {
             $grantedScopes = array_filter(explode(' ', (string) $accessTokenClaims['scp']));
-            $allowedScopes = $this->microsoftOauthScopes();
+            $allowedScopes = array_merge($this->microsoftOauthScopes(), ['openid', 'profile', 'email', 'offline_access']);
             $extraScopes = array_diff($grantedScopes, $allowedScopes);
 
             if ($extraScopes !== []) {
