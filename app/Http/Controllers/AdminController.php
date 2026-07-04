@@ -428,6 +428,24 @@ class AdminController extends Controller
 
             $report->save();
 
+            if ($newStatus !== 'Resolved' && $oldStatus !== $newStatus) {
+                $correspondingConcern = $report->concern;
+                if ($correspondingConcern) {
+                    $correspondingConcern->status = $newStatus;
+                    if ($newStatus === 'In Progress') {
+                        $correspondingConcern->damaged_part = $request->input('damaged_part');
+                    }
+                    $correspondingConcern->save();
+
+                    $this->sendConcernUpdateNotification(
+                        $correspondingConcern,
+                        'Concern Status Updated',
+                        "Your concern status changed from {$oldStatus} to {$newStatus}.",
+                        $user
+                    );
+                }
+            }
+
             // Log activity
             $activityMessage = "Status changed from {$oldStatus} to {$newStatus}";
             if ($newStatus === 'Resolved' && $user->role === 'maintenance') {
@@ -587,18 +605,22 @@ class AdminController extends Controller
 
             // Sync the corresponding concern
             $concern = $report->concern;
-            if ($concern && $concern->status === 'Pending') {
+            if ($concern) {
+                $oldConcernStatus = $concern->status;
+                $oldConcernAssignee = $concern->assigned_to;
                 $concern->assigned_to = $request->input('assigned_to');
                 $concern->assigned_at = now();
                 $concern->status      = 'Assigned';
                 $concern->save();
 
-                $this->sendConcernUpdateNotification(
-                    $concern,
-                    'Concern Assigned',
-                    "Your concern has been assigned to {$assignedName}.",
-                    $user
-                );
+                if ($oldConcernStatus !== 'Assigned' || (int) $oldConcernAssignee !== (int) $concern->assigned_to) {
+                    $this->sendConcernUpdateNotification(
+                        $concern,
+                        'Concern Assigned',
+                        "Your concern has been assigned to {$assignedName}.",
+                        $user
+                    );
+                }
             }
 
             // Log activity for report (wrapped in try-catch to prevent failure if ActivityLog has issues)

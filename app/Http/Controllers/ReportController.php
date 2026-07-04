@@ -7,6 +7,7 @@ use App\Models\ArchiveFolder;
 use App\Models\Category;
 use App\Models\Report;
 use App\Models\ReportStatusLog;
+use App\Services\NotificationService;
 use App\Services\SecureFileUpload;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -603,7 +604,7 @@ class ReportController extends Controller
 
         // Sync the corresponding concern status
         $concern = $report->concern;
-        if ($concern && $concern->status !== 'Resolved') {
+        if ($concern && $oldStatus !== $newStatus) {
             $concern->status = $newStatus;
             if ($newStatus === 'Resolved') {
                 $concern->resolved_at = now();
@@ -613,6 +614,18 @@ class ReportController extends Controller
                 $concern->replaced_part = $request->replaced_part ?? null;
             }
             $concern->save();
+
+            $notificationService = new NotificationService;
+            if ($newStatus === 'Resolved') {
+                $notificationService->notifyConcernResolved($concern, $user->name);
+            } else {
+                $notificationService->notifyConcernUpdated(
+                    $concern,
+                    'Concern Status Updated',
+                    "Your concern status changed from {$oldStatus} to {$newStatus}.",
+                    $user->name
+                );
+            }
         }
 
         // Log the activity
