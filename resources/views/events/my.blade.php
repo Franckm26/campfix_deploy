@@ -1480,51 +1480,73 @@ function viewEvent(id) {
         // Calculate approval progress from the actual approval flow.
         const approvalLevel = event.approval_level || 0;
         const isShsEvent = event.education_level === 'shs';
-        const approvalSteps = isShsEvent ? [
-            {
-                label: 'Principal Assistant',
-                level: 1,
-                approved: !!event.approved_by_level_1,
-                current: event.status === 'Pending' && approvalLevel === 1
-            },
-            {
-                label: 'Academic Head',
-                level: 2,
-                approved: !!event.approved_by_level_2,
-                current: event.status === 'Pending' && approvalLevel === 2
-            },
-            {
-                label: 'School Admin',
-                level: 4,
-                approved: event.status === 'Approved',
-                current: event.status === 'Pending' && approvalLevel === 4
-            }
-        ] : [
-            {
-                label: 'Program Head',
-                level: 1,
-                approved: !!event.approved_by_level_1,
-                current: event.status === 'Pending' && approvalLevel === 1
-            },
-            {
-                label: 'Academic Head',
-                level: 2,
-                approved: !!event.approved_by_level_2,
-                current: event.status === 'Pending' && approvalLevel === 2
-            },
-            {
-                label: 'Building Admin',
-                level: 3,
-                approved: !!event.approved_by_level_3,
-                current: event.status === 'Pending' && approvalLevel === 3
-            },
-            {
-                label: 'School Admin',
-                level: 4,
-                approved: event.status === 'Approved',
-                current: event.status === 'Pending' && approvalLevel === 4
-            }
-        ];
+        const isNonAcademicEvent = event.request_type === 'Non-Academic';
+        let approvalSteps;
+
+        if (isShsEvent) {
+            approvalSteps = [
+                {
+                    label: 'Principal Assistant',
+                    level: 1,
+                    approved: !!event.approved_by_level_1,
+                    current: event.status === 'Pending' && approvalLevel === 1
+                },
+                {
+                    label: 'Academic Head',
+                    level: 2,
+                    approved: !!event.approved_by_level_2,
+                    current: event.status === 'Pending' && approvalLevel === 2
+                },
+                {
+                    label: 'School Admin',
+                    level: 4,
+                    approved: event.status === 'Approved',
+                    current: event.status === 'Pending' && approvalLevel === 4
+                }
+            ];
+        } else if (isNonAcademicEvent) {
+            approvalSteps = [
+                {
+                    label: 'Building Admin',
+                    level: 3,
+                    approved: !!event.approved_by_level_3,
+                    current: event.status === 'Pending' && approvalLevel === 3
+                },
+                {
+                    label: 'School Admin',
+                    level: 4,
+                    approved: event.status === 'Approved',
+                    current: event.status === 'Pending' && approvalLevel === 4
+                }
+            ];
+        } else {
+            approvalSteps = [
+                {
+                    label: 'Program Head',
+                    level: 1,
+                    approved: !!event.approved_by_level_1,
+                    current: event.status === 'Pending' && approvalLevel === 1
+                },
+                {
+                    label: 'Academic Head',
+                    level: 2,
+                    approved: !!event.approved_by_level_2,
+                    current: event.status === 'Pending' && approvalLevel === 2
+                },
+                {
+                    label: 'Building Admin',
+                    level: 3,
+                    approved: !!event.approved_by_level_3,
+                    current: event.status === 'Pending' && approvalLevel === 3
+                },
+                {
+                    label: 'School Admin',
+                    level: 4,
+                    approved: event.status === 'Approved',
+                    current: event.status === 'Pending' && approvalLevel === 4
+                }
+            ];
+        }
         const totalApprovalSteps = approvalSteps.length;
         const doneApprovalSteps = event.status === 'Approved' ? totalApprovalSteps :
             event.status === 'Rejected' || event.status === 'Cancelled' ? 0 :
@@ -1532,7 +1554,7 @@ function viewEvent(id) {
         const progressPercentage = totalApprovalSteps > 0
             ? Math.round((doneApprovalSteps / totalApprovalSteps) * 100)
             : 0;
-        const approvalStepColClass = totalApprovalSteps === 3 ? 'col-4' : 'col-3';
+        const approvalStepColClass = totalApprovalSteps === 2 ? 'col-6' : (totalApprovalSteps === 3 ? 'col-4' : 'col-3');
         const approvalStepsHtml = approvalSteps.map(step => {
             const isApproved = event.status === 'Approved' || step.approved;
             const isRejected = event.status === 'Rejected' && approvalLevel >= step.level;
@@ -2424,7 +2446,6 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 @endsection
-
 
 
 
