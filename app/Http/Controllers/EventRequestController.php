@@ -134,6 +134,8 @@ class EventRequestController extends Controller
                 'image_path' => $imagePath,
             ]);
 
+            $user = auth()->user();
+
             ActivityLog::log(
                 'event_request_created',
                 "New event request submitted: '{$eventRequest->title}' (ID: {$eventRequest->id}) by {$user->name} ({$user->role}) - Location: {$eventRequest->event_location}, Date: " . ($eventRequest->start_date ? $eventRequest->start_date->format('M d, Y') : 'N/A') . ", Attendees: {$eventRequest->expected_attendees}, Audience: {$eventRequest->intended_for}",
@@ -164,7 +166,6 @@ class EventRequestController extends Controller
             }
 
             // Auto-approve for the requester if they are also an approver
-            $user = auth()->user();
             $autoApproved = false;
             $approvalHistory = [];
 
