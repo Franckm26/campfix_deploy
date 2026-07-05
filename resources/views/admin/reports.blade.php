@@ -425,7 +425,7 @@
                                                 <button type="button" class="btn btn-sm btn-info" onclick="viewReport({{ $report->id }})" title="View">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
-                                                <button type="button" class="btn btn-sm btn-primary" onclick="assignReport({{ $report->id }})" title="Assign">
+                                                <button type="button" class="btn btn-sm btn-primary" onclick="assignReport({{ $report->id }})" title="{{ $report->assigned_to ? 'Reassign' : 'Assign' }}">
                                                     <i class="fas fa-user-plus"></i>
                                                 </button>
                                                 <button type="button" class="btn btn-sm btn-info bg-transparent border-0" onclick="viewReportProgress({{ $report->id }})" title="View Progress">
@@ -526,7 +526,7 @@
                                 <i class="fas fa-eye"></i> View
                             </button>
                             <button type="button" class="btn btn-sm btn-primary" onclick="assignReport({{ $report->id }})">
-                                <i class="fas fa-user-plus"></i> Assign
+                                <i class="fas fa-user-plus"></i> {{ $report->assigned_to ? 'Reassign' : 'Assign' }}
                             </button>
                             @if(!$report->isArchivedByUser(auth()->id()))
                                 <button type="button" class="btn btn-sm btn-secondary" onclick="showReportArchiveModal({{ $report->id }})">
@@ -2277,6 +2277,7 @@ window.startAssignWizard = async function() {
     // First, fetch the report/concern details to check category
     let reportCategory = null;
     let isTechnologyCategory = false;
+    let isReassignment = false;
     
     try {
         const detailsRes = await fetch('/admin/reports/' + itemId + '/modal-data', {
@@ -2288,6 +2289,9 @@ window.startAssignWizard = async function() {
             reportCategory = detailsData.report.category.name;
             isTechnologyCategory = reportCategory === 'Technology/Internet';
         }
+        if (detailsData.report) {
+            isReassignment = !!detailsData.report.assigned_to;
+        }
     } catch(e) {
         console.error('Error fetching report details:', e);
     }
@@ -2295,6 +2299,8 @@ window.startAssignWizard = async function() {
     // Determine which endpoint to use based on category
     const staffEndpoint = isTechnologyCategory ? '/admin/mis-users' : '/admin/maintenance-users';
     const staffLabel = isTechnologyCategory ? 'MIS Staff' : 'Maintenance Staff';
+    const actionLabel = isReassignment ? 'Reassign' : 'Assign';
+    const actionVerb = isReassignment ? 'reassigned' : 'assigned';
 
     // Load staff list
     let staffOptions = '<option value="">Loading...</option>';
@@ -2316,15 +2322,15 @@ window.startAssignWizard = async function() {
 
     // Show single-step assign dialog
     const result = await getSwal().fire({
-        title: `Assign ${itemType.charAt(0).toUpperCase() + itemType.slice(1)}`,
+        title: `${actionLabel} ${itemType.charAt(0).toUpperCase() + itemType.slice(1)}`,
         html: `
             <div class="text-start">
-                <p class="mb-3">Assign to ${staffLabel}</p>
+                <p class="mb-3">${actionLabel} to ${staffLabel}</p>
                 <select id="swal-staff-select" class="form-select" style="width:100%;">
                     ${staffOptions}
                 </select>
             </div>`,
-        confirmButtonText: '<i class="fas fa-user-plus me-1"></i> Assign',
+        confirmButtonText: `<i class="fas fa-user-plus me-1"></i> ${actionLabel}`,
         cancelButtonText: 'Cancel',
         showCancelButton: true,
         confirmButtonColor: '#0d6efd',
@@ -2349,7 +2355,7 @@ window.startAssignWizard = async function() {
 
     // Show loading
     getSwal().fire({
-        title: 'Assigning...',
+        title: isReassignment ? 'Reassigning...' : 'Assigning...',
         html: '<div class="text-center"><div class="spinner-border text-primary" role="status"></div></div>',
         showConfirmButton: false,
         allowOutsideClick: false,
@@ -2380,7 +2386,7 @@ window.startAssignWizard = async function() {
             await getSwal().fire({
                 title: 'Set Priority',
                 html: `
-                    <p class="mb-3">${itemType.charAt(0).toUpperCase() + itemType.slice(1)} assigned to <strong>${selectedStaffName}</strong>.</p>
+                    <p class="mb-3">${itemType.charAt(0).toUpperCase() + itemType.slice(1)} ${actionVerb} to <strong>${selectedStaffName}</strong>.</p>
                     <div class="d-grid gap-2">
                         <button type="button" class="btn btn-sm swal-priority-btn" data-priority="safety_hazard" style="background: linear-gradient(135deg, #dc3545 0%, #8b0000 100%); color: white; border: 2px solid #8b0000; font-weight: bold;">
                             <i class="fas fa-exclamation-triangle me-1"></i> Safety Hazard
@@ -2436,7 +2442,7 @@ window.startAssignWizard = async function() {
             await getSwal().fire({
                 icon: 'success',
                 title: 'Done!',
-                text: 'Assigned to ' + selectedStaffName + ' with ' + priorityText + ' priority.',
+                text: (isReassignment ? 'Reassigned' : 'Assigned') + ' to ' + selectedStaffName + ' with ' + priorityText + ' priority.',
                 confirmButtonColor: '#198754',
                 timer: 2000,
                 showConfirmButton: false
@@ -2446,7 +2452,7 @@ window.startAssignWizard = async function() {
             await getSwal().fire({
                 icon: 'error',
                 title: 'Error',
-                text: data.error || 'Failed to assign ' + itemType,
+                text: data.error || 'Failed to ' + actionLabel.toLowerCase() + ' ' + itemType,
                 confirmButtonColor: '#dc3545'
             });
         }
@@ -2454,7 +2460,7 @@ window.startAssignWizard = async function() {
         await getSwal().fire({
             icon: 'error',
             title: 'Error',
-            text: 'Error assigning ' + itemType,
+            text: 'Error ' + (isReassignment ? 'reassigning ' : 'assigning ') + itemType,
             confirmButtonColor: '#dc3545'
         });
     }
