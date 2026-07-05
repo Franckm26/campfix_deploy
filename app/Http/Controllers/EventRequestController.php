@@ -8,6 +8,7 @@ use App\Models\Concern;
 use App\Models\EventRequest;
 use App\Models\FacilityRequest;
 use App\Models\Report;
+use App\Models\User;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -421,12 +422,9 @@ class EventRequestController extends Controller
 
         // ========== APPROVED VIEW ==========
         if ($viewType === 'approved') {
-            $query = EventRequest::where('user_id', Auth::id())
-                ->where('is_deleted', false)
-                ->where('status', 'Approved')
-                ->whereRaw("(event_date + end_time::time) > NOW()");
-
-            $approvedRequests = $query->orderBy('event_date', 'asc')->get();
+            $approvedRequests = $this->approvedRequestsForUser($user)
+                ->orderBy('event_date', 'asc')
+                ->get();
 
             return view('events.my', [
                 'approvedRequests' => $approvedRequests,
@@ -580,10 +578,7 @@ class EventRequestController extends Controller
         $requests = $query->orderBy('created_at', 'desc')->get();
 
         // Always fetch counts for tab badges
-        $approvedRequests = EventRequest::where('user_id', Auth::id())
-            ->where('is_deleted', false)
-            ->where('status', 'Approved')
-            ->whereRaw("(event_date + end_time::time) > NOW()")
+        $approvedRequests = $this->approvedRequestsForUser($user)
             ->orderBy('event_date', 'asc')
             ->get();
 
@@ -612,6 +607,35 @@ class EventRequestController extends Controller
             ->get();
 
         return view('events.my', compact('requests', 'viewType', 'approvedRequests', 'finishedRequests', 'rejectedRequests', 'archivedRequests', 'deletedRequests', 'facilities'));
+    }
+
+    private function approvedRequestsForUser(User $user)
+    {
+        return EventRequest::where('is_deleted', false)
+            ->whereRaw("(event_date + end_time::time) > NOW()")
+            ->whereNotIn('status', ['Rejected', 'Cancelled'])
+            ->where(function ($query) use ($user) {
+                $query->where(function ($ownRequests) use ($user) {
+                    $ownRequests->where('user_id', $user->id)
+                        ->where('status', EventRequest::STATUS_APPROVED);
+                });
+
+                if ($user->isProgramHead() || $user->isPrincipalAssistant()) {
+                    $query->orWhere('approved_by_level_1', $user->id);
+                }
+
+                if ($user->isAcademicHead()) {
+                    $query->orWhere('approved_by_level_2', $user->id);
+                }
+
+                if ($user->isBuildingAdmin()) {
+                    $query->orWhereNotNull('approved_by_level_3');
+                }
+
+                if ($user->isSchoolAdmin() || $user->isAdmin()) {
+                    $query->orWhere('approved_by', $user->id);
+                }
+            });
     }
 
     // Approve request - handles multi-level approval (ALL approvers must approve at each level)
