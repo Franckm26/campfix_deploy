@@ -2302,6 +2302,21 @@ window.startAssignWizard = async function() {
     const actionLabel = isReassignment ? 'Reassign' : 'Assign';
     const actionVerb = isReassignment ? 'reassigned' : 'assigned';
 
+    if (isReassignment) {
+        const confirmReassign = await getSwal().fire({
+            icon: 'question',
+            title: 'Reassign this report?',
+            text: 'This report is already assigned. Do you want to reassign it to someone else?',
+            confirmButtonText: 'Yes, reassign',
+            cancelButtonText: 'No',
+            showCancelButton: true,
+            confirmButtonColor: '#0d6efd',
+            cancelButtonColor: '#6c757d'
+        });
+
+        if (!confirmReassign.isConfirmed) return;
+    }
+
     // Load staff list
     let staffOptions = '<option value="">Loading...</option>';
     try {
