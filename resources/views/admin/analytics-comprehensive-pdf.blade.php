@@ -686,6 +686,116 @@
     <div class="no-data">No trend alerts detected for the selected period.</div>
     @endif
 
+    <!-- Page Break -->
+    <div class="page-break"></div>
+
+    <!-- 7. Employee Performance Summary -->
+    <h3 class="section-title">7. Employee Performance Summary</h3>
+    @if(isset($employeePerformanceStats) && $employeePerformanceStats->count() > 0)
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 20%;">Employee</th>
+                <th style="width: 16%;">Position</th>
+                <th style="width: 12%;">Department</th>
+                <th style="width: 9%;" class="text-center">Assigned</th>
+                <th style="width: 9%;" class="text-center">Resolved</th>
+                <th style="width: 9%;" class="text-center">Active</th>
+                <th style="width: 10%;" class="text-center">Completion</th>
+                <th style="width: 10%;" class="text-center">Performance</th>
+                <th style="width: 15%;">Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($employeePerformanceStats as $employee)
+            <tr>
+                <td>
+                    <strong>{{ $employee['name'] }}</strong><br>
+                    <span style="font-size:8px;color:#666;">{{ $employee['email'] ?? 'N/A' }}</span>
+                </td>
+                <td>{{ $employee['position'] }}</td>
+                <td>{{ $employee['department'] }}</td>
+                <td class="text-center">{{ $employee['assigned_count'] }}</td>
+                <td class="text-center">{{ $employee['resolved_count'] }}</td>
+                <td class="text-center">{{ $employee['active_count'] }}</td>
+                <td class="text-center">{{ $employee['completion_rate'] }}%</td>
+                <td class="text-center">
+                    <span style="background:#dcfce7;color:#15803d;padding:2px 6px;border-radius:3px;font-weight:bold;">
+                        {{ $employee['performance_score'] }}%
+                    </span>
+                </td>
+                <td>{{ $employee['performance_status'] }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+
+    <h4 style="margin-top: 15px; margin-bottom: 10px; font-size: 12px; color: #003087;">Employee Detail Breakdown</h4>
+    @foreach($employeePerformanceStats as $employee)
+    <div style="margin-bottom: 18px; page-break-inside: avoid; border: 1px solid #e5e7eb; padding: 10px; border-radius: 4px;">
+        <div style="font-size: 12px; font-weight: bold; color: #003087; margin-bottom: 4px;">
+            {{ $employee['name'] }} - {{ $employee['position'] }}
+        </div>
+        <div style="font-size: 9px; color: #666; margin-bottom: 8px;">
+            {{ $employee['department'] }} | {{ $employee['email'] ?? 'N/A' }} | {{ $employee['phone'] ?? 'N/A' }}
+        </div>
+        <div style="display: table; width: 100%; margin-bottom: 8px;">
+            <div style="display: table-cell; width: 16.66%; text-align: center; padding: 6px; background: #f8f9fa;">
+                <strong>{{ $employee['assigned_count'] }}</strong><br><span style="font-size:7px;color:#666;">Assigned</span>
+            </div>
+            <div style="display: table-cell; width: 16.66%; text-align: center; padding: 6px; background: #f8f9fa;">
+                <strong>{{ $employee['resolved_count'] }}</strong><br><span style="font-size:7px;color:#666;">Resolved</span>
+            </div>
+            <div style="display: table-cell; width: 16.66%; text-align: center; padding: 6px; background: #f8f9fa;">
+                <strong>{{ $employee['active_count'] }}</strong><br><span style="font-size:7px;color:#666;">Active</span>
+            </div>
+            <div style="display: table-cell; width: 16.66%; text-align: center; padding: 6px; background: #f8f9fa;">
+                <strong>{{ $employee['completion_rate'] }}%</strong><br><span style="font-size:7px;color:#666;">Completion</span>
+            </div>
+            <div style="display: table-cell; width: 16.66%; text-align: center; padding: 6px; background: #f8f9fa;">
+                <strong>{{ $employee['avg_resolution_hours'] !== null ? number_format($employee['avg_resolution_hours'], 1) . 'h' : 'N/A' }}</strong><br><span style="font-size:7px;color:#666;">Avg Resolution</span>
+            </div>
+            <div style="display: table-cell; width: 16.66%; text-align: center; padding: 6px; background: #f8f9fa;">
+                <strong>{{ $employee['performance_score'] }}%</strong><br><span style="font-size:7px;color:#666;">Performance</span>
+            </div>
+        </div>
+        <div style="font-size: 9px; margin-bottom: 8px;">
+            <strong>Total Repair Cost Handled:</strong> PHP {{ number_format($employee['total_cost_handled'], 2) }}
+        </div>
+        <table style="margin-top: 6px;">
+            <thead>
+                <tr>
+                    <th style="width: 12%;">Ticket</th>
+                    <th style="width: 24%;">Issue</th>
+                    <th style="width: 18%;">Location</th>
+                    <th style="width: 16%;">Status</th>
+                    <th style="width: 15%;" class="text-right">Cost</th>
+                    <th style="width: 15%;">Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($employee['recent_tickets'] as $ticket)
+                <tr>
+                    <td>{{ $ticket['ticket'] }}</td>
+                    <td>{{ $ticket['issue'] }}</td>
+                    <td>{{ $ticket['location'] }}</td>
+                    <td>{{ $ticket['status'] }}</td>
+                    <td class="text-right">PHP {{ number_format($ticket['cost'], 2) }}</td>
+                    <td>{{ $ticket['created_at'] }}</td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="6" class="text-center">No recent tickets found.</td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+    @endforeach
+    @else
+    <div class="no-data">No employee performance data available for the selected period.</div>
+    @endif
+
     <!-- Footer -->
     <div class="footer">
         <p>This is a computer-generated document. No signature is required.</p>

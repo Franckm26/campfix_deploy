@@ -4,9 +4,17 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>Employee Performance Report</title>
     <style>
-        body { font-family: DejaVu Sans, Arial, sans-serif; font-size: 11px; color: #1f2937; margin: 0; padding: 22px; }
-        .header { border-bottom: 3px solid #0d6efd; padding-bottom: 12px; margin-bottom: 18px; }
-        h1 { font-size: 20px; margin: 0 0 4px; color: #0d1b2a; }
+        body { font-family: DejaVu Sans, Arial, sans-serif; font-size: 11px; color: #1f2937; margin: 0; padding: 20px; padding-bottom: 70px; }
+        .letterhead { display: table; width: 100%; margin-bottom: 20px; border-bottom: 3px solid #003087; padding-bottom: 12px; }
+        .letterhead-left-logo { display: table-cell; width: 70px; vertical-align: middle; }
+        .letterhead-right-logo { display: table-cell; width: 70px; vertical-align: middle; text-align: right; }
+        .letterhead-left-logo img, .letterhead-right-logo img { width: 60px; height: 60px; }
+        .letterhead-info { display: table-cell; vertical-align: middle; text-align: center; padding: 0 15px; }
+        .school-name { font-size: 16px; font-weight: 700; color: #003087; letter-spacing: 0.5px; }
+        .school-address { font-size: 10px; color: #555; margin-top: 2px; }
+        .school-tagline { font-size: 10px; color: #003087; font-style: italic; margin-top: 2px; }
+        .report-title { text-align: center; margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 5px; }
+        .report-title h1 { font-size: 18px; margin: 0 0 5px; color: #003087; }
         .muted { color: #64748b; }
         table { width: 100%; border-collapse: collapse; margin-bottom: 18px; }
         th, td { border: 1px solid #e5e7eb; padding: 8px; vertical-align: top; }
@@ -28,13 +36,36 @@
         .metric-value { font-size: 14px; font-weight: 800; margin-top: 3px; }
         ul { margin: 6px 0 0 18px; padding: 0; }
         .small-table th, .small-table td { font-size: 9px; padding: 5px; }
+        .footer { position: fixed; bottom: 15px; left: 20px; right: 20px; text-align: center; font-size: 8px; color: #666; border-top: 1px solid #ddd; padding-top: 8px; }
     </style>
 </head>
 <body>
-    <div class="header">
+    @php
+        $stiLogoPath = public_path('Campfix/Images/images.png');
+        $campfixLogoPath = public_path('Campfix/Images/logo.png');
+    @endphp
+    <div class="letterhead">
+        <div class="letterhead-left-logo">
+            @if(file_exists($stiLogoPath))
+                <img src="data:image/png;base64,{{ base64_encode(file_get_contents($stiLogoPath)) }}" alt="STI Logo">
+            @endif
+        </div>
+        <div class="letterhead-info">
+            <div class="school-name">STI COLLEGE NOVALICHES</div>
+            <div class="school-address">STI Academic Center, Diamond Avenue corner Quirino Highway, San Bartolome, Novaliches, Quezon City</div>
+            <div class="school-tagline">Campus Facility Management System - CampFix</div>
+        </div>
+        <div class="letterhead-right-logo">
+            @if(file_exists($campfixLogoPath))
+                <img src="data:image/png;base64,{{ base64_encode(file_get_contents($campfixLogoPath)) }}" alt="CampFix Logo">
+            @endif
+        </div>
+    </div>
+
+    <div class="report-title">
         <h1>Employee Performance Report</h1>
-        <div class="muted">Analytics period: {{ $dateRange }}</div>
-        <div class="muted">Generated: {{ now()->format('M d, Y h:i A') }}</div>
+        <div class="muted"><strong>Period:</strong> {{ $dateRange }}</div>
+        <div class="muted"><strong>Generated:</strong> {{ now()->format('F d, Y h:i A') }}</div>
     </div>
 
     <h2 style="font-size:15px;margin:0 0 8px;">Performance Summary</h2>
@@ -140,5 +171,10 @@
         </table>
     </div>
     @endforeach
+
+    <div class="footer">
+        <p>This is a computer-generated document. No signature is required.</p>
+        <p>© {{ date('Y') }} STI College Novaliches - CampFix Facility Management System</p>
+    </div>
 </body>
 </html>

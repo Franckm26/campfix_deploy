@@ -7020,6 +7020,7 @@ class AdminController extends Controller
             
             // Sort by recent count descending and take top 10
             $trendAlertsData = $trendAlertsData->sortByDesc('recent_count')->take(10)->values();
+            $employeePerformanceStats = $this->buildEmployeePerformanceStats($request);
 
             $pdf = \PDF::loadView('admin.analytics-comprehensive-pdf', compact(
                 'totalConcerns',
@@ -7039,7 +7040,8 @@ class AdminController extends Controller
                 'avgTotalTime',
                 'responseTimeDetails',
                 'dateRange',
-                'trendAlertsData'
+                'trendAlertsData',
+                'employeePerformanceStats'
             ));
 
             return $pdf->stream('comprehensive-analytics-' . now()->format('Y-m-d') . '.pdf');
@@ -7385,9 +7387,14 @@ class AdminController extends Controller
         $employeeReports = $employeeReportQuery->get()->groupBy('assigned_to');
         $maxAssignedReports = max(1, $employeeReports->map->count()->max() ?? 1);
 
-        return MaintenanceStaff::where('is_active', true)
-            ->orderBy('name')
-            ->get()
+        $staffQuery = MaintenanceStaff::where('is_active', true)
+            ->orderBy('name');
+
+        if ($request->filled('employee_id')) {
+            $staffQuery->where('id', $request->input('employee_id'));
+        }
+
+        return $staffQuery->get()
             ->map(function ($employee) use ($employeeReports, $maxAssignedReports) {
                 $reports = $employeeReports->get($employee->id, collect());
                 $assignedCount = $reports->count();

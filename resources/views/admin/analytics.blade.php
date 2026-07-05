@@ -1390,6 +1390,7 @@
     window.locationDetailedStats = {!! json_encode($locationStatsDetailed ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
     window.responseTimeStats = {!! json_encode($responseTimeStats ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
     window.employeePerformanceStats = {!! json_encode($employeePerformanceStats ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
+    window.employeePerformancePdfUrl = '{{ route('admin.analytics.employee-performance-pdf') }}';
     window.avgSubmittedToAssigned = {{ $avgSubmittedToAssigned ?? 0 }};
     window.avgAssignedToResolved = {{ $avgAssignedToResolved ?? 0 }};
     window.avgTotalTime = {{ $avgTotalTime ?? 0 }};
@@ -3374,11 +3375,21 @@ function showEmployeePerformanceDetails(employeeId) {
     const avgResolution = employee.avg_resolution_hours === null || employee.avg_resolution_hours === undefined
         ? 'N/A'
         : Number(employee.avg_resolution_hours).toLocaleString('en-PH', { maximumFractionDigits: 1 }) + 'h';
+    const exportUrl = new URL(window.employeePerformancePdfUrl, window.location.origin);
+    new URLSearchParams(window.location.search).forEach((value, key) => {
+        exportUrl.searchParams.set(key, value);
+    });
+    exportUrl.searchParams.set('employee_id', employee.id);
 
     Swal.fire({
         title: 'Employee Details',
         html: `
             <div style="text-align:left;">
+                <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
+                    <a href="${exportUrl.toString()}" target="_blank" class="btn btn-sm btn-danger">
+                        <i class="fas fa-file-pdf me-1"></i> Export PDF
+                    </a>
+                </div>
                 <div style="display:grid;grid-template-columns:110px 1fr auto;gap:20px;align-items:center;margin-bottom:22px;">
                     <div style="width:96px;height:96px;border-radius:50%;background:#eaf2ff;color:#0d6efd;display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:800;">
                         ${(employee.name || '?').charAt(0).toUpperCase()}
