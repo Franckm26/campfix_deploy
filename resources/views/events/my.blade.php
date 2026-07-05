@@ -499,20 +499,16 @@
                                             <td>{{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</td>
                                             <td>{{ $request->location }}</td>
                                             <td>
-                                                <span class="badge bg-{{ $request->status == 'Approved' ? 'success' : ($request->status == 'Rejected' ? 'danger' : ($request->status == 'Cancelled' ? 'secondary' : 'warning')) }}">
-                                                    {{ $request->status }}
-                                                </span>
+                                                <span class="badge bg-success">{{ $request->status }}</span>
                                             </td>
                                             <td class="text-nowrap">
                                                 <div class="btn-group" role="group">
                                                     <button type="button" class="btn btn-sm btn-info" onclick="viewEvent({{ $request->id }})" title="View">
                                                         <i class="fas fa-eye"></i>
                                                     </button>
-                                                    @if($request->status == 'Approved')
                                                     <a href="{{ route('events.pdf', $request->id) }}" class="btn btn-sm btn-primary" title="Download PDF" target="_blank">
                                                         <i class="fas fa-file-pdf"></i>
                                                     </a>
-                                                    @endif
                                                     <a href="#" class="btn btn-sm btn-secondary"
                                                         onclick="event.preventDefault(); showEventArchiveModal({{ $request->id }});"
                                                         title="Archive">
@@ -532,9 +528,7 @@
                                 <div class="event-card" data-id="{{ $request->id }}">
                                     <div class="event-card-header">
                                         <span class="event-card-id">EVT-{{ str_pad($request->id, 5, '0', STR_PAD_LEFT) }}</span>
-                                        <span class="badge bg-{{ $request->status == 'Approved' ? 'success' : ($request->status == 'Rejected' ? 'danger' : ($request->status == 'Cancelled' ? 'secondary' : 'warning')) }}">
-                                            {{ $request->status }}
-                                        </span>
+                                        <span class="badge bg-success">{{ $request->status }}</span>
                                     </div>
                                     <div class="event-card-body">
                                         <div class="event-card-field">
@@ -560,11 +554,9 @@
                                         <button type="button" class="btn btn-sm btn-info" onclick="viewEvent({{ $request->id }})">
                                             <i class="fas fa-eye"></i> View
                                         </button>
-                                        @if($request->status == 'Approved')
                                         <a href="{{ route('events.pdf', $request->id) }}" class="btn btn-sm btn-primary" target="_blank">
                                             <i class="fas fa-file-pdf"></i> PDF
                                         </a>
-                                        @endif
                                         <a href="#" class="btn btn-sm btn-secondary"
                                             onclick="event.preventDefault(); showEventArchiveModal({{ $request->id }});">
                                             <i class="fas fa-archive"></i> Archive
@@ -2454,5 +2446,4 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 @endsection
-
 

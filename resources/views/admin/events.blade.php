@@ -588,6 +588,7 @@
                                 <th>Requestor</th>                                <th>Event Date</th>
                                 <th>Time</th>
                                 <th>Location</th>
+                                <th>Status</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -598,6 +599,11 @@
                                     <td>{{ $event->user->name ?? 'N/A' }}</td>                                    <td>{{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</td>
                                     <td>{{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}</td>
                                     <td>{{ $event->location }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ $event->status == 'Approved' ? 'success' : ($event->status == 'Rejected' ? 'danger' : ($event->status == 'Cancelled' ? 'secondary' : 'warning')) }}">
+                                            {{ $event->status }}
+                                        </span>
+                                    </td>
                                     <td>
                                         <div class="btn-group" role="group">
                                             <button type="button" class="btn btn-sm btn-primary bg-transparent border-0"
@@ -625,7 +631,7 @@
                                             <div class="modal-body">
                                                 <div class="row">
                                                     <div class="col-md-6">
-                                                        <p><strong>Ticket Number:</strong> EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</p>                                                        <p><strong>Status:</strong> <span class="badge bg-success">Approved</span></p>
+                                                        <p><strong>Ticket Number:</strong> EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</p>                                                        <p><strong>Status:</strong> <span class="badge bg-{{ $event->status == 'Approved' ? 'success' : ($event->status == 'Rejected' ? 'danger' : ($event->status == 'Cancelled' ? 'secondary' : 'warning')) }}">{{ $event->status }}</span></p>
                                                     </div>
                                                     <div class="col-md-6">
                                                         <p><strong>Requestor:</strong> {{ $event->user->name ?? 'N/A' }}</p>
@@ -662,7 +668,7 @@
                         <div class="event-card">
                             <div class="event-card-header">
                                 <span class="event-card-ticket">EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</span>
-                                <span class="badge bg-success">Approved</span>
+                                <span class="badge bg-{{ $event->status == 'Approved' ? 'success' : ($event->status == 'Rejected' ? 'danger' : ($event->status == 'Cancelled' ? 'secondary' : 'warning')) }}">{{ $event->status }}</span>
                             </div>
                             <div class="event-card-body">
                                 <div class="event-card-field">
@@ -1916,7 +1922,6 @@ function executeEventAction(type, id) {
 @endif
 
 @endsection
-
 
 
 

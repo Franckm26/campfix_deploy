@@ -422,7 +422,10 @@ class EventRequestController extends Controller
 
         // ========== APPROVED VIEW ==========
         if ($viewType === 'approved') {
-            $approvedRequests = $this->approvedRequestsForUser($user)
+            $approvedRequests = EventRequest::where('user_id', Auth::id())
+                ->where('is_deleted', false)
+                ->where('status', 'Approved')
+                ->whereRaw("(event_date + end_time::time) > NOW()")
                 ->orderBy('event_date', 'asc')
                 ->get();
 
@@ -578,7 +581,10 @@ class EventRequestController extends Controller
         $requests = $query->orderBy('created_at', 'desc')->get();
 
         // Always fetch counts for tab badges
-        $approvedRequests = $this->approvedRequestsForUser($user)
+        $approvedRequests = EventRequest::where('user_id', Auth::id())
+            ->where('is_deleted', false)
+            ->where('status', 'Approved')
+            ->whereRaw("(event_date + end_time::time) > NOW()")
             ->orderBy('event_date', 'asc')
             ->get();
 
@@ -607,35 +613,6 @@ class EventRequestController extends Controller
             ->get();
 
         return view('events.my', compact('requests', 'viewType', 'approvedRequests', 'finishedRequests', 'rejectedRequests', 'archivedRequests', 'deletedRequests', 'facilities'));
-    }
-
-    private function approvedRequestsForUser(User $user)
-    {
-        return EventRequest::where('is_deleted', false)
-            ->whereRaw("(event_date + end_time::time) > NOW()")
-            ->whereNotIn('status', ['Rejected', 'Cancelled'])
-            ->where(function ($query) use ($user) {
-                $query->where(function ($ownRequests) use ($user) {
-                    $ownRequests->where('user_id', $user->id)
-                        ->where('status', EventRequest::STATUS_APPROVED);
-                });
-
-                if ($user->isProgramHead() || $user->isPrincipalAssistant()) {
-                    $query->orWhere('approved_by_level_1', $user->id);
-                }
-
-                if ($user->isAcademicHead()) {
-                    $query->orWhere('approved_by_level_2', $user->id);
-                }
-
-                if ($user->isBuildingAdmin()) {
-                    $query->orWhere('approved_by_level_3', $user->id);
-                }
-
-                if ($user->isSchoolAdmin() || $user->isAdmin()) {
-                    $query->orWhere('approved_by', $user->id);
-                }
-            });
     }
 
     // Approve request - handles multi-level approval (ALL approvers must approve at each level)
@@ -1740,11 +1717,8 @@ class EventRequestController extends Controller
         }
 
         if ($viewType === 'approved') {
-            // Approved events where the end datetime (event_date + end_time) is in the future
-            $approvedEvents = EventRequest::with('user')
-                ->where('is_deleted', false)
-                ->where('status', 'Approved')
-                ->whereRaw("(event_date + end_time::time) > NOW()")
+            $user = auth()->user();
+            $approvedEvents = $this->approvedEventsForApprover($user)
                 ->orderBy('event_date', 'asc')
                 ->get();
 
@@ -1908,6 +1882,34 @@ class EventRequestController extends Controller
         });
 
         return view('admin.events', compact('requests', 'viewType'));
+    }
+
+    private function approvedEventsForApprover(User $user)
+    {
+        return EventRequest::with('user')
+            ->where('is_deleted', false)
+            ->whereRaw("(event_date + end_time::time) > NOW()")
+            ->whereNotIn('status', ['Rejected', 'Cancelled'])
+            ->where(function ($query) use ($user) {
+                if ($user->isProgramHead() || $user->isPrincipalAssistant()) {
+                    $query->orWhere('approved_by_level_1', $user->id);
+                }
+
+                if ($user->isAcademicHead()) {
+                    $query->orWhere('approved_by_level_2', $user->id);
+                }
+
+                if ($user->isBuildingAdmin()) {
+                    $query->orWhere('approved_by_level_3', $user->id);
+                }
+
+                if ($user->isSchoolAdmin() || $user->isAdmin()) {
+                    $query->orWhere(function ($finalApproval) use ($user) {
+                        $finalApproval->where('approved_by', $user->id)
+                            ->where('status', EventRequest::STATUS_APPROVED);
+                    });
+                }
+            });
     }
 
     // Generate PDF for approved event request
