@@ -10,6 +10,7 @@
             $progress  = $request->getApprovalProgress();
             $history   = $request->approval_history ?? [];
             $isShs = ($request->education_level ?? 'tertiary') === 'shs';
+            $isNonAcademic = $request->request_type === 'Non-Academic';
 
             // Determine which approval steps actually exist in this system
             $hasProgramHead   = \App\Models\User::where('role', 'program_head')->exists();
@@ -23,6 +24,9 @@
                 $steps[] = ['level' => 1, 'label' => 'Principal Assistant', 'field_approved' => 'approved_by_level_1', 'field_at' => 'approved_at_level_1'];
                 $steps[] = ['level' => 2, 'label' => 'Academic Head',        'field_approved' => 'approved_by_level_2', 'field_at' => 'approved_at_level_2'];
                 $steps[] = ['level' => 4, 'label' => 'School Admin',         'field_approved' => 'approved_by',         'field_at' => 'approved_at'];
+            } elseif ($isNonAcademic) {
+                if ($hasBuildingAdmin) $steps[] = ['level' => 3, 'label' => 'Building Admin', 'field_approved' => 'approved_by_level_3', 'field_at' => 'approved_at_level_3'];
+                if ($hasSchoolAdmin)   $steps[] = ['level' => 4, 'label' => 'School Admin',   'field_approved' => 'approved_by',         'field_at' => 'approved_at'];
             } else {
                 if ($hasProgramHead)   $steps[] = ['level' => 1, 'label' => $request->department ? ucfirst($request->department).' Dept. Head' : 'Program Head',  'field_approved' => 'approved_by_level_1', 'field_at' => 'approved_at_level_1'];
                 if ($hasAcademicHead)  $steps[] = ['level' => 2, 'label' => 'Academic Head',  'field_approved' => 'approved_by_level_2', 'field_at' => 'approved_at_level_2'];

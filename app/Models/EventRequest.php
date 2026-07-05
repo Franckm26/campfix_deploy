@@ -490,6 +490,34 @@ class EventRequest extends Model
      */
     public function getNextApprovalLevel(): ?int
     {
+        $isShs = ($this->education_level ?? 'tertiary') === 'shs';
+        $isNonAcademic = $this->request_type === 'Non-Academic';
+
+        if ($isShs) {
+            if (! $this->isApprovedByAllProgramHeads()) {
+                return 1;
+            }
+            if (! $this->isApprovedByAllAcademicHeads()) {
+                return 2;
+            }
+            if (! $this->isApprovedByAllSchoolAdmins()) {
+                return 4;
+            }
+
+            return null;
+        }
+
+        if ($isNonAcademic) {
+            if (! $this->isApprovedByAllBuildingAdmins()) {
+                return 3;
+            }
+            if (! $this->isApprovedByAllSchoolAdmins()) {
+                return 4;
+            }
+
+            return null;
+        }
+
         if (! $this->isApprovedByAllProgramHeads()) {
             return 1;
         }
