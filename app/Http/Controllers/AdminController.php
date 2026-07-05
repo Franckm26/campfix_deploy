@@ -9,6 +9,7 @@ use App\Models\Concern;
 use App\Models\EventRequest;
 use App\Models\FacilityRequest;
 use App\Models\LogArchiveFolder;
+use App\Models\MaintenanceStaff;
 use App\Models\Report;
 use App\Models\ReportStatusLog;
 use App\Models\User;
@@ -5071,6 +5072,8 @@ class AdminController extends Controller
             ['path' => request()->url(), 'pageName' => 'alerts_page']
         );
 
+        $employeePerformanceStats = $this->buildEmployeePerformanceStats($request);
+
         // Handle AJAX request for alerts pagination
         if ($request->input('ajax') === 'alerts') {
             $alertsHtml = '';
@@ -5254,6 +5257,7 @@ class AdminController extends Controller
                 'avgAssignedToResolved' => $avgAssignedToResolved ?? 0,
                 'avgTotalTime' => $avgTotalTime ?? 0,
                 'costByCategory' => $costByCategory,
+                'employeePerformanceStats' => $employeePerformanceStats,
             ]);
         }
 
@@ -5277,7 +5281,8 @@ class AdminController extends Controller
             'avgSubmittedToAssigned',
             'avgAssignedToResolved',
             'avgTotalTime',
-            'costByCategory'
+            'costByCategory',
+            'employeePerformanceStats'
         ));
     }
 
@@ -6518,6 +6523,35 @@ class AdminController extends Controller
         }
     }
 
+    public function employeePerformancePDF(Request $request)
+    {
+        try {
+            $employeePerformanceStats = $this->buildEmployeePerformanceStats($request);
+            $dateRange = 'All Time';
+
+            if ($request->filled('date_from') || $request->filled('date_to')) {
+                $from = $request->filled('date_from')
+                    ? \Carbon\Carbon::parse($request->input('date_from'))->format('M d, Y')
+                    : 'Start';
+                $to = $request->filled('date_to')
+                    ? \Carbon\Carbon::parse($request->input('date_to'))->format('M d, Y')
+                    : 'Today';
+                $dateRange = $from . ' - ' . $to;
+            }
+
+            $pdf = \PDF::loadView('admin.analytics-employee-performance-pdf', compact(
+                'employeePerformanceStats',
+                'dateRange'
+            ));
+
+            return $pdf->stream('employee-performance-' . now()->format('Y-m-d') . '.pdf');
+        } catch (\Exception $e) {
+            \Log::error('Employee Performance PDF Generation Error: ' . $e->getMessage());
+
+            return back()->with('error', 'Failed to generate employee performance PDF: ' . $e->getMessage());
+        }
+    }
+
     // Export Combined Location Cost Report to PDF
     public function combinedLocationPDF(Request $request)
     {
@@ -7320,5 +7354,107 @@ class AdminController extends Controller
         ActivityLog::log('facility_soft_deleted', 'Facility request moved to deleted: ' . ($facility->event_title ?? 'N/A'), null);
 
         return back()->with('success', 'Facility request moved to deleted successfully!');
+    }
+
+    private function buildEmployeePerformanceStats(Request $request)
+    {
+        $employeeReportQuery = Report::with('category')
+            ->whereNotNull('assigned_to')
+            ->where('is_deleted', false);
+
+        if ($request->filled('room_filter')) {
+            $employeeReportQuery->where('location', $request->input('room_filter'));
+        }
+
+        if ($request->filled('date_from')) {
+            $employeeReportQuery->whereDate('created_at', '>=', $request->input('date_from'));
+        }
+
+        if ($request->filled('date_to')) {
+            $employeeReportQuery->whereDate('created_at', '<=', $request->input('date_to'));
+        }
+
+        if ($request->filled('month')) {
+            $employeeReportQuery->whereMonth('created_at', $request->input('month'));
+        }
+
+        if ($request->filled('year')) {
+            $employeeReportQuery->whereYear('created_at', $request->input('year'));
+        }
+
+        $employeeReports = $employeeReportQuery->get()->groupBy('assigned_to');
+        $maxAssignedReports = max(1, $employeeReports->map->count()->max() ?? 1);
+
+        return MaintenanceStaff::where('is_active', true)
+            ->orderBy('name')
+            ->get()
+            ->map(function ($employee) use ($employeeReports, $maxAssignedReports) {
+                $reports = $employeeReports->get($employee->id, collect());
+                $assignedCount = $reports->count();
+                $resolvedReports = $reports->where('status', 'Resolved');
+                $resolvedCount = $resolvedReports->count();
+                $activeCount = $reports->whereIn('status', ['Assigned', 'In Progress', 'Pending'])->count();
+                $completionRate = $assignedCount > 0 ? round(($resolvedCount / $assignedCount) * 100) : 0;
+
+                $resolutionHours = $resolvedReports
+                    ->filter(fn ($report) => $report->assigned_at && $report->resolved_at)
+                    ->map(fn ($report) => $report->assigned_at->diffInMinutes($report->resolved_at) / 60);
+                $avgResolutionHours = $resolutionHours->count() > 0 ? round($resolutionHours->avg(), 1) : null;
+
+                $volumeScore = min(100, round(($assignedCount / $maxAssignedReports) * 100));
+                $speedScore = $avgResolutionHours === null
+                    ? ($resolvedCount > 0 ? 80 : 0)
+                    : max(40, min(100, round(100 - min($avgResolutionHours, 72))));
+                $performanceScore = $assignedCount > 0
+                    ? round(($completionRate * 0.55) + ($volumeScore * 0.25) + ($speedScore * 0.20))
+                    : 0;
+
+                $status = match (true) {
+                    $performanceScore >= 90 => 'Excellent',
+                    $performanceScore >= 80 => 'Very Good',
+                    $performanceScore >= 70 => 'Good',
+                    $performanceScore >= 60 => 'Needs Monitoring',
+                    default => 'No Data',
+                };
+
+                return [
+                    'id' => $employee->id,
+                    'name' => $employee->name,
+                    'email' => $employee->email,
+                    'phone' => $employee->contact_number,
+                    'position' => $employee->specialization ?: 'Maintenance Staff',
+                    'department' => str_contains(strtolower($employee->specialization ?? ''), 'internet') || str_contains(strtolower($employee->specialization ?? ''), 'computer')
+                        ? 'MIS'
+                        : 'Maintenance',
+                    'status' => $employee->is_active ? 'Active' : 'Inactive',
+                    'performance_status' => $status,
+                    'performance_score' => $performanceScore,
+                    'completion_rate' => $completionRate,
+                    'assigned_count' => $assignedCount,
+                    'resolved_count' => $resolvedCount,
+                    'active_count' => $activeCount,
+                    'avg_resolution_hours' => $avgResolutionHours,
+                    'total_cost_handled' => (float) $resolvedReports->sum('cost'),
+                    'recent_tickets' => $reports
+                        ->sortByDesc('created_at')
+                        ->take(6)
+                        ->map(fn ($report) => [
+                            'ticket' => '#' . str_pad($report->id, 4, '0', STR_PAD_LEFT),
+                            'issue' => $report->title ?? 'Report',
+                            'location' => $report->location ?? 'N/A',
+                            'status' => $report->status,
+                            'cost' => (float) ($report->cost ?? 0),
+                            'created_at' => optional($report->created_at)->format('M d, Y'),
+                        ])
+                        ->values(),
+                    'notes' => [
+                        $assignedCount > 0 ? "Handled {$assignedCount} assigned report(s) in this period." : 'No assigned reports in this period.',
+                        $resolvedCount > 0 ? "Resolved {$resolvedCount} report(s)." : 'No resolved reports recorded yet.',
+                        $avgResolutionHours !== null ? 'Average resolution time is ' . number_format($avgResolutionHours, 1) . ' hours.' : 'Resolution time is not yet available.',
+                    ],
+                ];
+            })
+            ->sortByDesc('performance_score')
+            ->values();
     }
 }

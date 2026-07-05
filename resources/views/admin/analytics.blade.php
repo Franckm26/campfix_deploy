@@ -345,6 +345,53 @@
     font-size: 0.85rem;
 }
 
+.employee-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-align: left;
+}
+
+.employee-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #eaf2ff;
+    color: #0d6efd;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+
+.performance-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 54px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: #dcfce7;
+    color: #16a34a;
+    font-weight: 800;
+    font-size: 0.82rem;
+}
+
+.performance-status {
+    display: inline-flex;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.performance-status.excellent { background: #dbeafe; color: #2563eb; }
+.performance-status.very-good { background: #cffafe; color: #0891b2; }
+.performance-status.good { background: #ede9fe; color: #7c3aed; }
+.performance-status.needs-monitoring { background: #fef3c7; color: #d97706; }
+.performance-status.no-data { background: #e5e7eb; color: #6b7280; }
+
 .alert-info {
     background: #d1ecf1;
     border: 1px solid #bee5eb;
@@ -1153,6 +1200,65 @@
         @endif
     </div>
 
+    <!-- Employee Performance Summary -->
+    <div class="analytics-card">
+        <div class="analytics-header">
+            <div class="analytics-title">
+                <i class="fas fa-users"></i> Employee Performance Summary
+            </div>
+            <div class="analytics-actions">
+                <a href="{{ route('admin.analytics.employee-performance-pdf') }}?{{ http_build_query(request()->all()) }}"
+                   class="btn btn-sm btn-danger" target="_blank" style="font-size: 0.85rem;">
+                    <i class="fas fa-file-pdf me-1"></i> Export PDF
+                </a>
+            </div>
+        </div>
+        <table class="analytics-table">
+            <thead>
+                <tr>
+                    <th>Employee</th>
+                    <th>Position</th>
+                    <th>Department</th>
+                    <th>Assigned</th>
+                    <th>Resolved</th>
+                    <th>Performance</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($employeePerformanceStats ?? [] as $employee)
+                @php
+                    $statusClass = \Illuminate\Support\Str::slug($employee['performance_status']);
+                @endphp
+                <tr>
+                    <td>
+                        <div class="employee-cell">
+                            <span class="employee-avatar">{{ strtoupper(substr($employee['name'], 0, 1)) }}</span>
+                            <strong>{{ $employee['name'] }}</strong>
+                        </div>
+                    </td>
+                    <td>{{ $employee['position'] }}</td>
+                    <td>{{ $employee['department'] }}</td>
+                    <td><span class="count-badge">{{ $employee['assigned_count'] }}</span></td>
+                    <td><span class="count-badge">{{ $employee['resolved_count'] }}</span></td>
+                    <td><span class="performance-pill">{{ $employee['performance_score'] }}%</span></td>
+                    <td><span class="performance-status {{ $statusClass }}">{{ $employee['performance_status'] }}</span></td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="showEmployeePerformanceDetails({{ $employee['id'] }})">
+                            View Details
+                        </button>
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="8" class="text-center">No employee performance data found</td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+
     <!-- ── TREND ALERTS ─────────────────────────────────────────────── -->
     @if(isset($trendAlerts) && $trendAlerts->count() > 0)
     <div class="analytics-card">
@@ -1283,6 +1389,7 @@
     window.monthlyCostData = {!! json_encode(isset($monthlyCostData) ? $monthlyCostData->map(fn($s) => ['month' => $s->month, 'count' => $s->count, 'total_cost' => $s->total_cost])->values() : [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
     window.locationDetailedStats = {!! json_encode($locationStatsDetailed ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
     window.responseTimeStats = {!! json_encode($responseTimeStats ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
+    window.employeePerformanceStats = {!! json_encode($employeePerformanceStats ?? [], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) !!};
     window.avgSubmittedToAssigned = {{ $avgSubmittedToAssigned ?? 0 }};
     window.avgAssignedToResolved = {{ $avgAssignedToResolved ?? 0 }};
     window.avgTotalTime = {{ $avgTotalTime ?? 0 }};
@@ -3234,6 +3341,83 @@ function viewConcern(id) {
             title: 'Error',
             text: 'Error loading concern details: ' + error.message
         });
+    });
+}
+
+function showEmployeePerformanceDetails(employeeId) {
+    const employee = (window.employeePerformanceStats || []).find(item => Number(item.id) === Number(employeeId));
+    if (!employee) {
+        Swal.fire({ icon: 'error', title: 'Employee Not Found', text: 'Unable to load employee performance details.' });
+        return;
+    }
+
+    const tickets = employee.recent_tickets && employee.recent_tickets.length
+        ? employee.recent_tickets.map(ticket => `
+            <tr>
+                <td>${ticket.ticket}</td>
+                <td>${ticket.issue || 'N/A'}</td>
+                <td>${ticket.location || 'N/A'}</td>
+                <td>${ticket.status || 'N/A'}</td>
+                <td>₱${Number(ticket.cost || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</td>
+                <td>${ticket.created_at || 'N/A'}</td>
+            </tr>
+        `).join('')
+        : '<tr><td colspan="6" class="text-center text-muted">No recent tickets found</td></tr>';
+
+    const notes = (employee.notes || []).map(note => `
+        <div style="display:flex;gap:8px;margin-bottom:8px;color:#334155;">
+            <span style="color:#22c55e;font-weight:800;">✓</span>
+            <span>${note}</span>
+        </div>
+    `).join('');
+
+    const avgResolution = employee.avg_resolution_hours === null || employee.avg_resolution_hours === undefined
+        ? 'N/A'
+        : Number(employee.avg_resolution_hours).toLocaleString('en-PH', { maximumFractionDigits: 1 }) + 'h';
+
+    Swal.fire({
+        title: 'Employee Details',
+        html: `
+            <div style="text-align:left;">
+                <div style="display:grid;grid-template-columns:110px 1fr auto;gap:20px;align-items:center;margin-bottom:22px;">
+                    <div style="width:96px;height:96px;border-radius:50%;background:#eaf2ff;color:#0d6efd;display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:800;">
+                        ${(employee.name || '?').charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                        <h3 style="margin:0 0 6px;font-size:22px;color:#111827;">${employee.name}</h3>
+                        <div style="color:#475569;margin-bottom:4px;">${employee.position || 'Maintenance Staff'}</div>
+                        <div style="color:#0d6efd;font-weight:700;">${employee.department || 'Maintenance'}</div>
+                        <div style="margin-top:12px;color:#475569;"><strong>Email:</strong> ${employee.email || 'N/A'}</div>
+                        <div style="color:#475569;"><strong>Phone:</strong> ${employee.phone || 'N/A'}</div>
+                    </div>
+                    <span class="performance-status ${(employee.performance_status || 'No Data').toLowerCase().replaceAll(' ', '-')}">${employee.performance_status}</span>
+                </div>
+                <hr>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:20px 0;">
+                    <div style="background:#f0fdf4;border:1px solid #dcfce7;border-radius:8px;padding:16px;text-align:center;"><div style="color:#64748b;font-size:12px;">Assigned Reports</div><div style="font-size:26px;font-weight:800;color:#14532d;">${employee.assigned_count}</div></div>
+                    <div style="background:#eff6ff;border:1px solid #dbeafe;border-radius:8px;padding:16px;text-align:center;"><div style="color:#64748b;font-size:12px;">Resolved Reports</div><div style="font-size:26px;font-weight:800;color:#1d4ed8;">${employee.resolved_count}</div></div>
+                    <div style="background:#fff7ed;border:1px solid #ffedd5;border-radius:8px;padding:16px;text-align:center;"><div style="color:#64748b;font-size:12px;">Active Reports</div><div style="font-size:26px;font-weight:800;color:#c2410c;">${employee.active_count}</div></div>
+                    <div style="background:#f5f3ff;border:1px solid #ede9fe;border-radius:8px;padding:16px;text-align:center;"><div style="color:#64748b;font-size:12px;">Completion Rate</div><div style="font-size:26px;font-weight:800;color:#6d28d9;">${employee.completion_rate}%</div></div>
+                    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;text-align:center;"><div style="color:#64748b;font-size:12px;">Avg Resolution</div><div style="font-size:26px;font-weight:800;color:#334155;">${avgResolution}</div></div>
+                    <div style="background:#ecfeff;border:1px solid #cffafe;border-radius:8px;padding:16px;text-align:center;"><div style="color:#64748b;font-size:12px;">Performance</div><div style="font-size:26px;font-weight:800;color:#0891b2;">${employee.performance_score}%</div></div>
+                </div>
+                <div style="margin-bottom:18px;"><strong>Total Repair Cost Handled:</strong> ₱${Number(employee.total_cost_handled || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</div>
+                <h6 style="font-weight:800;margin-top:18px;">Recent Performance Notes</h6>
+                <div style="margin-bottom:18px;">${notes}</div>
+                <h6 style="font-weight:800;">Recent Tickets</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light"><tr><th>Ticket</th><th>Issue</th><th>Location</th><th>Status</th><th>Cost</th><th>Date</th></tr></thead>
+                        <tbody>${tickets}</tbody>
+                    </table>
+                </div>
+            </div>
+        `,
+        width: '920px',
+        showCloseButton: true,
+        confirmButtonText: 'Close',
+        confirmButtonColor: '#0d6efd',
+        customClass: { popup: 'swal-wide-popup', htmlContainer: 'swal2-html-container' }
     });
 }
 

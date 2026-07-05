@@ -408,6 +408,7 @@ Route::middleware(['auth', 'admin', 'throttle:admin'])->group(function () {
     Route::get('/admin/analytics/location-report-pdf', [AdminController::class, 'locationReportPDF'])->middleware('throttle:exports')->name('admin.analytics.location-report-pdf');
     Route::get('/admin/analytics/location-detail-pdf', [AdminController::class, 'locationDetailPDF'])->middleware('throttle:exports')->name('admin.analytics.location-detail-pdf');
     Route::get('/admin/analytics/combined-location-pdf', [AdminController::class, 'combinedLocationPDF'])->middleware('throttle:exports')->name('admin.analytics.combined-location-pdf');
+    Route::get('/admin/analytics/employee-performance-pdf', [AdminController::class, 'employeePerformancePDF'])->middleware('throttle:exports')->name('admin.analytics.employee-performance-pdf');
     Route::get('/admin/analytics/cost-report-pdf', [AdminController::class, 'costReportPDF'])->middleware('throttle:exports')->name('admin.analytics.cost-report-pdf');
     Route::get('/admin/analytics/status-report-pdf', [AdminController::class, 'statusReportPDF'])->middleware('throttle:exports')->name('admin.analytics.status-report-pdf');
     Route::get('/admin/analytics/status-distribution-pdf', [AdminController::class, 'statusDistributionPDF'])->middleware('throttle:exports')->name('admin.analytics.status-pdf');
