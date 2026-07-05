@@ -105,6 +105,8 @@
                         $approvedBy  = $lvl === 4 ? $request->approved_by        : $request->{$step['field_approved']};
                         $approvedAt  = $lvl === 4 ? $request->approved_at        : $request->{$step['field_at']};
                         $approverName = null;
+                        $rejectedBy = null;
+                        $rejectedAt = null;
 
                         if ($approvedBy) {
                             $approverUser = \App\Models\User::find($approvedBy);
@@ -125,21 +127,23 @@
                         $isPending  = false;
                         $isRejected = false;
 
-                        $isDone     = ($approvedBy && $approvedAt) || isset($progress['approved']);
-                        $isRejected = isset($progress['rejected']) && $request->approval_level >= $lvl;
-                        $isPending  = !$isDone && !$isRejected && $request->approval_level === $lvl;
-
-                        // Rejection note from history
-                        $rejectedBy = null;
-                        $rejectedAt = null;
-                        if ($isRejected) {
+                        if (isset($progress['rejected'])) {
                             foreach ($history as $h) {
-                                if (($h['level'] ?? null) == $lvl && isset($h['status']) && strtolower($h['status']) === 'rejected') {
+                                $historyAction = strtolower($h['status'] ?? $h['action'] ?? '');
+                                if (($h['level'] ?? null) == $lvl && $historyAction === 'rejected') {
                                     $rejectedBy = $h['approver'] ?? null;
                                     $rejectedAt = $h['at'] ?? null;
                                     break;
                                 }
                             }
+                        }
+
+                        $isRejected = isset($progress['rejected']) && $rejectedBy;
+                        $isDone     = !$isRejected && (($approvedBy && $approvedAt && ($request->status !== 'Rejected' || $lvl < $request->approval_level)) || isset($progress['approved']));
+                        $isPending  = !$isDone && !$isRejected && $request->approval_level === $lvl;
+
+                        // Rejection note from history
+                        if ($isRejected) {
                             // Also check top-level rejection history
                             if (!$rejectedBy) {
                                 foreach ($history as $h) {
@@ -167,12 +171,12 @@
                             </div>
                             <h6>{{ $step['label'] }}</h6>
                             <small class="text-muted">
-                                @if($approvedBy && $approvedAt)
-                                    Approved by {{ $approverName ?? 'N/A' }}<br>
-                                    {{ \Carbon\Carbon::parse($approvedAt)->format('M d, Y h:i A') }}
-                                @elseif($isRejected && $rejectedBy)
+                                @if($isRejected && $rejectedBy)
                                     Rejected by {{ $rejectedBy }}<br>
                                     @if($rejectedAt){{ \Carbon\Carbon::parse($rejectedAt)->format('M d, Y h:i A') }}@endif
+                                @elseif($isDone && $approvedBy && $approvedAt)
+                                    Approved by {{ $approverName ?? 'N/A' }}<br>
+                                    {{ \Carbon\Carbon::parse($approvedAt)->format('M d, Y h:i A') }}
                                 @elseif($isPending)
                                     Waiting for Approval
                                 @else
