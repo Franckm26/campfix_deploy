@@ -192,16 +192,18 @@ class NotificationService
      */
     public function notifyConcernResolved(Concern $concern, string $resolvedBy = 'Admin'): bool
     {
-        try {
-            $requesters = $this->concernRequesters($concern);
+        $requesters = $this->concernRequesters($concern);
 
-            if ($requesters->isEmpty()) {
-                Log::warning('Cannot notify concern requester - user not found: '.$concern->user_id);
+        if ($requesters->isEmpty()) {
+            Log::warning('Cannot notify concern requester - user not found: '.$concern->user_id);
 
-                return false;
-            }
+            return false;
+        }
 
-            foreach ($requesters as $requester) {
+        $notified = 0;
+
+        foreach ($requesters as $requester) {
+            try {
                 $requester->notify(new ConcernResolvedNotification($concern, $resolvedBy));
 
                 ActivityLog::log(
@@ -209,22 +211,17 @@ class NotificationService
                     "Concern resolved notification sent to {$requester->email} for concern: ".($concern->title ?? $concern->id),
                     $concern->id
                 );
+
+                $notified++;
+            } catch (\Exception $e) {
+                $this->logNotificationFailure(
+                    $concern,
+                    "Concern resolved notification failed for {$requester->email}: ".$e->getMessage()
+                );
             }
-
-            return true;
-
-        } catch (\Exception $e) {
-            Log::error('Concern resolution notification failed: '.$e->getMessage());
-
-            // Fallback: log the notification attempt
-            ActivityLog::log(
-                'notification_failed',
-                'Failed to send concern resolved notification: '.$e->getMessage(),
-                $concern->id
-            );
-
-            return false;
         }
+
+        return $notified > 0;
     }
 
     /**
@@ -269,16 +266,18 @@ class NotificationService
      */
     public function notifyConcernUpdated(Concern $concern, string $updateTitle, string $updateMessage, ?string $updatedBy = null): bool
     {
-        try {
-            $requesters = $this->concernRequesters($concern);
+        $requesters = $this->concernRequesters($concern);
 
-            if ($requesters->isEmpty()) {
-                Log::warning('Cannot notify concern requester - user not found: '.$concern->user_id);
+        if ($requesters->isEmpty()) {
+            Log::warning('Cannot notify concern requester - user not found: '.$concern->user_id);
 
-                return false;
-            }
+            return false;
+        }
 
-            foreach ($requesters as $requester) {
+        $notified = 0;
+
+        foreach ($requesters as $requester) {
+            try {
                 $requester->notify(new ConcernUpdatedNotification($concern, $updateTitle, $updateMessage, $updatedBy));
 
                 ActivityLog::log(
@@ -286,20 +285,17 @@ class NotificationService
                     "Concern update notification sent to {$requester->email} for concern: ".($concern->title ?? $concern->id),
                     $concern->id
                 );
+
+                $notified++;
+            } catch (\Exception $e) {
+                $this->logNotificationFailure(
+                    $concern,
+                    "Concern update notification failed for {$requester->email}: ".$e->getMessage()
+                );
             }
-
-            return true;
-        } catch (\Exception $e) {
-            Log::error('Concern update notification failed: '.$e->getMessage());
-
-            ActivityLog::log(
-                'notification_failed',
-                'Failed to send concern update notification: '.$e->getMessage(),
-                $concern->id
-            );
-
-            return false;
         }
+
+        return $notified > 0;
     }
 
     private function concernRequesters(Concern $concern)
@@ -325,14 +321,14 @@ class NotificationService
      */
     public function notifyBuildingAdminsOfNewConcern(Concern $concern): bool
     {
-        try {
-            $buildingAdmins = User::where('role', User::ROLE_BUILDING_ADMIN)
-                ->where('is_archived', false)
-                ->get();
+        $buildingAdmins = User::where('role', User::ROLE_BUILDING_ADMIN)
+            ->where('is_archived', false)
+            ->get();
 
-            $notified = 0;
+        $notified = 0;
 
-            foreach ($buildingAdmins as $admin) {
+        foreach ($buildingAdmins as $admin) {
+            try {
                 $admin->notify(new NewConcernSubmittedNotification($concern));
 
                 ActivityLog::log(
@@ -342,24 +338,30 @@ class NotificationService
                 );
 
                 $notified++;
+            } catch (\Exception $e) {
+                $this->logNotificationFailure(
+                    $concern,
+                    "New concern notification failed for building admin {$admin->email}: ".$e->getMessage()
+                );
             }
-
-            if ($notified === 0) {
-                Log::warning('No building admins found to notify for new concern: '.$concern->id);
-            }
-
-            return $notified > 0;
-        } catch (\Exception $e) {
-            Log::error('Building admin new concern notification failed: '.$e->getMessage());
-
-            ActivityLog::log(
-                'notification_failed',
-                'Failed to send new concern notification to building admins: '.$e->getMessage(),
-                $concern->id
-            );
-
-            return false;
         }
+
+        if ($buildingAdmins->isEmpty()) {
+            Log::warning('No building admins found to notify for new concern: '.$concern->id);
+        }
+
+        return $notified > 0;
+    }
+
+    private function logNotificationFailure(Concern $concern, string $message): void
+    {
+        Log::error($message);
+
+        ActivityLog::log(
+            'notification_failed',
+            $message,
+            $concern->id
+        );
     }
 
     /**
