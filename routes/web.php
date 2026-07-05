@@ -84,7 +84,7 @@ Route::get('/otp-choice', function () {
 
 Route::post('/otp-delivery', [AuthController::class, 'sendOtp'])->middleware('throttle:otp');
 
-Route::get('/resend-otp', [AuthController::class, 'resendOtp'])->name('resend.otp')->middleware('throttle:otp');
+Route::match(['get', 'post'], '/resend-otp', [AuthController::class, 'resendOtp'])->name('resend.otp')->middleware('throttle:otp');
 
 /* DASHBOARD - Role-based redirect */
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth')->name('dashboard');
@@ -438,6 +438,10 @@ Route::middleware(['auth', 'admin', 'throttle:admin'])->group(function () {
 
 /* OTP VERIFICATION */
 Route::get('/verify-otp', function () {
+    if (! session('otp_user')) {
+        return redirect('/')->with('error', 'Session expired. Please login again.');
+    }
+
     return view('auth.verify-otp');
 });
 
