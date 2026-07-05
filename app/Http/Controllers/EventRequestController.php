@@ -629,7 +629,7 @@ class EventRequestController extends Controller
                 }
 
                 if ($user->isBuildingAdmin()) {
-                    $query->orWhereNotNull('approved_by_level_3');
+                    $query->orWhere('approved_by_level_3', $user->id);
                 }
 
                 if ($user->isSchoolAdmin() || $user->isAdmin()) {
