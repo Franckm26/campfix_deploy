@@ -212,9 +212,6 @@ Route::middleware(['auth', 'throttle:status-updates'])->group(function () {
     Route::post('/resolution-notes/{id}', [AdminController::class, 'addResolutionNotes'])->name('admin.resolution');
     Route::post('/report-resolution-notes/{id}', [AdminController::class, 'addReportResolutionNotes'])->name('admin.report-resolution');
 
-    // MIS: Acknowledge a concern
-    Route::post('/concerns/{id}/mis-acknowledge', [ConcernController::class, 'misAcknowledge'])->name('concerns.mis-acknowledge');
-
     // API: Get a single concern details
     Route::get('/api/concerns/{id}', [ConcernController::class, 'apiShow']);
 

@@ -206,19 +206,6 @@
                                             <i class="fas fa-eye"></i>
                                         </button>
                                         @if($viewType === 'active')
-                                            @if($concern->status === 'Assigned' && in_array($concern->assigned_to, $misUsers->toArray()))
-                                                <form action="{{ route('concerns.mis-acknowledge', $concern->id) }}" method="POST" class="d-inline">
-                                                    @csrf
-                                                    <button type="submit" class="btn btn-sm btn-success bg-transparent border-0" title="Acknowledge">
-                                                        <i class="fas fa-check"></i>
-                                                    </button>
-                                                </form>
-                                            @endif
-                                            @if($concern->status === 'In Progress' && in_array($concern->assigned_to, $misUsers->toArray()))
-                                                <button type="button" class="btn btn-sm btn-warning bg-transparent border-0" onclick="openResolveModal({{ $concern->id }})" title="Mark as Completed">
-                                                    <i class="fas fa-check-circle"></i>
-                                                </button>
-                                            @endif
                                             <button type="button" class="btn btn-sm btn-secondary bg-transparent border-0" onclick="showArchiveModal({{ $concern->id }})" title="Archive">
                                                 <i class="fas fa-archive"></i>
                                             </button>
@@ -300,61 +287,6 @@
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 <div id="viewConcernActions"></div>
             </div>
-        </div>
-    </div>
-</div>
-
-@foreach($concerns as $concern)
-@endforeach
-
-<!-- Resolve Modal (single dynamic instance) -->
-<div class="modal fade" id="resolveModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Mark Concern as Completed</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="resolveForm" method="POST">
-                @csrf
-                <input type="hidden" name="status" value="Resolved">
-                <div class="modal-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Resolution Notes</label>
-                                <textarea class="form-control" name="resolution_notes" rows="3" placeholder="Describe what was done to fix the issue..."></textarea>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Cost (PHP)</label>
-                                <input type="number" class="form-control" name="cost" step="0.01" min="0" placeholder="0.00">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Damaged Part</label>
-                                <input type="text" class="form-control" name="damaged_part" placeholder="What part was damaged?">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Replaced With</label>
-                                <input type="text" class="form-control" name="replaced_part" placeholder="What was it replaced with?">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="submit" class="btn btn-success">
-                        <i class="fas fa-check-circle"></i> Mark as Completed
-                    </button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                </div>
-            </form>
         </div>
     </div>
 </div>
@@ -529,107 +461,6 @@ function viewConcern(id) {
         });
     });
 }
-            actionsDiv.innerHTML = `
-                <button type="button" class="btn btn-warning" onclick="openResolveModal(${concern.id})">
-                    <i class="fas fa-check-circle"></i> Mark as Completed
-                </button>
-            `;
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        contentDiv.innerHTML = '<div class="alert alert-danger">Error loading concern details</div>';
-    });
-}
-
-// Acknowledge a concern via AJAX
-function acknowledgeConcern(id) {
-    fetch('/concerns/' + id + '/mis-acknowledge', {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            bootstrap.Modal.getInstance(document.getElementById('viewConcernModal')).hide();
-            location.reload();
-        } else {
-            alert(data.error || 'Failed to acknowledge concern');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error acknowledging concern');
-    });
-}
-
-// Open Resolve Modal
-function openResolveModal(id) {
-    // Close the view modal first
-    const viewModal = bootstrap.Modal.getInstance(document.getElementById('viewConcernModal'));
-    if (viewModal) viewModal.hide();
-
-    // Store the concern id on the form
-    document.getElementById('resolveForm').dataset.concernId = id;
-
-    // Show the resolve modal
-    const resolveModal = new bootstrap.Modal(document.getElementById('resolveModal'));
-    resolveModal.show();
-}
-
-// Handle resolve form submission via AJAX
-document.addEventListener('DOMContentLoaded', function () {
-    document.getElementById('resolveForm').addEventListener('submit', function (e) {
-        e.preventDefault();
-
-        const form = this;
-        const id = form.dataset.concernId;
-        const formData = new FormData(form);
-
-        fetch('/update-status/' + id, {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Accept': 'application/json',
-            },
-            body: formData,
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                bootstrap.Modal.getInstance(document.getElementById('resolveModal')).hide();
-                // Update the status badge in the table row (6th td = status column)
-                const row = document.querySelector('tr[data-id="' + id + '"]');
-                if (row) {
-                    const statusTd = row.querySelectorAll('td')[5];
-                    if (statusTd) {
-                        const badge = statusTd.querySelector('.badge');
-                        if (badge) {
-                            badge.className = 'badge bg-success';
-                            badge.textContent = 'Resolved';
-                        }
-                    }
-                    // Remove the Mark as Completed button
-                    const resolveBtn = row.querySelector('button[onclick^="openResolveModal"]');
-                    if (resolveBtn) resolveBtn.remove();
-                }
-                // Show success toast
-                showToast(data.message || 'Concern marked as completed!', 'success');
-                form.reset();
-            } else {
-                showToast(data.error || 'Failed to update status.', 'danger');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showToast('Error updating concern status.', 'danger');
-        });
-    });
-});
 
 function showToast(message, type) {
     const container = document.getElementById('toastContainer') || createToastContainer();
