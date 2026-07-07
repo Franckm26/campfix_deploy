@@ -334,9 +334,10 @@ function viewConcern(id) {
         width: '900px'
     });
 
-    fetch('/api/concerns/' + id, {
+    fetch('/concerns/' + id + '/modal-data', {
         headers: {
             'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Accept': 'application/json',
             'Content-Type': 'application/json'
         }
     })
