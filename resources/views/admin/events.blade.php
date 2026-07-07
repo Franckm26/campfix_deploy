@@ -1052,6 +1052,12 @@
                                                             <i class="fas fa-trash-restore"></i>
                                                         </button>
                                                     </form>
+                                                    <form method="POST" action="{{ route('admin.events.softDelete', $event->id) }}" class="d-inline" onsubmit="return confirm('Move this archived event to Deleted?')">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-sm btn-danger bg-transparent" title="Delete">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </form>
                                                 </div>
                                             </td>
                                         </tr>
@@ -1146,6 +1152,12 @@
                                             <input type="hidden" name="id" value="{{ $event->id }}">
                                             <button type="submit" class="btn btn-sm btn-success w-100">
                                                 <i class="fas fa-trash-restore"></i> Restore
+                                            </button>
+                                        </form>
+                                        <form method="POST" action="{{ route('admin.events.softDelete', $event->id) }}" style="flex: 1;" onsubmit="return confirm('Move this archived event to Deleted?')">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-danger w-100">
+                                                <i class="fas fa-trash"></i> Delete
                                             </button>
                                         </form>
                                     </div>
@@ -1922,7 +1934,6 @@ function executeEventAction(type, id) {
 @endif
 
 @endsection
-
 
 
 
