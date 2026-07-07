@@ -1508,9 +1508,9 @@
                         </select>
                     </div>
 
-                    <div class="mb-3">
+                    <div class="mb-3" id="new_problem_type_container">
                         <label for="new_description" class="form-label">Problem Type *</label>
-                        <select class="form-select" id="new_description" name="description" required disabled>
+                        <select class="form-select" id="new_description" name="description" disabled>
                             <option value="" disabled selected>Select an issue first</option>
                         </select>
                     </div>
@@ -1553,7 +1553,7 @@
                     <label class="form-label fw-bold">Location:</label>
                     <p id="review_location" class="mb-0"></p>
                 </div>
-                <div class="mb-3">
+                <div class="mb-3" id="review_problem_type_container">
                     <label class="form-label fw-bold">Problem Type:</label>
                     <p id="review_description" class="mb-0" style="white-space: pre-wrap;"></p>
                 </div>
@@ -1617,11 +1617,15 @@ function getIssueProblemTypes(issue) {
     return typeof issue === 'object' && Array.isArray(issue.problem_types) ? issue.problem_types : [];
 }
 
-function populateProblemTypeSelect(selectElement, issue, selectedValue = '', explicitProblemTypes = []) {
+function populateProblemTypeSelect(selectElement, issue, selectedValue = '', explicitProblemTypes = null) {
     if (!selectElement) return;
 
-    const problemTypes = issue ? (explicitProblemTypes.length ? explicitProblemTypes : getProblemTypesForIssue(issue)) : [];
+    const problemTypeContainer = document.getElementById(selectElement.id + '_container')
+        || (selectElement.id === 'new_description' ? document.getElementById('new_problem_type_container') : null);
+    const hasExplicitProblemTypes = Array.isArray(explicitProblemTypes);
+    const problemTypes = issue ? (hasExplicitProblemTypes ? explicitProblemTypes : getProblemTypesForIssue(issue)) : [];
     selectElement.innerHTML = '<option value="" disabled selected>' + (issue ? 'Select a problem type' : 'Select an issue first') + '</option>';
+    selectElement.value = '';
 
     problemTypes.forEach(function(problemType) {
         const option = document.createElement('option');
@@ -1633,11 +1637,14 @@ function populateProblemTypeSelect(selectElement, issue, selectedValue = '', exp
         selectElement.appendChild(option);
     });
 
-    if (issue) {
+    if (issue && problemTypes.length > 0) {
+        if (problemTypeContainer) problemTypeContainer.style.display = 'block';
         selectElement.removeAttribute('disabled');
         selectElement.setAttribute('required', 'required');
     } else {
+        if (problemTypeContainer) problemTypeContainer.style.display = 'none';
         selectElement.setAttribute('disabled', 'disabled');
+        selectElement.removeAttribute('required');
     }
 }
 
@@ -1660,7 +1667,9 @@ function showReviewModal() {
     const locationText = locationSelect.options[locationSelect.selectedIndex]?.text || '';
     
     const problemTypeSelect = document.getElementById('new_description');
-    const description = problemTypeSelect.options[problemTypeSelect.selectedIndex]?.text || '';
+    const description = problemTypeSelect && !problemTypeSelect.disabled
+        ? (problemTypeSelect.options[problemTypeSelect.selectedIndex]?.text || '')
+        : '';
     
     const imageInput = document.getElementById('new_image');
     const imageFile = imageInput.files[0];
@@ -1682,7 +1691,14 @@ function showReviewModal() {
         document.getElementById('review_location_container').style.display = 'none';
     }
     
-    document.getElementById('review_description').textContent = description;
+    const reviewProblemTypeContainer = document.getElementById('review_problem_type_container');
+    if (description) {
+        document.getElementById('review_description').textContent = description;
+        if (reviewProblemTypeContainer) reviewProblemTypeContainer.style.display = 'block';
+    } else {
+        document.getElementById('review_description').textContent = '';
+        if (reviewProblemTypeContainer) reviewProblemTypeContainer.style.display = 'none';
+    }
     
     // Handle image preview
     if (imageFile) {

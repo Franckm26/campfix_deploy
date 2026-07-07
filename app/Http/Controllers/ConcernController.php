@@ -172,7 +172,7 @@ class ConcernController extends Controller
                 'location_type' => 'nullable|in:Room,AVR,Computer Laboratory',
                 'room_number' => 'nullable|string|max:255',
                 'category_id' => 'required|exists:categories,id',
-                'description' => 'required|string',
+                'description' => 'nullable|string',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
                 'is_anonymous' => 'nullable|boolean',
             ]);
@@ -206,7 +206,8 @@ class ConcernController extends Controller
             return trim($value);
         };
 
-        $problemType = trim((string) $request->description);
+        $problemType = trim((string) $request->input('description', ''));
+        $problemTypeForStorage = $problemType !== '' ? $problemType : null;
 
         // Check if the same issue/problem type in the same room/location already has an active concern.
         // This allows multiple different problem types under the same issue to be reported for the same room.
@@ -214,8 +215,15 @@ class ConcernController extends Controller
 
         $baseQuery = Concern::whereIn('status', $activeDuplicateStatuses)
             ->where('is_deleted', false)
-            ->where('title', $request->title)
-            ->where('description', $problemType);
+            ->where('title', $request->title);
+
+        if ($problemTypeForStorage === null) {
+            $baseQuery->where(function ($query) {
+                $query->whereNull('description')->orWhere('description', '');
+            });
+        } else {
+            $baseQuery->where('description', $problemTypeForStorage);
+        }
 
         if ($isRoomsCategory) {
             $normalizedInput = $normalizeRoomNumber($request->room_number);
@@ -223,8 +231,12 @@ class ConcernController extends Controller
             $existingConcern = Concern::whereIn('status', $activeDuplicateStatuses)
                 ->where('is_deleted', false)
                 ->where('title', $request->title) // Same issue
-                ->where('description', $problemType)
                 ->where('location_type', $request->location_type)
+                ->when(
+                    $problemTypeForStorage === null,
+                    fn ($query) => $query->where(fn ($q) => $q->whereNull('description')->orWhere('description', '')),
+                    fn ($query) => $query->where('description', $problemTypeForStorage)
+                )
                 ->get()
                 ->first(function ($concern) use ($normalizedInput, $normalizeRoomNumber) {
                     return strcasecmp(
@@ -302,7 +314,7 @@ class ConcernController extends Controller
         // user_id is automatically set to authenticated user's ID
         $concernData = [
             'title' => $request->title,
-            'description' => $request->description,
+            'description' => $problemTypeForStorage,
             'location' => $concernLocation,
             'location_type' => $request->location_type,
             'room_number' => $request->room_number,
@@ -349,7 +361,7 @@ class ConcernController extends Controller
             'title' => $request->title,
             'concern_id' => $concern->id,
             'category_id' => $request->category_id,
-            'description' => $request->description,
+            'description' => $problemTypeForStorage,
             'location' => $reportLocation,
             'location_type' => $request->location_type,
             'room_number' => $request->room_number,
