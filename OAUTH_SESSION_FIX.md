@@ -90,7 +90,7 @@ After login, check browser DevTools:
 Ensure these are set in Vercel:
 
 ```
-SESSION_SAME_SITE=lax  (ADD THIS NEW)
+SESSION_SAME_SITE=lax
 SESSION_SECURE_COOKIE=true
 SESSION_ENCRYPT=true
 ```
