@@ -1742,7 +1742,10 @@ class EventRequestController extends Controller
     // Show all event requests (for admin)
     public function adminIndex(Request $request)
     {
-        $viewType = $request->view ?? 'active';
+        $viewType = $request->view ?? 'pending';
+        if ($viewType === 'active') {
+            $viewType = 'pending';
+        }
 
         if ($viewType === 'rejected') {
             $rejectedEvents = EventRequest::with('user')
@@ -1836,7 +1839,7 @@ class EventRequestController extends Controller
             ]);
         }
 
-        // For active events: show events not archived by any role
+        // For pending approvals: show events not archived by any role
         $query = EventRequest::with('user')
             ->where('is_deleted', false)
             ->where('student_archived', false)

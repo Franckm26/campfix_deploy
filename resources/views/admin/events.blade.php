@@ -238,8 +238,8 @@
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                 <ul class="nav nav-pills mb-0 flex-wrap">
                     <li class="nav-item">
-                        <a class="nav-link {{ ($viewType ?? 'active') == 'active' ? 'active' : '' }}" href="{{ route('admin.events', ['view' => 'active']) }}">
-                            <i class="fas fa-calendar-check"></i> Active
+                        <a class="nav-link {{ ($viewType ?? 'pending') == 'pending' ? 'active' : '' }}" href="{{ route('admin.events', ['view' => 'pending']) }}">
+                            <i class="fas fa-calendar-check"></i> Pending
                         </a>
                     </li>
                     <li class="nav-item">
@@ -275,7 +275,7 @@
                 </div>
             </div>
             <form method="GET" action="{{ route('admin.events') }}">
-                <input type="hidden" name="view" value="{{ $viewType ?? 'active' }}">
+                <input type="hidden" name="view" value="{{ $viewType ?? 'pending' }}">
                 <div class="row g-2">
                     <div class="col-12 col-md">
                         <input type="text" name="search" class="form-control form-control-sm" placeholder="Search by title..."
@@ -313,7 +313,7 @@
         </div>
     </div>
 
-    @if(($viewType ?? 'active') == 'active')
+    @if(($viewType ?? 'pending') == 'pending')
     <!-- Summary Cards -->
     @if(auth()->user()->role !== 'building_admin')
     <div class="row mb-4" style="display: flex !important;">
@@ -500,7 +500,7 @@
             </table>
         </div>
 
-        <!-- Mobile Card Layout for Active Events -->
+        <!-- Mobile Card Layout for Pending Events -->
         <div class="mobile-event-cards">
             @foreach($requests as $request)
                 <div class="event-card">
@@ -1934,8 +1934,6 @@ function executeEventAction(type, id) {
 @endif
 
 @endsection
-
-
 
 
 
