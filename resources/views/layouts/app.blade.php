@@ -345,7 +345,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </a>
 
             {{-- Only show My Events for faculty users --}}
-            @if(auth()->user()->role === 'faculty')
+            @if(auth()->user()->role === 'faculty' && auth()->user()->canAccess('events'))
                 {{-- Events dropdown --}}
                 <div class="nav-dropdown {{ Request::is('my-events') || Request::is('events-calendar') ? 'open' : '' }}">
                     <a href="#" class="nav-dropdown-toggle {{ Request::is('my-events') || Request::is('events-calendar') ? 'active' : '' }}"
@@ -419,17 +419,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     <i class="fas fa-chevron-down nav-dropdown-arrow ms-auto"></i>
                 </a>
                 <div class="nav-dropdown-menu">
+                    <a href="/admin/events" class="{{ Request::is('admin/events') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
+                        <i class="fas fa-calendar-alt me-1"></i> Pending Approval
+                    </a>
                     @if(auth()->user()->canAccess('events'))
-                        <a href="/admin/events" class="{{ Request::is('admin/events') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
-                            <i class="fas fa-calendar-alt me-1"></i> Pending Approval
+                        <a href="{{ route('events.my') }}" class="{{ Request::is('my-events') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
+                            <i class="fas fa-calendar me-1"></i> My Events
+                        </a>
+                        <a href="{{ route('events.calendar') }}" class="{{ Request::is('events-calendar') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
+                            <i class="fas fa-calendar-check me-1"></i> Upcoming Events
                         </a>
                     @endif
-                    <a href="{{ route('events.my') }}" class="{{ Request::is('my-events') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
-                        <i class="fas fa-calendar me-1"></i> My Events
-                    </a>
-                    <a href="{{ route('events.calendar') }}" class="{{ Request::is('events-calendar') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
-                        <i class="fas fa-calendar-check me-1"></i> Upcoming Events
-                    </a>
                 </div>
             </div>
 
@@ -451,17 +451,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     <i class="fas fa-chevron-down nav-dropdown-arrow ms-auto"></i>
                 </a>
                 <div class="nav-dropdown-menu">
+                    <a href="/admin/events" class="{{ Request::is('admin/events') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
+                        <i class="fas fa-calendar-alt me-1"></i> Pending Approval
+                    </a>
                     @if(auth()->user()->canAccess('events'))
-                        <a href="/admin/events" class="{{ Request::is('admin/events') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
-                            <i class="fas fa-calendar-alt me-1"></i> Pending Approval
+                        <a href="{{ route('events.my') }}" class="{{ Request::is('my-events') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
+                            <i class="fas fa-calendar me-1"></i> My Events
+                        </a>
+                        <a href="{{ route('events.calendar') }}" class="{{ Request::is('events-calendar') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
+                            <i class="fas fa-calendar-check me-1"></i> Upcoming Events
                         </a>
                     @endif
-                    <a href="{{ route('events.my') }}" class="{{ Request::is('my-events') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
-                        <i class="fas fa-calendar me-1"></i> My Events
-                    </a>
-                    <a href="{{ route('events.calendar') }}" class="{{ Request::is('events-calendar') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
-                        <i class="fas fa-calendar-check me-1"></i> Upcoming Events
-                    </a>
                 </div>
             </div>
         @endif

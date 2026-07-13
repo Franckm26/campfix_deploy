@@ -408,6 +408,10 @@ class EventRequestController extends Controller
     {
         $allowedRoles = ['faculty', 'building_admin', 'school_admin', 'academic_head', 'program_head', 'principal_assistant'];
 
+        if (! auth()->user()->canAccess('events')) {
+            return redirect('/dashboard')->with('error', 'You do not have permission to view event requests.');
+        }
+
         if (!in_array(auth()->user()->role, $allowedRoles)) {
             return redirect('/dashboard')->with('error', 'You do not have permission to view event requests.');
         }
@@ -1101,6 +1105,10 @@ class EventRequestController extends Controller
     // Show all approved events (calendar view)
     public function calendar(Request $request)
     {
+        if (! auth()->user()->canAccess('events')) {
+            return redirect('/dashboard')->with('error', 'You do not have permission to view events.');
+        }
+
         $month = $request->month ?? now()->month;
         $year = $request->year ?? now()->year;
         $view = $request->input('view', 'calendar');
@@ -1324,6 +1332,10 @@ class EventRequestController extends Controller
     // API: Get events for calendar (JSON)
     public function calendarEvents(Request $request)
     {
+        if (! auth()->user()->canAccess('events')) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
         $calendarEvents = collect();
 
         // Event Requests - Only Approved
@@ -1742,10 +1754,6 @@ class EventRequestController extends Controller
     // Show all event requests (for admin)
     public function adminIndex(Request $request)
     {
-        if (! auth()->user()->canAccess('events')) {
-            return redirect('/dashboard')->with('error', 'You do not have permission to view event requests.');
-        }
-
         $viewType = $request->view ?? 'pending';
         if ($viewType === 'active') {
             $viewType = 'pending';
