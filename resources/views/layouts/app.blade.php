@@ -345,7 +345,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </a>
 
             {{-- Only show My Events for faculty users --}}
-            @if(auth()->user()->role === 'faculty' && auth()->user()->canAccess('events'))
+            @if(auth()->user()->role === 'faculty')
                 {{-- Events dropdown --}}
                 <div class="nav-dropdown {{ Request::is('my-events') || Request::is('events-calendar') ? 'open' : '' }}">
                     <a href="#" class="nav-dropdown-toggle {{ Request::is('my-events') || Request::is('events-calendar') ? 'active' : '' }}"
@@ -411,27 +411,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
 
-            @if(auth()->user()->canAccess('events'))
-                {{-- Events dropdown for building admin --}}
-                <div class="nav-dropdown {{ Request::is('my-events') || Request::is('events-calendar') || Request::is('admin/events') ? 'open' : '' }}">
-                    <a href="#" class="nav-dropdown-toggle {{ Request::is('my-events') || Request::is('events-calendar') || Request::is('admin/events') ? 'active' : '' }}"
-                       data-nav-toggle style="padding-top:8px;padding-bottom:8px;">
-                        <i class="fas fa-calendar-alt"></i> {{ app()->getLocale() === 'tl' ? 'Mga Event' : 'Events' }}
-                        <i class="fas fa-chevron-down nav-dropdown-arrow ms-auto"></i>
-                    </a>
-                    <div class="nav-dropdown-menu">
+            {{-- Events dropdown for building admin --}}
+            <div class="nav-dropdown {{ Request::is('my-events') || Request::is('events-calendar') || Request::is('admin/events') ? 'open' : '' }}">
+                <a href="#" class="nav-dropdown-toggle {{ Request::is('my-events') || Request::is('events-calendar') || Request::is('admin/events') ? 'active' : '' }}"
+                   data-nav-toggle style="padding-top:8px;padding-bottom:8px;">
+                    <i class="fas fa-calendar-alt"></i> {{ app()->getLocale() === 'tl' ? 'Mga Event' : 'Events' }}
+                    <i class="fas fa-chevron-down nav-dropdown-arrow ms-auto"></i>
+                </a>
+                <div class="nav-dropdown-menu">
+                    @if(auth()->user()->canAccess('events'))
                         <a href="/admin/events" class="{{ Request::is('admin/events') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
                             <i class="fas fa-calendar-alt me-1"></i> Pending Approval
                         </a>
-                        <a href="{{ route('events.my') }}" class="{{ Request::is('my-events') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
-                            <i class="fas fa-calendar me-1"></i> My Events
-                        </a>
-                        <a href="{{ route('events.calendar') }}" class="{{ Request::is('events-calendar') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
-                            <i class="fas fa-calendar-check me-1"></i> Upcoming Events
-                        </a>
-                    </div>
+                    @endif
+                    <a href="{{ route('events.my') }}" class="{{ Request::is('my-events') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
+                        <i class="fas fa-calendar me-1"></i> My Events
+                    </a>
+                    <a href="{{ route('events.calendar') }}" class="{{ Request::is('events-calendar') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
+                        <i class="fas fa-calendar-check me-1"></i> Upcoming Events
+                    </a>
                 </div>
-            @endif
+            </div>
 
             <a href="{{ route('admin.management') }}" class="{{ Request::is('admin/management*') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-tools"></i> Management
@@ -443,7 +443,7 @@ document.addEventListener('DOMContentLoaded', function() {
         @endif
 
         {{-- School Admin, Academic Head, Program Head, Principal Assistant navigation --}}
-        @if(in_array(auth()->user()->role, ['school_admin', 'academic_head', 'program_head', 'principal_assistant']) && auth()->user()->canAccess('events'))
+        @if(in_array(auth()->user()->role, ['school_admin', 'academic_head', 'program_head', 'principal_assistant']))
             <div class="nav-dropdown {{ Request::is('my-events') || Request::is('events-calendar') || Request::is('admin/events') ? 'open' : '' }}">
                 <a href="#" class="nav-dropdown-toggle {{ Request::is('my-events') || Request::is('events-calendar') || Request::is('admin/events') ? 'active' : '' }}"
                    data-nav-toggle style="padding-top:8px;padding-bottom:8px;">
@@ -451,9 +451,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     <i class="fas fa-chevron-down nav-dropdown-arrow ms-auto"></i>
                 </a>
                 <div class="nav-dropdown-menu">
-                    <a href="/admin/events" class="{{ Request::is('admin/events') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
-                        <i class="fas fa-calendar-alt me-1"></i> Pending Approval
-                    </a>
+                    @if(auth()->user()->canAccess('events'))
+                        <a href="/admin/events" class="{{ Request::is('admin/events') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
+                            <i class="fas fa-calendar-alt me-1"></i> Pending Approval
+                        </a>
+                    @endif
                     <a href="{{ route('events.my') }}" class="{{ Request::is('my-events') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
                         <i class="fas fa-calendar me-1"></i> My Events
                     </a>
