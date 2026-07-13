@@ -418,6 +418,30 @@ class EventRequest extends Model
         return count($approvedIds) >= 1;
     }
 
+    public function hasApprovalAtLevel(int $level): bool
+    {
+        $field = match ($level) {
+            self::LEVEL_1_PROGRAM_HEAD => 'approved_by_level_1',
+            self::LEVEL_2_ACADEMIC_HEAD => 'approved_by_level_2',
+            self::LEVEL_3_BUILDING_ADMIN => 'approved_by_level_3',
+            self::LEVEL_4_SCHOOL_ADMIN => 'approved_by',
+            default => null,
+        };
+
+        if ($field && $this->{$field}) {
+            return true;
+        }
+
+        return collect($this->approval_history ?? [])
+            ->contains(function ($entry) use ($level) {
+                $action = strtolower($entry['status'] ?? $entry['action'] ?? 'approved');
+
+                return (int) ($entry['level'] ?? 0) === $level
+                    && $action !== 'rejected'
+                    && ! empty($entry['approver_id']);
+            });
+    }
+
     /**
      * Check if all Academic Heads have approved
      */
@@ -527,41 +551,41 @@ class EventRequest extends Model
         $isNonAcademic = $this->request_type === 'Non-Academic';
 
         if ($isShs) {
-            if (! $this->isApprovedByAllProgramHeads()) {
-                return 1;
+            if (! $this->hasApprovalAtLevel(self::LEVEL_1_PROGRAM_HEAD)) {
+                return self::LEVEL_1_PROGRAM_HEAD;
             }
-            if (! $this->isApprovedByAllAcademicHeads()) {
-                return 2;
+            if (! $this->hasApprovalAtLevel(self::LEVEL_2_ACADEMIC_HEAD)) {
+                return self::LEVEL_2_ACADEMIC_HEAD;
             }
-            if (! $this->isApprovedByAllSchoolAdmins()) {
-                return 4;
+            if (! $this->hasApprovalAtLevel(self::LEVEL_4_SCHOOL_ADMIN)) {
+                return self::LEVEL_4_SCHOOL_ADMIN;
             }
 
             return null;
         }
 
         if ($isNonAcademic) {
-            if (! $this->isApprovedByAllBuildingAdmins()) {
-                return 3;
+            if (! $this->hasApprovalAtLevel(self::LEVEL_3_BUILDING_ADMIN)) {
+                return self::LEVEL_3_BUILDING_ADMIN;
             }
-            if (! $this->isApprovedByAllSchoolAdmins()) {
-                return 4;
+            if (! $this->hasApprovalAtLevel(self::LEVEL_4_SCHOOL_ADMIN)) {
+                return self::LEVEL_4_SCHOOL_ADMIN;
             }
 
             return null;
         }
 
-        if (! $this->isApprovedByAllProgramHeads()) {
-            return 1;
+        if (! $this->hasApprovalAtLevel(self::LEVEL_1_PROGRAM_HEAD)) {
+            return self::LEVEL_1_PROGRAM_HEAD;
         }
-        if (! $this->isApprovedByAllAcademicHeads()) {
-            return 2;
+        if (! $this->hasApprovalAtLevel(self::LEVEL_2_ACADEMIC_HEAD)) {
+            return self::LEVEL_2_ACADEMIC_HEAD;
         }
-        if (! $this->isApprovedByAllBuildingAdmins()) {
-            return 3;
+        if (! $this->hasApprovalAtLevel(self::LEVEL_3_BUILDING_ADMIN)) {
+            return self::LEVEL_3_BUILDING_ADMIN;
         }
-        if (! $this->isApprovedByAllSchoolAdmins()) {
-            return 4;
+        if (! $this->hasApprovalAtLevel(self::LEVEL_4_SCHOOL_ADMIN)) {
+            return self::LEVEL_4_SCHOOL_ADMIN;
         }
 
         return null; // Fully approved
