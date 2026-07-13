@@ -628,6 +628,10 @@ class EventRequestController extends Controller
 
         // SHS chain: Principal Assistant (level 1) → Academic Head (level 2) → School Admin (final)
         if ($isShs && $user->isPrincipalAssistant()) {
+            if (! $eventRequest->canBeApprovedAtLevel(EventRequest::LEVEL_1_PROGRAM_HEAD)) {
+                return back()->with('error', 'This event request is not waiting for Principal Assistant approval.');
+            }
+
             if ($eventRequest->hasUserApprovedAtLevel($user->id, 1)) {
                 return back()->with('error', 'You have already approved this event request.');
             }
@@ -659,6 +663,10 @@ class EventRequestController extends Controller
         }
 
         if ($isShs && $user->isAcademicHead()) {
+            if (! $eventRequest->canBeApprovedAtLevel(EventRequest::LEVEL_2_ACADEMIC_HEAD)) {
+                return back()->with('error', 'This event request is still waiting for the previous approval level.');
+            }
+
             if ($eventRequest->hasUserApprovedAtLevel($user->id, 2)) {
                 return back()->with('error', 'You have already approved this event request.');
             }
@@ -703,6 +711,10 @@ class EventRequestController extends Controller
 
         // Determine approval level based on user role
         if ($user->isProgramHead()) {
+            if (! $eventRequest->canBeApprovedAtLevel(EventRequest::LEVEL_1_PROGRAM_HEAD)) {
+                return back()->with('error', 'This event request is not waiting for Program Head approval.');
+            }
+
             // Check if this user has already approved at this level
             if ($eventRequest->hasUserApprovedAtLevel($user->id, 1)) {
                 return back()->with('error', 'You have already approved this event request.');
@@ -747,6 +759,10 @@ class EventRequestController extends Controller
                 $eventRequest->approval_level = EventRequest::LEVEL_NONE;
             }
 
+            if ($eventRequest->status === EventRequest::STATUS_PENDING) {
+                $eventRequest->approval_level = $eventRequest->getNextApprovalLevel() ?? $eventRequest->approval_level;
+            }
+
             ActivityLog::log(
                 'event_approved_level_1',
                 "Event '{$eventRequest->title}' (ID: {$eventRequest->id}) approved by Program Head: {$user->name} - Requestor: {$eventRequest->user->name}, Department: {$eventRequest->department}, Location: {$eventRequest->event_location}, Date: " . ($eventRequest->start_date ? $eventRequest->start_date->format('M d, Y') : 'N/A'),
@@ -763,6 +779,10 @@ class EventRequestController extends Controller
             }
 
         } elseif ($user->isAcademicHead()) {
+            if (! $eventRequest->canBeApprovedAtLevel(EventRequest::LEVEL_2_ACADEMIC_HEAD)) {
+                return back()->with('error', 'This event request is still waiting for the previous approval level.');
+            }
+
             // Check if this user has already approved at this level
             if ($eventRequest->hasUserApprovedAtLevel($user->id, 2)) {
                 return back()->with('error', 'You have already approved this event request.');
@@ -805,6 +825,10 @@ class EventRequestController extends Controller
                 $eventRequest->approval_level = EventRequest::LEVEL_1_PROGRAM_HEAD;
             }
 
+            if ($eventRequest->status === EventRequest::STATUS_PENDING) {
+                $eventRequest->approval_level = $eventRequest->getNextApprovalLevel() ?? $eventRequest->approval_level;
+            }
+
             ActivityLog::log(
                 'event_approved_level_2',
                 "Event '{$eventRequest->title}' (ID: {$eventRequest->id}) approved by Academic Head: {$user->name} - Requestor: {$eventRequest->user->name}, Department: {$eventRequest->department}, Location: {$eventRequest->event_location}, Date: " . ($eventRequest->start_date ? $eventRequest->start_date->format('M d, Y') : 'N/A'),
@@ -821,6 +845,10 @@ class EventRequestController extends Controller
             }
 
         } elseif ($user->isBuildingAdmin()) {
+            if (! $eventRequest->canBeApprovedAtLevel(EventRequest::LEVEL_3_BUILDING_ADMIN)) {
+                return back()->with('error', 'This event request is still waiting for the previous approval level.');
+            }
+
             // Building Admin approval is role-level; one Building Admin approval satisfies this step.
             if ($eventRequest->isApprovedByAllBuildingAdmins()) {
                 return back()->with('error', 'This event request has already been approved by a Building Admin.');
@@ -888,6 +916,10 @@ class EventRequestController extends Controller
                 }
             }
 
+            if ($eventRequest->status === EventRequest::STATUS_PENDING) {
+                $eventRequest->approval_level = $eventRequest->getNextApprovalLevel() ?? $eventRequest->approval_level;
+            }
+
             ActivityLog::log(
                 'event_approved_level_3',
                 "Event '{$eventRequest->title}' (ID: {$eventRequest->id}) approved by Building Admin: {$user->name} - Requestor: {$eventRequest->user->name}, Location: {$eventRequest->event_location}, Date: " . ($eventRequest->start_date ? $eventRequest->start_date->format('M d, Y') : 'N/A'),
@@ -913,6 +945,16 @@ class EventRequestController extends Controller
             }
 
         } elseif ($user->isSchoolAdmin() || $user->isAdmin()) {
+            if (! $eventRequest->canBeApprovedAtLevel(EventRequest::LEVEL_4_SCHOOL_ADMIN)) {
+                $nextLevel = $eventRequest->getNextApprovalLevel();
+                if ($nextLevel !== null && $eventRequest->approval_level !== $nextLevel) {
+                    $eventRequest->approval_level = $nextLevel;
+                    $eventRequest->save();
+                }
+
+                return back()->with('error', 'This event request is still waiting for the previous approval level.');
+            }
+
             // Check if this user has already approved at this level
             if ($eventRequest->hasUserApprovedAtLevel($user->id, 4)) {
                 // Already approved - just ensure it's marked as approved
@@ -939,7 +981,7 @@ class EventRequestController extends Controller
             ];
             $eventRequest->approval_history = $history;
 
-            // School Admin approval is FINAL - approve immediately regardless of previous levels
+            // School Admin approval is final after all previous required levels are complete.
             $eventRequest->status = 'Approved';
             $eventRequest->approved_by = $user->id;
             $eventRequest->approved_at = now();
@@ -1831,7 +1873,10 @@ class EventRequestController extends Controller
         }
 
         $allRequests = $query->orderBy('created_at', 'desc')->get();
-        $allRequests->each(fn ($eventRequest) => $this->recordRequesterApprovalIfNeeded($eventRequest));
+        $allRequests->each(function ($eventRequest) {
+            $this->recordRequesterApprovalIfNeeded($eventRequest);
+            $this->repairPendingApprovalLevel($eventRequest);
+        });
 
         // Filter events to show only those at the current user's approval level
         $user = auth()->user();
@@ -1873,6 +1918,10 @@ class EventRequestController extends Controller
                 return false;
             }
 
+            if (! $eventRequest->arePreviousApprovalLevelsComplete($userLevel)) {
+                return false;
+            }
+
             // Also check if user has already approved at their level
             if ($userLevel === 3) {
                 return ! $eventRequest->isApprovedByAllBuildingAdmins();
@@ -1882,6 +1931,21 @@ class EventRequestController extends Controller
         });
 
         return view('admin.events', compact('requests', 'viewType'));
+    }
+
+    private function repairPendingApprovalLevel(EventRequest $eventRequest): void
+    {
+        if ($eventRequest->status !== EventRequest::STATUS_PENDING) {
+            return;
+        }
+
+        $nextLevel = $eventRequest->getNextApprovalLevel();
+        if ($nextLevel === null || (int) $eventRequest->approval_level === $nextLevel) {
+            return;
+        }
+
+        $eventRequest->approval_level = $nextLevel;
+        $eventRequest->save();
     }
 
     private function approvedEventsForApprover(User $user)

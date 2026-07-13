@@ -395,9 +395,16 @@ class EventRequest extends Model
      */
     public function isApprovedByAllProgramHeads(): bool
     {
-        $programHeads = User::where('role', User::ROLE_PROGRAM_HEAD)->get();
-        if ($programHeads->isEmpty()) {
-            return true; // No program heads, skip this level
+        $isShs = ($this->education_level ?? 'tertiary') === 'shs';
+        $requiredRole = $isShs ? User::ROLE_PRINCIPAL_ASSISTANT : User::ROLE_PROGRAM_HEAD;
+        $approvers = User::where('role', $requiredRole)->get();
+
+        if ($approvers->isEmpty()) {
+            return true; // No approvers for this level, skip it
+        }
+
+        if ($this->approved_by_level_1) {
+            return true;
         }
 
         $approvedIds = collect($this->approval_history ?? [])
@@ -407,7 +414,7 @@ class EventRequest extends Model
             ->unique()
             ->toArray();
 
-        // Any one Program Head approving is sufficient
+        // Any one Program Head/Principal Assistant approval is sufficient
         return count($approvedIds) >= 1;
     }
 
@@ -419,6 +426,10 @@ class EventRequest extends Model
         $academicHeads = User::where('role', User::ROLE_ACADEMIC_HEAD)->get();
         if ($academicHeads->isEmpty()) {
             return true; // No academic heads, skip this level
+        }
+
+        if ($this->approved_by_level_2) {
+            return true;
         }
 
         $approvedIds = collect($this->approval_history ?? [])
@@ -442,6 +453,10 @@ class EventRequest extends Model
             return true; // No building admins, skip this level
         }
 
+        if ($this->approved_by_level_3) {
+            return true;
+        }
+
         $approvedIds = collect($this->approval_history ?? [])
             ->where('level', 3)
             ->pluck('approver_id')
@@ -463,6 +478,10 @@ class EventRequest extends Model
             return true; // No school admins or MIS, skip this level
         }
 
+        if ($this->approved_by) {
+            return true;
+        }
+
         $approvedIds = collect($this->approval_history ?? [])
             ->where('level', 4)
             ->pluck('approver_id')
@@ -479,6 +498,20 @@ class EventRequest extends Model
      */
     public function isFullyApproved(): bool
     {
+        $isShs = ($this->education_level ?? 'tertiary') === 'shs';
+        $isNonAcademic = $this->request_type === 'Non-Academic';
+
+        if ($isShs) {
+            return $this->isApprovedByAllProgramHeads()
+                && $this->isApprovedByAllAcademicHeads()
+                && $this->isApprovedByAllSchoolAdmins();
+        }
+
+        if ($isNonAcademic) {
+            return $this->isApprovedByAllBuildingAdmins()
+                && $this->isApprovedByAllSchoolAdmins();
+        }
+
         return $this->isApprovedByAllProgramHeads()
             && $this->isApprovedByAllAcademicHeads()
             && $this->isApprovedByAllBuildingAdmins()
@@ -532,6 +565,20 @@ class EventRequest extends Model
         }
 
         return null; // Fully approved
+    }
+
+    public function arePreviousApprovalLevelsComplete(int $level): bool
+    {
+        $nextLevel = $this->getNextApprovalLevel();
+
+        return $nextLevel === null || $nextLevel === $level;
+    }
+
+    public function canBeApprovedAtLevel(int $level): bool
+    {
+        return $this->status === self::STATUS_PENDING
+            && (int) $this->approval_level === $level
+            && $this->arePreviousApprovalLevelsComplete($level);
     }
 
     /**
