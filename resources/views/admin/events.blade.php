@@ -314,44 +314,6 @@
     </div>
 
     @if(($viewType ?? 'pending') == 'pending')
-    <!-- Summary Cards -->
-    @if(auth()->user()->role !== 'building_admin')
-    <div class="row mb-4" style="display: flex !important;">
-        <div class="col-md-3">
-            <div class="card bg-primary text-white">
-                <div class="card-body">
-                    <h5>Total Requests</h5>
-                    <h3>{{ $requests->count() }}</h3>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-warning text-dark">
-                <div class="card-body">
-                    <h5>Pending</h5>
-                    <h3>{{ $requests->where('status', 'Pending')->count() }}</h3>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-success text-white">
-                <div class="card-body">
-                    <h5>Approved</h5>
-                    <h3>{{ $requests->where('status', 'Approved')->count() }}</h3>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-danger text-white">
-                <div class="card-body">
-                    <h5>Rejected</h5>
-                    <h3>{{ $requests->where('status', 'Rejected')->count() }}</h3>
-                </div>
-            </div>
-        </div>
-    </div>
-    @endif
-
     @if($requests->count() > 0)
         <div class="table-responsive" style="display: block !important; visibility: visible !important; opacity: 1 !important;">
             <table class="table table-hover" style="display: table !important;">
@@ -1934,7 +1896,6 @@ function executeEventAction(type, id) {
 @endif
 
 @endsection
-
 
 
 
