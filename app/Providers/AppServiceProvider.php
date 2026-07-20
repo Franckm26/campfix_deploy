@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Routing\Redirector;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Date;
@@ -21,7 +22,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        if (! $this->app->bound('redirect')) {
+            $this->app->singleton('redirect', function ($app) {
+                $redirector = new Redirector($app['url']);
+
+                if ($app->bound('session.store')) {
+                    $redirector->setSession($app['session.store']);
+                }
+
+                return $redirector;
+            });
+        }
     }
 
     /**

@@ -98,6 +98,10 @@
       "dest": "/public/favicon.ico"
     },
     {
+      "src": "/favicon.png",
+      "dest": "/public/Campfix/Images/logo.png"
+    },
+    {
       "src": "/(.*)",
       "dest": "/api/index.php"
     }
