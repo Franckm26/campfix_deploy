@@ -283,9 +283,15 @@
                         <span class="badge bg-warning text-dark ms-2">{{ $pendingEventsList->count() }} requests</span>
                         <i class="fas fa-chevron-down ms-2" id="pending-chevron"></i>
                     </div>
+                    @if($pendingEventsList->count() > 0)
+                    <button type="button" class="btn btn-sm btn-warning" onclick="openPendingEventReview({{ $pendingEventsList->first()->id }})">
+                        <i class="fas fa-check-circle"></i> Review Now
+                    </button>
+                    @else
                     <a href="{{ route('admin.events') }}" class="btn btn-sm btn-warning">
                         <i class="fas fa-check-circle"></i> Review Now
                     </a>
+                    @endif
                 </div>
                 <div class="card-body" id="pending-approvals-body" style="display: none;">
                     @if($pendingEventsList->count() > 0)
@@ -317,9 +323,9 @@
                                     </div>
                                 </div>
                                 <div class="approval-actions mt-2">
-                                    <a href="{{ route('admin.events') }}" class="btn btn-sm btn-outline-primary">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="openPendingEventReview({{ $event->id }})">
                                         <i class="fas fa-eye"></i> Review
-                                    </a>
+                                    </button>
                                 </div>
                             </div>
                             @endforeach
@@ -399,6 +405,48 @@
     </div>
 </div>
 
+<div class="modal fade" id="pendingEventReviewModal" tabindex="-1" aria-labelledby="pendingEventReviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="pendingEventReviewModalLabel">Event Request Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="pendingEventReviewLoading" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <div class="mt-2 text-muted">Loading event details...</div>
+                </div>
+                <div id="pendingEventReviewError" class="alert alert-danger d-none"></div>
+                <div id="pendingEventReviewContent" class="d-none">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <p class="mb-2"><strong>Ticket Number:</strong> <span id="reviewEventTicket"></span></p>
+                            <p class="mb-2"><strong>Requestor:</strong> <span id="reviewEventRequestor"></span></p>
+                            <p class="mb-2"><strong>Status:</strong> <span id="reviewEventStatus" class="badge bg-warning text-dark"></span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-2"><strong>Event Date:</strong> <span id="reviewEventDate"></span></p>
+                            <p class="mb-2"><strong>Time:</strong> <span id="reviewEventTime"></span></p>
+                            <p class="mb-2"><strong>Location:</strong> <span id="reviewEventLocation"></span></p>
+                        </div>
+                    </div>
+                    <hr>
+                    <p class="mb-2"><strong>Description:</strong></p>
+                    <p id="reviewEventDescription" class="mb-0"></p>
+                    <div id="reviewEventExtra" class="mt-3"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="{{ route('admin.events') }}" class="btn btn-primary">
+                    <i class="fas fa-list-check me-1"></i> Open Approval Page
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @section('scripts')
@@ -415,6 +463,89 @@
             body.style.display = 'none';
             chevron.classList.remove('rotated');
         }
+    }
+
+    async function openPendingEventReview(eventId) {
+        const modalEl = document.getElementById('pendingEventReviewModal');
+        const modal = new bootstrap.Modal(modalEl);
+        const loading = document.getElementById('pendingEventReviewLoading');
+        const error = document.getElementById('pendingEventReviewError');
+        const content = document.getElementById('pendingEventReviewContent');
+
+        loading.classList.remove('d-none');
+        error.classList.add('d-none');
+        content.classList.add('d-none');
+        modal.show();
+
+        try {
+            const response = await fetch(`/events/${eventId}`, {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            const data = await response.json();
+            if (!response.ok || !data.event) {
+                throw new Error(data.error || 'Unable to load event details.');
+            }
+
+            renderPendingEventReview(data.event);
+            loading.classList.add('d-none');
+            content.classList.remove('d-none');
+        } catch (err) {
+            loading.classList.add('d-none');
+            error.textContent = err.message || 'Unable to load event details.';
+            error.classList.remove('d-none');
+        }
+    }
+
+    function renderPendingEventReview(event) {
+        const statusClass = event.status === 'Approved'
+            ? 'badge bg-success'
+            : event.status === 'Rejected'
+                ? 'badge bg-danger'
+                : 'badge bg-warning text-dark';
+
+        document.getElementById('reviewEventTicket').textContent = `EVT-${String(event.id).padStart(5, '0')}`;
+        document.getElementById('reviewEventRequestor').textContent = event.user?.name || 'Unknown';
+        document.getElementById('reviewEventStatus').className = statusClass;
+        document.getElementById('reviewEventStatus').textContent = event.status || 'Pending';
+        document.getElementById('reviewEventDate').textContent = formatEventDate(event.event_date);
+        document.getElementById('reviewEventTime').textContent = `${formatTime(event.start_time)} - ${formatTime(event.end_time)}`;
+        document.getElementById('reviewEventLocation').textContent = event.location || 'TBA';
+        document.getElementById('reviewEventDescription').textContent = event.description || 'No description provided.';
+
+        const extra = [];
+        if (event.category) extra.push(`<p class="mb-2"><strong>Category:</strong> ${escapeHtml(event.category)}</p>`);
+        if (event.request_type) extra.push(`<p class="mb-2"><strong>Request Type:</strong> ${escapeHtml(event.request_type)}</p>`);
+        if (event.department) extra.push(`<p class="mb-0"><strong>Department:</strong> ${escapeHtml(event.department)}</p>`);
+
+        document.getElementById('reviewEventExtra').innerHTML = extra.length ? `<hr>${extra.join('')}` : '';
+    }
+
+    function formatEventDate(dateStr) {
+        if (!dateStr) return 'N/A';
+        const date = new Date(`${dateStr}T00:00:00`);
+        if (isNaN(date.getTime())) return dateStr;
+
+        return date.toLocaleDateString('en-US', {
+            month: 'short',
+            day: '2-digit',
+            year: 'numeric'
+        });
+    }
+
+    function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, function (char) {
+            return {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            }[char];
+        });
     }
 
     // Events data from backend
