@@ -1285,16 +1285,25 @@ class AdminController extends Controller
             });
         }
 
+        $reportStats = [
+            'total' => (clone $query)->count(),
+            'pending' => (clone $query)->where('status', 'Pending')->count(),
+            'resolved' => (clone $query)->where('status', 'Resolved')->count(),
+            'critical' => (clone $query)->where('severity', 'critical')->count(),
+        ];
+
         $reports = $query
             ->orderByRaw("CASE status WHEN 'Pending' THEN 1 WHEN 'Assigned' THEN 2 WHEN 'In Progress' THEN 3 WHEN 'Resolved' THEN 4 ELSE 5 END")
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->paginate(15)
+            ->appends($request->except(['page', 'open_report']));
 
         return view('admin.reports', [
             'viewType' => $viewType,
             'reports' => $reports,
             'categories' => Category::all(),
-            'totalReports' => $reports->count(),
+            'totalReports' => $reportStats['total'],
+            'reportStats' => $reportStats,
             'totalCost' => 0,
             'groupedReports' => collect(),
             'locationStats' => collect(),

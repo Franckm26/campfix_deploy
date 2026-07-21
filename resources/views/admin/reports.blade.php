@@ -319,7 +319,7 @@
             <div class="card bg-primary text-white">
                 <div class="card-body">
                     <h5>Total</h5>
-                    <h2>{{ $reports->count() }}</h2>
+                    <h2>{{ $reportStats['total'] ?? $reports->count() }}</h2>
                 </div>
             </div>
         </div>
@@ -327,7 +327,7 @@
             <div class="card bg-warning">
                 <div class="card-body">
                     <h5>Pending</h5>
-                    <h2>{{ $reports->where('status', 'Pending')->count() }}</h2>
+                    <h2>{{ $reportStats['pending'] ?? $reports->where('status', 'Pending')->count() }}</h2>
                 </div>
             </div>
         </div>
@@ -335,7 +335,7 @@
             <div class="card bg-success text-white">
                 <div class="card-body">
                     <h5>Resolved</h5>
-                    <h2>{{ $reports->where('status', 'Resolved')->count() }}</h2>
+                    <h2>{{ $reportStats['resolved'] ?? $reports->where('status', 'Resolved')->count() }}</h2>
                 </div>
             </div>
         </div>
@@ -343,7 +343,7 @@
             <div class="card bg-danger text-white">
                 <div class="card-body">
                     <h5>Critical</h5>
-                    <h2>{{ $reports->where('severity', 'critical')->count() }}</h2>
+                    <h2>{{ $reportStats['critical'] ?? $reports->where('severity', 'critical')->count() }}</h2>
                 </div>
             </div>
         </div>
@@ -546,6 +546,17 @@
                     </div>
                 @endforelse
             </div>
+
+            @if($reports instanceof \Illuminate\Contracts\Pagination\LengthAwarePaginator && $reports->total() > 0)
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mt-3">
+                    <div class="text-muted small">
+                        Showing {{ $reports->firstItem() }}-{{ $reports->lastItem() }} of {{ $reports->total() }} reports
+                    </div>
+                    @if($reports->hasPages())
+                        <div>{{ $reports->links('pagination::bootstrap-4') }}</div>
+                    @endif
+                </div>
+            @endif
 
         </div>
     </div>
