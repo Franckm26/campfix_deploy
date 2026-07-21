@@ -544,6 +544,19 @@
     .category-workflow-actions .btn { flex: 1 1 auto; min-height: 39px; border-radius: 5px; font-size: 11px; font-weight: 700; }
     .category-action-message { min-height: 22px; margin-top: 8px; font-size: 11px; }
 
+    .category-summary-metrics { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .category-summary-section { margin-top: 22px; }
+    .category-summary-section h4 { margin: 0 0 10px; color: var(--analytics-ink); font-size: 15px; }
+    .category-summary-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .category-summary-section-heading span { color: #6b7a8e; font-size: 11px; }
+    .category-summary-chart { display: block; width: 100%; min-height: 260px; border: 1px solid #e0e6ed; object-fit: contain; background: #fff; }
+    .category-summary-table-wrap { overflow-x: auto; border: 1px solid #dce2ea; }
+    .category-summary-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    .category-summary-table th, .category-summary-table td { padding: 9px; border-right: 1px solid #e1e6ec; border-bottom: 1px solid #e1e6ec; text-align: left; vertical-align: top; }
+    .category-summary-table th { color: #455a73; background: #f4f7fa; white-space: nowrap; }
+    .category-summary-table tr:last-child td { border-bottom: 0; }
+    .category-summary-table th:last-child, .category-summary-table td:last-child { border-right: 0; }
+
     .recommendation-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
     .decision-list {
@@ -872,7 +885,7 @@
         .dss-report-cover { grid-template-columns: 52px minmax(0, 1fr); }
         .dss-report-cover dl { grid-column: 1 / -1; }
         .dss-scorecards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        .category-metric-tabs, .recommendation-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .category-metric-tabs, .recommendation-grid, .category-summary-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .category-ticket-toolbar { align-items: stretch; flex-direction: column; }
         .category-ticket-toolbar .form-control { width: 100%; }
     }
@@ -1580,6 +1593,59 @@ document.addEventListener('DOMContentLoaded', function () {
         renderCategoryTickets();
     }
 
+    function renderCategorySummary() {
+        const category = currentCategory();
+        if (!category) return;
+        const tickets = category.tickets || [];
+        const total = Number(category.stats.total || 0);
+        const resolved = Number(category.stats.resolved || 0);
+        const open = Number(category.stats.open || 0);
+        const hazards = Number(category.stats.hazards || 0);
+        const resolutionRate = total > 0 ? (resolved / total) * 100 : 0;
+        const recordedCost = tickets.reduce(function (sum, ticket) { return sum + Number(ticket.cost || 0); }, 0);
+        const locationCounts = tickets.reduce(function (counts, ticket) {
+            const location = ticket.location || 'Not specified';
+            counts[location] = (counts[location] || 0) + Number(ticket.report_count || 1);
+            return counts;
+        }, {});
+        const leadingLocation = Object.entries(locationCounts).sort(function (a, b) { return b[1] - a[1]; })[0];
+        const title = category.name + ' Executive Summary';
+        const metricLabel = { submitted: 'submitted reports', resolved: 'resolved reports', hazards: 'safety hazards' }[activeCategoryMetric];
+
+        document.getElementById('categorySummaryTitle').textContent = title;
+        document.getElementById('categorySummaryMetrics').innerHTML = [
+            ['Category', category.name],
+            ['Reports', total.toLocaleString()],
+            ['Open', open.toLocaleString()],
+            ['Resolved', resolved.toLocaleString() + ' (' + resolutionRate.toFixed(1) + '%)'],
+            ['Hazards', hazards.toLocaleString()]
+        ].map(function (metric) {
+            return '<div class="analytics-summary-metric"><span>' + escapeHtml(metric[0]) + '</span><strong>' + escapeHtml(metric[1]) + '</strong></div>';
+        }).join('');
+
+        const locationText = leadingLocation
+            ? escapeHtml(leadingLocation[0]) + ' contributes the largest share with ' + Number(leadingLocation[1]).toLocaleString() + ' report(s).'
+            : 'No location concentration is available.';
+        document.getElementById('categorySummaryInterpretation').innerHTML = '<strong>System interpretation:</strong> ' + escapeHtml(category.name) + ' has ' + total.toLocaleString() + ' report(s), with ' + open.toLocaleString() + ' still open and a ' + resolutionRate.toFixed(1) + '% resolution rate. ' + locationText + ' Recorded resolution cost is PHP ' + recordedCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '.';
+
+        let decision = 'Continue monitoring this category and review recurring ticket causes before planning staff and materials.';
+        if (hazards > 0) decision = 'Inspect the ' + hazards.toLocaleString() + ' hazard-related report(s) first, then assign routine work by age and operational impact.';
+        else if (open > resolved) decision = 'Prioritize the open backlog, confirm ownership for unassigned tickets, and move assigned work through progress to resolution.';
+        else if (open > 0) decision = 'Review the remaining open tickets and protect the current resolution performance with timely follow-up.';
+        document.getElementById('categorySummaryDecision').innerHTML = '<strong>Decision:</strong> ' + escapeHtml(decision);
+
+        document.getElementById('categorySummaryGraphTitle').textContent = 'Six-Month ' + category.name + ' Trend - ' + metricLabel;
+        const summaryImage = document.getElementById('categorySummaryChartImage');
+        if (categoryTrendChart) summaryImage.src = categoryTrendChart.toBase64Image('image/png', 1);
+        summaryImage.alt = category.name + ' ' + metricLabel + ' trend';
+        document.getElementById('categorySummaryTicketCount').textContent = tickets.length.toLocaleString() + ' ticket record(s)';
+        document.getElementById('categorySummaryTickets').innerHTML = tickets.length ? tickets.map(function (ticket) {
+            return '<tr><td><strong>' + escapeHtml(ticket.ticket) + '</strong></td><td>' + escapeHtml(ticket.title) + '</td><td>' + escapeHtml(ticket.location) + '</td><td>' + escapeHtml(ticket.status) + '</td><td>' + escapeHtml(ticket.assignee) + '</td><td>' + (ticket.is_hazard ? 'Yes' : 'No') + '</td><td>PHP ' + Number(ticket.cost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td></tr>';
+        }).join('') : '<tr><td colspan="7">No ticket evidence is available for this category.</td></tr>';
+    }
+
+    document.getElementById('categorySummaryModal')?.addEventListener('show.bs.modal', renderCategorySummary);
+
     async function categoryWorkflowRequest(url, options) {
         const message = document.getElementById('categoryActionMessage');
         const action = document.getElementById('categoryPrimaryAction');
@@ -1838,10 +1904,19 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!content) return;
             const printWindow = window.open('', '_blank', 'width=900,height=700');
             if (!printWindow) return;
-            printWindow.document.write('<!doctype html><html><head><title>' + escapeHtml(button.dataset.title) + '</title><style>body{font-family:Arial,sans-serif;color:#23344d;padding:36px;line-height:1.65}h1{font-size:22px}.analytics-summary-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.analytics-summary-metric,.summary-callout{border:1px solid #dce2ea;padding:12px}.analytics-summary-metric span{display:block;color:#66758a;font-size:11px;text-transform:uppercase}.analytics-summary-metric strong{display:block;font-size:18px}.summary-callout{margin-top:14px;border-left:4px solid #1769e0}@media print{body{padding:0}}</style></head><body><h1>' + escapeHtml(button.dataset.title) + '</h1>' + content.innerHTML + '</body></html>');
+            const dynamicTitle = button.dataset.dynamicTitle ? document.getElementById(button.dataset.dynamicTitle)?.textContent : '';
+            const printTitle = dynamicTitle || button.dataset.title;
+            printWindow.document.write('<!doctype html><html><head><title>' + escapeHtml(printTitle) + '</title><style>body{font-family:Arial,sans-serif;color:#23344d;padding:36px;line-height:1.55}h1{font-size:22px}h4{margin:20px 0 8px}.analytics-summary-metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}.analytics-summary-metric,.summary-callout{border:1px solid #dce2ea;padding:10px}.analytics-summary-metric span{display:block;color:#66758a;font-size:10px;text-transform:uppercase}.analytics-summary-metric strong{display:block;font-size:16px}.summary-callout{margin-top:14px;border-left:4px solid #1769e0}.category-summary-chart{display:block;width:100%;max-height:340px;object-fit:contain}.category-summary-section-heading{display:flex;justify-content:space-between;align-items:center}.category-summary-table-wrap{overflow:visible}.category-summary-table{width:100%;border-collapse:collapse;font-size:10px}.category-summary-table th,.category-summary-table td{padding:6px;border:1px solid #dce2ea;text-align:left;vertical-align:top}.category-summary-table th{background:#f3f6f9}@media print{body{padding:0}.category-summary-section{break-inside:avoid}.category-summary-table tr{break-inside:avoid}}</style></head><body><h1>' + escapeHtml(printTitle) + '</h1>' + content.innerHTML + '</body></html>');
             printWindow.document.close();
-            printWindow.focus();
-            printWindow.print();
+            let printed = false;
+            const printDocument = function () {
+                if (printed) return;
+                printed = true;
+                printWindow.focus();
+                printWindow.print();
+            };
+            printWindow.onload = printDocument;
+            setTimeout(printDocument, 500);
         });
     });
 

@@ -74,26 +74,31 @@
 </div>
 
 <div class="modal fade" id="categorySummaryModal" tabindex="-1" aria-labelledby="categorySummaryLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
-                <div><h3 class="modal-title fs-5" id="categorySummaryLabel"><i class="fas fa-chart-column text-primary"></i> Category Analysis Executive Summary</h3><small class="text-muted">{{ $executiveSummary['period'] }}</small></div>
+                <div><h3 class="modal-title fs-5" id="categorySummaryLabel"><i class="fas fa-chart-column text-primary"></i> <span id="categorySummaryTitle">Category Analysis Executive Summary</span></h3><small class="text-muted">{{ $executiveSummary['period'] }}</small></div>
                 <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body executive-summary" id="categorySummaryContent">
-                @if($topCategory)
-                    <div class="analytics-summary-metrics">
-                        <div class="analytics-summary-metric"><span>Leading Category</span><strong>{{ $topCategory['category'] }}</strong></div>
-                        <div class="analytics-summary-metric"><span>Reports</span><strong>{{ number_format($topCategory['count']) }}</strong></div>
-                        <div class="analytics-summary-metric"><span>Average Cost</span><strong>PHP {{ number_format($topCategory['avg_cost'], 2) }}</strong></div>
+                <div class="analytics-summary-metrics category-summary-metrics" id="categorySummaryMetrics"></div>
+                <p id="categorySummaryInterpretation"></p>
+                <div class="summary-callout" id="categorySummaryDecision"></div>
+                <section class="category-summary-section">
+                    <h4 id="categorySummaryGraphTitle">Six-Month Category Trend</h4>
+                    <img class="category-summary-chart" id="categorySummaryChartImage" alt="Selected category trend chart">
+                </section>
+                <section class="category-summary-section">
+                    <div class="category-summary-section-heading"><h4>Ticket Evidence</h4><span id="categorySummaryTicketCount"></span></div>
+                    <div class="category-summary-table-wrap">
+                        <table class="category-summary-table">
+                            <thead><tr><th>Ticket</th><th>Title</th><th>Location</th><th>Status</th><th>Assignee</th><th>Hazard</th><th>Cost</th></tr></thead>
+                            <tbody id="categorySummaryTickets"></tbody>
+                        </table>
                     </div>
-                    <p><strong>{{ $topCategory['category'] }}</strong> leads with {{ number_format($topCategory['count']) }} reports, {{ number_format($topCategory['hazards']) }} hazard case(s), and an {{ strtolower($topCategory['trend_direction']) }} monthly trend. This concentration indicates where preventive maintenance, technical training, spare parts, and supplier planning may have the greatest effect.</p>
-                    <div class="summary-callout"><strong>Decision:</strong> Review the recurring causes within {{ $topCategory['category'] }}, compare required parts against available inventory, and schedule preventive work at the locations contributing most to this category.</div>
-                @else
-                    <p>No category information is available for the selected filters.</p>
-                @endif
+                </section>
             </div>
-            <div class="modal-footer"><button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Close</button><button class="btn btn-primary" type="button" data-print-summary="categorySummaryContent" data-title="Category Analysis Executive Summary"><i class="fas fa-print"></i> Print Summary</button></div>
+            <div class="modal-footer"><button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Close</button><button class="btn btn-primary" type="button" data-print-summary="categorySummaryContent" data-dynamic-title="categorySummaryTitle" data-title="Category Analysis Executive Summary"><i class="fas fa-print"></i> Print Summary</button></div>
         </div>
     </div>
 </div>
