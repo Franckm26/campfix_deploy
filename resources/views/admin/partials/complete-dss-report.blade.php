@@ -84,6 +84,6 @@
 
     <section class="dss-report-section dss-page-break">
         <h2>Appendix A. Report Evidence</h2>
-        <table class="dss-report-table"><thead><tr><th>Date</th><th>Report</th><th>Location</th><th>Category</th><th>Status</th><th>Severity</th><th>Assigned</th></tr></thead><tbody>@foreach($reports->sortByDesc('created_at')->take(50) as $report)<tr><td>{{ optional($report->created_at)->format('M d, Y') }}</td><td>{{ $report->title ?: 'Untitled report' }}</td><td>{{ $report->location ?: 'N/A' }}</td><td>{{ optional($report->category)->name ?: 'Uncategorized' }}</td><td>{{ $report->status }}</td><td>{{ $report->severity ?: 'N/A' }}</td><td>{{ optional($report->assignedTo)->name ?: 'Unassigned' }}</td></tr>@endforeach</tbody></table>
+        <table class="dss-report-table"><thead><tr><th>Date</th><th>Report</th><th>Location</th><th>Category</th><th>Status</th><th>Priority</th><th>Assigned</th></tr></thead><tbody>@foreach($reports->sortByDesc('created_at')->take(50) as $report)<tr><td>{{ optional($report->created_at)->format('M d, Y') }}</td><td>{{ $report->title ?: 'Untitled report' }}</td><td>{{ $report->location ?: 'N/A' }}</td><td>{{ optional($report->category)->name ?: 'Uncategorized' }}</td><td>{{ $report->status }}</td><td>{{ $report->severity ?: 'N/A' }}</td><td>{{ optional($report->assignedTo)->name ?: 'Unassigned' }}</td></tr>@endforeach</tbody></table>
     </section>
 </article>

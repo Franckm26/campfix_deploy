@@ -60,7 +60,7 @@
                 <section class="location-reports">
                     <h4>Recent Reports</h4>
                     <table class="location-report-table">
-                        <thead><tr><th>Date</th><th>Report</th><th>Category</th><th>Status</th><th>Severity</th><th>Hazard</th><th>Cost</th></tr></thead>
+                        <thead><tr><th>Date</th><th>Report</th><th>Category</th><th>Status</th><th>Priority</th><th>Hazard</th><th>Cost</th></tr></thead>
                         <tbody id="locationRecentReports"></tbody>
                     </table>
                 </section>

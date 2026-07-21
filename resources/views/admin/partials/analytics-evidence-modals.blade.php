@@ -13,7 +13,7 @@
                     <section class="location-breakdown"><h4>Suggested Actions</h4><ol class="dss-action-list" id="alertEvidenceActions"></ol></section>
                 </div>
                 <div class="summary-callout"><strong>Estimated impact:</strong> <span id="alertEvidenceImpact"></span><br><strong>Priority:</strong> <span id="alertEvidencePriority"></span></div>
-                <section class="location-reports"><h4>Related Reports and Assigned Personnel</h4><table class="location-report-table"><thead><tr><th>Report</th><th>Location</th><th>Status</th><th>Severity</th><th>Age</th><th>Assigned To</th></tr></thead><tbody id="alertEvidenceReports"></tbody></table></section>
+                <section class="location-reports"><h4>Related Reports and Assigned Personnel</h4><table class="location-report-table"><thead><tr><th>Report</th><th>Location</th><th>Status</th><th>Priority</th><th>Age</th><th>Assigned To</th></tr></thead><tbody id="alertEvidenceReports"></tbody></table></section>
             </div>
             <div class="modal-footer"><button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Close</button><a class="btn btn-primary" href="{{ route('admin.reports') }}"><i class="fas fa-list"></i> Open Reports</a></div>
         </div>
@@ -35,7 +35,7 @@
                     <section class="location-breakdown"><h4>Expected Impact</h4><p id="recommendationImpact"></p><h4>Priority</h4><p id="recommendationPriority"></p></section>
                 </div>
                 <section class="location-breakdown"><h4>Implementation Steps</h4><ol class="dss-action-list" id="recommendationActions"></ol></section>
-                <section class="location-reports"><h4>Supporting Reports</h4><table class="location-report-table"><thead><tr><th>Report</th><th>Location</th><th>Status</th><th>Severity</th><th>Age</th><th>Assigned To</th></tr></thead><tbody id="recommendationReports"></tbody></table></section>
+                <section class="location-reports"><h4>Supporting Reports</h4><table class="location-report-table"><thead><tr><th>Report</th><th>Location</th><th>Status</th><th>Priority</th><th>Age</th><th>Assigned To</th></tr></thead><tbody id="recommendationReports"></tbody></table></section>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Close</button>

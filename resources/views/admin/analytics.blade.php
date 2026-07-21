@@ -1137,7 +1137,7 @@
                         <div class="category-detail-grid">
                             <div><span>Status</span><strong id="categoryDetailStatus"></strong></div>
                             <div><span>Location</span><strong id="categoryDetailLocation"></strong></div>
-                            <div><span>Severity</span><strong id="categoryDetailSeverity"></strong></div>
+                            <div><span>Priority</span><strong id="categoryDetailPriority"></strong></div>
                             <div><span>Assigned To</span><strong id="categoryDetailAssignee"></strong></div>
                             <div><span>Submitted</span><strong id="categoryDetailCreated"></strong></div>
                             <div><span>Reported Count</span><strong id="categoryDetailCount"></strong></div>
@@ -1181,7 +1181,7 @@
 
     <div class="analytics-grid-three">
         <section class="analytics-panel">
-            <header class="analytics-panel-header"><div><h3>Priority Distribution</h3><p>Workload by reported severity</p></div><button class="btn btn-outline-secondary" type="button" data-download-chart="priorityChart" data-file-name="priority-distribution"><i class="fas fa-download"></i></button></header>
+            <header class="analytics-panel-header"><div><h3>Priority Distribution</h3><p>Workload by reported priority</p></div><button class="btn btn-outline-secondary" type="button" data-download-chart="priorityChart" data-file-name="priority-distribution"><i class="fas fa-download"></i></button></header>
             <div class="analytics-small-chart"><canvas id="priorityChart" aria-label="Priority distribution chart"></canvas></div>
             <div class="chart-selection" id="priorityInsight"><strong>Explore:</strong> Click a priority segment to inspect its workload.</div>
         </section>
@@ -1550,7 +1550,7 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('categoryDetailStatus').textContent = ticket.status;
         document.getElementById('categoryDetailStatus').style.color = categoryStatusColor(ticket.status);
         document.getElementById('categoryDetailLocation').textContent = ticket.location;
-        document.getElementById('categoryDetailSeverity').textContent = ticket.is_hazard ? ticket.severity + ' - Safety Hazard' : ticket.severity;
+        document.getElementById('categoryDetailPriority').textContent = ticket.is_hazard ? ticket.priority + ' - Safety Hazard' : ticket.priority;
         document.getElementById('categoryDetailAssignee').textContent = ticket.assignee;
         document.getElementById('categoryDetailCreated').textContent = ticket.created_at || 'Unknown';
         document.getElementById('categoryDetailCount').textContent = Number(ticket.report_count).toLocaleString();
@@ -1787,7 +1787,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!target) return;
         target.innerHTML = (reports || []).length
             ? reports.map(function (report) {
-                return '<tr><td><a href="' + reportsUrl + '?search=' + encodeURIComponent(report.title) + '"><strong>' + escapeHtml(report.title) + '</strong></a></td><td>' + escapeHtml(report.location) + '</td><td>' + escapeHtml(report.status) + '</td><td>' + escapeHtml(report.severity) + '</td><td>' + Number(report.age_days).toLocaleString() + ' days</td><td>' + escapeHtml(report.assigned_to) + '</td></tr>';
+                return '<tr><td><a href="' + reportsUrl + '?search=' + encodeURIComponent(report.title) + '"><strong>' + escapeHtml(report.title) + '</strong></a></td><td>' + escapeHtml(report.location) + '</td><td>' + escapeHtml(report.status) + '</td><td>' + escapeHtml(report.priority) + '</td><td>' + Number(report.age_days).toLocaleString() + ' days</td><td>' + escapeHtml(report.assigned_to) + '</td></tr>';
             }).join('')
             : '<tr><td colspan="6" class="text-center text-muted">No related report records available.</td></tr>';
     }
@@ -1867,7 +1867,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         '<td><strong>' + escapeHtml(report.title) + '</strong></td>' +
                         '<td>' + escapeHtml(report.category) + '</td>' +
                         '<td>' + escapeHtml(report.status) + '</td>' +
-                        '<td>' + escapeHtml(report.severity) + '</td>' +
+                        '<td>' + escapeHtml(report.priority) + '</td>' +
                         '<td>' + (report.is_hazard ? '<span class="text-danger fw-bold">Yes</span>' : 'No') + '</td>' +
                         '<td>PHP ' + Number(report.cost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td>' +
                     '</tr>';
