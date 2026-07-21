@@ -1467,7 +1467,12 @@ document.addEventListener('DOMContentLoaded', function () {
         const category = currentCategory();
         const list = document.getElementById('categoryTicketList');
         if (!category || !list) return;
-        const tickets = category.tickets.filter(categoryTicketMatches);
+        const statusOrder = { 'pending': 1, 'assigned': 2, 'in progress': 3, 'resolved': 4 };
+        const tickets = category.tickets.filter(categoryTicketMatches).slice().sort(function (left, right) {
+            const leftRank = statusOrder[String(left.status).toLowerCase()] || 5;
+            const rightRank = statusOrder[String(right.status).toLowerCase()] || 5;
+            return leftRank - rightRank || Number(right.id) - Number(left.id);
+        });
         if (!tickets.some(function (ticket) { return Number(ticket.id) === Number(selectedCategoryTicketId); })) {
             selectedCategoryTicketId = tickets.length ? tickets[0].id : null;
         }

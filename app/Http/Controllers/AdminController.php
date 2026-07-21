@@ -1285,7 +1285,10 @@ class AdminController extends Controller
             });
         }
 
-        $reports = $query->orderBy('created_at', 'desc')->get();
+        $reports = $query
+            ->orderByRaw("CASE status WHEN 'Pending' THEN 1 WHEN 'Assigned' THEN 2 WHEN 'In Progress' THEN 3 WHEN 'Resolved' THEN 4 ELSE 5 END")
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         return view('admin.reports', [
             'viewType' => $viewType,
@@ -4594,7 +4597,10 @@ class AdminController extends Controller
 
                     return ['label' => $month->format('M Y'), 'submitted' => $submitted, 'resolved' => $resolved, 'hazards' => $hazards];
                 })->values();
-                $orderedItems = $items->sortByDesc('created_at')->sortBy(fn ($report) => strtolower((string) $report->status) === 'resolved' ? 1 : 0);
+                $statusOrder = ['pending' => 1, 'assigned' => 2, 'in progress' => 3, 'resolved' => 4];
+                $orderedItems = $items
+                    ->sortByDesc('created_at')
+                    ->sortBy(fn ($report) => $statusOrder[strtolower(trim((string) $report->status))] ?? 5);
 
                 return [
                     'name' => $category,
