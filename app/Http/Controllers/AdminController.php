@@ -4666,8 +4666,8 @@ class AdminController extends Controller
             ? 'Critical'
             : ($riskIndex >= 30 || $resolutionRate < $targetResolutionRate ? 'High' : 'Normal');
         $recurringIssueStats = $reports
-            ->filter(fn ($report) => filled($report->title))
-            ->groupBy(fn ($report) => strtolower(trim((string) $report->title)))
+            ->filter(fn ($report) => filled($report->title) && filled($report->location))
+            ->groupBy(fn ($report) => strtolower(trim((string) $report->title)).'|'.strtolower(trim((string) $report->location)))
             ->map(function ($items) use ($reportWeight, $monthStart) {
                 $open = $items->filter(fn ($report) => strtolower((string) $report->status) !== 'resolved')->sum($reportWeight);
                 $resolvedItems = $items->filter(fn ($report) => strtolower((string) $report->status) === 'resolved');
@@ -4688,19 +4688,18 @@ class AdminController extends Controller
 
                 return [
                     'issue' => trim((string) $items->first()->title),
+                    'location' => trim((string) $items->first()->location),
                     'count' => $reportCount,
                     'open' => $open,
                     'repair_cycles' => $repairCycles,
                     'hazards' => $hazards,
-                    'locations' => $items->pluck('location')->filter()->unique()->count(),
                     'cost' => $cost,
-                    'replacement_candidate' => $repairCycles >= 2,
                     'recurrence_score' => ($repairCycles * 5) + $reportCount + ($hazards * 4) + min(20, (int) floor($cost / 1000)),
                     'trend' => $trend,
                 ];
             })
-            ->filter(fn ($issue) => $issue['count'] >= 2 || $issue['repair_cycles'] >= 2)
-            ->sortBy([['replacement_candidate', 'desc'], ['recurrence_score', 'desc'], ['count', 'desc']])
+            ->filter(fn ($issue) => $issue['repair_cycles'] >= 2)
+            ->sortBy([['repair_cycles', 'desc'], ['recurrence_score', 'desc'], ['count', 'desc']])
             ->values();
         $topRecurringIssue = $recurringIssueStats->first();
 
@@ -4786,26 +4785,21 @@ class AdminController extends Controller
 
         foreach ($recurringIssueStats->take(3) as $recurringIssue) {
             $issue = $recurringIssue['issue'];
-            $replacementCandidate = $recurringIssue['replacement_candidate'];
+            $location = $recurringIssue['location'];
             $recordedCost = 'PHP '.number_format($recurringIssue['cost'], 2);
+            $isCritical = $recurringIssue['repair_cycles'] >= 3 || $recurringIssue['hazards'] > 0;
             $decisionAlerts->push([
-                'key' => 'recurring-issue-'.substr(md5(strtolower($issue)), 0, 10),
-                'level' => $replacementCandidate || $recurringIssue['hazards'] > 0 ? 'critical' : 'warning',
-                'title' => $replacementCandidate ? "Evaluate replacing {$issue}" : "{$issue} is repeatedly reported",
+                'key' => 'recurring-repair-'.substr(md5(strtolower($issue.'|'.$location)), 0, 10),
+                'level' => $isCritical ? 'critical' : 'warning',
+                'title' => "Evaluate replacing {$issue} in {$location}",
                 'body' => "{$recurringIssue['count']} report(s), {$recurringIssue['repair_cycles']} completed repair cycle(s), {$recordedCost} recorded repair cost.",
-                'why' => $replacementCandidate
-                    ? 'This issue returned after multiple completed repairs, which may indicate an ageing asset, recurring component failure, or an unresolved root cause.'
-                    : 'Multiple users or locations reported the same issue. Root-cause inspection is needed before further repeat work is approved.',
-                'priority' => $replacementCandidate || $recurringIssue['hazards'] > 0 ? 'Critical' : 'High',
-                'impact' => $replacementCandidate
-                    ? 'Continuing repeated repairs may cost more over time than replacing the failing asset or component.'
-                    : 'Early root-cause action can prevent this issue from becoming a repeated repair expense.',
-                'stats' => ['Issue reports' => $recurringIssue['count'], 'Completed repairs' => $recurringIssue['repair_cycles'], 'Recorded repair cost' => $recordedCost, 'Open reports' => $recurringIssue['open'], 'Affected locations' => $recurringIssue['locations']],
-                'actions' => $replacementCandidate
-                    ? ['Obtain a replacement quotation', 'Compare the quotation with cumulative and projected repair cost', 'Inspect asset age and recurring failed parts', 'Replace the asset or component when replacement offers better lifecycle value']
-                    : ['Perform a root-cause inspection', 'Compare reports across affected locations', 'Standardize the corrective action before closing more tickets'],
+                'why' => "The same {$issue} issue in {$location} returned after multiple completed repairs, indicating a possible ageing asset, recurring component failure, or unresolved root cause.",
+                'priority' => $isCritical ? 'Critical' : 'High',
+                'impact' => 'Continuing to repair the same issue in the same location may cost more over time than replacing the failing asset or component.',
+                'stats' => ['Issue' => $issue, 'Location' => $location, 'Issue reports' => $recurringIssue['count'], 'Completed repairs' => $recurringIssue['repair_cycles'], 'Recorded repair cost' => $recordedCost, 'Open reports' => $recurringIssue['open']],
+                'actions' => ['Obtain a replacement quotation for this location', 'Compare the quotation with cumulative and projected repair cost', 'Inspect asset age and recurring failed parts', 'Replace the asset or component when replacement offers better lifecycle value'],
                 'trend' => $recurringIssue['trend'],
-                'related_reports' => $reportEvidence($reports->filter(fn ($report) => strcasecmp(trim((string) $report->title), $issue) === 0)->sortByDesc('created_at')),
+                'related_reports' => $reportEvidence($reports->filter(fn ($report) => strcasecmp(trim((string) $report->title), $issue) === 0 && strcasecmp(trim((string) $report->location), $location) === 0)->sortByDesc('created_at')),
             ]);
         }
 

@@ -1065,7 +1065,7 @@
             <header class="analytics-panel-header">
                 <div>
                     <h3>Decision Alerts</h3>
-                    <p>Recurring issues that may require root-cause correction or asset replacement</p>
+                    <p>Repeated repairs for the same issue in the same location that may justify replacement</p>
                 </div>
             </header>
             <div class="decision-list">
