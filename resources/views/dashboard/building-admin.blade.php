@@ -6,9 +6,10 @@
 <style>
 .analytics-card {
     background: var(--card-bg, #fff);
-    border-radius: 10px;
-    padding: 15px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border: 1px solid #dce3eb;
+    border-radius: 7px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(15, 35, 58, 0.06);
     margin-bottom: 20px;
     height: 100%;
 }
@@ -33,9 +34,29 @@
 
 .chart-container {
     position: relative;
-    height: 200px;
+    height: 220px;
     width: 100%;
 }
+
+.dashboard-analytics-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 5px 0 10px; }
+.dashboard-analytics-heading h3 { margin: 0; color: #132b4d; font-size: 18px; }
+.dashboard-analytics-heading p { margin: 2px 0 0; color: #6c7c91; font-size: 12px; }
+.dashboard-analytics-heading .btn { border-radius: 5px; }
+.analytics-subtitle { margin: -5px 0 10px; color: #738198; font-size: 11px; }
+.analytics-interpretation { min-height: 50px; margin: 10px -16px -16px; padding: 10px 16px; border-top: 1px solid #e3e8ee; color: #51647d; background: #f8fafc; font-size: 11px; line-height: 1.45; }
+.analytics-interpretation strong { color: #172d4d; }
+.decision-snapshot { display: grid; }
+.decision-snapshot-item { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 9px; padding: 11px 0; border-bottom: 1px solid #e4e9ef; color: inherit; text-decoration: none; }
+.decision-snapshot-item:last-child { border-bottom: 0; }
+.decision-snapshot-item:hover strong { color: #1769e0; }
+.decision-snapshot-item i { display: grid; width: 26px; height: 26px; place-items: center; border-radius: 50%; color: #fff; background: #1769e0; font-size: 11px; }
+.decision-snapshot-item.warning i { background: #e99a00; }
+.decision-snapshot-item.critical i { background: #d93645; }
+.decision-snapshot-item strong { display: block; color: #182f50; font-size: 12px; }
+.decision-snapshot-item span { display: block; margin-top: 2px; color: #6a7b91; font-size: 10px; line-height: 1.4; }
+.dss-health-row { display: flex; gap: 10px; margin-bottom: 11px; }
+.dss-health-row span { flex: 1 1 0; padding: 7px 9px; border-left: 3px solid #1769e0; color: #64758b; background: #f5f8fc; font-size: 10px; }
+.dss-health-row strong { display: block; color: #142b4c; font-size: 15px; }
 
 [data-theme="dark"] .analytics-card {
     background: #1a1a2e !important;
@@ -106,41 +127,58 @@
         </div>
     </div>
 
-    <!-- Analytics Graphs Section -->
+    <div class="dashboard-analytics-heading">
+        <div><h3><i class="fas fa-chart-line me-1"></i> Reports Decision Support</h3><p>Current workload, completion performance, and operational priorities</p></div>
+        <a class="btn btn-sm btn-outline-primary" href="{{ route('admin.analytics') }}"><i class="fas fa-arrow-up-right-from-square me-1"></i> Full Analytics</a>
+    </div>
+
     <div class="row mb-3 g-2">
-        <div class="col-md-4">
+        <div class="col-lg-4">
             <div class="analytics-card">
                 <div class="analytics-header">
-                    <div class="analytics-title">
-                        <i class="fas fa-chart-pie"></i> Repairs by Location
-                    </div>
+                    <div class="analytics-title"><i class="fas fa-chart-pie"></i> Status Distribution</div>
                 </div>
-                <div class="chart-container" style="height: 200px;">
-                    <canvas id="locationPieChart"></canvas>
-                </div>
+                <div class="analytics-subtitle">Current report workload by workflow status</div>
+                <div class="chart-container"><canvas id="dashboardStatusChart"></canvas></div>
+                <div class="analytics-interpretation"><strong>Interpretation:</strong> {{ number_format($dashboardAnalytics['open']) }} open report(s); {{ number_format($dashboardAnalytics['resolution_rate'], 1) }}% resolved against the {{ $dashboardAnalytics['target_rate'] }}% target.</div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-lg-5">
             <div class="analytics-card">
                 <div class="analytics-header">
-                    <div class="analytics-title">
-                        <i class="fas fa-chart-line"></i> Period Comparison
-                    </div>
+                    <div class="analytics-title"><i class="fas fa-chart-line"></i> Reports and Resolutions</div>
                 </div>
-                <div class="chart-container" style="height: 200px;">
-                    <canvas id="periodComparisonChart"></canvas>
+                <div class="analytics-subtitle">Six-month submitted workload and completed work</div>
+                <div class="dss-health-row">
+                    <span>Total Reports<strong>{{ number_format($dashboardAnalytics['total']) }}</strong></span>
+                    <span>Safety Hazards<strong>{{ number_format($dashboardAnalytics['hazards']) }}</strong></span>
                 </div>
+                <div class="chart-container" style="height: 180px;"><canvas id="dashboardTrendChart"></canvas></div>
+                <div class="analytics-interpretation"><strong>Decision use:</strong> Compare incoming demand with completed work to determine whether staffing or escalation is needed.</div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-lg-3">
             <div class="analytics-card">
                 <div class="analytics-header">
-                    <div class="analytics-title">
-                        <i class="fas fa-chart-area"></i> Monthly Trend
-                    </div>
+                    <div class="analytics-title"><i class="fas fa-list-check"></i> Decision Priorities</div>
                 </div>
-                <div class="chart-container" style="height: 200px;">
-                    <canvas id="monthlyTrendChart"></canvas>
+                <div class="analytics-subtitle">Evidence requiring administrative attention</div>
+                <div class="decision-snapshot">
+                    @if($dashboardAnalytics['top_location'])
+                        <a class="decision-snapshot-item {{ $dashboardAnalytics['top_location']['risk'] >= 12 ? 'critical' : ($dashboardAnalytics['top_location']['risk'] >= 6 ? 'warning' : '') }}" href="{{ route('admin.analytics') }}#locationRiskTable"><i class="fas fa-location-dot"></i><div><strong>Prioritize {{ $dashboardAnalytics['top_location']['location'] }}</strong><span>Risk {{ $dashboardAnalytics['top_location']['risk'] }}: {{ $dashboardAnalytics['top_location']['open'] }} open and {{ $dashboardAnalytics['top_location']['hazards'] }} hazard report(s).</span></div></a>
+                    @endif
+                    @if($dashboardAnalytics['resolution_rate'] < $dashboardAnalytics['target_rate'])
+                        <a class="decision-snapshot-item warning" href="{{ route('admin.reports') }}"><i class="fas fa-gauge-high"></i><div><strong>Resolution is below target</strong><span>{{ number_format($dashboardAnalytics['resolution_rate'], 1) }}% resolved versus {{ $dashboardAnalytics['target_rate'] }}%. Review ageing open work.</span></div></a>
+                    @endif
+                    @if($dashboardAnalytics['top_category'])
+                        <a class="decision-snapshot-item" href="{{ route('admin.analytics') }}"><i class="fas fa-boxes-stacked"></i><div><strong>Plan for {{ $dashboardAnalytics['top_category']['category'] }}</strong><span>{{ $dashboardAnalytics['top_category']['total'] }} report(s), with {{ $dashboardAnalytics['top_category']['open'] }} still open.</span></div></a>
+                    @endif
+                    @if($dashboardAnalytics['hazards'] > 0)
+                        <a class="decision-snapshot-item critical" href="{{ route('admin.reports') }}"><i class="fas fa-shield-halved"></i><div><strong>Review safety hazards first</strong><span>{{ $dashboardAnalytics['hazards'] }} hazard-related report(s) require priority inspection.</span></div></a>
+                    @endif
+                    @if($dashboardAnalytics['total'] === 0)
+                        <div class="decision-snapshot-item"><i class="fas fa-circle-info"></i><div><strong>No report evidence yet</strong><span>Decision priorities will appear when reports are submitted.</span></div></div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -245,90 +283,54 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Location Pie Chart (Repairs by Location)
-    var locationPieCtx = document.getElementById('locationPieChart');
-    if (locationPieCtx) {
-        new Chart(locationPieCtx, {
-            type: 'pie',
-            data: {
-                labels: @json($chartLocations ?? []),
-                datasets: [{
-                    data: @json($chartCounts ?? []),
-                    backgroundColor: [
-                        '#FF6384',
-                        '#36A2EB',
-                        '#FFCE56',
-                        '#4BC0C0',
-                        '#9966FF',
-                        '#FF9F40'
-                    ]
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
-                    }
-                }
-            }
-        });
-    }
+    if (typeof Chart === 'undefined') return;
+    var status = @json($dashboardAnalytics['status']);
+    var trend = @json($dashboardAnalytics['trend']);
+    var reportsUrl = @json(route('admin.reports'));
+    var statusColors = { 'Pending': '#1769e0', 'Assigned': '#e99a00', 'In Progress': '#10a6a6', 'Resolved': '#148a58' };
 
-    // Period Comparison Chart
-    var periodComparisonCtx = document.getElementById('periodComparisonChart');
-    if (periodComparisonCtx) {
-        // Process monthly stats data for period comparison
-        var monthlyData = @json($monthlyStats ?? []);
-        var monthsMap = {};
-        var totalCounts = [];
-        
-        // Group by month and sum all counts
-        monthlyData.forEach(function(item) {
-            if (!monthsMap[item.month]) {
-                monthsMap[item.month] = 0;
+    var statusCanvas = document.getElementById('dashboardStatusChart');
+    if (statusCanvas) new Chart(statusCanvas, {
+        type: 'doughnut',
+        data: {
+            labels: status.map(function (item) { return item.status; }),
+            datasets: [{
+                data: status.map(function (item) { return Number(item.count); }),
+                backgroundColor: status.map(function (item) { return statusColors[item.status] || '#7557c5'; }),
+                borderColor: '#fff',
+                borderWidth: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '62%',
+            plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, padding: 12, font: { size: 10 } } } },
+            onClick: function (event, elements, chart) {
+                if (!elements.length) return;
+                window.location.href = reportsUrl + '?status=' + encodeURIComponent(chart.data.labels[elements[0].index]);
             }
-            monthsMap[item.month] += item.count;
-        });
-        
-        // Convert to arrays and sort
-        var months = Object.keys(monthsMap).sort();
-        var counts = months.map(function(month) {
-            return monthsMap[month];
-        });
-        
-        new Chart(periodComparisonCtx, {
-            type: 'bar',
-            data: {
-                labels: months,
-                datasets: [{
-                    label: 'Total Reports',
-                    data: counts,
-                    backgroundColor: '#36A2EB',
-                    borderColor: '#2E8BC0',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: 1
-                        }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                }
-            }
-        });
-    }
+        }
+    });
+
+    var trendCanvas = document.getElementById('dashboardTrendChart');
+    if (trendCanvas) new Chart(trendCanvas, {
+        type: 'line',
+        data: {
+            labels: trend.map(function (item) { return item.label; }),
+            datasets: [
+                { label: 'Reports', data: trend.map(function (item) { return Number(item.reports); }), borderColor: '#1769e0', backgroundColor: 'rgba(23,105,224,.10)', fill: true, tension: .3, pointRadius: 3, borderWidth: 2 },
+                { label: 'Resolved', data: trend.map(function (item) { return Number(item.resolved); }), borderColor: '#148a58', backgroundColor: 'transparent', tension: .3, pointRadius: 3, borderWidth: 2 }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { intersect: false, mode: 'index' },
+            plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, font: { size: 10 } } } },
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#e7ebf0' } }, x: { grid: { display: false }, ticks: { font: { size: 9 } } } }
+        }
+    });
 
     // Monthly Trend Chart
     var monthlyTrendCtx = document.getElementById('monthlyTrendChart');
@@ -455,4 +457,3 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 @endsection
-

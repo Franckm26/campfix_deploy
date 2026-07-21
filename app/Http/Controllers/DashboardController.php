@@ -64,36 +64,86 @@ class DashboardController extends Controller
             $totalConcerns = Concern::count();
             $pendingConcerns = Concern::where('status', '!=', 'Resolved')->count();
 
-            // Analytics data for graphs
-            $baseQuery = Report::whereNotNull('location')
-                ->where('location', '!=', '')
-                ->where('status', 'Resolved');
+            $reportsQuery = Report::with('category');
+            if (\Illuminate\Support\Facades\Schema::hasColumn('reports', 'is_deleted')) {
+                $reportsQuery->where('is_deleted', false);
+            }
 
-            $totalCost = (clone $baseQuery)->sum('cost') ?? 0;
+            $reports = $reportsQuery->get();
+            $supportsReportCount = Report::supportsReportCount();
+            $reportWeight = fn ($report) => $supportsReportCount ? max(1, (int) ($report->report_count ?? 1)) : 1;
+            $totalReports = $reports->sum($reportWeight);
+            $resolvedReports = $reports->filter(fn ($report) => strtolower((string) $report->status) === 'resolved')->sum($reportWeight);
+            $openReports = max(0, $totalReports - $resolvedReports);
+            $hazardReports = $reports->filter(fn ($report) => (bool) $report->is_safety_hazard)->sum($reportWeight);
+            $resolutionRate = $totalReports > 0 ? round(($resolvedReports / $totalReports) * 100, 1) : 0;
+            $statusOrder = ['Pending' => 1, 'Assigned' => 2, 'In Progress' => 3, 'Resolved' => 4];
 
-            // Location stats for pie chart
-            $locationStats = (clone $baseQuery)
-                ->select('location')
-                ->selectRaw('COUNT(*) as count')
-                ->selectRaw('SUM(COALESCE(cost, 0)) as total_cost')
+            $statusStats = $reports
+                ->groupBy(fn ($report) => $report->status ?: 'Unknown')
+                ->map(fn ($items, $status) => ['status' => $status, 'count' => $items->sum($reportWeight)])
+                ->sortBy(fn ($item) => $statusOrder[$item['status']] ?? 99)
+                ->values();
+
+            $monthStart = now()->startOfMonth()->subMonths(5);
+            $trendStats = collect(range(0, 5))->map(function ($offset) use ($reports, $monthStart, $reportWeight) {
+                $month = $monthStart->copy()->addMonths($offset);
+                $monthKey = $month->format('Y-m');
+
+                return [
+                    'label' => $month->format('M Y'),
+                    'reports' => $reports->filter(fn ($report) => $report->created_at && $report->created_at->format('Y-m') === $monthKey)->sum($reportWeight),
+                    'resolved' => $reports->filter(fn ($report) => $report->resolved_at && $report->resolved_at->format('Y-m') === $monthKey)->sum($reportWeight),
+                ];
+            })->values();
+
+            $categoryStats = $reports
+                ->groupBy(fn ($report) => optional($report->category)->name ?: 'Uncategorized')
+                ->map(function ($items, $category) use ($reportWeight) {
+                    return [
+                        'category' => $category,
+                        'total' => $items->sum($reportWeight),
+                        'open' => $items->filter(fn ($report) => strtolower((string) $report->status) !== 'resolved')->sum($reportWeight),
+                        'hazards' => $items->filter(fn ($report) => (bool) $report->is_safety_hazard)->sum($reportWeight),
+                    ];
+                })
+                ->sortByDesc('total')
+                ->take(5)
+                ->values();
+
+            $locationStats = $reports
+                ->filter(fn ($report) => filled($report->location))
                 ->groupBy('location')
-                ->orderByDesc('count')
-                ->limit(5)
-                ->get();
+                ->map(function ($items, $location) use ($reportWeight) {
+                    $open = $items->filter(fn ($report) => strtolower((string) $report->status) !== 'resolved')->sum($reportWeight);
+                    $hazards = $items->filter(fn ($report) => (bool) $report->is_safety_hazard)->sum($reportWeight);
+                    $cost = (float) $items->sum(fn ($report) => (float) ($report->cost ?? 0));
 
-            $chartLocations = $locationStats->pluck('location')->toArray();
-            $chartCounts = $locationStats->pluck('count')->toArray();
-            $chartCosts = $locationStats->pluck('total_cost')->toArray();
+                    return [
+                        'location' => $location,
+                        'open' => $open,
+                        'hazards' => $hazards,
+                        'risk' => ($open * 3) + ($hazards * 4) + min(20, (int) floor($cost / 1000)),
+                    ];
+                })
+                ->sortByDesc('risk')
+                ->values();
 
-            // Monthly stats for line chart - last 6 months (with status breakdown)
-            $monthlyStats = Report::where('created_at', '>=', now()->subMonths(6))
-                ->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month")
-                ->selectRaw("COALESCE(NULLIF(title, ''), LEFT(description, 50)) as title")
-                ->selectRaw('status')
-                ->selectRaw('COUNT(*) as count')
-                ->groupByRaw("month, COALESCE(NULLIF(title, ''), LEFT(description, 50)), status")
-                ->orderBy('month')
-                ->get();
+            $topCategory = $categoryStats->first();
+            $topLocation = $locationStats->first();
+            $dashboardAnalytics = [
+                'total' => $totalReports,
+                'open' => $openReports,
+                'resolved' => $resolvedReports,
+                'hazards' => $hazardReports,
+                'resolution_rate' => $resolutionRate,
+                'target_rate' => 85,
+                'status' => $statusStats,
+                'trend' => $trendStats,
+                'categories' => $categoryStats,
+                'top_category' => $topCategory,
+                'top_location' => $topLocation,
+            ];
 
             return view('dashboard.building-admin', compact(
                 'pendingEvents', 
@@ -103,11 +153,7 @@ class DashboardController extends Controller
                 'user', 
                 'upcomingEventsList', 
                 'pendingEventsList',
-                'totalCost',
-                'chartLocations',
-                'chartCounts',
-                'chartCosts',
-                'monthlyStats'
+                'dashboardAnalytics'
             ));
         }
 
