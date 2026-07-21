@@ -4406,7 +4406,7 @@ class AdminController extends Controller
             'date_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:date_from'],
         ]);
 
-        $reportsQuery = Report::with('category');
+        $reportsQuery = Report::with(['category', 'assignedTo']);
 
         if (\Illuminate\Support\Facades\Schema::hasColumn('reports', 'is_deleted')) {
             $reportsQuery->where('is_deleted', false);
@@ -4438,6 +4438,20 @@ class AdminController extends Controller
         $avgResolutionHours = $resolvedWithDates->count() > 0
             ? round($resolvedWithDates->avg(fn ($report) => $report->assigned_at->diffInHours($report->resolved_at)), 1)
             : null;
+        $now = now();
+        $openReportItems = $reports->filter(fn ($report) => strtolower((string) $report->status) !== 'resolved');
+        $pendingReports = $reports->filter(fn ($report) => strtolower((string) $report->status) === 'pending')->sum($reportWeight);
+        $assignedReports = $reports->filter(fn ($report) => strtolower((string) $report->status) === 'assigned')->sum($reportWeight);
+        $avgReportAgeDays = $openReportItems->count() > 0
+            ? round($openReportItems->avg(fn ($report) => $report->created_at ? $report->created_at->diffInHours($now) / 24 : 0), 1)
+            : 0;
+        $oldestOpenDays = $openReportItems->max(fn ($report) => $report->created_at ? $report->created_at->diffInDays($now) : 0) ?? 0;
+        $avgCost = $totalReports > 0 ? round($totalCost / $totalReports, 2) : 0;
+        $slaTargetHours = 72;
+        $slaCompliant = $resolvedWithDates->filter(fn ($report) => $report->assigned_at->diffInHours($report->resolved_at) <= $slaTargetHours)->count();
+        $slaCompliance = $resolvedWithDates->count() > 0 ? round(($slaCompliant / $resolvedWithDates->count()) * 100, 1) : null;
+        $completedCost = (float) $reports->filter(fn ($report) => strtolower((string) $report->status) === 'resolved')->sum(fn ($report) => (float) ($report->cost ?? 0));
+        $remainingRecordedCost = max(0, $totalCost - $completedCost);
 
         $locations = Report::whereNotNull('location')
             ->where('location', '!=', '')
@@ -4502,13 +4516,50 @@ class AdminController extends Controller
 
         $statusStats = $reports
             ->groupBy(fn ($report) => ucfirst(strtolower((string) ($report->status ?: 'Unknown'))))
-            ->map(fn ($items, $status) => ['status' => $status, 'count' => $items->sum($reportWeight)])
+            ->map(function ($items, $status) use ($reportWeight, $now, $slaTargetHours) {
+                $resolvedItems = $items->filter(fn ($report) => $report->assigned_at && $report->resolved_at);
+                $ages = $items->map(fn ($report) => $report->created_at ? $report->created_at->diffInHours($now) / 24 : 0);
+                $avgResolution = $resolvedItems->count() > 0
+                    ? round($resolvedItems->avg(fn ($report) => $report->assigned_at->diffInHours($report->resolved_at)), 1)
+                    : null;
+                $avgAge = round($ages->avg() ?? 0, 1);
+
+                return [
+                    'status' => $status,
+                    'count' => $items->sum($reportWeight),
+                    'avg_age_days' => $avgAge,
+                    'avg_resolution_hours' => $avgResolution,
+                    'oldest_days' => (int) round($ages->max() ?? 0),
+                    'priority' => strtolower($status) !== 'resolved' && ($avgAge >= 7 || $items->contains(fn ($report) => (bool) $report->is_safety_hazard))
+                        ? 'High'
+                        : ($avgResolution !== null && $avgResolution > $slaTargetHours ? 'Monitor' : 'Normal'),
+                ];
+            })
             ->sortByDesc('count')
             ->values();
 
+        $currentMonthKey = now()->format('Y-m');
+        $previousMonthKey = now()->subMonth()->format('Y-m');
         $categoryStats = $reports
             ->groupBy(fn ($report) => optional($report->category)->name ?: 'Uncategorized')
-            ->map(fn ($items, $category) => ['category' => $category, 'count' => $items->sum($reportWeight)])
+            ->map(function ($items, $category) use ($reportWeight, $currentMonthKey, $previousMonthKey) {
+                $resolvedItems = $items->filter(fn ($report) => $report->assigned_at && $report->resolved_at);
+                $currentMonth = $items->filter(fn ($report) => $report->created_at && $report->created_at->format('Y-m') === $currentMonthKey)->sum($reportWeight);
+                $previousMonth = $items->filter(fn ($report) => $report->created_at && $report->created_at->format('Y-m') === $previousMonthKey)->sum($reportWeight);
+                $trendPercent = $previousMonth > 0 ? round((($currentMonth - $previousMonth) / $previousMonth) * 100, 1) : ($currentMonth > 0 ? 100 : 0);
+
+                return [
+                    'category' => $category,
+                    'count' => $items->sum($reportWeight),
+                    'avg_cost' => round((float) $items->avg(fn ($report) => (float) ($report->cost ?? 0)), 2),
+                    'avg_resolution_hours' => $resolvedItems->count() > 0
+                        ? round($resolvedItems->avg(fn ($report) => $report->assigned_at->diffInHours($report->resolved_at)), 1)
+                        : null,
+                    'hazards' => $items->filter(fn ($report) => (bool) $report->is_safety_hazard)->sum($reportWeight),
+                    'trend_percent' => $trendPercent,
+                    'trend_direction' => $trendPercent > 0 ? 'Increasing' : ($trendPercent < 0 ? 'Decreasing' : 'Stable'),
+                ];
+            })
             ->sortByDesc('count')
             ->take(6)
             ->values();
@@ -4531,49 +4582,248 @@ class AdminController extends Controller
         $topLocation = $locationStats->first();
         $topCategory = $categoryStats->first();
         $targetResolutionRate = 85;
+        $currentMonthReports = $reports->filter(fn ($report) => $report->created_at && $report->created_at->format('Y-m') === $currentMonthKey)->sum($reportWeight);
+        $previousMonthReports = $reports->filter(fn ($report) => $report->created_at && $report->created_at->format('Y-m') === $previousMonthKey)->sum($reportWeight);
+        $monthlyChangePercent = $previousMonthReports > 0
+            ? round((($currentMonthReports - $previousMonthReports) / $previousMonthReports) * 100, 1)
+            : ($currentMonthReports > 0 ? 100 : 0);
+        $trendDirection = $monthlyChangePercent > 0 ? 'Increasing' : ($monthlyChangePercent < 0 ? 'Decreasing' : 'Stable');
+        $resolvedLast30Days = $reports
+            ->filter(fn ($report) => $report->resolved_at && $report->resolved_at->gte(now()->subDays(30)))
+            ->sum($reportWeight);
+        $dailyResolutionCapacity = $resolvedLast30Days > 0 ? $resolvedLast30Days / 22 : 0;
+        $estimatedBacklogDays = $dailyResolutionCapacity > 0 ? (int) ceil($openReports / $dailyResolutionCapacity) : null;
+        $riskIndex = $topLocation ? min(100, (int) $topLocation['risk_score']) : 0;
+        $priorityLevel = $hazardReports > 0 || $riskIndex >= 60 || $resolutionRate < 50
+            ? 'Critical'
+            : ($riskIndex >= 30 || $resolutionRate < $targetResolutionRate ? 'High' : 'Normal');
+        $topRecurringIssue = $reports
+            ->filter(fn ($report) => filled($report->title))
+            ->groupBy(fn ($report) => strtolower(trim((string) $report->title)))
+            ->map(fn ($items) => ['title' => $items->first()->title, 'count' => $items->sum($reportWeight)])
+            ->sortByDesc('count')
+            ->first();
+
+        $staffStats = $reports
+            ->filter(fn ($report) => $report->assigned_to)
+            ->groupBy('assigned_to')
+            ->map(function ($items) use ($reportWeight, $slaTargetHours) {
+                $resolved = $items->filter(fn ($report) => strtolower((string) $report->status) === 'resolved');
+                $timed = $resolved->filter(fn ($report) => $report->assigned_at && $report->resolved_at);
+                $slaCount = $timed->filter(fn ($report) => $report->assigned_at->diffInHours($report->resolved_at) <= $slaTargetHours)->count();
+                $assigned = $items->sum($reportWeight);
+                $resolvedCount = $resolved->sum($reportWeight);
+
+                return [
+                    'staff' => optional($items->first()->assignedTo)->name ?: 'Unassigned staff record',
+                    'assigned' => $assigned,
+                    'resolved' => $resolvedCount,
+                    'avg_hours' => $timed->count() > 0 ? round($timed->avg(fn ($report) => $report->assigned_at->diffInHours($report->resolved_at)), 1) : null,
+                    'sla' => $timed->count() > 0 ? round(($slaCount / $timed->count()) * 100, 1) : null,
+                    'efficiency' => $assigned > 0 ? round(($resolvedCount / $assigned) * 100, 1) : 0,
+                ];
+            })
+            ->sortByDesc('resolved')
+            ->values();
+
+        $priorityStats = $reports
+            ->groupBy(fn ($report) => ucfirst(strtolower((string) ($report->severity ?: 'Not set'))))
+            ->map(fn ($items, $priority) => ['priority' => $priority, 'count' => $items->sum($reportWeight)])
+            ->sortByDesc('count')
+            ->values();
+
+        $agingStats = collect([
+            ['bucket' => '0-2 days', 'count' => $openReportItems->filter(fn ($report) => $report->created_at && $report->created_at->diffInDays($now) <= 2)->sum($reportWeight)],
+            ['bucket' => '3-7 days', 'count' => $openReportItems->filter(fn ($report) => $report->created_at && $report->created_at->diffInDays($now) >= 3 && $report->created_at->diffInDays($now) <= 7)->sum($reportWeight)],
+            ['bucket' => '8-14 days', 'count' => $openReportItems->filter(fn ($report) => $report->created_at && $report->created_at->diffInDays($now) >= 8 && $report->created_at->diffInDays($now) <= 14)->sum($reportWeight)],
+            ['bucket' => '15+ days', 'count' => $openReportItems->filter(fn ($report) => $report->created_at && $report->created_at->diffInDays($now) >= 15)->sum($reportWeight)],
+        ]);
+
+        $costStats = $reports
+            ->groupBy(fn ($report) => optional($report->category)->name ?: 'Uncategorized')
+            ->map(function ($items, $category) {
+                $total = round((float) $items->sum(fn ($report) => (float) ($report->cost ?? 0)), 2);
+                $completed = round((float) $items->filter(fn ($report) => strtolower((string) $report->status) === 'resolved')->sum(fn ($report) => (float) ($report->cost ?? 0)), 2);
+
+                return ['category' => $category, 'cost' => $total, 'completed_cost' => $completed, 'remaining_cost' => max(0, $total - $completed)];
+            })
+            ->sortByDesc('cost')
+            ->take(6)
+            ->values();
+
+        $reportEvidence = fn ($items) => $items->take(10)->map(fn ($report) => [
+            'id' => $report->id,
+            'title' => $report->title ?: 'Untitled report',
+            'location' => $report->location ?: 'Not specified',
+            'status' => $report->status ?: 'Unknown',
+            'severity' => $report->severity ?: 'Not set',
+            'age_days' => $report->created_at ? $report->created_at->diffInDays($now) : 0,
+            'assigned_to' => optional($report->assignedTo)->name ?: 'Unassigned',
+        ])->values()->all();
+
+        $aiInsights = collect();
+        if ($totalReports > 0) {
+            $aiInsights->push($monthlyChangePercent > 0
+                ? "Report volume increased by {$monthlyChangePercent}% compared with the previous month."
+                : ($monthlyChangePercent < 0 ? 'Report volume decreased by '.abs($monthlyChangePercent).'% compared with the previous month.' : 'Report volume is unchanged from the previous month.'));
+            if ($topCategory) {
+                $aiInsights->push("{$topCategory['category']} is the leading category with {$topCategory['count']} reports and {$topCategory['hazards']} hazard cases.");
+            }
+            if ($topLocation) {
+                $aiInsights->push("{$topLocation['location']} has the highest operational risk score ({$topLocation['risk_score']}) and {$topLocation['open']} unresolved reports.");
+            }
+            $aiInsights->push($estimatedBacklogDays !== null
+                ? "At the current 30-day completion rate, the open backlog may require approximately {$estimatedBacklogDays} working days to clear."
+                : 'Backlog clearance cannot be estimated because no reports were resolved during the last 30 days.');
+        }
         $decisionAlerts = collect();
 
         if ($topLocation) {
             $decisionAlerts->push([
+                'key' => 'location-risk',
                 'level' => $topLocation['risk_score'] >= 12 ? 'critical' : 'warning',
                 'title' => "{$topLocation['location']} needs the most attention",
                 'body' => "{$topLocation['total']} report(s), {$topLocation['open']} open, {$topLocation['hazards']} safety hazard(s).",
+                'why' => 'This location has the highest combined score for unresolved workload, safety hazards, and recorded cost.',
+                'priority' => $topLocation['risk_score'] >= 12 ? 'Critical' : 'High',
+                'impact' => 'Delayed action may increase disruption, safety exposure, and repair cost in this area.',
+                'stats' => ['Risk score' => $topLocation['risk_score'], 'Open reports' => $topLocation['open'], 'Hazards' => $topLocation['hazards'], 'Recorded cost' => 'PHP '.number_format($topLocation['cost'], 2)],
+                'actions' => ['Inspect the location within one working day', 'Assign hazard reports before routine work', 'Confirm parts and technician availability'],
+                'related_reports' => $reportEvidence($reports->where('location', $topLocation['location'])->sortByDesc('created_at')),
             ]);
         }
 
         if ($resolutionRate < $targetResolutionRate) {
             $decisionAlerts->push([
+                'key' => 'resolution-gap',
                 'level' => 'critical',
                 'title' => 'Resolution rate is below target',
                 'body' => "{$resolutionRate}% resolved vs {$targetResolutionRate}% target. Prioritize ageing unresolved reports.",
+                'why' => 'The share of completed reports is below the management target, indicating insufficient throughput for the current workload.',
+                'priority' => 'Critical',
+                'impact' => "The current gap is ".round($targetResolutionRate - $resolutionRate, 1)." percentage points and may increase service disruption.",
+                'stats' => ['Current rate' => $resolutionRate.'%', 'Target' => $targetResolutionRate.'%', 'Open reports' => $openReports, 'Average age' => $avgReportAgeDays.' days'],
+                'actions' => ['Prioritize reports older than seven days', 'Assign additional technicians to the backlog', 'Review unassigned and stalled reports daily'],
+                'related_reports' => $reportEvidence($openReportItems->sortBy('created_at')),
             ]);
         } else {
             $decisionAlerts->push([
+                'key' => 'resolution-target',
                 'level' => 'success',
                 'title' => 'Resolution rate is within target',
                 'body' => "{$resolutionRate}% of reports are resolved. Continue current response practices.",
+                'why' => 'Completed work meets or exceeds the current management resolution target.',
+                'priority' => 'Normal',
+                'impact' => 'Maintaining current throughput should keep the backlog within acceptable limits.',
+                'stats' => ['Current rate' => $resolutionRate.'%', 'Target' => $targetResolutionRate.'%', 'Resolved' => $resolvedReports, 'Open' => $openReports],
+                'actions' => ['Maintain current staffing coverage', 'Monitor ageing reports weekly', 'Preserve preventive maintenance schedules'],
+                'related_reports' => $reportEvidence($reports->filter(fn ($report) => strtolower((string) $report->status) === 'resolved')->sortByDesc('resolved_at')),
             ]);
         }
 
         if ($trendDelta > 0) {
             $decisionAlerts->push([
+                'key' => 'volume-trend',
                 'level' => 'warning',
                 'title' => 'Report volume is increasing',
                 'body' => "Recent average is {$recentAverage} vs {$previousAverage} in the earlier period.",
+                'why' => 'The average monthly intake in the latest three months exceeds the preceding three-month average.',
+                'priority' => 'High',
+                'impact' => 'If completion capacity does not increase, new reports may add to the unresolved backlog.',
+                'stats' => ['Recent monthly average' => $recentAverage, 'Earlier monthly average' => $previousAverage, 'Difference' => $trendDelta, 'Current backlog' => $openReports],
+                'actions' => ['Compare intake against technician capacity', 'Increase preventive maintenance in recurring categories', 'Review staffing for the next four weeks'],
+                'related_reports' => $reportEvidence($reports->sortByDesc('created_at')),
             ]);
         } elseif ($totalReports > 0) {
             $decisionAlerts->push([
+                'key' => 'volume-stable',
                 'level' => 'success',
                 'title' => 'Report volume is stable or decreasing',
                 'body' => "Recent average is {$recentAverage} vs {$previousAverage} in the earlier period.",
+                'why' => 'Recent intake is no higher than the preceding three-month average.',
+                'priority' => 'Normal',
+                'impact' => 'Stable demand creates an opportunity to reduce older backlog items.',
+                'stats' => ['Recent monthly average' => $recentAverage, 'Earlier monthly average' => $previousAverage, 'Difference' => $trendDelta, 'Current backlog' => $openReports],
+                'actions' => ['Use available capacity on ageing reports', 'Continue preventive maintenance', 'Monitor for category-specific spikes'],
+                'related_reports' => $reportEvidence($reports->sortByDesc('created_at')),
             ]);
         }
 
         if ($topCategory) {
             $decisionAlerts->push([
+                'key' => 'category-concentration',
                 'level' => 'info',
                 'title' => "{$topCategory['category']} is the leading report category",
                 'body' => "Use this to guide purchasing, preventive maintenance, and staff assignments.",
+                'why' => 'This category contributes the largest number of reports in the selected period.',
+                'priority' => $topCategory['hazards'] > 0 ? 'High' : 'Monitor',
+                'impact' => 'Recurring category demand may consume disproportionate staff time, parts, and maintenance funds.',
+                'stats' => ['Reports' => $topCategory['count'], 'Hazards' => $topCategory['hazards'], 'Average cost' => 'PHP '.number_format($topCategory['avg_cost'], 2), 'Trend' => $topCategory['trend_direction']],
+                'actions' => ['Identify the most common root causes', 'Review spare-parts inventory and suppliers', 'Schedule targeted preventive maintenance'],
+                'related_reports' => $reportEvidence($reports->filter(fn ($report) => (optional($report->category)->name ?: 'Uncategorized') === $topCategory['category'])->sortByDesc('created_at')),
+            ]);
+        }
+
+        $recommendations = collect();
+        if ($topLocation) {
+            $recommendedTechnicians = max(1, min(5, (int) ceil($topLocation['open'] / 8)));
+            $recommendations->push([
+                'key' => 'prioritize-location',
+                'title' => "Prioritize {$topLocation['location']}",
+                'summary' => $topLocation['interpretation'],
+                'problem' => "{$topLocation['location']} has {$topLocation['open']} unresolved reports and a risk score of {$topLocation['risk_score']}.",
+                'priority' => $topLocation['risk_score'] >= 12 ? 'Critical' : 'High',
+                'evidence' => ['Average report age' => $avgReportAgeDays.' days', 'Risk score' => $topLocation['risk_score'], 'Hazards' => $topLocation['hazards'], 'Recorded cost' => 'PHP '.number_format($topLocation['cost'], 2)],
+                'resources' => "{$recommendedTechnicians} technician(s), priority inspection, and required spare parts",
+                'estimated_completion' => $dailyResolutionCapacity > 0 ? max(1, (int) ceil($topLocation['open'] / $dailyResolutionCapacity)).' working days' : 'Requires capacity assessment',
+                'expected_impact' => 'Reduce risk exposure and remove the largest location-based contribution to the backlog.',
+                'actions' => ['Inspect all hazard reports first', 'Assign an accountable technician to every open report', 'Review progress at the end of each working day'],
+                'related_reports' => $reportEvidence($reports->where('location', $topLocation['location'])->sortBy('created_at')),
+            ]);
+        }
+        if ($hazardReports > 0) {
+            $recommendations->push([
+                'key' => 'hazard-response',
+                'title' => 'Review safety hazards first',
+                'summary' => "Assign immediate inspection to {$hazardReports} hazard-related report(s) before routine repairs.",
+                'problem' => "{$hazardReports} reports are marked as safety hazards and may affect campus operations or user safety.",
+                'priority' => 'Critical',
+                'evidence' => ['Hazard reports' => $hazardReports, 'Open workload' => $openReports, 'Highest-risk location' => $topLocation['location'] ?? 'Not available', 'Risk index' => $riskIndex],
+                'resources' => 'Safety-qualified technician, inspection checklist, and area access control if required',
+                'estimated_completion' => 'Initial inspection within one working day',
+                'expected_impact' => 'Reduce immediate safety exposure and prevent escalation into more costly incidents.',
+                'actions' => ['Verify the hazard classification', 'Restrict access where necessary', 'Document corrective action and closure evidence'],
+                'related_reports' => $reportEvidence($reports->filter(fn ($report) => (bool) $report->is_safety_hazard)->sortBy('created_at')),
+            ]);
+        }
+        if ($topCategory) {
+            $recommendations->push([
+                'key' => 'category-plan',
+                'title' => "Plan for {$topCategory['category']}",
+                'summary' => "This is the leading category with {$topCategory['count']} report(s). Review parts, vendors, and preventive coverage.",
+                'problem' => "{$topCategory['category']} is the largest recurring workload category and is trending {$topCategory['trend_direction']}.",
+                'priority' => $topCategory['hazards'] > 0 ? 'High' : 'Monitor',
+                'evidence' => ['Reports' => $topCategory['count'], 'Average cost' => 'PHP '.number_format($topCategory['avg_cost'], 2), 'Hazards' => $topCategory['hazards'], 'Monthly trend' => $topCategory['trend_percent'].'%'],
+                'resources' => 'Category-skilled technician, recurring parts inventory, and preventive maintenance schedule',
+                'estimated_completion' => 'Review and plan within five working days',
+                'expected_impact' => 'Lower recurring demand and improve readiness for the most frequent issue type.',
+                'actions' => ['Perform root-cause review', 'Check stock and vendor lead times', 'Create a preventive maintenance activity'],
+                'related_reports' => $reportEvidence($reports->filter(fn ($report) => (optional($report->category)->name ?: 'Uncategorized') === $topCategory['category'])->sortByDesc('created_at')),
+            ]);
+        }
+        if ($resolutionRate < $targetResolutionRate) {
+            $recommendations->push([
+                'key' => 'backlog-recovery',
+                'title' => 'Reduce the unresolved backlog',
+                'summary' => "Raise the resolution rate from {$resolutionRate}% toward the {$targetResolutionRate}% target.",
+                'problem' => "{$openReports} reports remain open with an average age of {$avgReportAgeDays} days.",
+                'priority' => 'Critical',
+                'evidence' => ['Open reports' => $openReports, 'Oldest report' => $oldestOpenDays.' days', 'Resolution rate' => $resolutionRate.'%', 'SLA compliance' => $slaCompliance !== null ? $slaCompliance.'%' : 'No timed records'],
+                'resources' => 'Backlog owner, daily ageing review, and temporary technician capacity where available',
+                'estimated_completion' => $estimatedBacklogDays !== null ? $estimatedBacklogDays.' working days at current throughput' : 'Cannot estimate without recent completions',
+                'expected_impact' => 'Improve service reliability, shorten wait times, and move resolution performance toward target.',
+                'actions' => ['Assign all unowned reports', 'Escalate reports older than seven days', 'Track daily completions against intake'],
+                'related_reports' => $reportEvidence($openReportItems->sortBy('created_at')),
             ]);
         }
 
@@ -4587,6 +4837,21 @@ class AdminController extends Controller
             'resolution_rate' => $resolutionRate,
             'total_cost' => $totalCost,
             'avg_resolution_hours' => $avgResolutionHours,
+            'pending_reports' => $pendingReports,
+            'assigned_reports' => $assignedReports,
+            'avg_report_age_days' => $avgReportAgeDays,
+            'oldest_open_days' => $oldestOpenDays,
+            'avg_cost' => $avgCost,
+            'completed_cost' => $completedCost,
+            'remaining_recorded_cost' => $remainingRecordedCost,
+            'sla_target_hours' => $slaTargetHours,
+            'sla_compliance' => $slaCompliance,
+            'estimated_backlog_days' => $estimatedBacklogDays,
+            'monthly_change_percent' => $monthlyChangePercent,
+            'trend_direction' => $trendDirection,
+            'risk_index' => $riskIndex,
+            'priority_level' => $priorityLevel,
+            'top_recurring_issue' => $topRecurringIssue,
             'top_location' => $topLocation,
             'top_category' => $topCategory,
             'trend_delta' => $trendDelta,
@@ -4607,8 +4872,28 @@ class AdminController extends Controller
             'categoryStats',
             'trendStats',
             'decisionAlerts',
+            'recommendations',
             'executiveSummary',
-            'targetResolutionRate'
+            'targetResolutionRate',
+            'pendingReports',
+            'assignedReports',
+            'avgReportAgeDays',
+            'oldestOpenDays',
+            'avgCost',
+            'completedCost',
+            'remainingRecordedCost',
+            'slaTargetHours',
+            'slaCompliance',
+            'estimatedBacklogDays',
+            'monthlyChangePercent',
+            'trendDirection',
+            'riskIndex',
+            'priorityLevel',
+            'staffStats',
+            'priorityStats',
+            'agingStats',
+            'costStats',
+            'aiInsights'
         ));
 
         $reportCountExpression = Report::supportsReportCount()

@@ -9,7 +9,7 @@
                 @if($dominantStatus)
                     <div class="analytics-summary-metrics">
                         <div class="analytics-summary-metric"><span>Dominant Status</span><strong>{{ $dominantStatus['status'] }}</strong></div>
-                        <div class="analytics-summary-metric"><span>Workload Share</span><strong>{{ number_format($dominantStatusShare, 1) }}%</strong></div>
+                        <div class="analytics-summary-metric"><span>Average Age</span><strong>{{ number_format($dominantStatus['avg_age_days'], 1) }} days</strong></div>
                         <div class="analytics-summary-metric"><span>Open Workload</span><strong>{{ number_format($openReports) }}</strong></div>
                     </div>
                     <p><strong>{{ $dominantStatus['status'] }}</strong> is the largest status group with {{ number_format($dominantStatus['count']) }} of {{ number_format($totalReports) }} reports. The overall resolution rate is {{ number_format($resolutionRate, 1) }}%, compared with the {{ number_format($targetResolutionRate) }}% target.</p>
@@ -85,9 +85,9 @@
                     <div class="analytics-summary-metrics">
                         <div class="analytics-summary-metric"><span>Leading Category</span><strong>{{ $topCategory['category'] }}</strong></div>
                         <div class="analytics-summary-metric"><span>Reports</span><strong>{{ number_format($topCategory['count']) }}</strong></div>
-                        <div class="analytics-summary-metric"><span>Workload Share</span><strong>{{ number_format($topCategoryShare, 1) }}%</strong></div>
+                        <div class="analytics-summary-metric"><span>Average Cost</span><strong>PHP {{ number_format($topCategory['avg_cost'], 2) }}</strong></div>
                     </div>
-                    <p><strong>{{ $topCategory['category'] }}</strong> accounts for {{ number_format($topCategoryShare, 1) }}% of all reports in the selected period. This concentration indicates where preventive maintenance, technical training, spare parts, and supplier planning may have the greatest effect.</p>
+                    <p><strong>{{ $topCategory['category'] }}</strong> leads with {{ number_format($topCategory['count']) }} reports, {{ number_format($topCategory['hazards']) }} hazard case(s), and an {{ strtolower($topCategory['trend_direction']) }} monthly trend. This concentration indicates where preventive maintenance, technical training, spare parts, and supplier planning may have the greatest effect.</p>
                     <div class="summary-callout"><strong>Decision:</strong> Review the recurring causes within {{ $topCategory['category'] }}, compare required parts against available inventory, and schedule preventive work at the locations contributing most to this category.</div>
                 @else
                     <p>No category information is available for the selected filters.</p>

@@ -345,6 +345,12 @@
         gap: 18px;
     }
 
+    .analytics-grid-three {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+    }
+
     .analytics-small-chart {
         height: 285px;
         padding: 17px 20px 20px;
@@ -371,6 +377,21 @@
         border-left: 4px solid var(--decision-color);
         border-radius: 6px;
         background: #fafbfc;
+    }
+
+    button.decision-item {
+        width: 100%;
+        color: inherit;
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+    }
+
+    button.decision-item:hover,
+    button.decision-item:focus {
+        border-color: var(--decision-color);
+        background: #f4f7fb;
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--decision-color) 12%, transparent);
     }
 
     .decision-icon {
@@ -581,10 +602,74 @@
         background: #f3f7fd;
     }
 
+    .dss-action-list {
+        margin: 0;
+        padding-left: 20px;
+        color: #45566d;
+        font-size: 13px;
+        line-height: 1.7;
+    }
+
+    .dss-report {
+        color: #31445e;
+        font-size: 13px;
+        line-height: 1.65;
+    }
+
+    .dss-report-cover {
+        display: grid;
+        grid-template-columns: 72px minmax(0, 1fr) auto;
+        gap: 16px;
+        align-items: center;
+        padding: 18px;
+        border: 1px solid #dce3eb;
+        border-top: 5px solid #1769e0;
+        background: #f8fafc;
+    }
+
+    .dss-report-cover img { width: 64px; height: 64px; object-fit: contain; }
+    .dss-report-cover span { color: #1769e0; font-size: 12px; font-weight: 800; text-transform: uppercase; }
+    .dss-report-cover h1 { margin: 2px 0; color: #10233f; font-size: 22px; }
+    .dss-report-cover p { margin: 0; color: #66758a; }
+    .dss-report-cover dl { margin: 0; font-size: 11px; }
+    .dss-report-cover dl div { display: grid; grid-template-columns: 78px 1fr; gap: 8px; }
+    .dss-report-cover dt { color: #718096; }
+    .dss-report-cover dd { margin: 0; color: #263a55; font-weight: 700; }
+
+    .dss-report-section { padding: 18px 4px 4px; }
+    .dss-report-section h2 { margin: 0 0 10px; color: #10233f; font-size: 17px; border-bottom: 1px solid #dfe5ec; padding-bottom: 7px; }
+    .dss-report-section h3 { margin: 16px 0 8px; color: #213650; font-size: 14px; }
+    .dss-report-section p { margin: 0 0 10px; }
+
+    .dss-scorecards {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 9px;
+    }
+
+    .dss-scorecards > div {
+        padding: 10px;
+        border: 1px solid #dfe5ec;
+        border-radius: 5px;
+        background: #f8fafc;
+    }
+
+    .dss-scorecards span, .dss-scorecards small { display: block; color: #6b7a8e; font-size: 10px; }
+    .dss-scorecards strong { display: block; margin: 2px 0; color: #10233f; font-size: 17px; }
+
+    .dss-insights { display: grid; gap: 7px; margin: 0; padding-left: 20px; }
+
+    .dss-report-table { width: 100%; border-collapse: collapse; }
+    .dss-report-table th, .dss-report-table td { padding: 7px 8px; border: 1px solid #dfe5ec; font-size: 10px; text-align: left; vertical-align: top; }
+    .dss-report-table th { color: #243952; background: #f1f5f9; text-transform: uppercase; }
+
+    .dss-recommendation { margin-bottom: 8px; padding: 10px 12px; border-left: 4px solid #1769e0; background: #f7f9fc; }
+    .dss-recommendation p { margin: 4px 0 0; }
+
     @media (max-width: 1100px) {
         .analytics-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .analytics-filter { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        .analytics-grid-two { grid-template-columns: 1fr; }
+        .analytics-grid-two, .analytics-grid-three { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 650px) {
@@ -597,6 +682,9 @@
         .location-tools, .analytics-summary-metrics { grid-template-columns: 1fr; }
         .location-detail-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .location-breakdowns { grid-template-columns: 1fr; }
+        .dss-report-cover { grid-template-columns: 52px minmax(0, 1fr); }
+        .dss-report-cover dl { grid-column: 1 / -1; }
+        .dss-scorecards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
 
     @media print {
@@ -617,8 +705,6 @@
     $topCategory = $executiveSummary['top_category'] ?? null;
     $trendInterpretationColor = $totalReports === 0 ? '#66758a' : ($trendDelta > 0 ? '#d93645' : '#148a58');
     $dominantStatus = $statusStats->first();
-    $dominantStatusShare = $dominantStatus && $totalReports > 0 ? round(($dominantStatus['count'] / $totalReports) * 100, 1) : 0;
-    $topCategoryShare = $topCategory && $totalReports > 0 ? round(($topCategory['count'] / $totalReports) * 100, 1) : 0;
     $highRiskLocations = $locationStats->where('risk_score', '>=', 12);
     $mediumRiskLocations = $locationStats->whereBetween('risk_score', [6, 11]);
     $locationOpenWork = $locationStats->sum('open');
@@ -681,6 +767,26 @@
             <div class="analytics-kpi-context">
                 {{ $avgResolutionHours !== null ? number_format($avgResolutionHours, 1).' average hours to resolve' : 'No resolution-time data yet' }}
             </div>
+        </article>
+        <article class="analytics-panel analytics-kpi" style="--kpi-color: #148a58;">
+            <div class="analytics-kpi-header"><span class="analytics-kpi-label">Resolved Reports</span><span class="analytics-kpi-icon"><i class="fas fa-check-double"></i></span></div>
+            <div class="analytics-kpi-value">{{ number_format($resolvedReports) }}</div>
+            <div class="analytics-kpi-context">{{ number_format($openReports) }} still open</div>
+        </article>
+        <article class="analytics-panel analytics-kpi" style="--kpi-color: #7557c5;">
+            <div class="analytics-kpi-header"><span class="analytics-kpi-label">Average Resolution</span><span class="analytics-kpi-icon"><i class="fas fa-stopwatch"></i></span></div>
+            <div class="analytics-kpi-value">{{ $avgResolutionHours !== null ? number_format($avgResolutionHours, 1).' hrs' : 'N/A' }}</div>
+            <div class="analytics-kpi-context">Compared with {{ $slaTargetHours }}-hour SLA</div>
+        </article>
+        <article class="analytics-panel analytics-kpi" style="--kpi-color: #10a6a6;">
+            <div class="analytics-kpi-header"><span class="analytics-kpi-label">Average Report Age</span><span class="analytics-kpi-icon"><i class="fas fa-calendar-day"></i></span></div>
+            <div class="analytics-kpi-value">{{ number_format($avgReportAgeDays, 1) }} days</div>
+            <div class="analytics-kpi-context">Oldest open report: {{ number_format($oldestOpenDays) }} days</div>
+        </article>
+        <article class="analytics-panel analytics-kpi" style="--kpi-color: {{ $slaCompliance !== null && $slaCompliance >= 85 ? '#148a58' : '#d93645' }};">
+            <div class="analytics-kpi-header"><span class="analytics-kpi-label">SLA Compliance</span><span class="analytics-kpi-icon"><i class="fas fa-gauge-high"></i></span></div>
+            <div class="analytics-kpi-value">{{ $slaCompliance !== null ? number_format($slaCompliance, 1).'%' : 'N/A' }}</div>
+            <div class="analytics-kpi-context">{{ $slaTargetHours }}-hour completion benchmark</div>
         </article>
     </section>
 
@@ -745,9 +851,9 @@
                 <div class="analytics-small-chart"><canvas id="statusChart" aria-label="Report status chart"></canvas></div>
                 <div class="chart-selection" id="statusInsight"><strong>Explore:</strong> Click a status segment to see its share and open the matching report list.</div>
                 <div class="analytics-data-table" id="statusData">
-                    <table><thead><tr><th>Status</th><th>Reports</th><th>Share</th></tr></thead><tbody>
+                    <table><thead><tr><th>Status</th><th>Reports</th><th>Avg Age</th><th>Avg Resolution</th><th>Oldest</th><th>Priority</th></tr></thead><tbody>
                         @foreach($statusStats as $status)
-                            <tr><td>{{ $status['status'] }}</td><td>{{ number_format($status['count']) }}</td><td>{{ $totalReports > 0 ? number_format(($status['count'] / $totalReports) * 100, 1) : 0 }}%</td></tr>
+                            <tr><td>{{ $status['status'] }}</td><td>{{ number_format($status['count']) }}</td><td>{{ number_format($status['avg_age_days'], 1) }} days</td><td>{{ $status['avg_resolution_hours'] !== null ? number_format($status['avg_resolution_hours'], 1).' hrs' : 'N/A' }}</td><td>{{ $status['oldest_days'] }} days</td><td>{{ $status['priority'] }}</td></tr>
                         @endforeach
                     </tbody></table>
                 </div>
@@ -779,10 +885,10 @@
                             default => 'fa-circle-info',
                         };
                     @endphp
-                    <article class="decision-item" style="--decision-color: {{ $alertColor }};">
+                    <button class="decision-item" type="button" style="--decision-color: {{ $alertColor }};" data-alert-key="{{ $alert['key'] }}" title="View supporting evidence">
                         <div class="decision-icon"><i class="fas {{ $alertIcon }}"></i></div>
                         <div><h4>{{ $alert['title'] }}</h4><p>{{ $alert['body'] }}</p></div>
-                    </article>
+                    </button>
                 @empty
                     <div class="empty-analytics"><i class="fas fa-circle-info"></i>No decision alerts for this period.</div>
                 @endforelse
@@ -807,9 +913,9 @@
                 <div class="analytics-small-chart"><canvas id="categoryChart" aria-label="Report category chart"></canvas></div>
                 <div class="chart-selection" id="categoryInsight"><strong>Explore:</strong> Click a category bar to see its workload share and planning implication.</div>
                 <div class="analytics-data-table" id="categoryData">
-                    <table><thead><tr><th>Category</th><th>Reports</th><th>Share</th></tr></thead><tbody>
+                    <table><thead><tr><th>Category</th><th>Reports</th><th>Avg Cost</th><th>Avg Resolution</th><th>Hazards</th><th>Trend</th></tr></thead><tbody>
                         @foreach($categoryStats as $category)
-                            <tr><td>{{ $category['category'] }}</td><td>{{ number_format($category['count']) }}</td><td>{{ $totalReports > 0 ? number_format(($category['count'] / $totalReports) * 100, 1) : 0 }}%</td></tr>
+                            <tr><td>{{ $category['category'] }}</td><td>{{ number_format($category['count']) }}</td><td>PHP {{ number_format($category['avg_cost'], 2) }}</td><td>{{ $category['avg_resolution_hours'] !== null ? number_format($category['avg_resolution_hours'], 1).' hrs' : 'N/A' }}</td><td>{{ number_format($category['hazards']) }}</td><td>{{ $category['trend_direction'] }} ({{ number_format($category['trend_percent'], 1) }}%)</td></tr>
                         @endforeach
                     </tbody></table>
                 </div>
@@ -826,34 +932,42 @@
                 </div>
             </header>
             <div class="decision-list">
-                @if($topLocation)
-                    <article class="decision-item" style="--decision-color:#d93645;">
-                        <div class="decision-icon"><i class="fas fa-location-dot"></i></div>
-                        <div><h4>Prioritize {{ $topLocation['location'] }}</h4><p>{{ $topLocation['interpretation'] }}</p></div>
-                    </article>
-                @endif
-                @if($hazardReports > 0)
-                    <article class="decision-item" style="--decision-color:#e99a00;">
-                        <div class="decision-icon"><i class="fas fa-shield-halved"></i></div>
-                        <div><h4>Review safety hazards first</h4><p>Assign immediate inspection to the {{ number_format($hazardReports) }} hazard-related report(s) before routine repairs.</p></div>
-                    </article>
-                @endif
-                @if($topCategory)
-                    <article class="decision-item" style="--decision-color:#1769e0;">
-                        <div class="decision-icon"><i class="fas fa-boxes-stacked"></i></div>
-                        <div><h4>Plan for {{ $topCategory['category'] }}</h4><p>This is the leading category with {{ number_format($topCategory['count']) }} report(s). Review spare parts, vendors, and preventive maintenance coverage.</p></div>
-                    </article>
-                @endif
-                @if($resolutionRate < $targetResolutionRate)
-                    <article class="decision-item" style="--decision-color:#d93645;">
-                        <div class="decision-icon"><i class="fas fa-list-check"></i></div>
-                        <div><h4>Reduce the unresolved backlog</h4><p>Review ageing assignments and raise the resolution rate from {{ number_format($resolutionRate, 1) }}% toward the {{ number_format($targetResolutionRate) }}% target.</p></div>
-                    </article>
-                @endif
-                @if(!$topLocation && !$topCategory && $hazardReports === 0)
+                @forelse($recommendations as $recommendation)
+                    @php
+                        $recommendationColor = $recommendation['priority'] === 'Critical' ? '#d93645' : ($recommendation['priority'] === 'High' ? '#e99a00' : '#1769e0');
+                        $recommendationIcon = match($recommendation['key']) {
+                            'prioritize-location' => 'fa-location-dot',
+                            'hazard-response' => 'fa-shield-halved',
+                            'category-plan' => 'fa-boxes-stacked',
+                            default => 'fa-list-check',
+                        };
+                    @endphp
+                    <button class="decision-item" type="button" style="--decision-color:{{ $recommendationColor }};" data-recommendation-key="{{ $recommendation['key'] }}" title="View recommendation evidence">
+                        <div class="decision-icon"><i class="fas {{ $recommendationIcon }}"></i></div>
+                        <div><h4>{{ $recommendation['title'] }}</h4><p>{{ $recommendation['summary'] }}</p></div>
+                    </button>
+                @empty
                     <div class="empty-analytics"><i class="fas fa-lightbulb"></i>Recommendations will appear when report data is available.</div>
-                @endif
+                @endforelse
             </div>
+        </section>
+    </div>
+
+    <div class="analytics-grid-three">
+        <section class="analytics-panel">
+            <header class="analytics-panel-header"><div><h3>Priority Distribution</h3><p>Workload by reported severity</p></div><button class="btn btn-outline-secondary" type="button" data-download-chart="priorityChart" data-file-name="priority-distribution"><i class="fas fa-download"></i></button></header>
+            <div class="analytics-small-chart"><canvas id="priorityChart" aria-label="Priority distribution chart"></canvas></div>
+            <div class="chart-selection" id="priorityInsight"><strong>Explore:</strong> Click a priority segment to inspect its workload.</div>
+        </section>
+        <section class="analytics-panel">
+            <header class="analytics-panel-header"><div><h3>Open Report Aging</h3><p>Backlog grouped by age</p></div><button class="btn btn-outline-secondary" type="button" data-download-chart="agingChart" data-file-name="report-aging"><i class="fas fa-download"></i></button></header>
+            <div class="analytics-small-chart"><canvas id="agingChart" aria-label="Open report aging chart"></canvas></div>
+            <div class="chart-selection" id="agingInsight"><strong>Decision use:</strong> Reports older than seven days should be reviewed for escalation.</div>
+        </section>
+        <section class="analytics-panel">
+            <header class="analytics-panel-header"><div><h3>Cost by Category</h3><p>Recorded financial impact</p></div><button class="btn btn-outline-secondary" type="button" data-download-chart="costChart" data-file-name="category-cost"><i class="fas fa-download"></i></button></header>
+            <div class="analytics-small-chart"><canvas id="costChart" aria-label="Category cost chart"></canvas></div>
+            <div class="chart-selection" id="costInsight"><strong>Explore:</strong> Click a category to review its recorded cost.</div>
         </section>
     </div>
 
@@ -906,7 +1020,7 @@
 </main>
 
 <div class="modal fade" id="executiveSummaryModal" tabindex="-1" aria-labelledby="executiveSummaryLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
                 <div>
@@ -915,53 +1029,17 @@
                 </div>
                 <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body executive-summary">
-                @if($totalReports > 0)
-                    <p>
-                        During the selected period, the system recorded <strong>{{ number_format($totalReports) }} reports</strong>.
-                        <strong>{{ number_format($resolvedReports) }}</strong> were resolved and <strong>{{ number_format($openReports) }}</strong> remain open,
-                        resulting in a <strong>{{ number_format($resolutionRate, 1) }}% resolution rate</strong> against the {{ number_format($targetResolutionRate) }}% operational target.
-                    </p>
-                    <p>
-                        Recorded repair cost totals <strong>PHP {{ number_format($totalCost, 2) }}</strong>.
-                        @if($avgResolutionHours !== null)
-                            Completed assignments took an average of <strong>{{ number_format($avgResolutionHours, 1) }} hours</strong> from assignment to resolution.
-                        @endif
-                        The system identified <strong>{{ number_format($hazardReports) }} safety hazard report(s)</strong>, which should take priority over routine requests.
-                    </p>
-                    @if($topLocation || $topCategory)
-                        <p>
-                            @if($topLocation)
-                                <strong>{{ $topLocation['location'] }}</strong> has the highest location risk score at {{ $topLocation['risk_score'] }}, with {{ $topLocation['open'] }} open report(s).
-                            @endif
-                            @if($topCategory)
-                                The most frequent category is <strong>{{ $topCategory['category'] }}</strong> with {{ number_format($topCategory['count']) }} report(s).
-                            @endif
-                        </p>
-                    @endif
-                    <div class="summary-callout">
-                        <strong>Decision:</strong>
-                        @if($resolutionRate < $targetResolutionRate)
-                            Allocate staff first to unresolved hazards and the highest-risk location, then review ageing work orders until the resolution rate reaches target.
-                        @elseif($hazardReports > 0)
-                            Current resolution performance is healthy, but outstanding safety hazards still require immediate inspection.
-                        @else
-                            Current performance is within target. Maintain staffing levels and use category trends to schedule preventive maintenance.
-                        @endif
-                    </div>
-                @else
-                    <p>No reports match the selected filters. Expand the date range or select all locations before making an operational decision.</p>
-                @endif
-            </div>
+            <div class="modal-body executive-summary">@include('admin.partials.complete-dss-report')</div>
             <div class="modal-footer">
                 <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Close</button>
-                <button class="btn btn-primary" type="button" onclick="window.print()"><i class="fas fa-print"></i> Print Summary</button>
+                <button class="btn btn-primary" type="button" id="printDssReport"><i class="fas fa-file-pdf"></i> Print / Save PDF</button>
             </div>
         </div>
     </div>
 </div>
 
 @include('admin.partials.analytics-summaries')
+@include('admin.partials.analytics-evidence-modals')
 @endsection
 
 @section('scripts')
@@ -976,6 +1054,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const totalReportCount = {{ (int) $totalReports }};
     const reportsUrl = @json(route('admin.reports'));
     const locationDetails = @json($locationStats->keyBy('location')->all());
+    const decisionAlertDetails = @json($decisionAlerts->keyBy('key')->all());
+    const recommendationDetails = @json($recommendations->keyBy('key')->all());
 
     Chart.defaults.font.family = "'Inter', 'Segoe UI', sans-serif";
     Chart.defaults.color = '#66758a';
@@ -1090,6 +1170,32 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    function createInteractiveChart(canvasId, type, labels, values, colors, insightId, valueLabel, currency) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return null;
+        return new Chart(canvas, {
+            type,
+            data: { labels, datasets: [{ data: values, backgroundColor: colors, borderColor: '#ffffff', borderWidth: 2, borderRadius: type === 'bar' ? 4 : 0 }] },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: type !== 'bar', position: 'bottom', labels: { usePointStyle: true, padding: 12 } } },
+                scales: type === 'bar' ? { y: { beginAtZero: true, ticks: { precision: currency ? undefined : 0 }, grid: { color: '#e7ebf0' } }, x: { grid: { display: false } } } : {},
+                onClick: function (event, elements, chart) {
+                    if (!elements.length || !insightId) return;
+                    const index = elements[0].index;
+                    const value = Number(chart.data.datasets[0].data[index]);
+                    const formatted = currency ? 'PHP ' + value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : value.toLocaleString();
+                    document.getElementById(insightId).innerHTML = '<strong>' + escapeHtml(chart.data.labels[index]) + ':</strong> ' + formatted + ' ' + escapeHtml(valueLabel) + '.';
+                }
+            }
+        });
+    }
+
+    createInteractiveChart('priorityChart', 'doughnut', @json($priorityStats->pluck('priority')->values()), @json($priorityStats->pluck('count')->values()), ['#d93645', '#e99a00', '#1769e0', '#148a58', '#7557c5'], 'priorityInsight', 'reports', false);
+    createInteractiveChart('agingChart', 'bar', @json($agingStats->pluck('bucket')->values()), @json($agingStats->pluck('count')->values()), ['#148a58', '#1769e0', '#e99a00', '#d93645'], 'agingInsight', 'open reports', false);
+    createInteractiveChart('costChart', 'bar', @json($costStats->pluck('category')->values()), @json($costStats->pluck('cost')->values()), ['#1769e0', '#10a6a6', '#e99a00', '#7557c5', '#d93645', '#148a58'], 'costInsight', 'recorded cost', true);
+
     function escapeHtml(value) {
         const node = document.createElement('div');
         node.textContent = String(value);
@@ -1106,6 +1212,72 @@ document.addEventListener('DOMContentLoaded', function () {
             }).join('')
             : '<div class="text-muted small">No breakdown data available.</div>';
     }
+
+    function renderEvidenceStats(targetId, values) {
+        const target = document.getElementById(targetId);
+        if (!target) return;
+        target.innerHTML = Object.entries(values || {}).map(function (entry) {
+            return '<div class="analytics-summary-metric"><span>' + escapeHtml(entry[0]) + '</span><strong>' + escapeHtml(entry[1]) + '</strong></div>';
+        }).join('');
+    }
+
+    function renderEvidenceActions(targetId, actions) {
+        const target = document.getElementById(targetId);
+        if (!target) return;
+        target.innerHTML = (actions || []).map(function (action) { return '<li>' + escapeHtml(action) + '</li>'; }).join('');
+    }
+
+    function renderEvidenceReports(targetId, reports) {
+        const target = document.getElementById(targetId);
+        if (!target) return;
+        target.innerHTML = (reports || []).length
+            ? reports.map(function (report) {
+                return '<tr><td><a href="' + reportsUrl + '?search=' + encodeURIComponent(report.title) + '"><strong>' + escapeHtml(report.title) + '</strong></a></td><td>' + escapeHtml(report.location) + '</td><td>' + escapeHtml(report.status) + '</td><td>' + escapeHtml(report.severity) + '</td><td>' + Number(report.age_days).toLocaleString() + ' days</td><td>' + escapeHtml(report.assigned_to) + '</td></tr>';
+            }).join('')
+            : '<tr><td colspan="6" class="text-center text-muted">No related report records available.</td></tr>';
+    }
+
+    let alertTrendChart = null;
+    document.querySelectorAll('[data-alert-key]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            const alert = decisionAlertDetails[button.dataset.alertKey];
+            if (!alert) return;
+            document.getElementById('alertEvidenceTitle').textContent = alert.title;
+            document.getElementById('alertEvidenceWhy').textContent = alert.why;
+            document.getElementById('alertEvidenceImpact').textContent = alert.impact;
+            document.getElementById('alertEvidencePriority').textContent = alert.priority;
+            renderEvidenceStats('alertEvidenceStats', alert.stats);
+            renderEvidenceActions('alertEvidenceActions', alert.actions);
+            renderEvidenceReports('alertEvidenceReports', alert.related_reports);
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('alertEvidenceModal'));
+            modal.show();
+            setTimeout(function () {
+                if (alertTrendChart) alertTrendChart.destroy();
+                alertTrendChart = new Chart(document.getElementById('alertEvidenceChart'), {
+                    type: 'line',
+                    data: { labels: historicalLabels, datasets: [{ label: 'Reports', data: reportValues, borderColor: '#1769e0', backgroundColor: 'rgba(23,105,224,.10)', fill: true, tension: .3 }, { label: 'Resolved', data: resolvedValues, borderColor: '#148a58', tension: .3 }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+                });
+            }, 150);
+        });
+    });
+
+    document.querySelectorAll('[data-recommendation-key]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            const recommendation = recommendationDetails[button.dataset.recommendationKey];
+            if (!recommendation) return;
+            document.getElementById('recommendationEvidenceTitle').textContent = recommendation.title;
+            document.getElementById('recommendationProblem').innerHTML = '<strong>Problem:</strong> ' + escapeHtml(recommendation.problem);
+            document.getElementById('recommendationResources').textContent = recommendation.resources;
+            document.getElementById('recommendationCompletion').textContent = recommendation.estimated_completion;
+            document.getElementById('recommendationImpact').textContent = recommendation.expected_impact;
+            document.getElementById('recommendationPriority').textContent = recommendation.priority;
+            renderEvidenceStats('recommendationEvidenceStats', recommendation.evidence);
+            renderEvidenceActions('recommendationActions', recommendation.actions);
+            renderEvidenceReports('recommendationReports', recommendation.related_reports);
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('recommendationEvidenceModal')).show();
+        });
+    });
 
     document.querySelectorAll('[data-location-detail]').forEach(function (button) {
         button.addEventListener('click', function () {
@@ -1238,6 +1410,33 @@ document.addEventListener('DOMContentLoaded', function () {
             link.download = 'location-risk-ranking.csv';
             link.click();
             URL.revokeObjectURL(link.href);
+        });
+    }
+
+    const printDssButton = document.getElementById('printDssReport');
+    if (printDssButton) {
+        printDssButton.addEventListener('click', function () {
+            const report = document.getElementById('dssExecutiveReportContent');
+            if (!report) return;
+            const printableCharts = ['reportsTrendChart', 'statusChart', 'categoryChart', 'priorityChart', 'agingChart', 'costChart']
+                .map(function (id) {
+                    const canvas = document.getElementById(id);
+                    if (!canvas) return '';
+                    const title = canvas.getAttribute('aria-label') || 'Analytics chart';
+                    return '<figure><h3>' + escapeHtml(title) + '</h3><img src="' + canvas.toDataURL('image/png', 1) + '" alt="' + escapeHtml(title) + '"></figure>';
+                }).join('');
+            const printWindow = window.open('', '_blank', 'width=1100,height=850');
+            if (!printWindow) return;
+            const generatedBy = @json(auth()->user()->name ?? 'CampFix Administrator');
+            const period = @json($executiveSummary['period']);
+            const logo = @json(asset('Campfix/Images/logo.png'));
+            printWindow.document.write(`<!doctype html><html><head><title>CampFix Executive Maintenance Analytics Report</title><style>
+                @page { size: A4 portrait; margin: 20mm 12mm 18mm; @bottom-center { content: "Page " counter(page) " of " counter(pages); } }
+                *{box-sizing:border-box} body{margin:0;color:#263a55;font:10pt/1.48 Arial,sans-serif}.print-header{position:fixed;top:-15mm;left:0;right:0;height:11mm;display:flex;align-items:center;gap:8px;border-bottom:1px solid #b9c4d1;font-size:8pt}.print-header img{width:25px;height:25px;object-fit:contain}.print-header strong{color:#10233f}.print-footer{position:fixed;bottom:-13mm;left:0;right:0;height:9mm;display:flex;justify-content:space-between;border-top:1px solid #b9c4d1;padding-top:4px;color:#66758a;font-size:7pt}.dss-report-cover{display:grid;grid-template-columns:58px 1fr auto;gap:12px;align-items:center;padding:14px;border:1px solid #ccd5df;border-top:5px solid #1769e0}.dss-report-cover img{width:50px;height:50px;object-fit:contain}.dss-report-cover span{color:#1769e0;font-size:8pt;font-weight:bold;text-transform:uppercase}.dss-report-cover h1{margin:2px 0;color:#10233f;font-size:18pt}.dss-report-cover p,.dss-report-cover dl{margin:0}.dss-report-cover dl{font-size:7.5pt}.dss-report-cover dl div{display:grid;grid-template-columns:62px 1fr;gap:5px}.dss-report-cover dt{color:#66758a}.dss-report-cover dd{margin:0;font-weight:bold}.dss-report-section{padding-top:12px;break-inside:auto}.dss-report-section h2{margin:0 0 7px;padding-bottom:4px;border-bottom:1px solid #ccd5df;color:#10233f;font-size:12pt}.dss-report-section h3{font-size:10pt;margin:10px 0 5px}.dss-report-section p{margin:0 0 7px}.dss-scorecards{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.dss-scorecards>div{padding:7px;border:1px solid #d8e0e8;background:#f7f9fb}.dss-scorecards span,.dss-scorecards small{display:block;color:#66758a;font-size:7pt}.dss-scorecards strong{display:block;color:#10233f;font-size:12pt}.dss-insights{margin:0;padding-left:18px}.dss-report-table{width:100%;border-collapse:collapse;font-size:7.2pt}.dss-report-table thead{display:table-header-group}.dss-report-table tr{break-inside:avoid}.dss-report-table th,.dss-report-table td{padding:4px 5px;border:1px solid #ccd5df;text-align:left;vertical-align:top}.dss-report-table th{background:#edf2f7;text-transform:uppercase}.dss-recommendation{margin-bottom:6px;padding:7px 9px;border-left:3px solid #1769e0;background:#f7f9fb;break-inside:avoid}.dss-recommendation p{margin:3px 0 0}.dss-page-break{break-before:page}.dss-print-charts{break-before:page}.dss-print-charts h2{font-size:12pt;border-bottom:1px solid #ccd5df}.dss-print-charts .charts{display:grid;grid-template-columns:1fr 1fr;gap:10px}.dss-print-charts figure{margin:0;break-inside:avoid;border:1px solid #d8e0e8;padding:6px}.dss-print-charts h3{margin:0 0 4px;font-size:9pt}.dss-print-charts img{display:block;width:100%;height:190px;object-fit:contain}
+            </style></head><body><div class="print-header"><img src="${logo}"><div><strong>CampFix Decision Support System</strong><br>Executive Maintenance Analytics Report | ${escapeHtml(period)}</div></div><div class="print-footer"><span>${escapeHtml(window.location.origin)} | Confidential</span><span>Generated automatically by CampFix DSS | ${escapeHtml(generatedBy)}</span></div>${report.outerHTML}<section class="dss-print-charts"><h2>Appendix B. Analytics Visualizations</h2><div class="charts">${printableCharts}</div></section></body></html>`);
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(function () { printWindow.print(); }, 500);
         });
     }
 });
