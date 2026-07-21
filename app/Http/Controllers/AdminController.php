@@ -4400,6 +4400,8 @@ class AdminController extends Controller
     // Analytics - Location-based repair/damage analytics
     public function analytics(Request $request)
     {
+        return view('admin.analytics');
+
         $reportCountExpression = Report::supportsReportCount()
             ? 'SUM(COALESCE(report_count, 1))'
             : 'COUNT(*)';
