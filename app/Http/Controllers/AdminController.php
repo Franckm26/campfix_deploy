@@ -4455,14 +4455,43 @@ class AdminController extends Controller
                 $hazards = $items->filter(fn ($report) => (bool) $report->is_safety_hazard)->sum($reportWeight);
                 $cost = (float) $items->sum(fn ($report) => (float) ($report->cost ?? 0));
                 $riskScore = ($open * 3) + ($hazards * 4) + min(20, (int) floor($cost / 1000));
+                $resolved = max(0, $total - $open);
 
                 return [
                     'location' => $location,
                     'total' => $total,
                     'open' => $open,
+                    'resolved' => $resolved,
                     'hazards' => $hazards,
                     'cost' => $cost,
                     'risk_score' => $riskScore,
+                    'resolution_rate' => $total > 0 ? round(($resolved / $total) * 100, 1) : 0,
+                    'status_breakdown' => $items
+                        ->groupBy(fn ($report) => ucfirst(strtolower((string) ($report->status ?: 'Unknown'))))
+                        ->map(fn ($statusItems) => $statusItems->sum($reportWeight))
+                        ->sortDesc()
+                        ->all(),
+                    'category_breakdown' => $items
+                        ->groupBy(fn ($report) => optional($report->category)->name ?: 'Uncategorized')
+                        ->map(fn ($categoryItems) => $categoryItems->sum($reportWeight))
+                        ->sortDesc()
+                        ->take(5)
+                        ->all(),
+                    'recent_reports' => $items
+                        ->sortByDesc('created_at')
+                        ->take(8)
+                        ->map(fn ($report) => [
+                            'id' => $report->id,
+                            'title' => $report->title ?: 'Untitled report',
+                            'status' => $report->status ?: 'Unknown',
+                            'severity' => $report->severity ?: 'Not set',
+                            'category' => optional($report->category)->name ?: 'Uncategorized',
+                            'is_hazard' => (bool) $report->is_safety_hazard,
+                            'cost' => (float) ($report->cost ?? 0),
+                            'date' => optional($report->created_at)->format('M d, Y'),
+                        ])
+                        ->values()
+                        ->all(),
                     'interpretation' => $riskScore >= 12
                         ? 'High priority: inspect this area and allocate repair resources first.'
                         : ($open > 0 ? 'Monitor closely: unresolved reports may affect users.' : 'Stable: reports are currently resolved.'),

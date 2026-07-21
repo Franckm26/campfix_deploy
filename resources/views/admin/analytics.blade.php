@@ -440,6 +440,117 @@
     .risk-score.medium { background: var(--analytics-amber); }
     .risk-score.low { background: var(--analytics-green); }
 
+    .location-detail-button {
+        padding: 2px 0;
+        border: 0;
+        color: #2c4668;
+        background: transparent;
+        font: inherit;
+        font-weight: 750;
+        text-align: left;
+        text-decoration: underline;
+        text-decoration-color: #9ab2d0;
+        text-underline-offset: 3px;
+    }
+
+    .location-detail-button:hover,
+    .location-detail-button:focus {
+        color: var(--analytics-blue);
+        text-decoration-color: var(--analytics-blue);
+    }
+
+    .location-detail-metrics {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 16px;
+    }
+
+    .location-detail-metric {
+        padding: 11px;
+        border: 1px solid #dfe5ec;
+        border-radius: 6px;
+        background: #f8fafc;
+    }
+
+    .location-detail-metric span {
+        display: block;
+        color: #6b7a8e;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .location-detail-metric strong {
+        display: block;
+        margin-top: 3px;
+        color: var(--analytics-ink);
+        font-size: 18px;
+    }
+
+    .location-breakdowns {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+        margin: 16px 0;
+    }
+
+    .location-breakdown {
+        padding: 13px;
+        border: 1px solid #dfe5ec;
+        border-radius: 6px;
+    }
+
+    .location-breakdown h4,
+    .location-reports h4 {
+        margin: 0 0 10px;
+        color: var(--analytics-ink);
+        font-size: 14px;
+    }
+
+    .location-breakdown-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 6px 0;
+        border-bottom: 1px solid #edf0f4;
+        color: #4d6078;
+        font-size: 12px;
+    }
+
+    .location-breakdown-row:last-child { border-bottom: 0; }
+
+    .location-reports {
+        margin-top: 16px;
+        overflow-x: auto;
+    }
+
+    .location-report-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .location-report-table th,
+    .location-report-table td {
+        padding: 8px 9px;
+        border: 1px solid #e1e6ed;
+        color: #45566d;
+        font-size: 11px;
+        text-align: left;
+    }
+
+    .location-report-table th { background: #f4f7fa; }
+
+    .location-risk-callout {
+        padding: 12px 14px;
+        border-left: 4px solid var(--location-risk-color, #1769e0);
+        border-radius: 4px;
+        background: #f7f9fc;
+        color: #42546c;
+        font-size: 13px;
+    }
+
     .empty-analytics {
         padding: 40px 20px;
         color: var(--analytics-muted);
@@ -484,6 +595,8 @@
         .analytics-interpretation { margin-inline: 12px; }
         .analytics-header-tools, .analytics-chart-actions { justify-content: flex-start; }
         .location-tools, .analytics-summary-metrics { grid-template-columns: 1fr; }
+        .location-detail-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .location-breakdowns { grid-template-columns: 1fr; }
     }
 
     @media print {
@@ -774,7 +887,7 @@
                             @php $riskClass = $location['risk_score'] >= 12 ? 'high' : ($location['risk_score'] >= 6 ? 'medium' : 'low'); @endphp
                             <tr data-risk-level="{{ $riskClass }}" data-location="{{ strtolower($location['location']) }}" data-total="{{ $location['total'] }}" data-open="{{ $location['open'] }}" data-hazards="{{ $location['hazards'] }}" data-cost="{{ $location['cost'] }}" data-risk="{{ $location['risk_score'] }}">
                                 <td>{{ $index + 1 }}</td>
-                                <td><strong>{{ $location['location'] }}</strong></td>
+                                <td><button class="location-detail-button" type="button" data-location-detail="{{ $location['location'] }}" title="View {{ $location['location'] }} details">{{ $location['location'] }}</button></td>
                                 <td>{{ number_format($location['total']) }}</td>
                                 <td>{{ number_format($location['open']) }}</td>
                                 <td>{{ number_format($location['hazards']) }}</td>
@@ -862,6 +975,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const resolvedValues = @json($trendStats->pluck('resolved')->values());
     const totalReportCount = {{ (int) $totalReports }};
     const reportsUrl = @json(route('admin.reports'));
+    const locationDetails = @json($locationStats->keyBy('location')->all());
 
     Chart.defaults.font.family = "'Inter', 'Segoe UI', sans-serif";
     Chart.defaults.color = '#66758a';
@@ -981,6 +1095,61 @@ document.addEventListener('DOMContentLoaded', function () {
         node.textContent = String(value);
         return node.innerHTML;
     }
+
+    function renderLocationBreakdown(targetId, values) {
+        const target = document.getElementById(targetId);
+        if (!target) return;
+        const entries = Object.entries(values || {});
+        target.innerHTML = entries.length
+            ? entries.map(function (entry) {
+                return '<div class="location-breakdown-row"><span>' + escapeHtml(entry[0]) + '</span><strong>' + Number(entry[1]).toLocaleString() + '</strong></div>';
+            }).join('')
+            : '<div class="text-muted small">No breakdown data available.</div>';
+    }
+
+    document.querySelectorAll('[data-location-detail]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            const location = locationDetails[button.dataset.locationDetail];
+            if (!location) return;
+
+            const riskLevel = Number(location.risk_score) >= 12 ? 'High' : (Number(location.risk_score) >= 6 ? 'Medium' : 'Low');
+            const riskColor = riskLevel === 'High' ? '#d93645' : (riskLevel === 'Medium' ? '#e99a00' : '#148a58');
+            document.getElementById('locationDetailName').textContent = location.location;
+            document.getElementById('locationDetailTotal').textContent = Number(location.total).toLocaleString();
+            document.getElementById('locationDetailOpen').textContent = Number(location.open).toLocaleString();
+            document.getElementById('locationDetailResolved').textContent = Number(location.resolved).toLocaleString();
+            document.getElementById('locationDetailHazards').textContent = Number(location.hazards).toLocaleString();
+            document.getElementById('locationDetailRisk').textContent = Number(location.risk_score).toLocaleString();
+            document.getElementById('locationDetailRate').textContent = Number(location.resolution_rate).toFixed(1) + '%';
+            document.getElementById('locationDetailCost').textContent = 'PHP ' + Number(location.cost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            document.getElementById('locationDetailPriority').textContent = riskLevel;
+            document.getElementById('locationDetailPriority').style.color = riskColor;
+            document.getElementById('locationDetailInterpretation').textContent = location.interpretation;
+            document.getElementById('locationDetailCallout').style.setProperty('--location-risk-color', riskColor);
+            document.getElementById('locationDetailReportsLink').href = reportsUrl + '?search=' + encodeURIComponent(location.location);
+
+            renderLocationBreakdown('locationStatusBreakdown', location.status_breakdown);
+            renderLocationBreakdown('locationCategoryBreakdown', location.category_breakdown);
+
+            const recentBody = document.getElementById('locationRecentReports');
+            const reports = Array.isArray(location.recent_reports) ? location.recent_reports : [];
+            recentBody.innerHTML = reports.length
+                ? reports.map(function (report) {
+                    return '<tr>' +
+                        '<td>' + escapeHtml(report.date || 'Unknown') + '</td>' +
+                        '<td><strong>' + escapeHtml(report.title) + '</strong></td>' +
+                        '<td>' + escapeHtml(report.category) + '</td>' +
+                        '<td>' + escapeHtml(report.status) + '</td>' +
+                        '<td>' + escapeHtml(report.severity) + '</td>' +
+                        '<td>' + (report.is_hazard ? '<span class="text-danger fw-bold">Yes</span>' : 'No') + '</td>' +
+                        '<td>PHP ' + Number(report.cost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td>' +
+                    '</tr>';
+                }).join('')
+                : '<tr><td colspan="7" class="text-center text-muted">No recent reports available.</td></tr>';
+
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('locationDetailModal')).show();
+        });
+    });
 
     document.querySelectorAll('[data-toggle-table]').forEach(function (button) {
         button.addEventListener('click', function () {

@@ -23,6 +23,56 @@
     </div>
 </div>
 
+<div class="modal fade" id="locationDetailModal" tabindex="-1" aria-labelledby="locationDetailLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h3 class="modal-title fs-5" id="locationDetailLabel"><i class="fas fa-location-dot text-primary"></i> <span id="locationDetailName">Location Details</span></h3>
+                    <small class="text-muted">Report workload, risk factors, and recent activity</small>
+                </div>
+                <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="location-detail-metrics">
+                    <div class="location-detail-metric"><span>Total Reports</span><strong id="locationDetailTotal">0</strong></div>
+                    <div class="location-detail-metric"><span>Open</span><strong id="locationDetailOpen">0</strong></div>
+                    <div class="location-detail-metric"><span>Resolved</span><strong id="locationDetailResolved">0</strong></div>
+                    <div class="location-detail-metric"><span>Safety Hazards</span><strong id="locationDetailHazards">0</strong></div>
+                    <div class="location-detail-metric"><span>Risk Score</span><strong id="locationDetailRisk">0</strong></div>
+                </div>
+
+                <div class="location-risk-callout" id="locationDetailCallout">
+                    <strong>System interpretation:</strong> <span id="locationDetailInterpretation"></span>
+                </div>
+
+                <div class="location-breakdowns">
+                    <section class="location-breakdown"><h4>Status Breakdown</h4><div id="locationStatusBreakdown"></div></section>
+                    <section class="location-breakdown"><h4>Category Breakdown</h4><div id="locationCategoryBreakdown"></div></section>
+                </div>
+
+                <div class="analytics-summary-metrics">
+                    <div class="analytics-summary-metric"><span>Resolution Rate</span><strong id="locationDetailRate">0%</strong></div>
+                    <div class="analytics-summary-metric"><span>Recorded Cost</span><strong id="locationDetailCost">PHP 0.00</strong></div>
+                    <div class="analytics-summary-metric"><span>Recommended Priority</span><strong id="locationDetailPriority">Low</strong></div>
+                </div>
+
+                <section class="location-reports">
+                    <h4>Recent Reports</h4>
+                    <table class="location-report-table">
+                        <thead><tr><th>Date</th><th>Report</th><th>Category</th><th>Status</th><th>Severity</th><th>Hazard</th><th>Cost</th></tr></thead>
+                        <tbody id="locationRecentReports"></tbody>
+                    </table>
+                </section>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                <a class="btn btn-primary" id="locationDetailReportsLink" href="{{ route('admin.reports') }}"><i class="fas fa-list"></i> View Open Reports</a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="categorySummaryModal" tabindex="-1" aria-labelledby="categorySummaryLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
