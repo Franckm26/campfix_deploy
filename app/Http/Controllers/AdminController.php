@@ -4400,7 +4400,197 @@ class AdminController extends Controller
     // Analytics - Location-based repair/damage analytics
     public function analytics(Request $request)
     {
-        return view('admin.analytics');
+        $filters = $request->validate([
+            'location' => ['nullable', 'string', 'max:255'],
+            'date_from' => ['nullable', 'date_format:Y-m-d'],
+            'date_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:date_from'],
+        ]);
+
+        $reportsQuery = Report::with('category');
+
+        if (\Illuminate\Support\Facades\Schema::hasColumn('reports', 'is_deleted')) {
+            $reportsQuery->where('is_deleted', false);
+        }
+
+        if (! empty($filters['date_from'])) {
+            $reportsQuery->whereDate('created_at', '>=', $filters['date_from']);
+        }
+
+        if (! empty($filters['date_to'])) {
+            $reportsQuery->whereDate('created_at', '<=', $filters['date_to']);
+        }
+
+        if (! empty($filters['location'])) {
+            $reportsQuery->where('location', $filters['location']);
+        }
+
+        $reports = $reportsQuery->orderBy('created_at')->get();
+        $supportsReportCount = Report::supportsReportCount();
+        $reportWeight = fn ($report) => $supportsReportCount ? max(1, (int) ($report->report_count ?? 1)) : 1;
+        $totalReports = $reports->sum($reportWeight);
+        $resolvedReports = $reports->filter(fn ($report) => strtolower((string) $report->status) === 'resolved')->sum($reportWeight);
+        $openReports = max(0, $totalReports - $resolvedReports);
+        $hazardReports = $reports->filter(fn ($report) => (bool) $report->is_safety_hazard)->sum($reportWeight);
+        $totalCost = (float) $reports->sum(fn ($report) => (float) ($report->cost ?? 0));
+        $resolutionRate = $totalReports > 0 ? round(($resolvedReports / $totalReports) * 100, 1) : 0;
+
+        $resolvedWithDates = $reports->filter(fn ($report) => $report->assigned_at && $report->resolved_at);
+        $avgResolutionHours = $resolvedWithDates->count() > 0
+            ? round($resolvedWithDates->avg(fn ($report) => $report->assigned_at->diffInHours($report->resolved_at)), 1)
+            : null;
+
+        $locations = Report::whereNotNull('location')
+            ->where('location', '!=', '')
+            ->when(\Illuminate\Support\Facades\Schema::hasColumn('reports', 'is_deleted'), fn ($query) => $query->where('is_deleted', false))
+            ->distinct()
+            ->orderBy('location')
+            ->pluck('location');
+
+        $locationStats = $reports
+            ->filter(fn ($report) => filled($report->location))
+            ->groupBy('location')
+            ->map(function ($items, $location) use ($reportWeight) {
+                $total = $items->sum($reportWeight);
+                $open = $items->filter(fn ($report) => strtolower((string) $report->status) !== 'resolved')->sum($reportWeight);
+                $hazards = $items->filter(fn ($report) => (bool) $report->is_safety_hazard)->sum($reportWeight);
+                $cost = (float) $items->sum(fn ($report) => (float) ($report->cost ?? 0));
+                $riskScore = ($open * 3) + ($hazards * 4) + min(20, (int) floor($cost / 1000));
+
+                return [
+                    'location' => $location,
+                    'total' => $total,
+                    'open' => $open,
+                    'hazards' => $hazards,
+                    'cost' => $cost,
+                    'risk_score' => $riskScore,
+                    'interpretation' => $riskScore >= 12
+                        ? 'High priority: inspect this area and allocate repair resources first.'
+                        : ($open > 0 ? 'Monitor closely: unresolved reports may affect users.' : 'Stable: reports are currently resolved.'),
+                ];
+            })
+            ->sortByDesc('risk_score')
+            ->values();
+
+        $statusStats = $reports
+            ->groupBy(fn ($report) => ucfirst(strtolower((string) ($report->status ?: 'Unknown'))))
+            ->map(fn ($items, $status) => ['status' => $status, 'count' => $items->sum($reportWeight)])
+            ->sortByDesc('count')
+            ->values();
+
+        $categoryStats = $reports
+            ->groupBy(fn ($report) => optional($report->category)->name ?: 'Uncategorized')
+            ->map(fn ($items, $category) => ['category' => $category, 'count' => $items->sum($reportWeight)])
+            ->sortByDesc('count')
+            ->take(6)
+            ->values();
+
+        $monthStart = now()->startOfMonth()->subMonths(5);
+        $trendStats = collect(range(0, 5))->map(function ($offset) use ($reports, $monthStart, $reportWeight) {
+            $month = $monthStart->copy()->addMonths($offset);
+            $items = $reports->filter(fn ($report) => $report->created_at && $report->created_at->format('Y-m') === $month->format('Y-m'));
+
+            return [
+                'label' => $month->format('M Y'),
+                'reports' => $items->sum($reportWeight),
+                'resolved' => $items->filter(fn ($report) => strtolower((string) $report->status) === 'resolved')->sum($reportWeight),
+            ];
+        });
+
+        $recentAverage = round($trendStats->take(-3)->avg('reports') ?? 0, 1);
+        $previousAverage = round($trendStats->take(3)->avg('reports') ?? 0, 1);
+        $trendDelta = round($recentAverage - $previousAverage, 1);
+        $forecastStats = collect(range(1, 3))->map(function ($offset) use ($recentAverage, $trendDelta) {
+            $forecast = max(0, round($recentAverage + (($trendDelta / 3) * $offset), 1));
+
+            return [
+                'label' => now()->startOfMonth()->addMonths($offset)->format('M Y'),
+                'reports' => $forecast,
+            ];
+        });
+
+        $topLocation = $locationStats->first();
+        $topCategory = $categoryStats->first();
+        $targetResolutionRate = 85;
+        $decisionAlerts = collect();
+
+        if ($topLocation) {
+            $decisionAlerts->push([
+                'level' => $topLocation['risk_score'] >= 12 ? 'critical' : 'warning',
+                'title' => "{$topLocation['location']} needs the most attention",
+                'body' => "{$topLocation['total']} report(s), {$topLocation['open']} open, {$topLocation['hazards']} safety hazard(s).",
+            ]);
+        }
+
+        if ($resolutionRate < $targetResolutionRate) {
+            $decisionAlerts->push([
+                'level' => 'critical',
+                'title' => 'Resolution rate is below target',
+                'body' => "{$resolutionRate}% resolved vs {$targetResolutionRate}% target. Prioritize ageing unresolved reports.",
+            ]);
+        } else {
+            $decisionAlerts->push([
+                'level' => 'success',
+                'title' => 'Resolution rate is within target',
+                'body' => "{$resolutionRate}% of reports are resolved. Continue current response practices.",
+            ]);
+        }
+
+        if ($trendDelta > 0) {
+            $decisionAlerts->push([
+                'level' => 'warning',
+                'title' => 'Report volume is increasing',
+                'body' => "Recent average is {$recentAverage} vs {$previousAverage} in the earlier period.",
+            ]);
+        } elseif ($totalReports > 0) {
+            $decisionAlerts->push([
+                'level' => 'success',
+                'title' => 'Report volume is stable or decreasing',
+                'body' => "Recent average is {$recentAverage} vs {$previousAverage} in the earlier period.",
+            ]);
+        }
+
+        if ($topCategory) {
+            $decisionAlerts->push([
+                'level' => 'info',
+                'title' => "{$topCategory['category']} is the leading report category",
+                'body' => "Use this to guide purchasing, preventive maintenance, and staff assignments.",
+            ]);
+        }
+
+        $executiveSummary = [
+            'period' => (! empty($filters['date_from']) || ! empty($filters['date_to']))
+                ? (($filters['date_from'] ?? 'Beginning').' to '.($filters['date_to'] ?? now()->toDateString()))
+                : 'All available report data',
+            'total_reports' => $totalReports,
+            'resolved_reports' => $resolvedReports,
+            'open_reports' => $openReports,
+            'resolution_rate' => $resolutionRate,
+            'total_cost' => $totalCost,
+            'avg_resolution_hours' => $avgResolutionHours,
+            'top_location' => $topLocation,
+            'top_category' => $topCategory,
+            'trend_delta' => $trendDelta,
+        ];
+
+        return view('admin.analytics', compact(
+            'reports',
+            'locations',
+            'totalReports',
+            'resolvedReports',
+            'openReports',
+            'hazardReports',
+            'totalCost',
+            'resolutionRate',
+            'avgResolutionHours',
+            'locationStats',
+            'statusStats',
+            'categoryStats',
+            'trendStats',
+            'forecastStats',
+            'decisionAlerts',
+            'executiveSummary',
+            'targetResolutionRate'
+        ));
 
         $reportCountExpression = Report::supportsReportCount()
             ? 'SUM(COALESCE(report_count, 1))'
