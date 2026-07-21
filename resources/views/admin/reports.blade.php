@@ -3462,6 +3462,11 @@ document.addEventListener('DOMContentLoaded', function() {
             filterForm.submit();
         });
     });
+
+    const requestedReportId = new URLSearchParams(window.location.search).get('open_report');
+    if (requestedReportId && /^\d+$/.test(requestedReportId)) {
+        viewReport(Number(requestedReportId));
+    }
 });
 </script>
 

@@ -1539,7 +1539,10 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('categoryDetailAssignee').textContent = ticket.assignee;
         document.getElementById('categoryDetailCreated').textContent = ticket.created_at || 'Unknown';
         document.getElementById('categoryDetailCount').textContent = Number(ticket.report_count).toLocaleString();
-        document.getElementById('categoryOpenReport').href = '/reports/' + ticket.id;
+        const reportView = String(ticket.status).toLowerCase() === 'resolved' ? 'resolved' : 'active';
+        document.getElementById('categoryOpenReport').href = reportsUrl
+            + '?view=' + encodeURIComponent(reportView)
+            + '&open_report=' + encodeURIComponent(ticket.id);
         renderCategoryWorkflow(ticket);
 
         const assignment = document.getElementById('categoryAssignmentControl');
