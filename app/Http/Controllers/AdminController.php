@@ -4576,6 +4576,74 @@ class AdminController extends Controller
             ];
         });
 
+        $assignedIds = $reports->pluck('assigned_to')->filter()->unique()->values();
+        $maintenanceNames = MaintenanceStaff::whereIn('id', $assignedIds)->pluck('name', 'id');
+        $misNames = User::whereIn('id', $assignedIds)->where('role', 'mis')->pluck('name', 'id');
+        $currentRole = (string) optional(auth()->user())->role;
+        $canAssignCategoryTickets = in_array($currentRole, ['building_admin', 'school_admin', 'academic_head', 'mis'], true);
+        $canProgressCategoryTickets = in_array($currentRole, ['building_admin', 'school_admin', 'mis', 'maintenance'], true);
+        $categoryWorkspace = $reports
+            ->groupBy(fn ($report) => optional($report->category)->name ?: 'Uncategorized')
+            ->map(function ($items, $category) use ($reportWeight, $monthStart, $maintenanceNames, $misNames, $canAssignCategoryTickets, $canProgressCategoryTickets) {
+                $isTechnology = strtolower(trim($category)) === 'technology/internet';
+                $monthly = collect(range(0, 5))->map(function ($offset) use ($items, $monthStart, $reportWeight) {
+                    $month = $monthStart->copy()->addMonths($offset);
+                    $submitted = $items->filter(fn ($report) => $report->created_at && $report->created_at->format('Y-m') === $month->format('Y-m'))->sum($reportWeight);
+                    $resolved = $items->filter(fn ($report) => $report->resolved_at && $report->resolved_at->format('Y-m') === $month->format('Y-m'))->sum($reportWeight);
+                    $hazards = $items->filter(fn ($report) => $report->created_at && $report->created_at->format('Y-m') === $month->format('Y-m') && (bool) $report->is_safety_hazard)->sum($reportWeight);
+
+                    return ['label' => $month->format('M Y'), 'submitted' => $submitted, 'resolved' => $resolved, 'hazards' => $hazards];
+                })->values();
+                $orderedItems = $items->sortByDesc('created_at')->sortBy(fn ($report) => strtolower((string) $report->status) === 'resolved' ? 1 : 0);
+
+                return [
+                    'name' => $category,
+                    'is_technology' => $isTechnology,
+                    'staff_label' => $isTechnology ? 'MIS Staff' : 'Maintenance Staff',
+                    'can_assign' => $canAssignCategoryTickets,
+                    'can_progress' => $canProgressCategoryTickets,
+                    'stats' => [
+                        'total' => $items->sum($reportWeight),
+                        'open' => $items->filter(fn ($report) => strtolower((string) $report->status) !== 'resolved')->sum($reportWeight),
+                        'resolved' => $items->filter(fn ($report) => strtolower((string) $report->status) === 'resolved')->sum($reportWeight),
+                        'hazards' => $items->filter(fn ($report) => (bool) $report->is_safety_hazard)->sum($reportWeight),
+                    ],
+                    'monthly' => $monthly,
+                    'tickets' => $orderedItems->map(function ($report) use ($category, $isTechnology, $maintenanceNames, $misNames, $canAssignCategoryTickets, $canProgressCategoryTickets, $reportWeight) {
+                        $status = $report->status ?: 'Pending';
+                        $assignee = $report->assigned_to
+                            ? ($isTechnology ? $misNames->get($report->assigned_to) : $maintenanceNames->get($report->assigned_to))
+                            : null;
+
+                        return [
+                            'id' => $report->id,
+                            'ticket' => 'RPT-'.str_pad((string) $report->id, 5, '0', STR_PAD_LEFT),
+                            'title' => $report->title ?: 'Untitled report',
+                            'description' => $report->description ?: 'No description provided.',
+                            'category' => $category,
+                            'location' => $report->location ?: 'Not specified',
+                            'status' => $status,
+                            'severity' => $report->severity ?: 'Not set',
+                            'is_hazard' => (bool) $report->is_safety_hazard,
+                            'report_count' => $reportWeight($report),
+                            'cost' => (float) ($report->cost ?? 0),
+                            'assignee' => $assignee ?: ($report->assigned_to ? 'Assigned staff record' : 'Unassigned'),
+                            'assigned_to' => $report->assigned_to,
+                            'created_at' => optional($report->created_at)->format('M d, Y h:i A'),
+                            'assigned_at' => optional($report->assigned_at)->format('M d, Y h:i A'),
+                            'resolved_at' => optional($report->resolved_at)->format('M d, Y h:i A'),
+                            'resolution_notes' => $report->resolution_notes,
+                            'damaged_part' => $report->damaged_part,
+                            'replaced_part' => $report->replaced_part,
+                            'can_assign' => $canAssignCategoryTickets && ! $report->assigned_to && strtolower($status) !== 'resolved',
+                            'can_progress' => $canProgressCategoryTickets && (bool) $report->assigned_to && in_array($status, ['Assigned', 'In Progress'], true),
+                        ];
+                    })->values(),
+                ];
+            })
+            ->sortByDesc(fn ($category) => $category['stats']['total'])
+            ->values();
+
         $recentAverage = round($trendStats->take(-3)->avg('reports') ?? 0, 1);
         $previousAverage = round($trendStats->take(3)->avg('reports') ?? 0, 1);
         $trendDelta = round($recentAverage - $previousAverage, 1);
@@ -4606,16 +4674,22 @@ class AdminController extends Controller
 
         $staffStats = $reports
             ->filter(fn ($report) => $report->assigned_to)
-            ->groupBy('assigned_to')
-            ->map(function ($items) use ($reportWeight, $slaTargetHours) {
+            ->groupBy(function ($report) {
+                $isTechnology = strtolower(trim((string) optional($report->category)->name)) === 'technology/internet';
+                return ($isTechnology ? 'mis:' : 'maintenance:').$report->assigned_to;
+            })
+            ->map(function ($items) use ($reportWeight, $slaTargetHours, $maintenanceNames, $misNames) {
                 $resolved = $items->filter(fn ($report) => strtolower((string) $report->status) === 'resolved');
                 $timed = $resolved->filter(fn ($report) => $report->assigned_at && $report->resolved_at);
                 $slaCount = $timed->filter(fn ($report) => $report->assigned_at->diffInHours($report->resolved_at) <= $slaTargetHours)->count();
                 $assigned = $items->sum($reportWeight);
                 $resolvedCount = $resolved->sum($reportWeight);
+                $firstReport = $items->first();
+                $isTechnology = strtolower(trim((string) optional($firstReport->category)->name)) === 'technology/internet';
+                $staffName = $isTechnology ? $misNames->get($firstReport->assigned_to) : $maintenanceNames->get($firstReport->assigned_to);
 
                 return [
-                    'staff' => optional($items->first()->assignedTo)->name ?: 'Unassigned staff record',
+                    'staff' => $staffName ?: 'Unassigned staff record',
                     'assigned' => $assigned,
                     'resolved' => $resolvedCount,
                     'avg_hours' => $timed->count() > 0 ? round($timed->avg(fn ($report) => $report->assigned_at->diffInHours($report->resolved_at)), 1) : null,
@@ -4870,6 +4944,7 @@ class AdminController extends Controller
             'locationStats',
             'statusStats',
             'categoryStats',
+            'categoryWorkspace',
             'trendStats',
             'decisionAlerts',
             'recommendations',

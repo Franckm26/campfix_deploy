@@ -361,6 +361,191 @@
         height: 100% !important;
     }
 
+    .category-selector {
+        display: flex;
+        gap: 7px;
+        padding: 12px 16px;
+        overflow-x: auto;
+        border-bottom: 1px solid #e3e8ef;
+        scrollbar-width: thin;
+    }
+
+    .category-selector button {
+        flex: 0 0 auto;
+        min-height: 36px;
+        padding: 7px 13px;
+        border: 1px solid #cad3df;
+        border-radius: 5px;
+        color: #455b76;
+        background: #fff;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .category-selector button.active {
+        border-color: var(--analytics-blue);
+        color: #fff;
+        background: var(--analytics-blue);
+    }
+
+    .category-analytics-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 370px;
+        min-height: 680px;
+    }
+
+    .category-main-panel {
+        min-width: 0;
+        padding: 16px;
+    }
+
+    .category-metric-tabs {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        border: 1px solid #dce2ea;
+        border-radius: 7px;
+        overflow: hidden;
+    }
+
+    .category-metric-tabs button,
+    .category-metric-tabs > div {
+        min-height: 78px;
+        padding: 12px;
+        border: 0;
+        border-right: 1px solid #dce2ea;
+        color: #63748a;
+        background: #fff;
+        text-align: center;
+    }
+
+    .category-metric-tabs > :last-child { border-right: 0; }
+    .category-metric-tabs button { cursor: pointer; }
+    .category-metric-tabs button.active { box-shadow: inset 0 -4px 0 var(--analytics-blue); background: #f7faff; }
+    .category-metric-tabs span { display: block; font-size: 11px; font-weight: 700; }
+    .category-metric-tabs strong { display: block; margin-top: 4px; color: var(--analytics-ink); font-size: 22px; }
+
+    .category-trend-chart {
+        height: 290px;
+        padding: 18px 4px 10px;
+    }
+
+    .category-trend-chart canvas { width: 100% !important; height: 100% !important; }
+
+    .category-ticket-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 0;
+        border-top: 1px solid #e4e9ef;
+    }
+
+    .category-ticket-filters { display: flex; gap: 5px; }
+    .category-ticket-filters button {
+        padding: 6px 10px;
+        border: 1px solid #ccd5df;
+        border-radius: 4px;
+        color: #566980;
+        background: #fff;
+        font-size: 11px;
+        font-weight: 700;
+    }
+    .category-ticket-filters button.active { border-color: var(--analytics-blue); color: var(--analytics-blue); background: #f2f7ff; }
+    .category-ticket-toolbar .form-control { width: min(250px, 45%); height: 34px; border-radius: 5px; font-size: 12px; }
+
+    .category-ticket-list {
+        display: grid;
+        max-height: 330px;
+        overflow-y: auto;
+        border: 1px solid #e0e6ed;
+        border-radius: 6px;
+    }
+
+    .category-ticket-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+        padding: 11px 13px;
+        border: 0;
+        border-bottom: 1px solid #e8ecf1;
+        color: inherit;
+        background: #fff;
+        font: inherit;
+        text-align: left;
+    }
+
+    .category-ticket-row:last-child { border-bottom: 0; }
+    .category-ticket-row:hover, .category-ticket-row.active { background: #f3f7fd; box-shadow: inset 3px 0 0 var(--analytics-blue); }
+    .category-ticket-row h5 { margin: 0 0 3px; color: var(--analytics-ink); font-size: 13px; }
+    .category-ticket-row p { margin: 0; color: #6c7c90; font-size: 11px; }
+    .category-ticket-row-meta { display: flex; align-items: center; gap: 6px; }
+    .category-status-badge { display: inline-flex; padding: 4px 7px; border-radius: 4px; color: #fff; font-size: 10px; font-weight: 800; white-space: nowrap; }
+
+    .category-live-panel {
+        min-width: 0;
+        padding: 18px;
+        border-left: 1px solid #dce2ea;
+        background: #fbfcfd;
+    }
+
+    .category-live-heading {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        padding-bottom: 13px;
+        border-bottom: 1px solid #dce2ea;
+    }
+
+    .category-live-heading h4 { margin: 0; color: var(--analytics-ink); font-size: 17px; }
+    .category-live-heading span { color: #65768b; font-size: 11px; }
+    .category-live-heading span i { display: inline-block; width: 8px; height: 8px; margin-right: 5px; border-radius: 50%; background: #10a6a6; }
+    .category-ticket-id { padding: 4px 7px; border-radius: 4px; background: #eaf1fb; color: #1769e0 !important; font-weight: 700; }
+
+    .category-empty-detail { padding: 90px 18px; color: #738197; text-align: center; }
+    .category-empty-detail i { margin-bottom: 10px; font-size: 32px; }
+    .category-empty-detail p { margin: 0; }
+
+    .category-ticket-detail > h3 { margin: 18px 0 6px; color: var(--analytics-ink); font-size: 18px; }
+    .category-ticket-detail > p { color: #617289; font-size: 12px; line-height: 1.55; }
+
+    .category-detail-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin: 14px 0;
+    }
+
+    .category-detail-grid > div { padding: 8px; border: 1px solid #e0e5eb; border-radius: 5px; background: #fff; }
+    .category-detail-grid span { display: block; color: #748298; font-size: 9px; font-weight: 700; text-transform: uppercase; }
+    .category-detail-grid strong { display: block; margin-top: 2px; color: #233953; font-size: 11px; overflow-wrap: anywhere; }
+
+    .category-workflow {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        margin: 15px 0;
+    }
+
+    .category-workflow-step { position: relative; padding-top: 24px; color: #8794a6; font-size: 9px; font-weight: 700; text-align: center; }
+    .category-workflow-step::before { position: absolute; top: 8px; left: 0; right: 0; height: 3px; background: #d8dfe7; content: ''; }
+    .category-workflow-step:first-child::before { left: 50%; }
+    .category-workflow-step:last-child::before { right: 50%; }
+    .category-workflow-step i { position: absolute; z-index: 1; top: 2px; left: 50%; width: 15px; height: 15px; margin-left: -7px; border: 3px solid #d8dfe7; border-radius: 50%; background: #fff; }
+    .category-workflow-step.done { color: #148a58; }
+    .category-workflow-step.done::before { background: #148a58; }
+    .category-workflow-step.done i { border-color: #148a58; background: #148a58; }
+    .category-workflow-step.current { color: #1769e0; }
+    .category-workflow-step.current i { border-color: #1769e0; }
+
+    .category-assignment-control, .category-resolution-form, .category-resolution-history { margin: 13px 0; padding: 11px; border: 1px solid #dce3eb; border-radius: 6px; background: #fff; }
+    .category-assignment-control label, .category-resolution-form label { margin-bottom: 4px; color: #43566e; font-size: 10px; font-weight: 700; }
+    .category-resolution-history { color: #52647b; font-size: 11px; line-height: 1.55; }
+
+    .category-workflow-actions { display: flex; gap: 7px; margin-top: 12px; }
+    .category-workflow-actions .btn { flex: 1 1 auto; min-height: 39px; border-radius: 5px; font-size: 11px; font-weight: 700; }
+    .category-action-message { min-height: 22px; margin-top: 8px; font-size: 11px; }
+
+    .recommendation-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
     .decision-list {
         display: grid;
         gap: 10px;
@@ -670,6 +855,8 @@
         .analytics-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .analytics-filter { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .analytics-grid-two, .analytics-grid-three { grid-template-columns: 1fr; }
+        .category-analytics-layout { grid-template-columns: 1fr; }
+        .category-live-panel { border-top: 1px solid #dce2ea; border-left: 0; }
     }
 
     @media (max-width: 650px) {
@@ -685,6 +872,9 @@
         .dss-report-cover { grid-template-columns: 52px minmax(0, 1fr); }
         .dss-report-cover dl { grid-column: 1 / -1; }
         .dss-scorecards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .category-metric-tabs, .recommendation-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .category-ticket-toolbar { align-items: stretch; flex-direction: column; }
+        .category-ticket-toolbar .form-control { width: 100%; }
     }
 
     @media print {
@@ -896,62 +1086,85 @@
         </section>
     </div>
 
-    <div class="analytics-grid-two">
-        <section class="analytics-panel">
-            <header class="analytics-panel-header">
-                <div>
-                    <h3>Leading Report Categories</h3>
-                    <p>Use recurring categories to guide purchasing and preventive work</p>
-                </div>
-                <div class="analytics-chart-actions">
-                    <button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#categorySummaryModal"><i class="fas fa-file-lines"></i> Summary</button>
-                    <button class="btn btn-outline-secondary" type="button" data-toggle-table="categoryData"><i class="fas fa-table"></i> Data</button>
-                    <button class="btn btn-outline-secondary" type="button" data-download-chart="categoryChart" data-file-name="report-categories" title="Download chart"><i class="fas fa-download"></i></button>
-                </div>
-            </header>
-            @if($categoryStats->isNotEmpty())
-                <div class="analytics-small-chart"><canvas id="categoryChart" aria-label="Report category chart"></canvas></div>
-                <div class="chart-selection" id="categoryInsight"><strong>Explore:</strong> Click a category bar to see its workload share and planning implication.</div>
-                <div class="analytics-data-table" id="categoryData">
-                    <table><thead><tr><th>Category</th><th>Reports</th><th>Avg Cost</th><th>Avg Resolution</th><th>Hazards</th><th>Trend</th></tr></thead><tbody>
-                        @foreach($categoryStats as $category)
-                            <tr><td>{{ $category['category'] }}</td><td>{{ number_format($category['count']) }}</td><td>PHP {{ number_format($category['avg_cost'], 2) }}</td><td>{{ $category['avg_resolution_hours'] !== null ? number_format($category['avg_resolution_hours'], 1).' hrs' : 'N/A' }}</td><td>{{ number_format($category['hazards']) }}</td><td>{{ $category['trend_direction'] }} ({{ number_format($category['trend_percent'], 1) }}%)</td></tr>
-                        @endforeach
-                    </tbody></table>
-                </div>
-            @else
-                <div class="empty-analytics"><i class="fas fa-chart-column"></i>No category data available.</div>
-            @endif
-        </section>
-
-        <section class="analytics-panel">
-            <header class="analytics-panel-header">
-                <div>
-                    <h3>Recommended Actions</h3>
-                    <p>Suggested next steps based on the current evidence</p>
-                </div>
-            </header>
-            <div class="decision-list">
-                @forelse($recommendations as $recommendation)
-                    @php
-                        $recommendationColor = $recommendation['priority'] === 'Critical' ? '#d93645' : ($recommendation['priority'] === 'High' ? '#e99a00' : '#1769e0');
-                        $recommendationIcon = match($recommendation['key']) {
-                            'prioritize-location' => 'fa-location-dot',
-                            'hazard-response' => 'fa-shield-halved',
-                            'category-plan' => 'fa-boxes-stacked',
-                            default => 'fa-list-check',
-                        };
-                    @endphp
-                    <button class="decision-item" type="button" style="--decision-color:{{ $recommendationColor }};" data-recommendation-key="{{ $recommendation['key'] }}" title="View recommendation evidence">
-                        <div class="decision-icon"><i class="fas {{ $recommendationIcon }}"></i></div>
-                        <div><h4>{{ $recommendation['title'] }}</h4><p>{{ $recommendation['summary'] }}</p></div>
-                    </button>
-                @empty
-                    <div class="empty-analytics"><i class="fas fa-lightbulb"></i>Recommendations will appear when report data is available.</div>
-                @endforelse
+    <section class="analytics-panel category-workspace">
+        <header class="analytics-panel-header">
+            <div><h3>Category Operations Analytics</h3><p>Select a category, inspect its trend and tickets, then manage the maintenance workflow</p></div>
+            <div class="analytics-chart-actions">
+                <button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#categorySummaryModal"><i class="fas fa-file-lines"></i> Summary</button>
+                <button class="btn btn-outline-secondary" type="button" data-download-chart="categoryTrendChart" data-file-name="category-trend" title="Download selected category chart"><i class="fas fa-download"></i></button>
             </div>
-        </section>
-    </div>
+        </header>
+        @if($categoryWorkspace->isNotEmpty())
+            <nav class="category-selector" id="categorySelector" aria-label="Report categories"></nav>
+            <div class="category-analytics-layout">
+                <div class="category-main-panel">
+                    <div class="category-metric-tabs" id="categoryMetricTabs">
+                        <button type="button" data-category-metric="submitted" class="active"><span>Reports</span><strong id="categoryMetricReports">0</strong></button>
+                        <button type="button" data-category-metric="resolved"><span>Resolved</span><strong id="categoryMetricResolved">0</strong></button>
+                        <button type="button" data-category-metric="hazards"><span>Hazards</span><strong id="categoryMetricHazards">0</strong></button>
+                        <div><span>Open</span><strong id="categoryMetricOpen">0</strong></div>
+                    </div>
+                    <div class="category-trend-chart"><canvas id="categoryTrendChart" aria-label="Selected category report trend"></canvas></div>
+                    <div class="category-ticket-toolbar">
+                        <div class="category-ticket-filters" id="categoryTicketFilters">
+                            <button type="button" class="active" data-ticket-filter="all">All</button>
+                            <button type="button" data-ticket-filter="open">Open</button>
+                            <button type="button" data-ticket-filter="resolved">Resolved</button>
+                        </div>
+                        <input class="form-control" id="categoryTicketSearch" type="search" placeholder="Search tickets..." aria-label="Search category tickets">
+                    </div>
+                    <div class="category-ticket-list" id="categoryTicketList"></div>
+                </div>
+                <aside class="category-live-panel" id="categoryLivePanel">
+                    <div class="category-live-heading"><div><h4>Ticket Details</h4><span><i></i> Updating live</span></div><span class="category-ticket-id" id="categoryDetailTicket">Select a ticket</span></div>
+                    <div class="category-empty-detail" id="categoryEmptyDetail"><i class="fas fa-ticket"></i><p>Select a ticket from the list to view details and workflow actions.</p></div>
+                    <div class="category-ticket-detail" id="categoryTicketDetail" hidden>
+                        <h3 id="categoryDetailTitle"></h3>
+                        <p id="categoryDetailDescription"></p>
+                        <div class="category-detail-grid">
+                            <div><span>Status</span><strong id="categoryDetailStatus"></strong></div>
+                            <div><span>Location</span><strong id="categoryDetailLocation"></strong></div>
+                            <div><span>Severity</span><strong id="categoryDetailSeverity"></strong></div>
+                            <div><span>Assigned To</span><strong id="categoryDetailAssignee"></strong></div>
+                            <div><span>Submitted</span><strong id="categoryDetailCreated"></strong></div>
+                            <div><span>Reported Count</span><strong id="categoryDetailCount"></strong></div>
+                        </div>
+                        <div class="category-workflow" id="categoryWorkflow"></div>
+                        <div class="category-resolution-history" id="categoryResolutionHistory" hidden></div>
+                        <div class="category-assignment-control" id="categoryAssignmentControl" hidden>
+                            <label for="categoryStaffSelect" id="categoryStaffLabel">Assign to Maintenance Staff</label>
+                            <select class="form-select" id="categoryStaffSelect"><option value="">Select staff...</option></select>
+                        </div>
+                        <div class="category-resolution-form" id="categoryResolutionForm" hidden>
+                            <div class="row g-2"><div class="col-6"><label>Cost</label><input class="form-control" id="categoryResolutionCost" type="number" min="0" step="0.01" placeholder="0.00"></div><div class="col-6"><label>Damaged Part</label><input class="form-control" id="categoryDamagedPart" type="text"></div><div class="col-12"><label>Replaced With</label><input class="form-control" id="categoryReplacedPart" type="text"></div><div class="col-12"><label>Resolution Notes</label><textarea class="form-control" id="categoryResolutionNotes" rows="3"></textarea></div></div>
+                        </div>
+                        <div class="category-workflow-actions">
+                            <button class="btn btn-primary" type="button" id="categoryPrimaryAction"></button>
+                            <a class="btn btn-outline-secondary" id="categoryOpenReport" href="{{ route('admin.reports') }}"><i class="fas fa-arrow-up-right-from-square"></i> Full Report</a>
+                        </div>
+                        <div class="category-action-message" id="categoryActionMessage" role="status"></div>
+                    </div>
+                </aside>
+            </div>
+        @else
+            <div class="empty-analytics"><i class="fas fa-chart-column"></i>No category data available.</div>
+        @endif
+    </section>
+
+    <section class="analytics-panel">
+        <header class="analytics-panel-header"><div><h3>Recommended Actions</h3><p>Suggested next steps based on the current evidence</p></div></header>
+        <div class="decision-list recommendation-grid">
+            @forelse($recommendations as $recommendation)
+                @php
+                    $recommendationColor = $recommendation['priority'] === 'Critical' ? '#d93645' : ($recommendation['priority'] === 'High' ? '#e99a00' : '#1769e0');
+                    $recommendationIcon = match($recommendation['key']) { 'prioritize-location' => 'fa-location-dot', 'hazard-response' => 'fa-shield-halved', 'category-plan' => 'fa-boxes-stacked', default => 'fa-list-check' };
+                @endphp
+                <button class="decision-item" type="button" style="--decision-color:{{ $recommendationColor }};" data-recommendation-key="{{ $recommendation['key'] }}" title="View recommendation evidence"><div class="decision-icon"><i class="fas {{ $recommendationIcon }}"></i></div><div><h4>{{ $recommendation['title'] }}</h4><p>{{ $recommendation['summary'] }}</p></div></button>
+            @empty
+                <div class="empty-analytics"><i class="fas fa-lightbulb"></i>Recommendations will appear when report data is available.</div>
+            @endforelse
+        </div>
+    </section>
 
     <div class="analytics-grid-three">
         <section class="analytics-panel">
@@ -1056,6 +1269,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const locationDetails = @json($locationStats->keyBy('location')->all());
     const decisionAlertDetails = @json($decisionAlerts->keyBy('key')->all());
     const recommendationDetails = @json($recommendations->keyBy('key')->all());
+    const categoryWorkspace = @json($categoryWorkspace->values());
 
     Chart.defaults.font.family = "'Inter', 'Segoe UI', sans-serif";
     Chart.defaults.color = '#66758a';
@@ -1135,41 +1349,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    const categoryCanvas = document.getElementById('categoryChart');
-    if (categoryCanvas) {
-        new Chart(categoryCanvas, {
-            type: 'bar',
-            data: {
-                labels: @json($categoryStats->pluck('category')->values()),
-                datasets: [{
-                    label: 'Reports',
-                    data: @json($categoryStats->pluck('count')->values()),
-                    backgroundColor: ['#1769e0', '#10a6a6', '#e99a00', '#7557c5', '#d93645', '#148a58'],
-                    borderRadius: 4,
-                    maxBarThickness: 42
-                }]
-            },
-            options: {
-                indexAxis: 'y',
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                onClick: function (event, elements, chart) {
-                    if (!elements.length) return;
-                    const index = elements[0].index;
-                    const category = chart.data.labels[index];
-                    const count = Number(chart.data.datasets[0].data[index]);
-                    const share = totalReportCount > 0 ? ((count / totalReportCount) * 100).toFixed(1) : '0.0';
-                    document.getElementById('categoryInsight').innerHTML = '<strong>' + escapeHtml(category) + ':</strong> ' + count.toLocaleString() + ' reports (' + share + '% of workload). Review recurring causes, parts availability, and preventive maintenance for this category.';
-                },
-                scales: {
-                    x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#e7ebf0' } },
-                    y: { grid: { display: false } }
-                }
-            }
-        });
-    }
-
     function createInteractiveChart(canvasId, type, labels, values, colors, insightId, valueLabel, currency) {
         const canvas = document.getElementById(canvasId);
         if (!canvas) return null;
@@ -1201,6 +1380,316 @@ document.addEventListener('DOMContentLoaded', function () {
         node.textContent = String(value);
         return node.innerHTML;
     }
+
+    let activeCategoryIndex = 0;
+    let activeCategoryMetric = 'submitted';
+    let activeTicketFilter = 'all';
+    let selectedCategoryTicketId = null;
+    let categoryTrendChart = null;
+    let resolutionFormOpen = false;
+
+    function currentCategory() {
+        return categoryWorkspace[activeCategoryIndex] || null;
+    }
+
+    function currentCategoryTicket() {
+        const category = currentCategory();
+        return category ? category.tickets.find(function (ticket) { return Number(ticket.id) === Number(selectedCategoryTicketId); }) : null;
+    }
+
+    function categoryStatusColor(status) {
+        const normalized = String(status).toLowerCase();
+        if (normalized === 'resolved') return '#148a58';
+        if (normalized === 'in progress') return '#1769e0';
+        if (normalized === 'assigned') return '#e99a00';
+        return '#6b7a8e';
+    }
+
+    function renderCategorySelectors() {
+        const selector = document.getElementById('categorySelector');
+        if (!selector) return;
+        selector.innerHTML = categoryWorkspace.map(function (category, index) {
+            return '<button type="button" class="' + (index === activeCategoryIndex ? 'active' : '') + '" data-category-index="' + index + '">' + escapeHtml(category.name) + ' <span>(' + Number(category.stats.total).toLocaleString() + ')</span></button>';
+        }).join('');
+        selector.querySelectorAll('[data-category-index]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                activeCategoryIndex = Number(button.dataset.categoryIndex);
+                activeTicketFilter = 'all';
+                selectedCategoryTicketId = null;
+                resolutionFormOpen = false;
+                document.getElementById('categoryActionMessage').textContent = '';
+                document.querySelectorAll('[data-ticket-filter]').forEach(function (filter) { filter.classList.toggle('active', filter.dataset.ticketFilter === 'all'); });
+                const search = document.getElementById('categoryTicketSearch');
+                if (search) search.value = '';
+                renderCategoryWorkspace();
+            });
+        });
+    }
+
+    function renderCategoryMetrics() {
+        const category = currentCategory();
+        if (!category) return;
+        document.getElementById('categoryMetricReports').textContent = Number(category.stats.total).toLocaleString();
+        document.getElementById('categoryMetricResolved').textContent = Number(category.stats.resolved).toLocaleString();
+        document.getElementById('categoryMetricHazards').textContent = Number(category.stats.hazards).toLocaleString();
+        document.getElementById('categoryMetricOpen').textContent = Number(category.stats.open).toLocaleString();
+    }
+
+    function renderCategoryTrend() {
+        const category = currentCategory();
+        const canvas = document.getElementById('categoryTrendChart');
+        if (!category || !canvas) return;
+        const metricLabels = { submitted: 'Reports submitted', resolved: 'Reports resolved', hazards: 'Safety hazards' };
+        const metricColors = { submitted: '#1769e0', resolved: '#148a58', hazards: '#d93645' };
+        if (categoryTrendChart) categoryTrendChart.destroy();
+        categoryTrendChart = new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels: category.monthly.map(function (month) { return month.label; }),
+                datasets: [{
+                    label: category.name + ' - ' + metricLabels[activeCategoryMetric],
+                    data: category.monthly.map(function (month) { return Number(month[activeCategoryMetric] || 0); }),
+                    borderColor: metricColors[activeCategoryMetric],
+                    backgroundColor: metricColors[activeCategoryMetric] + '1A',
+                    fill: true,
+                    tension: .32,
+                    pointRadius: 4,
+                    borderWidth: 2
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' }, plugins: { legend: { display: true, position: 'bottom' } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#e7ebf0' } }, x: { grid: { display: false } } } }
+        });
+    }
+
+    function categoryTicketMatches(ticket) {
+        const search = (document.getElementById('categoryTicketSearch')?.value || '').trim().toLowerCase();
+        const matchesFilter = activeTicketFilter === 'all'
+            || (activeTicketFilter === 'resolved' && String(ticket.status).toLowerCase() === 'resolved')
+            || (activeTicketFilter === 'open' && String(ticket.status).toLowerCase() !== 'resolved');
+        const searchable = [ticket.ticket, ticket.title, ticket.location, ticket.status, ticket.assignee].join(' ').toLowerCase();
+        return matchesFilter && (!search || searchable.includes(search));
+    }
+
+    function renderCategoryTickets() {
+        const category = currentCategory();
+        const list = document.getElementById('categoryTicketList');
+        if (!category || !list) return;
+        const tickets = category.tickets.filter(categoryTicketMatches);
+        if (!tickets.some(function (ticket) { return Number(ticket.id) === Number(selectedCategoryTicketId); })) {
+            selectedCategoryTicketId = tickets.length ? tickets[0].id : null;
+        }
+        list.innerHTML = tickets.length ? tickets.map(function (ticket) {
+            return '<button type="button" class="category-ticket-row ' + (Number(ticket.id) === Number(selectedCategoryTicketId) ? 'active' : '') + '" data-category-ticket="' + ticket.id + '"><div><h5>' + escapeHtml(ticket.title) + '</h5><p>' + escapeHtml(ticket.ticket) + ' | ' + escapeHtml(ticket.location) + ' | ' + escapeHtml(ticket.assignee) + '</p></div><div class="category-ticket-row-meta"><span class="category-status-badge" style="background:' + categoryStatusColor(ticket.status) + '">' + escapeHtml(ticket.status) + '</span></div></button>';
+        }).join('') : '<div class="empty-analytics"><i class="fas fa-ticket"></i>No tickets match this filter.</div>';
+        list.querySelectorAll('[data-category-ticket]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                selectedCategoryTicketId = Number(button.dataset.categoryTicket);
+                resolutionFormOpen = false;
+                document.getElementById('categoryActionMessage').textContent = '';
+                renderCategoryTickets();
+                renderCategoryTicketDetail();
+            });
+        });
+        renderCategoryTicketDetail();
+    }
+
+    function renderCategoryWorkflow(ticket) {
+        const statuses = ['Pending', 'Assigned', 'In Progress', 'Resolved'];
+        const currentIndex = Math.max(0, statuses.findIndex(function (status) { return status.toLowerCase() === String(ticket.status).toLowerCase(); }));
+        document.getElementById('categoryWorkflow').innerHTML = statuses.map(function (status, index) {
+            const state = index < currentIndex ? 'done' : (index === currentIndex ? 'current' : '');
+            return '<div class="category-workflow-step ' + state + '"><i></i>' + status + '</div>';
+        }).join('');
+    }
+
+    async function loadCategoryStaff(category) {
+        const select = document.getElementById('categoryStaffSelect');
+        if (!select || select.dataset.loadedFor === category.name) return;
+        select.innerHTML = '<option value="">Loading staff...</option>';
+        try {
+            const endpoint = category.is_technology ? '/admin/mis-users' : '/admin/maintenance-users';
+            const response = await fetch(endpoint, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' });
+            const data = await response.json();
+            if (currentCategory()?.name !== category.name) return;
+            select.innerHTML = '<option value="">Select ' + escapeHtml(category.staff_label) + '...</option>' + (data.users || []).map(function (staff) { return '<option value="' + staff.id + '">' + escapeHtml(staff.name) + '</option>'; }).join('');
+            select.dataset.loadedFor = category.name;
+        } catch (error) {
+            select.innerHTML = '<option value="">Unable to load staff</option>';
+        }
+    }
+
+    function renderCategoryTicketDetail() {
+        const category = currentCategory();
+        const ticket = currentCategoryTicket();
+        const empty = document.getElementById('categoryEmptyDetail');
+        const detail = document.getElementById('categoryTicketDetail');
+        if (!category || !ticket) {
+            if (empty) empty.hidden = false;
+            if (detail) detail.hidden = true;
+            document.getElementById('categoryDetailTicket').textContent = 'Select a ticket';
+            return;
+        }
+        empty.hidden = true;
+        detail.hidden = false;
+        document.getElementById('categoryDetailTicket').textContent = ticket.ticket;
+        document.getElementById('categoryDetailTitle').textContent = ticket.title;
+        document.getElementById('categoryDetailDescription').textContent = ticket.description;
+        document.getElementById('categoryDetailStatus').textContent = ticket.status;
+        document.getElementById('categoryDetailStatus').style.color = categoryStatusColor(ticket.status);
+        document.getElementById('categoryDetailLocation').textContent = ticket.location;
+        document.getElementById('categoryDetailSeverity').textContent = ticket.is_hazard ? ticket.severity + ' - Safety Hazard' : ticket.severity;
+        document.getElementById('categoryDetailAssignee').textContent = ticket.assignee;
+        document.getElementById('categoryDetailCreated').textContent = ticket.created_at || 'Unknown';
+        document.getElementById('categoryDetailCount').textContent = Number(ticket.report_count).toLocaleString();
+        document.getElementById('categoryOpenReport').href = '/reports/' + ticket.id;
+        renderCategoryWorkflow(ticket);
+
+        const assignment = document.getElementById('categoryAssignmentControl');
+        const resolution = document.getElementById('categoryResolutionForm');
+        const history = document.getElementById('categoryResolutionHistory');
+        const action = document.getElementById('categoryPrimaryAction');
+        assignment.hidden = !ticket.can_assign;
+        resolution.hidden = !(resolutionFormOpen && ticket.can_progress && ticket.status === 'In Progress');
+        history.hidden = String(ticket.status).toLowerCase() !== 'resolved';
+        history.innerHTML = history.hidden ? '' : '<strong>Resolution record</strong><br>Resolved: ' + escapeHtml(ticket.resolved_at || 'Date unavailable') + '<br>Cost: PHP ' + Number(ticket.cost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '<br>Notes: ' + escapeHtml(ticket.resolution_notes || 'No notes provided');
+        document.getElementById('categoryStaffLabel').textContent = 'Assign to ' + category.staff_label;
+
+        action.hidden = false;
+        action.disabled = false;
+        if (ticket.can_assign) {
+            action.innerHTML = '<i class="fas fa-user-plus"></i> Assign to ' + escapeHtml(category.staff_label);
+            loadCategoryStaff(category);
+        } else if (ticket.can_progress && ticket.status === 'Assigned') {
+            action.innerHTML = '<i class="fas fa-play"></i> Start Progress';
+        } else if (ticket.can_progress && ticket.status === 'In Progress') {
+            action.innerHTML = resolutionFormOpen ? '<i class="fas fa-check"></i> Confirm Resolution' : '<i class="fas fa-flag-checkered"></i> Resolve Ticket';
+        } else if (String(ticket.status).toLowerCase() === 'resolved') {
+            action.innerHTML = '<i class="fas fa-circle-check"></i> Resolved';
+            action.disabled = true;
+        } else {
+            action.innerHTML = '<i class="fas fa-lock"></i> Assigned Workflow';
+            action.disabled = true;
+        }
+    }
+
+    function renderCategoryWorkspace() {
+        if (!categoryWorkspace.length) return;
+        renderCategorySelectors();
+        renderCategoryMetrics();
+        renderCategoryTrend();
+        renderCategoryTickets();
+    }
+
+    async function categoryWorkflowRequest(url, options) {
+        const message = document.getElementById('categoryActionMessage');
+        const action = document.getElementById('categoryPrimaryAction');
+        action.disabled = true;
+        message.className = 'category-action-message text-primary';
+        message.textContent = 'Saving workflow update...';
+        try {
+            const response = await fetch(url, options);
+            const data = await response.json();
+            if (!response.ok || data.success === false || data.error) throw new Error(data.error || data.message || 'Workflow update failed.');
+            message.className = 'category-action-message text-success';
+            message.textContent = data.message || 'Workflow updated successfully.';
+            return data;
+        } catch (error) {
+            message.className = 'category-action-message text-danger';
+            message.textContent = error.message;
+            action.disabled = false;
+            return null;
+        }
+    }
+
+    document.querySelectorAll('[data-category-metric]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            activeCategoryMetric = button.dataset.categoryMetric;
+            document.querySelectorAll('[data-category-metric]').forEach(function (metric) { metric.classList.toggle('active', metric === button); });
+            renderCategoryTrend();
+        });
+    });
+
+    document.querySelectorAll('[data-ticket-filter]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            activeTicketFilter = button.dataset.ticketFilter;
+            document.querySelectorAll('[data-ticket-filter]').forEach(function (filter) { filter.classList.toggle('active', filter === button); });
+            renderCategoryTickets();
+        });
+    });
+
+    document.getElementById('categoryTicketSearch')?.addEventListener('input', renderCategoryTickets);
+    document.getElementById('categoryPrimaryAction')?.addEventListener('click', async function () {
+        const category = currentCategory();
+        const ticket = currentCategoryTicket();
+        if (!category || !ticket) return;
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+        if (ticket.can_assign) {
+            const select = document.getElementById('categoryStaffSelect');
+            if (!select.value) {
+                document.getElementById('categoryActionMessage').className = 'category-action-message text-danger';
+                document.getElementById('categoryActionMessage').textContent = 'Select a staff member before assigning.';
+                return;
+            }
+            const form = new FormData();
+            form.append('assigned_to', select.value);
+            form.append('_token', csrf);
+            const result = await categoryWorkflowRequest('/admin/report/' + ticket.id + '/assign', { method: 'POST', headers: { 'Accept': 'application/json' }, credentials: 'same-origin', body: form });
+            if (!result) return;
+            ticket.assigned_to = Number(select.value);
+            ticket.assignee = select.options[select.selectedIndex].text;
+            ticket.status = 'Assigned';
+            ticket.can_assign = false;
+            ticket.can_progress = Boolean(category.can_progress);
+            renderCategoryTickets();
+            renderCategoryTicketDetail();
+            return;
+        }
+
+        if (ticket.can_progress && ticket.status === 'Assigned') {
+            const result = await categoryWorkflowRequest('/reports/' + ticket.id + '/update-status', { method: 'POST', headers: { 'X-CSRF-TOKEN': csrf, 'Content-Type': 'application/json', 'Accept': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ status: 'In Progress' }) });
+            if (!result) return;
+            ticket.status = 'In Progress';
+            renderCategoryTickets();
+            renderCategoryTicketDetail();
+            return;
+        }
+
+        if (ticket.can_progress && ticket.status === 'In Progress' && !resolutionFormOpen) {
+            resolutionFormOpen = true;
+            renderCategoryTicketDetail();
+            return;
+        }
+
+        if (ticket.can_progress && ticket.status === 'In Progress' && resolutionFormOpen) {
+            const payload = {
+                status: 'Resolved',
+                cost: document.getElementById('categoryResolutionCost').value || null,
+                damaged_part: document.getElementById('categoryDamagedPart').value.trim() || null,
+                replaced_part: document.getElementById('categoryReplacedPart').value.trim() || null,
+                resolution_notes: document.getElementById('categoryResolutionNotes').value.trim() || null
+            };
+            const result = await categoryWorkflowRequest('/reports/' + ticket.id + '/update-status', { method: 'POST', headers: { 'X-CSRF-TOKEN': csrf, 'Content-Type': 'application/json', 'Accept': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(payload) });
+            if (!result) return;
+            ticket.status = 'Resolved';
+            ticket.can_progress = false;
+            ticket.cost = Number(payload.cost || 0);
+            ticket.damaged_part = payload.damaged_part;
+            ticket.replaced_part = payload.replaced_part;
+            ticket.resolution_notes = payload.resolution_notes;
+            ticket.resolved_at = new Date().toLocaleString();
+            category.stats.open = Math.max(0, Number(category.stats.open) - Number(ticket.report_count || 1));
+            category.stats.resolved = Number(category.stats.resolved) + Number(ticket.report_count || 1);
+            if (category.monthly.length) category.monthly[category.monthly.length - 1].resolved = Number(category.monthly[category.monthly.length - 1].resolved) + Number(ticket.report_count || 1);
+            resolutionFormOpen = false;
+            renderCategoryMetrics();
+            renderCategoryTrend();
+            renderCategoryTickets();
+            renderCategoryTicketDetail();
+        }
+    });
+
+    renderCategoryWorkspace();
 
     function renderLocationBreakdown(targetId, values) {
         const target = document.getElementById(targetId);
@@ -1418,7 +1907,7 @@ document.addEventListener('DOMContentLoaded', function () {
         printDssButton.addEventListener('click', function () {
             const report = document.getElementById('dssExecutiveReportContent');
             if (!report) return;
-            const printableCharts = ['reportsTrendChart', 'statusChart', 'categoryChart', 'priorityChart', 'agingChart', 'costChart']
+            const printableCharts = ['reportsTrendChart', 'statusChart', 'categoryTrendChart', 'priorityChart', 'agingChart', 'costChart']
                 .map(function (id) {
                     const canvas = document.getElementById(id);
                     if (!canvas) return '';
