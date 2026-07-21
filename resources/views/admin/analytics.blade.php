@@ -7,6 +7,7 @@
         <p>Decision support for maintenance planning and resource allocation</p>
     </div>
 </div>
+
 @endsection
 
 @section('styles')
@@ -178,6 +179,131 @@
         width: 8px;
         height: 8px;
         border-radius: 50%;
+    }
+
+    .analytics-header-tools,
+    .analytics-chart-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 7px;
+    }
+
+    .analytics-chart-actions .btn,
+    .analytics-header-tools .btn {
+        min-height: 34px;
+        border-radius: 5px;
+        font-size: 12px;
+        font-weight: 650;
+    }
+
+    .chart-selection {
+        min-height: 48px;
+        margin: 0 20px 17px;
+        padding: 10px 13px;
+        border: 1px solid #dce4ee;
+        border-radius: 5px;
+        color: #52647b;
+        background: #f8fafc;
+        font-size: 12px;
+        line-height: 1.5;
+    }
+
+    .chart-selection strong {
+        color: var(--analytics-ink);
+    }
+
+    .chart-selection a {
+        margin-left: 6px;
+        font-weight: 700;
+        text-decoration: none;
+    }
+
+    .analytics-data-table {
+        display: none;
+        margin: 0 20px 20px;
+        overflow-x: auto;
+    }
+
+    .analytics-data-table.is-visible {
+        display: block;
+    }
+
+    .analytics-data-table table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .analytics-data-table th,
+    .analytics-data-table td {
+        padding: 9px 11px;
+        border: 1px solid #e1e6ed;
+        color: #45566d;
+        font-size: 12px;
+        text-align: left;
+    }
+
+    .analytics-data-table th {
+        background: #f4f7fa;
+        color: #283b55;
+    }
+
+    .location-tools {
+        display: grid;
+        grid-template-columns: minmax(180px, 1fr) minmax(150px, .45fr) auto;
+        gap: 10px;
+        padding: 13px 16px;
+        border-bottom: 1px solid #e5e9ef;
+        background: #fafbfc;
+    }
+
+    .location-tools .form-control,
+    .location-tools .form-select {
+        height: 38px;
+        border-radius: 5px;
+        font-size: 13px;
+    }
+
+    .risk-sort {
+        padding: 0;
+        border: 0;
+        color: inherit;
+        background: transparent;
+        font: inherit;
+        text-transform: inherit;
+    }
+
+    .risk-sort:hover,
+    .risk-sort:focus {
+        color: var(--analytics-blue);
+    }
+
+    .analytics-summary-metrics {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        margin: 15px 0;
+    }
+
+    .analytics-summary-metric {
+        padding: 12px;
+        border: 1px solid #e0e6ed;
+        border-radius: 6px;
+        background: #f8fafc;
+    }
+
+    .analytics-summary-metric span {
+        display: block;
+        color: #6b7a8e;
+        font-size: 11px;
+        text-transform: uppercase;
+    }
+
+    .analytics-summary-metric strong {
+        display: block;
+        margin-top: 3px;
+        font-size: 18px;
     }
 
     .analytics-chart-body {
@@ -356,6 +482,8 @@
         .analytics-chart-body { height: 290px; padding-inline: 10px; }
         .analytics-panel-header, .analytics-interpretation { align-items: flex-start; flex-direction: column; }
         .analytics-interpretation { margin-inline: 12px; }
+        .analytics-header-tools, .analytics-chart-actions { justify-content: flex-start; }
+        .location-tools, .analytics-summary-metrics { grid-template-columns: 1fr; }
     }
 
     @media print {
@@ -375,6 +503,12 @@
     $topLocation = $executiveSummary['top_location'] ?? null;
     $topCategory = $executiveSummary['top_category'] ?? null;
     $trendInterpretationColor = $totalReports === 0 ? '#66758a' : ($trendDelta > 0 ? '#d93645' : '#148a58');
+    $dominantStatus = $statusStats->first();
+    $dominantStatusShare = $dominantStatus && $totalReports > 0 ? round(($dominantStatus['count'] / $totalReports) * 100, 1) : 0;
+    $topCategoryShare = $topCategory && $totalReports > 0 ? round(($topCategory['count'] / $totalReports) * 100, 1) : 0;
+    $highRiskLocations = $locationStats->where('risk_score', '>=', 12);
+    $mediumRiskLocations = $locationStats->whereBetween('risk_score', [6, 11]);
+    $locationOpenWork = $locationStats->sum('open');
 @endphp
 
 <main class="analytics-shell">
@@ -443,9 +577,13 @@
                 <h3>Reports Trend</h3>
                 <p>Historical report volume and completed work</p>
             </div>
-            <div class="chart-legend" aria-label="Chart legend">
-                <span><i style="background:#1769e0"></i> Reports</span>
-                <span><i style="background:#148a58"></i> Resolved</span>
+            <div class="analytics-header-tools">
+                <div class="chart-legend" aria-label="Chart legend">
+                    <span><i style="background:#1769e0"></i> Reports</span>
+                    <span><i style="background:#148a58"></i> Resolved</span>
+                </div>
+                <button class="btn btn-outline-secondary" type="button" data-toggle-table="trendData"><i class="fas fa-table"></i> Data</button>
+                <button class="btn btn-outline-secondary" type="button" data-download-chart="reportsTrendChart" data-file-name="reports-trend"><i class="fas fa-download"></i></button>
             </div>
         </header>
         <div class="analytics-chart-body">
@@ -468,6 +606,13 @@
                 <i class="fas fa-file-lines"></i> Executive Summary
             </button>
         </div>
+        <div class="analytics-data-table" id="trendData">
+            <table><thead><tr><th>Month</th><th>Reports</th><th>Resolved</th><th>Completion Rate</th></tr></thead><tbody>
+                @foreach($trendStats as $month)
+                    <tr><td>{{ $month['label'] }}</td><td>{{ $month['reports'] }}</td><td>{{ $month['resolved'] }}</td><td>{{ $month['reports'] > 0 ? number_format(($month['resolved'] / $month['reports']) * 100, 1).'%' : 'No reports' }}</td></tr>
+                @endforeach
+            </tbody></table>
+        </div>
     </section>
 
     <div class="analytics-grid-two">
@@ -477,9 +622,22 @@
                     <h3>Status Distribution</h3>
                     <p>Current workload by report status</p>
                 </div>
+                <div class="analytics-chart-actions">
+                    <button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#statusSummaryModal"><i class="fas fa-file-lines"></i> Summary</button>
+                    <button class="btn btn-outline-secondary" type="button" data-toggle-table="statusData"><i class="fas fa-table"></i> Data</button>
+                    <button class="btn btn-outline-secondary" type="button" data-download-chart="statusChart" data-file-name="status-distribution" title="Download chart"><i class="fas fa-download"></i></button>
+                </div>
             </header>
             @if($statusStats->isNotEmpty())
                 <div class="analytics-small-chart"><canvas id="statusChart" aria-label="Report status chart"></canvas></div>
+                <div class="chart-selection" id="statusInsight"><strong>Explore:</strong> Click a status segment to see its share and open the matching report list.</div>
+                <div class="analytics-data-table" id="statusData">
+                    <table><thead><tr><th>Status</th><th>Reports</th><th>Share</th></tr></thead><tbody>
+                        @foreach($statusStats as $status)
+                            <tr><td>{{ $status['status'] }}</td><td>{{ number_format($status['count']) }}</td><td>{{ $totalReports > 0 ? number_format(($status['count'] / $totalReports) * 100, 1) : 0 }}%</td></tr>
+                        @endforeach
+                    </tbody></table>
+                </div>
             @else
                 <div class="empty-analytics"><i class="fas fa-chart-pie"></i>No status data available.</div>
             @endif
@@ -526,9 +684,22 @@
                     <h3>Leading Report Categories</h3>
                     <p>Use recurring categories to guide purchasing and preventive work</p>
                 </div>
+                <div class="analytics-chart-actions">
+                    <button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#categorySummaryModal"><i class="fas fa-file-lines"></i> Summary</button>
+                    <button class="btn btn-outline-secondary" type="button" data-toggle-table="categoryData"><i class="fas fa-table"></i> Data</button>
+                    <button class="btn btn-outline-secondary" type="button" data-download-chart="categoryChart" data-file-name="report-categories" title="Download chart"><i class="fas fa-download"></i></button>
+                </div>
             </header>
             @if($categoryStats->isNotEmpty())
                 <div class="analytics-small-chart"><canvas id="categoryChart" aria-label="Report category chart"></canvas></div>
+                <div class="chart-selection" id="categoryInsight"><strong>Explore:</strong> Click a category bar to see its workload share and planning implication.</div>
+                <div class="analytics-data-table" id="categoryData">
+                    <table><thead><tr><th>Category</th><th>Reports</th><th>Share</th></tr></thead><tbody>
+                        @foreach($categoryStats as $category)
+                            <tr><td>{{ $category['category'] }}</td><td>{{ number_format($category['count']) }}</td><td>{{ $totalReports > 0 ? number_format(($category['count'] / $totalReports) * 100, 1) : 0 }}%</td></tr>
+                        @endforeach
+                    </tbody></table>
+                </div>
             @else
                 <div class="empty-analytics"><i class="fas fa-chart-column"></i>No category data available.</div>
             @endif
@@ -579,15 +750,29 @@
                 <h3>Location Risk Ranking</h3>
                 <p>Risk score weighs unresolved reports, safety hazards, and recorded cost</p>
             </div>
+            <div class="analytics-chart-actions">
+                <button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#locationSummaryModal"><i class="fas fa-file-lines"></i> Summary</button>
+                <button class="btn btn-outline-secondary" id="exportRiskCsv" type="button"><i class="fas fa-file-csv"></i> Export CSV</button>
+            </div>
         </header>
         @if($locationStats->isNotEmpty())
+            <div class="location-tools">
+                <input class="form-control" id="locationRiskSearch" type="search" placeholder="Search location..." aria-label="Search locations">
+                <select class="form-select" id="locationRiskFilter" aria-label="Filter by risk">
+                    <option value="all">All risk levels</option>
+                    <option value="high">High risk</option>
+                    <option value="medium">Medium risk</option>
+                    <option value="low">Low risk</option>
+                </select>
+                <a class="btn btn-outline-primary" href="{{ route('admin.reports') }}"><i class="fas fa-list"></i> Open Reports</a>
+            </div>
             <div class="risk-table-wrap">
-                <table class="risk-table">
-                    <thead><tr><th>Rank</th><th>Location</th><th>Total</th><th>Open</th><th>Hazards</th><th>Cost</th><th>Risk</th><th>Interpretation</th></tr></thead>
-                    <tbody>
+                <table class="risk-table" id="locationRiskTable">
+                    <thead><tr><th>Rank</th><th><button class="risk-sort" type="button" data-sort="location">Location <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="total">Total <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="open">Open <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="hazards">Hazards <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="cost">Cost <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="risk">Risk <i class="fas fa-sort"></i></button></th><th>Interpretation</th></tr></thead>
+                    <tbody id="locationRiskBody">
                         @foreach($locationStats->take(10) as $index => $location)
                             @php $riskClass = $location['risk_score'] >= 12 ? 'high' : ($location['risk_score'] >= 6 ? 'medium' : 'low'); @endphp
-                            <tr>
+                            <tr data-risk-level="{{ $riskClass }}" data-location="{{ strtolower($location['location']) }}" data-total="{{ $location['total'] }}" data-open="{{ $location['open'] }}" data-hazards="{{ $location['hazards'] }}" data-cost="{{ $location['cost'] }}" data-risk="{{ $location['risk_score'] }}">
                                 <td>{{ $index + 1 }}</td>
                                 <td><strong>{{ $location['location'] }}</strong></td>
                                 <td>{{ number_format($location['total']) }}</td>
@@ -662,6 +847,8 @@
         </div>
     </div>
 </div>
+
+@include('admin.partials.analytics-summaries')
 @endsection
 
 @section('scripts')
@@ -673,6 +860,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const historicalLabels = @json($trendStats->pluck('label')->values());
     const reportValues = @json($trendStats->pluck('reports')->values());
     const resolvedValues = @json($trendStats->pluck('resolved')->values());
+    const totalReportCount = {{ (int) $totalReports }};
+    const reportsUrl = @json(route('admin.reports'));
 
     Chart.defaults.font.family = "'Inter', 'Segoe UI', sans-serif";
     Chart.defaults.color = '#66758a';
@@ -735,7 +924,19 @@ document.addEventListener('DOMContentLoaded', function () {
                 responsive: true,
                 maintainAspectRatio: false,
                 cutout: '62%',
-                plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 16 } } }
+                plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 16 } } },
+                onClick: function (event, elements, chart) {
+                    if (!elements.length) return;
+                    const index = elements[0].index;
+                    const status = chart.data.labels[index];
+                    const count = Number(chart.data.datasets[0].data[index]);
+                    const share = totalReportCount > 0 ? ((count / totalReportCount) * 100).toFixed(1) : '0.0';
+                    const insight = document.getElementById('statusInsight');
+                    const reportLink = String(status).toLowerCase() === 'resolved'
+                        ? ' Resolved items are represented here for performance analysis.'
+                        : ' <a href="' + reportsUrl + '?status=' + encodeURIComponent(status) + '">Open matching reports</a>';
+                    insight.innerHTML = '<strong>' + escapeHtml(status) + ':</strong> ' + count.toLocaleString() + ' reports (' + share + '% of the selected workload).' + reportLink;
+                }
             }
         });
     }
@@ -759,11 +960,115 @@ document.addEventListener('DOMContentLoaded', function () {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
+                onClick: function (event, elements, chart) {
+                    if (!elements.length) return;
+                    const index = elements[0].index;
+                    const category = chart.data.labels[index];
+                    const count = Number(chart.data.datasets[0].data[index]);
+                    const share = totalReportCount > 0 ? ((count / totalReportCount) * 100).toFixed(1) : '0.0';
+                    document.getElementById('categoryInsight').innerHTML = '<strong>' + escapeHtml(category) + ':</strong> ' + count.toLocaleString() + ' reports (' + share + '% of workload). Review recurring causes, parts availability, and preventive maintenance for this category.';
+                },
                 scales: {
                     x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#e7ebf0' } },
                     y: { grid: { display: false } }
                 }
             }
+        });
+    }
+
+    function escapeHtml(value) {
+        const node = document.createElement('div');
+        node.textContent = String(value);
+        return node.innerHTML;
+    }
+
+    document.querySelectorAll('[data-toggle-table]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            const table = document.getElementById(button.dataset.toggleTable);
+            if (!table) return;
+            const visible = table.classList.toggle('is-visible');
+            button.innerHTML = visible ? '<i class="fas fa-eye-slash"></i> Hide Data' : '<i class="fas fa-table"></i> Data';
+        });
+    });
+
+    document.querySelectorAll('[data-download-chart]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            const canvas = document.getElementById(button.dataset.downloadChart);
+            if (!canvas) return;
+            const link = document.createElement('a');
+            link.download = (button.dataset.fileName || 'analytics-chart') + '.png';
+            link.href = canvas.toDataURL('image/png', 1);
+            link.click();
+        });
+    });
+
+    document.querySelectorAll('[data-print-summary]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            const content = document.getElementById(button.dataset.printSummary);
+            if (!content) return;
+            const printWindow = window.open('', '_blank', 'width=900,height=700');
+            if (!printWindow) return;
+            printWindow.document.write('<!doctype html><html><head><title>' + escapeHtml(button.dataset.title) + '</title><style>body{font-family:Arial,sans-serif;color:#23344d;padding:36px;line-height:1.65}h1{font-size:22px}.analytics-summary-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.analytics-summary-metric,.summary-callout{border:1px solid #dce2ea;padding:12px}.analytics-summary-metric span{display:block;color:#66758a;font-size:11px;text-transform:uppercase}.analytics-summary-metric strong{display:block;font-size:18px}.summary-callout{margin-top:14px;border-left:4px solid #1769e0}@media print{body{padding:0}}</style></head><body><h1>' + escapeHtml(button.dataset.title) + '</h1>' + content.innerHTML + '</body></html>');
+            printWindow.document.close();
+            printWindow.focus();
+            printWindow.print();
+        });
+    });
+
+    const riskBody = document.getElementById('locationRiskBody');
+    const riskSearch = document.getElementById('locationRiskSearch');
+    const riskFilter = document.getElementById('locationRiskFilter');
+
+    function filterRiskRows() {
+        if (!riskBody) return;
+        const search = (riskSearch ? riskSearch.value : '').trim().toLowerCase();
+        const level = riskFilter ? riskFilter.value : 'all';
+        let rank = 1;
+        Array.from(riskBody.rows).forEach(function (row) {
+            const matchesSearch = !search || row.dataset.location.includes(search);
+            const matchesLevel = level === 'all' || row.dataset.riskLevel === level;
+            row.hidden = !(matchesSearch && matchesLevel);
+            if (!row.hidden) row.cells[0].textContent = rank++;
+        });
+    }
+
+    if (riskSearch) riskSearch.addEventListener('input', filterRiskRows);
+    if (riskFilter) riskFilter.addEventListener('change', filterRiskRows);
+
+    const sortDirections = {};
+    document.querySelectorAll('.risk-sort').forEach(function (button) {
+        button.addEventListener('click', function () {
+            if (!riskBody) return;
+            const key = button.dataset.sort;
+            sortDirections[key] = sortDirections[key] === 'asc' ? 'desc' : 'asc';
+            const direction = sortDirections[key] === 'asc' ? 1 : -1;
+            const rows = Array.from(riskBody.rows);
+            rows.sort(function (left, right) {
+                if (key === 'location') return left.dataset.location.localeCompare(right.dataset.location) * direction;
+                return (Number(left.dataset[key]) - Number(right.dataset[key])) * direction;
+            });
+            rows.forEach(function (row) { riskBody.appendChild(row); });
+            filterRiskRows();
+        });
+    });
+
+    const exportRiskButton = document.getElementById('exportRiskCsv');
+    if (exportRiskButton) {
+        exportRiskButton.addEventListener('click', function () {
+            if (!riskBody) return;
+            const rows = [['Rank', 'Location', 'Total', 'Open', 'Hazards', 'Cost', 'Risk', 'Interpretation']];
+            Array.from(riskBody.rows).filter(function (row) { return !row.hidden; }).forEach(function (row) {
+                rows.push(Array.from(row.cells).map(function (cell) { return cell.innerText.trim(); }));
+            });
+            const csv = rows.map(function (row) {
+                return row.map(function (value) { return '"' + String(value).replace(/"/g, '""') + '"'; }).join(',');
+            }).join('\r\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'location-risk-ranking.csv';
+            link.click();
+            URL.revokeObjectURL(link.href);
         });
     }
 });
