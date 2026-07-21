@@ -287,6 +287,11 @@ Route::middleware('auth')->group(function () {
     Route::delete('/admin/management/categories/{id}', [\App\Http\Controllers\ManagementController::class, 'destroyCategory'])->name('admin.management.categories.destroy');
 });
 
+/* EVENT APPROVAL PAGE - APPROVER ROLES */
+Route::middleware(['auth', 'throttle:admin'])->group(function () {
+    Route::get('/admin/events', [EventRequestController::class, 'adminIndex'])->name('admin.events');
+});
+
 /* ADMIN PANEL - ADMIN ONLY */
 Route::middleware(['auth', 'admin', 'throttle:admin'])->group(function () {
     // Main admin dashboard
@@ -390,9 +395,6 @@ Route::middleware(['auth', 'admin', 'throttle:admin'])->group(function () {
     Route::post('/admin/archive/to-folder', [AdminController::class, 'moveToArchiveFolder'])->name('admin.archive.toFolder');
     Route::post('/admin/archive-folders/{id}/restore-all', [AdminController::class, 'restoreAllFromFolder'])->name('admin.archiveFolder.restoreAll');
     Route::post('/admin/archive-folders/{id}/restore-selected', [AdminController::class, 'restoreSelectedFromFolder'])->name('admin.archiveFolder.restoreSelected');
-
-    // Events management
-    Route::get('/admin/events', [EventRequestController::class, 'adminIndex'])->name('admin.events');
 
     // Analytics
     Route::get('/admin/analytics', [AdminController::class, 'analytics'])->name('admin.analytics');

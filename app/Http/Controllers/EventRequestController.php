@@ -1815,6 +1815,11 @@ class EventRequestController extends Controller
     {
         self::rejectExpiredPendingRequests();
 
+        $user = auth()->user();
+        if (! $user || ! $user->canApproveRequests()) {
+            return redirect('/dashboard')->with('error', 'You do not have permission to view pending approvals.');
+        }
+
         $viewType = $request->view ?? 'pending';
         if ($viewType === 'active') {
             $viewType = 'pending';
@@ -1835,7 +1840,6 @@ class EventRequestController extends Controller
         }
 
         if ($viewType === 'approved') {
-            $user = auth()->user();
             $approvedEvents = $this->approvedEventsForApprover($user)
                 ->orderBy('event_date', 'asc')
                 ->get();
@@ -1890,7 +1894,6 @@ class EventRequestController extends Controller
         if ($viewType === 'deleted') {
             // Show deleted events
             $deletedFolder = ArchiveFolder::where('name', 'Deleted Events')->first();
-            $user = auth()->user();
             $days = $request->get('days', $user->event_requests_auto_delete_days ?? 15);
 
             if ($deletedFolder) {
