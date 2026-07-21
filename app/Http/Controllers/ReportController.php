@@ -22,17 +22,11 @@ class ReportController extends Controller
     {
         $user = Auth::user();
 
-        $role = $user->role;
-        $archiveColumn = $role.'_archived';
-
-        if (in_array($role, ['building_admin', 'mis', 'school_admin', 'admin'])) {
-            // Only these admin roles can access all reports not archived by their role
-            $reports = Report::with('user', 'category')->where($archiveColumn, false)->orderBy('created_at', 'desc')->get();
-        } else {
+        if (! in_array($user->role, ['building_admin', 'mis', 'school_admin', 'admin'])) {
             abort(403, 'Unauthorized');
         }
 
-        return view('reports.index', compact('reports'));
+        return redirect()->route('admin.reports');
     }
 
     /**
@@ -103,6 +97,13 @@ class ReportController extends Controller
 
         if (! $isAdmin && ! $isAssigned && ! $isSharedRoomsReport) {
             abort(403, 'Unauthorized');
+        }
+
+        if ($isAdmin && ! request()->ajax()) {
+            return redirect()->route('admin.reports', [
+                'view' => $report->status === 'Resolved' ? 'resolved' : 'active',
+                'open_report' => $report->id,
+            ]);
         }
 
         // Check if request is AJAX for modal
