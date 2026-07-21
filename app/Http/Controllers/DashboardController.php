@@ -11,6 +11,7 @@ class DashboardController extends Controller
     public function index()
     {
         $user = auth()->user();
+        EventRequestController::rejectExpiredPendingRequests();
 
         // Redirect based on role
         if ($user->is_superadmin || $user->role === 'superadmin') {

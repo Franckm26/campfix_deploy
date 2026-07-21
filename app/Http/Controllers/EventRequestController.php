@@ -15,6 +15,63 @@ use Illuminate\Support\Facades\Auth;
 
 class EventRequestController extends Controller
 {
+    public static function rejectExpiredPendingRequests(): int
+    {
+        $expiredRequests = EventRequest::with('user')
+            ->where('status', EventRequest::STATUS_PENDING)
+            ->whereDate('event_date', '<', now()->toDateString())
+            ->get();
+
+        if ($expiredRequests->isEmpty()) {
+            return 0;
+        }
+
+        $notificationService = new NotificationService;
+        $rejectedCount = 0;
+
+        foreach ($expiredRequests as $eventRequest) {
+            $level = (int) ($eventRequest->approval_level ?: EventRequest::LEVEL_NONE);
+            $notes = 'Automatically rejected because the event date has already passed.';
+            $history = $eventRequest->approval_history ?? [];
+            $history[] = [
+                'level' => $level,
+                'role' => 'System',
+                'approver' => 'System',
+                'approver_id' => null,
+                'at' => now()->toDateTimeString(),
+                'notes' => $notes,
+                'action' => 'rejected',
+                'status' => 'expired',
+            ];
+
+            $eventRequest->status = EventRequest::STATUS_REJECTED;
+            $eventRequest->approved_at = now();
+            $eventRequest->approval_level = $level;
+            $eventRequest->notes = $notes;
+            $eventRequest->approval_history = $history;
+            $eventRequest->save();
+
+            ActivityLog::log(
+                'event_auto_rejected_expired',
+                "Event request '{$eventRequest->title}' (ID: {$eventRequest->id}) automatically rejected because the event date has already passed.",
+                $eventRequest->id
+            );
+
+            if ($eventRequest->user) {
+                $notificationService->notifyEventRequestStatus(
+                    $eventRequest->user,
+                    $eventRequest->location.' - '.\Carbon\Carbon::parse($eventRequest->event_date)->format('M d, Y'),
+                    max(1, min(4, $level ?: 1)),
+                    'Expired'
+                );
+            }
+
+            $rejectedCount++;
+        }
+
+        return $rejectedCount;
+    }
+
     // Show form to create event request - Only for faculty
     public function create()
     {
@@ -406,6 +463,8 @@ class EventRequestController extends Controller
     // Show user's event requests - Only for faculty
     public function myRequests(Request $request)
     {
+        self::rejectExpiredPendingRequests();
+
         $allowedRoles = ['faculty', 'building_admin', 'school_admin', 'academic_head', 'program_head', 'principal_assistant'];
 
         if (! auth()->user()->canAccess('events')) {
@@ -1754,6 +1813,8 @@ class EventRequestController extends Controller
     // Show all event requests (for admin)
     public function adminIndex(Request $request)
     {
+        self::rejectExpiredPendingRequests();
+
         $viewType = $request->view ?? 'pending';
         if ($viewType === 'active') {
             $viewType = 'pending';

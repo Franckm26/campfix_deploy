@@ -56,6 +56,16 @@ class EventRequestApprovalNotification extends Notification
 
         $levelName = $levelNames[$this->approvalLevel] ?? 'Approval';
 
+        if ($this->status === 'Expired') {
+            return (new MailMessage)
+                ->subject("Event Request AUTO-REJECTED - {$this->eventTitle}")
+                ->greeting("Hello {$notifiable->name}!")
+                ->line("Your event request **'{$this->eventTitle}'** has been **AUTOMATICALLY REJECTED**.")
+                ->line('The event date has already passed before the request was fully approved.')
+                ->action('View My Requests', url('/my-events?view=rejected'))
+                ->line('Please submit a new request if you still need to schedule this event.');
+        }
+
         if ($this->status === 'Rejected') {
             return (new MailMessage)
                 ->subject("Event Request REJECTED - {$this->eventTitle}")
@@ -104,6 +114,17 @@ class EventRequestApprovalNotification extends Notification
         ];
 
         $levelName = $levelNames[$this->approvalLevel] ?? 'Approval';
+
+        if ($this->status === 'Expired') {
+            return [
+                'title' => 'Event Request Auto-Rejected',
+                'message' => "Your event request '{$this->eventTitle}' was automatically rejected because the event date has already passed.",
+                'event_title' => $this->eventTitle,
+                'approval_level' => $this->approvalLevel,
+                'status' => $this->status,
+                'url' => '/my-events?view=rejected',
+            ];
+        }
 
         if ($this->status === 'Rejected') {
             return [

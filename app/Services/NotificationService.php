@@ -60,7 +60,9 @@ class NotificationService
 
         $approverName = $approverNames[$approvalLevel] ?? 'Approver';
 
-        if ($status === 'Rejected') {
+        if ($status === 'Expired') {
+            $message = "Event request '{$eventTitle}' automatically rejected because the event date has already passed - Notification sent to {$user->email}";
+        } elseif ($status === 'Rejected') {
             $message = "Event request '{$eventTitle}' rejected by {$approverName} - Notification sent to {$user->email}";
         } elseif (in_array($status, ['Fully Approved', 'Approved']) && $approvalLevel >= 4) {
             $message = "Event request '{$eventTitle}' FULLY APPROVED - Notification sent to {$user->email}";
