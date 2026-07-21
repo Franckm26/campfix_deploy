@@ -4499,15 +4499,6 @@ class AdminController extends Controller
         $recentAverage = round($trendStats->take(-3)->avg('reports') ?? 0, 1);
         $previousAverage = round($trendStats->take(3)->avg('reports') ?? 0, 1);
         $trendDelta = round($recentAverage - $previousAverage, 1);
-        $forecastStats = collect(range(1, 3))->map(function ($offset) use ($recentAverage, $trendDelta) {
-            $forecast = max(0, round($recentAverage + (($trendDelta / 3) * $offset), 1));
-
-            return [
-                'label' => now()->startOfMonth()->addMonths($offset)->format('M Y'),
-                'reports' => $forecast,
-            ];
-        });
-
         $topLocation = $locationStats->first();
         $topCategory = $categoryStats->first();
         $targetResolutionRate = 85;
@@ -4586,7 +4577,6 @@ class AdminController extends Controller
             'statusStats',
             'categoryStats',
             'trendStats',
-            'forecastStats',
             'decisionAlerts',
             'executiveSummary',
             'targetResolutionRate'

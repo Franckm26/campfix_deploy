@@ -440,13 +440,12 @@
     <section class="analytics-panel">
         <header class="analytics-panel-header">
             <div>
-                <h3>Reports Trend and Forecast</h3>
-                <p>Historical report volume, completed work, and projected demand</p>
+                <h3>Reports Trend</h3>
+                <p>Historical report volume and completed work</p>
             </div>
             <div class="chart-legend" aria-label="Chart legend">
                 <span><i style="background:#1769e0"></i> Reports</span>
                 <span><i style="background:#148a58"></i> Resolved</span>
-                <span><i style="background:#d93645"></i> Forecast</span>
             </div>
         </header>
         <div class="analytics-chart-body">
@@ -672,15 +671,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (typeof Chart === 'undefined') return;
 
     const historicalLabels = @json($trendStats->pluck('label')->values());
-    const forecastLabels = @json($forecastStats->pluck('label')->values());
     const reportValues = @json($trendStats->pluck('reports')->values());
     const resolvedValues = @json($trendStats->pluck('resolved')->values());
-    const forecastValues = @json($forecastStats->pluck('reports')->values());
-    const labels = historicalLabels.concat(forecastLabels);
-    const emptyForecast = new Array(forecastLabels.length).fill(null);
-    const forecastLine = new Array(Math.max(0, historicalLabels.length - 1)).fill(null)
-        .concat([reportValues[reportValues.length - 1] || 0])
-        .concat(forecastValues);
 
     Chart.defaults.font.family = "'Inter', 'Segoe UI', sans-serif";
     Chart.defaults.color = '#66758a';
@@ -690,11 +682,11 @@ document.addEventListener('DOMContentLoaded', function () {
         new Chart(trendCanvas, {
             type: 'line',
             data: {
-                labels,
+                labels: historicalLabels,
                 datasets: [
                     {
                         label: 'Reports',
-                        data: reportValues.concat(emptyForecast),
+                        data: reportValues,
                         borderColor: '#1769e0',
                         backgroundColor: 'rgba(23, 105, 224, .10)',
                         fill: true,
@@ -704,19 +696,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     },
                     {
                         label: 'Resolved',
-                        data: resolvedValues.concat(emptyForecast),
+                        data: resolvedValues,
                         borderColor: '#148a58',
                         backgroundColor: 'transparent',
-                        tension: .3,
-                        pointRadius: 4,
-                        borderWidth: 2
-                    },
-                    {
-                        label: 'Forecast',
-                        data: forecastLine,
-                        borderColor: '#d93645',
-                        backgroundColor: 'transparent',
-                        borderDash: [6, 5],
                         tension: .3,
                         pointRadius: 4,
                         borderWidth: 2
