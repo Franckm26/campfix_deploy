@@ -557,8 +557,6 @@
     .category-summary-table tr:last-child td { border-bottom: 0; }
     .category-summary-table th:last-child, .category-summary-table td:last-child { border-right: 0; }
 
-    .recommendation-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-
     .decision-list {
         display: grid;
         gap: 10px;
@@ -861,8 +859,6 @@
     .dss-report-table th, .dss-report-table td { padding: 7px 8px; border: 1px solid #dfe5ec; font-size: 10px; text-align: left; vertical-align: top; }
     .dss-report-table th { color: #243952; background: #f1f5f9; text-transform: uppercase; }
 
-    .dss-recommendation { margin-bottom: 8px; padding: 10px 12px; border-left: 4px solid #1769e0; background: #f7f9fc; }
-    .dss-recommendation p { margin: 4px 0 0; }
 
     @media (max-width: 1100px) {
         .analytics-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -885,7 +881,7 @@
         .dss-report-cover { grid-template-columns: 52px minmax(0, 1fr); }
         .dss-report-cover dl { grid-column: 1 / -1; }
         .dss-scorecards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        .category-metric-tabs, .recommendation-grid, .category-summary-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .category-metric-tabs, .category-summary-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .category-ticket-toolbar { align-items: stretch; flex-direction: column; }
         .category-ticket-toolbar .form-control { width: 100%; }
     }
@@ -1164,21 +1160,6 @@
         @endif
     </section>
 
-    <section class="analytics-panel">
-        <header class="analytics-panel-header"><div><h3>Recommended Actions</h3><p>Suggested next steps based on the current evidence</p></div></header>
-        <div class="decision-list recommendation-grid">
-            @forelse($recommendations as $recommendation)
-                @php
-                    $recommendationColor = $recommendation['priority'] === 'Critical' ? '#d93645' : ($recommendation['priority'] === 'High' ? '#e99a00' : '#1769e0');
-                    $recommendationIcon = match($recommendation['key']) { 'prioritize-location' => 'fa-location-dot', 'hazard-response' => 'fa-shield-halved', 'category-plan' => 'fa-boxes-stacked', default => 'fa-list-check' };
-                @endphp
-                <button class="decision-item" type="button" style="--decision-color:{{ $recommendationColor }};" data-recommendation-key="{{ $recommendation['key'] }}" title="View recommendation evidence"><div class="decision-icon"><i class="fas {{ $recommendationIcon }}"></i></div><div><h4>{{ $recommendation['title'] }}</h4><p>{{ $recommendation['summary'] }}</p></div></button>
-            @empty
-                <div class="empty-analytics"><i class="fas fa-lightbulb"></i>Recommendations will appear when report data is available.</div>
-            @endforelse
-        </div>
-    </section>
-
     <div class="analytics-grid-three">
         <section class="analytics-panel">
             <header class="analytics-panel-header"><div><h3>Priority Distribution</h3><p>Workload by reported priority</p></div><button class="btn btn-outline-secondary" type="button" data-download-chart="priorityChart" data-file-name="priority-distribution"><i class="fas fa-download"></i></button></header>
@@ -1281,7 +1262,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const reportsUrl = @json(route('admin.reports'));
     const locationDetails = @json($locationStats->keyBy('location')->all());
     const decisionAlertDetails = @json($decisionAlerts->keyBy('key')->all());
-    const recommendationDetails = @json($recommendations->keyBy('key')->all());
     const categoryWorkspace = @json($categoryWorkspace->values());
 
     Chart.defaults.font.family = "'Inter', 'Segoe UI', sans-serif";
@@ -1814,23 +1794,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
                 });
             }, 150);
-        });
-    });
-
-    document.querySelectorAll('[data-recommendation-key]').forEach(function (button) {
-        button.addEventListener('click', function () {
-            const recommendation = recommendationDetails[button.dataset.recommendationKey];
-            if (!recommendation) return;
-            document.getElementById('recommendationEvidenceTitle').textContent = recommendation.title;
-            document.getElementById('recommendationProblem').innerHTML = '<strong>Problem:</strong> ' + escapeHtml(recommendation.problem);
-            document.getElementById('recommendationResources').textContent = recommendation.resources;
-            document.getElementById('recommendationCompletion').textContent = recommendation.estimated_completion;
-            document.getElementById('recommendationImpact').textContent = recommendation.expected_impact;
-            document.getElementById('recommendationPriority').textContent = recommendation.priority;
-            renderEvidenceStats('recommendationEvidenceStats', recommendation.evidence);
-            renderEvidenceActions('recommendationActions', recommendation.actions);
-            renderEvidenceReports('recommendationReports', recommendation.related_reports);
-            bootstrap.Modal.getOrCreateInstance(document.getElementById('recommendationEvidenceModal')).show();
         });
     });
 

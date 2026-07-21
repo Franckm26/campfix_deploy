@@ -19,29 +19,3 @@
         </div>
     </div>
 </div>
-
-<div class="modal fade" id="recommendationEvidenceModal" tabindex="-1" aria-labelledby="recommendationEvidenceLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div><h3 class="modal-title fs-5" id="recommendationEvidenceLabel"><i class="fas fa-lightbulb text-warning"></i> <span id="recommendationEvidenceTitle">Recommendation Details</span></h3><small class="text-muted">Problem, evidence, resources, and expected outcome</small></div>
-                <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="location-risk-callout" id="recommendationProblem"></div>
-                <div class="analytics-summary-metrics" id="recommendationEvidenceStats"></div>
-                <div class="location-breakdowns">
-                    <section class="location-breakdown"><h4>Recommended Resources</h4><p id="recommendationResources"></p><h4>Estimated Completion</h4><p id="recommendationCompletion"></p></section>
-                    <section class="location-breakdown"><h4>Expected Impact</h4><p id="recommendationImpact"></p><h4>Priority</h4><p id="recommendationPriority"></p></section>
-                </div>
-                <section class="location-breakdown"><h4>Implementation Steps</h4><ol class="dss-action-list" id="recommendationActions"></ol></section>
-                <section class="location-reports"><h4>Supporting Reports</h4><table class="location-report-table"><thead><tr><th>Report</th><th>Location</th><th>Status</th><th>Priority</th><th>Age</th><th>Assigned To</th></tr></thead><tbody id="recommendationReports"></tbody></table></section>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Close</button>
-                <a class="btn btn-outline-primary" href="{{ route('admin.management') }}"><i class="fas fa-user-gear"></i> Assign Technician</a>
-                <a class="btn btn-primary" href="{{ route('admin.reports') }}"><i class="fas fa-list"></i> View Reports</a>
-            </div>
-        </div>
-    </div>
-</div>

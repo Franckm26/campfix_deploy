@@ -4665,11 +4665,27 @@ class AdminController extends Controller
         $priorityLevel = $hazardReports > 0 || $riskIndex >= 60 || $resolutionRate < 50
             ? 'Critical'
             : ($riskIndex >= 30 || $resolutionRate < $targetResolutionRate ? 'High' : 'Normal');
-        $topRecurringIssue = $reports
-            ->filter(fn ($report) => filled($report->title))
-            ->groupBy(fn ($report) => strtolower(trim((string) $report->title)))
-            ->map(fn ($items) => ['title' => $items->first()->title, 'count' => $items->sum($reportWeight)])
-            ->sortByDesc('count')
+        $problemTypeStats = $reports
+            ->filter(fn ($report) => filled($report->description))
+            ->groupBy(fn ($report) => strtolower(trim((string) $report->description)))
+            ->map(function ($items) use ($reportWeight) {
+                $open = $items->filter(fn ($report) => strtolower((string) $report->status) !== 'resolved')->sum($reportWeight);
+                $hazards = $items->filter(fn ($report) => (bool) $report->is_safety_hazard)->sum($reportWeight);
+                $cost = (float) $items->sum(fn ($report) => (float) ($report->cost ?? 0));
+
+                return [
+                    'problem_type' => trim((string) $items->first()->description),
+                    'count' => $items->sum($reportWeight),
+                    'open' => $open,
+                    'hazards' => $hazards,
+                    'locations' => $items->pluck('location')->filter()->unique()->count(),
+                    'cost' => $cost,
+                    'risk_score' => ($open * 3) + ($hazards * 4) + min(20, (int) floor($cost / 1000)),
+                ];
+            })
+            ->sortBy([['risk_score', 'desc'], ['count', 'desc']])
+            ->values();
+        $topRecurringIssue = $problemTypeStats
             ->first();
 
         $staffStats = $reports
@@ -4752,18 +4768,19 @@ class AdminController extends Controller
         }
         $decisionAlerts = collect();
 
-        if ($topLocation) {
+        if ($topRecurringIssue) {
+            $problemType = $topRecurringIssue['problem_type'];
             $decisionAlerts->push([
-                'key' => 'location-risk',
-                'level' => $topLocation['risk_score'] >= 12 ? 'critical' : 'warning',
-                'title' => "{$topLocation['location']} needs the most attention",
-                'body' => "{$topLocation['total']} report(s), {$topLocation['open']} open, {$topLocation['hazards']} safety hazard(s).",
-                'why' => 'This location has the highest combined score for unresolved workload, safety hazards, and recorded cost.',
-                'priority' => $topLocation['risk_score'] >= 12 ? 'Critical' : 'High',
-                'impact' => 'Delayed action may increase disruption, safety exposure, and repair cost in this area.',
-                'stats' => ['Risk score' => $topLocation['risk_score'], 'Open reports' => $topLocation['open'], 'Hazards' => $topLocation['hazards'], 'Recorded cost' => 'PHP '.number_format($topLocation['cost'], 2)],
-                'actions' => ['Inspect the location within one working day', 'Assign hazard reports before routine work', 'Confirm parts and technician availability'],
-                'related_reports' => $reportEvidence($reports->where('location', $topLocation['location'])->sortByDesc('created_at')),
+                'key' => 'problem-type-risk',
+                'level' => $topRecurringIssue['risk_score'] >= 12 ? 'critical' : 'warning',
+                'title' => "{$problemType} needs the most attention",
+                'body' => "{$topRecurringIssue['count']} report(s), {$topRecurringIssue['open']} open, {$topRecurringIssue['hazards']} safety hazard(s).",
+                'why' => 'This problem type has the highest combined score for unresolved workload, safety hazards, repeat reports, and recorded cost.',
+                'priority' => $topRecurringIssue['risk_score'] >= 12 ? 'Critical' : 'High',
+                'impact' => 'Without root-cause action, this recurring problem may continue consuming staff time, parts, and maintenance funds.',
+                'stats' => ['Problem reports' => $topRecurringIssue['count'], 'Open reports' => $topRecurringIssue['open'], 'Hazards' => $topRecurringIssue['hazards'], 'Affected locations' => $topRecurringIssue['locations']],
+                'actions' => ['Review the recurring root cause', 'Prioritize open and hazard-related tickets', 'Confirm required parts and responsible staff'],
+                'related_reports' => $reportEvidence($reports->filter(fn ($report) => strcasecmp(trim((string) $report->description), $problemType) === 0)->sortByDesc('created_at')),
             ]);
         }
 
@@ -4823,84 +4840,6 @@ class AdminController extends Controller
             ]);
         }
 
-        if ($topCategory) {
-            $decisionAlerts->push([
-                'key' => 'category-concentration',
-                'level' => 'info',
-                'title' => "{$topCategory['category']} is the leading report category",
-                'body' => "Use this to guide purchasing, preventive maintenance, and staff assignments.",
-                'why' => 'This category contributes the largest number of reports in the selected period.',
-                'priority' => $topCategory['hazards'] > 0 ? 'High' : 'Monitor',
-                'impact' => 'Recurring category demand may consume disproportionate staff time, parts, and maintenance funds.',
-                'stats' => ['Reports' => $topCategory['count'], 'Hazards' => $topCategory['hazards'], 'Average cost' => 'PHP '.number_format($topCategory['avg_cost'], 2), 'Trend' => $topCategory['trend_direction']],
-                'actions' => ['Identify the most common root causes', 'Review spare-parts inventory and suppliers', 'Schedule targeted preventive maintenance'],
-                'related_reports' => $reportEvidence($reports->filter(fn ($report) => (optional($report->category)->name ?: 'Uncategorized') === $topCategory['category'])->sortByDesc('created_at')),
-            ]);
-        }
-
-        $recommendations = collect();
-        if ($topLocation) {
-            $recommendedTechnicians = max(1, min(5, (int) ceil($topLocation['open'] / 8)));
-            $recommendations->push([
-                'key' => 'prioritize-location',
-                'title' => "Prioritize {$topLocation['location']}",
-                'summary' => $topLocation['interpretation'],
-                'problem' => "{$topLocation['location']} has {$topLocation['open']} unresolved reports and a risk score of {$topLocation['risk_score']}.",
-                'priority' => $topLocation['risk_score'] >= 12 ? 'Critical' : 'High',
-                'evidence' => ['Average report age' => $avgReportAgeDays.' days', 'Risk score' => $topLocation['risk_score'], 'Hazards' => $topLocation['hazards'], 'Recorded cost' => 'PHP '.number_format($topLocation['cost'], 2)],
-                'resources' => "{$recommendedTechnicians} technician(s), priority inspection, and required spare parts",
-                'estimated_completion' => $dailyResolutionCapacity > 0 ? max(1, (int) ceil($topLocation['open'] / $dailyResolutionCapacity)).' working days' : 'Requires capacity assessment',
-                'expected_impact' => 'Reduce risk exposure and remove the largest location-based contribution to the backlog.',
-                'actions' => ['Inspect all hazard reports first', 'Assign an accountable technician to every open report', 'Review progress at the end of each working day'],
-                'related_reports' => $reportEvidence($reports->where('location', $topLocation['location'])->sortBy('created_at')),
-            ]);
-        }
-        if ($hazardReports > 0) {
-            $recommendations->push([
-                'key' => 'hazard-response',
-                'title' => 'Review safety hazards first',
-                'summary' => "Assign immediate inspection to {$hazardReports} hazard-related report(s) before routine repairs.",
-                'problem' => "{$hazardReports} reports are marked as safety hazards and may affect campus operations or user safety.",
-                'priority' => 'Critical',
-                'evidence' => ['Hazard reports' => $hazardReports, 'Open workload' => $openReports, 'Highest-risk location' => $topLocation['location'] ?? 'Not available', 'Risk index' => $riskIndex],
-                'resources' => 'Safety-qualified technician, inspection checklist, and area access control if required',
-                'estimated_completion' => 'Initial inspection within one working day',
-                'expected_impact' => 'Reduce immediate safety exposure and prevent escalation into more costly incidents.',
-                'actions' => ['Verify the hazard classification', 'Restrict access where necessary', 'Document corrective action and closure evidence'],
-                'related_reports' => $reportEvidence($reports->filter(fn ($report) => (bool) $report->is_safety_hazard)->sortBy('created_at')),
-            ]);
-        }
-        if ($topCategory) {
-            $recommendations->push([
-                'key' => 'category-plan',
-                'title' => "Plan for {$topCategory['category']}",
-                'summary' => "This is the leading category with {$topCategory['count']} report(s). Review parts, vendors, and preventive coverage.",
-                'problem' => "{$topCategory['category']} is the largest recurring workload category and is trending {$topCategory['trend_direction']}.",
-                'priority' => $topCategory['hazards'] > 0 ? 'High' : 'Monitor',
-                'evidence' => ['Reports' => $topCategory['count'], 'Average cost' => 'PHP '.number_format($topCategory['avg_cost'], 2), 'Hazards' => $topCategory['hazards'], 'Monthly trend' => $topCategory['trend_percent'].'%'],
-                'resources' => 'Category-skilled technician, recurring parts inventory, and preventive maintenance schedule',
-                'estimated_completion' => 'Review and plan within five working days',
-                'expected_impact' => 'Lower recurring demand and improve readiness for the most frequent issue type.',
-                'actions' => ['Perform root-cause review', 'Check stock and vendor lead times', 'Create a preventive maintenance activity'],
-                'related_reports' => $reportEvidence($reports->filter(fn ($report) => (optional($report->category)->name ?: 'Uncategorized') === $topCategory['category'])->sortByDesc('created_at')),
-            ]);
-        }
-        if ($resolutionRate < $targetResolutionRate) {
-            $recommendations->push([
-                'key' => 'backlog-recovery',
-                'title' => 'Reduce the unresolved backlog',
-                'summary' => "Raise the resolution rate from {$resolutionRate}% toward the {$targetResolutionRate}% target.",
-                'problem' => "{$openReports} reports remain open with an average age of {$avgReportAgeDays} days.",
-                'priority' => 'Critical',
-                'evidence' => ['Open reports' => $openReports, 'Oldest report' => $oldestOpenDays.' days', 'Resolution rate' => $resolutionRate.'%', 'SLA compliance' => $slaCompliance !== null ? $slaCompliance.'%' : 'No timed records'],
-                'resources' => 'Backlog owner, daily ageing review, and temporary technician capacity where available',
-                'estimated_completion' => $estimatedBacklogDays !== null ? $estimatedBacklogDays.' working days at current throughput' : 'Cannot estimate without recent completions',
-                'expected_impact' => 'Improve service reliability, shorten wait times, and move resolution performance toward target.',
-                'actions' => ['Assign all unowned reports', 'Escalate reports older than seven days', 'Track daily completions against intake'],
-                'related_reports' => $reportEvidence($openReportItems->sortBy('created_at')),
-            ]);
-        }
-
         $executiveSummary = [
             'period' => (! empty($filters['date_from']) || ! empty($filters['date_to']))
                 ? (($filters['date_from'] ?? 'Beginning').' to '.($filters['date_to'] ?? now()->toDateString()))
@@ -4947,7 +4886,6 @@ class AdminController extends Controller
             'categoryWorkspace',
             'trendStats',
             'decisionAlerts',
-            'recommendations',
             'executiveSummary',
             'targetResolutionRate',
             'pendingReports',
