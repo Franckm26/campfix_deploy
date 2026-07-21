@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class EventRequestController extends Controller
 {
@@ -30,43 +31,52 @@ class EventRequestController extends Controller
         $rejectedCount = 0;
 
         foreach ($expiredRequests as $eventRequest) {
-            $level = (int) ($eventRequest->approval_level ?: EventRequest::LEVEL_NONE);
-            $notes = 'Automatically rejected because the event date has already passed.';
-            $history = $eventRequest->approval_history ?? [];
-            $history[] = [
-                'level' => $level,
-                'role' => 'System',
-                'approver' => 'System',
-                'approver_id' => null,
-                'at' => now()->toDateTimeString(),
-                'notes' => $notes,
-                'action' => 'rejected',
-                'status' => 'expired',
-            ];
+            try {
+                $level = (int) ($eventRequest->approval_level ?: EventRequest::LEVEL_NONE);
+                $eventName = $eventRequest->location.' - '.\Carbon\Carbon::parse($eventRequest->event_date)->format('M d, Y');
+                $notes = 'Automatically rejected because the event date has already passed.';
+                $history = $eventRequest->approval_history ?? [];
+                $history[] = [
+                    'level' => $level,
+                    'role' => 'System',
+                    'approver' => 'System',
+                    'approver_id' => null,
+                    'at' => now()->toDateTimeString(),
+                    'notes' => $notes,
+                    'action' => 'rejected',
+                    'status' => 'expired',
+                ];
 
-            $eventRequest->status = EventRequest::STATUS_REJECTED;
-            $eventRequest->approved_at = now();
-            $eventRequest->approval_level = $level;
-            $eventRequest->notes = $notes;
-            $eventRequest->approval_history = $history;
-            $eventRequest->save();
+                $eventRequest->status = EventRequest::STATUS_REJECTED;
+                $eventRequest->approved_at = now();
+                $eventRequest->approval_level = $level;
+                $eventRequest->notes = $notes;
+                $eventRequest->approval_history = $history;
+                $eventRequest->save();
 
-            ActivityLog::log(
-                'event_auto_rejected_expired',
-                "Event request '{$eventRequest->title}' (ID: {$eventRequest->id}) automatically rejected because the event date has already passed.",
-                $eventRequest->id
-            );
-
-            if ($eventRequest->user) {
-                $notificationService->notifyEventRequestStatus(
-                    $eventRequest->user,
-                    $eventRequest->location.' - '.\Carbon\Carbon::parse($eventRequest->event_date)->format('M d, Y'),
-                    max(1, min(4, $level ?: 1)),
-                    'Expired'
+                ActivityLog::log(
+                    'event_auto_rejected_expired',
+                    "Event request '{$eventName}' (ID: {$eventRequest->id}) automatically rejected because the event date has already passed.",
+                    $eventRequest->id,
+                    'event_request'
                 );
-            }
 
-            $rejectedCount++;
+                if ($eventRequest->user) {
+                    $notificationService->notifyEventRequestStatus(
+                        $eventRequest->user,
+                        $eventName,
+                        max(1, min(4, $level ?: 1)),
+                        'Expired'
+                    );
+                }
+
+                $rejectedCount++;
+            } catch (\Throwable $e) {
+                Log::error('Failed to auto-reject expired event request', [
+                    'event_request_id' => $eventRequest->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         return $rejectedCount;

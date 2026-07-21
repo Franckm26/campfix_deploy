@@ -113,25 +113,9 @@ class DashboardController extends Controller
 
         // School Administrator, Academic Head, Program Head, Principal Assistant - modern Asana-style dashboard
         if (in_array($user->role, ['school_admin', 'academic_head', 'program_head', 'principal_assistant'])) {
-            // Principal dashboard - show pending approvals and events
-            // For Program Head, filter by their department for events only
-            $eventQuery = EventRequest::where('status', 'Pending');
-
-            if ($user->role === 'program_head' && $user->department) {
-                $eventQuery->where('department', $user->department);
-            }
-            $pendingEvents = $eventQuery->count();
-
-            // Get list of pending events for the task list
-            $pendingEventsListQuery = EventRequest::with('user')
-                ->where('status', 'Pending')
-                ->orderBy('event_date', 'asc')
-                ->orderBy('created_at', 'asc');
-
-            if ($user->role === 'program_head' && $user->department) {
-                $pendingEventsListQuery->where('department', $user->department);
-            }
-            $pendingEventsList = $pendingEventsListQuery->limit(10)->get();
+            $pendingApprovalQuery = $this->pendingApprovalEventsFor($user);
+            $pendingEvents = (clone $pendingApprovalQuery)->count();
+            $pendingEventsList = $pendingApprovalQuery->limit(10)->get();
 
             $eventQuery2 = EventRequest::where('status', 'Approved')
                 ->where('event_date', '>=', now()->toDateString());
@@ -199,5 +183,44 @@ class DashboardController extends Controller
             ->get();
 
         return view('dashboard.index', compact('total', 'pending', 'resolved', 'inProgress', 'concerns'));
+    }
+
+    private function pendingApprovalEventsFor($user)
+    {
+        $query = EventRequest::with('user')
+            ->where('status', EventRequest::STATUS_PENDING)
+            ->where('is_deleted', false)
+            ->where('student_archived', false)
+            ->where('faculty_archived', false)
+            ->where('building_admin_archived', false)
+            ->where('school_admin_archived', false)
+            ->where('academic_head_archived', false)
+            ->where('program_head_archived', false)
+            ->where('mis_archived', false)
+            ->where('maintenance_archived', false);
+
+        if ($user->isProgramHead()) {
+            $query->where('approval_level', EventRequest::LEVEL_1_PROGRAM_HEAD)
+                ->where(function ($levelQuery) {
+                    $levelQuery->whereNull('education_level')
+                        ->orWhere('education_level', '!=', 'shs');
+                });
+
+            if ($user->department) {
+                $query->where('department', $user->department);
+            }
+        } elseif ($user->isPrincipalAssistant()) {
+            $query->where('approval_level', EventRequest::LEVEL_1_PROGRAM_HEAD)
+                ->where('education_level', 'shs');
+        } elseif ($user->isAcademicHead()) {
+            $query->where('approval_level', EventRequest::LEVEL_2_ACADEMIC_HEAD);
+        } elseif ($user->isSchoolAdmin() || $user->isAdmin()) {
+            $query->where('approval_level', EventRequest::LEVEL_4_SCHOOL_ADMIN);
+        } else {
+            $query->whereRaw('1 = 0');
+        }
+
+        return $query->orderBy('event_date', 'asc')
+            ->orderBy('created_at', 'asc');
     }
 }
