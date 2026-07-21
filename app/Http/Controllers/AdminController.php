@@ -4665,28 +4665,44 @@ class AdminController extends Controller
         $priorityLevel = $hazardReports > 0 || $riskIndex >= 60 || $resolutionRate < 50
             ? 'Critical'
             : ($riskIndex >= 30 || $resolutionRate < $targetResolutionRate ? 'High' : 'Normal');
-        $problemTypeStats = $reports
-            ->filter(fn ($report) => filled($report->description))
-            ->groupBy(fn ($report) => strtolower(trim((string) $report->description)))
-            ->map(function ($items) use ($reportWeight) {
+        $recurringIssueStats = $reports
+            ->filter(fn ($report) => filled($report->title))
+            ->groupBy(fn ($report) => strtolower(trim((string) $report->title)))
+            ->map(function ($items) use ($reportWeight, $monthStart) {
                 $open = $items->filter(fn ($report) => strtolower((string) $report->status) !== 'resolved')->sum($reportWeight);
+                $resolvedItems = $items->filter(fn ($report) => strtolower((string) $report->status) === 'resolved');
                 $hazards = $items->filter(fn ($report) => (bool) $report->is_safety_hazard)->sum($reportWeight);
                 $cost = (float) $items->sum(fn ($report) => (float) ($report->cost ?? 0));
+                $repairCycles = $resolvedItems->count();
+                $reportCount = $items->sum($reportWeight);
+                $trend = collect(range(0, 5))->map(function ($offset) use ($items, $monthStart, $reportWeight) {
+                    $month = $monthStart->copy()->addMonths($offset);
+                    $monthKey = $month->format('Y-m');
+
+                    return [
+                        'label' => $month->format('M Y'),
+                        'reports' => $items->filter(fn ($report) => $report->created_at && $report->created_at->format('Y-m') === $monthKey)->sum($reportWeight),
+                        'repairs' => $items->filter(fn ($report) => $report->resolved_at && $report->resolved_at->format('Y-m') === $monthKey)->count(),
+                    ];
+                })->values()->all();
 
                 return [
-                    'problem_type' => trim((string) $items->first()->description),
-                    'count' => $items->sum($reportWeight),
+                    'issue' => trim((string) $items->first()->title),
+                    'count' => $reportCount,
                     'open' => $open,
+                    'repair_cycles' => $repairCycles,
                     'hazards' => $hazards,
                     'locations' => $items->pluck('location')->filter()->unique()->count(),
                     'cost' => $cost,
-                    'risk_score' => ($open * 3) + ($hazards * 4) + min(20, (int) floor($cost / 1000)),
+                    'replacement_candidate' => $repairCycles >= 2,
+                    'recurrence_score' => ($repairCycles * 5) + $reportCount + ($hazards * 4) + min(20, (int) floor($cost / 1000)),
+                    'trend' => $trend,
                 ];
             })
-            ->sortBy([['risk_score', 'desc'], ['count', 'desc']])
+            ->filter(fn ($issue) => $issue['count'] >= 2 || $issue['repair_cycles'] >= 2)
+            ->sortBy([['replacement_candidate', 'desc'], ['recurrence_score', 'desc'], ['count', 'desc']])
             ->values();
-        $topRecurringIssue = $problemTypeStats
-            ->first();
+        $topRecurringIssue = $recurringIssueStats->first();
 
         $staffStats = $reports
             ->filter(fn ($report) => $report->assigned_to)
@@ -4768,75 +4784,28 @@ class AdminController extends Controller
         }
         $decisionAlerts = collect();
 
-        if ($topRecurringIssue) {
-            $problemType = $topRecurringIssue['problem_type'];
+        foreach ($recurringIssueStats->take(3) as $recurringIssue) {
+            $issue = $recurringIssue['issue'];
+            $replacementCandidate = $recurringIssue['replacement_candidate'];
+            $recordedCost = 'PHP '.number_format($recurringIssue['cost'], 2);
             $decisionAlerts->push([
-                'key' => 'problem-type-risk',
-                'level' => $topRecurringIssue['risk_score'] >= 12 ? 'critical' : 'warning',
-                'title' => "{$problemType} needs the most attention",
-                'body' => "{$topRecurringIssue['count']} report(s), {$topRecurringIssue['open']} open, {$topRecurringIssue['hazards']} safety hazard(s).",
-                'why' => 'This problem type has the highest combined score for unresolved workload, safety hazards, repeat reports, and recorded cost.',
-                'priority' => $topRecurringIssue['risk_score'] >= 12 ? 'Critical' : 'High',
-                'impact' => 'Without root-cause action, this recurring problem may continue consuming staff time, parts, and maintenance funds.',
-                'stats' => ['Problem reports' => $topRecurringIssue['count'], 'Open reports' => $topRecurringIssue['open'], 'Hazards' => $topRecurringIssue['hazards'], 'Affected locations' => $topRecurringIssue['locations']],
-                'actions' => ['Review the recurring root cause', 'Prioritize open and hazard-related tickets', 'Confirm required parts and responsible staff'],
-                'related_reports' => $reportEvidence($reports->filter(fn ($report) => strcasecmp(trim((string) $report->description), $problemType) === 0)->sortByDesc('created_at')),
-            ]);
-        }
-
-        if ($resolutionRate < $targetResolutionRate) {
-            $decisionAlerts->push([
-                'key' => 'resolution-gap',
-                'level' => 'critical',
-                'title' => 'Resolution rate is below target',
-                'body' => "{$resolutionRate}% resolved vs {$targetResolutionRate}% target. Prioritize ageing unresolved reports.",
-                'why' => 'The share of completed reports is below the management target, indicating insufficient throughput for the current workload.',
-                'priority' => 'Critical',
-                'impact' => "The current gap is ".round($targetResolutionRate - $resolutionRate, 1)." percentage points and may increase service disruption.",
-                'stats' => ['Current rate' => $resolutionRate.'%', 'Target' => $targetResolutionRate.'%', 'Open reports' => $openReports, 'Average age' => $avgReportAgeDays.' days'],
-                'actions' => ['Prioritize reports older than seven days', 'Assign additional technicians to the backlog', 'Review unassigned and stalled reports daily'],
-                'related_reports' => $reportEvidence($openReportItems->sortBy('created_at')),
-            ]);
-        } else {
-            $decisionAlerts->push([
-                'key' => 'resolution-target',
-                'level' => 'success',
-                'title' => 'Resolution rate is within target',
-                'body' => "{$resolutionRate}% of reports are resolved. Continue current response practices.",
-                'why' => 'Completed work meets or exceeds the current management resolution target.',
-                'priority' => 'Normal',
-                'impact' => 'Maintaining current throughput should keep the backlog within acceptable limits.',
-                'stats' => ['Current rate' => $resolutionRate.'%', 'Target' => $targetResolutionRate.'%', 'Resolved' => $resolvedReports, 'Open' => $openReports],
-                'actions' => ['Maintain current staffing coverage', 'Monitor ageing reports weekly', 'Preserve preventive maintenance schedules'],
-                'related_reports' => $reportEvidence($reports->filter(fn ($report) => strtolower((string) $report->status) === 'resolved')->sortByDesc('resolved_at')),
-            ]);
-        }
-
-        if ($trendDelta > 0) {
-            $decisionAlerts->push([
-                'key' => 'volume-trend',
-                'level' => 'warning',
-                'title' => 'Report volume is increasing',
-                'body' => "Recent average is {$recentAverage} vs {$previousAverage} in the earlier period.",
-                'why' => 'The average monthly intake in the latest three months exceeds the preceding three-month average.',
-                'priority' => 'High',
-                'impact' => 'If completion capacity does not increase, new reports may add to the unresolved backlog.',
-                'stats' => ['Recent monthly average' => $recentAverage, 'Earlier monthly average' => $previousAverage, 'Difference' => $trendDelta, 'Current backlog' => $openReports],
-                'actions' => ['Compare intake against technician capacity', 'Increase preventive maintenance in recurring categories', 'Review staffing for the next four weeks'],
-                'related_reports' => $reportEvidence($reports->sortByDesc('created_at')),
-            ]);
-        } elseif ($totalReports > 0) {
-            $decisionAlerts->push([
-                'key' => 'volume-stable',
-                'level' => 'success',
-                'title' => 'Report volume is stable or decreasing',
-                'body' => "Recent average is {$recentAverage} vs {$previousAverage} in the earlier period.",
-                'why' => 'Recent intake is no higher than the preceding three-month average.',
-                'priority' => 'Normal',
-                'impact' => 'Stable demand creates an opportunity to reduce older backlog items.',
-                'stats' => ['Recent monthly average' => $recentAverage, 'Earlier monthly average' => $previousAverage, 'Difference' => $trendDelta, 'Current backlog' => $openReports],
-                'actions' => ['Use available capacity on ageing reports', 'Continue preventive maintenance', 'Monitor for category-specific spikes'],
-                'related_reports' => $reportEvidence($reports->sortByDesc('created_at')),
+                'key' => 'recurring-issue-'.substr(md5(strtolower($issue)), 0, 10),
+                'level' => $replacementCandidate || $recurringIssue['hazards'] > 0 ? 'critical' : 'warning',
+                'title' => $replacementCandidate ? "Evaluate replacing {$issue}" : "{$issue} is repeatedly reported",
+                'body' => "{$recurringIssue['count']} report(s), {$recurringIssue['repair_cycles']} completed repair cycle(s), {$recordedCost} recorded repair cost.",
+                'why' => $replacementCandidate
+                    ? 'This issue returned after multiple completed repairs, which may indicate an ageing asset, recurring component failure, or an unresolved root cause.'
+                    : 'Multiple users or locations reported the same issue. Root-cause inspection is needed before further repeat work is approved.',
+                'priority' => $replacementCandidate || $recurringIssue['hazards'] > 0 ? 'Critical' : 'High',
+                'impact' => $replacementCandidate
+                    ? 'Continuing repeated repairs may cost more over time than replacing the failing asset or component.'
+                    : 'Early root-cause action can prevent this issue from becoming a repeated repair expense.',
+                'stats' => ['Issue reports' => $recurringIssue['count'], 'Completed repairs' => $recurringIssue['repair_cycles'], 'Recorded repair cost' => $recordedCost, 'Open reports' => $recurringIssue['open'], 'Affected locations' => $recurringIssue['locations']],
+                'actions' => $replacementCandidate
+                    ? ['Obtain a replacement quotation', 'Compare the quotation with cumulative and projected repair cost', 'Inspect asset age and recurring failed parts', 'Replace the asset or component when replacement offers better lifecycle value']
+                    : ['Perform a root-cause inspection', 'Compare reports across affected locations', 'Standardize the corrective action before closing more tickets'],
+                'trend' => $recurringIssue['trend'],
+                'related_reports' => $reportEvidence($reports->filter(fn ($report) => strcasecmp(trim((string) $report->title), $issue) === 0)->sortByDesc('created_at')),
             ]);
         }
 

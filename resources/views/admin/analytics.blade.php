@@ -1065,7 +1065,7 @@
             <header class="analytics-panel-header">
                 <div>
                     <h3>Decision Alerts</h3>
-                    <p>Data-backed findings that need administrative attention</p>
+                    <p>Recurring issues that may require root-cause correction or asset replacement</p>
                 </div>
             </header>
             <div class="decision-list">
@@ -1788,10 +1788,17 @@ document.addEventListener('DOMContentLoaded', function () {
             modal.show();
             setTimeout(function () {
                 if (alertTrendChart) alertTrendChart.destroy();
+                const issueTrend = Array.isArray(alert.trend) ? alert.trend : [];
                 alertTrendChart = new Chart(document.getElementById('alertEvidenceChart'), {
                     type: 'line',
-                    data: { labels: historicalLabels, datasets: [{ label: 'Reports', data: reportValues, borderColor: '#1769e0', backgroundColor: 'rgba(23,105,224,.10)', fill: true, tension: .3 }, { label: 'Resolved', data: resolvedValues, borderColor: '#148a58', tension: .3 }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+                    data: {
+                        labels: issueTrend.map(function (item) { return item.label; }),
+                        datasets: [
+                            { label: 'Issue reports', data: issueTrend.map(function (item) { return Number(item.reports); }), borderColor: '#1769e0', backgroundColor: 'rgba(23,105,224,.10)', fill: true, tension: .3 },
+                            { label: 'Completed repairs', data: issueTrend.map(function (item) { return Number(item.repairs); }), borderColor: '#148a58', tension: .3 }
+                        ]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' }, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
                 });
             }, 150);
         });
