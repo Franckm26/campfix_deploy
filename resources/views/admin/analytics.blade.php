@@ -950,42 +950,9 @@
             <div class="analytics-kpi-context">Reports still requiring action</div>
         </article>
         <article class="analytics-panel analytics-kpi" style="--kpi-color: #148a58;">
-            <div class="analytics-kpi-header">
-                <span class="analytics-kpi-label">Resolution Rate</span>
-                <span class="analytics-kpi-icon"><i class="fas fa-circle-check"></i></span>
-            </div>
-            <div class="analytics-kpi-value">{{ number_format($resolutionRate, 1) }}%</div>
-            <div class="analytics-kpi-context">Target: {{ number_format($targetResolutionRate) }}%</div>
-        </article>
-        <article class="analytics-panel analytics-kpi" style="--kpi-color: #e99a00;">
-            <div class="analytics-kpi-header">
-                <span class="analytics-kpi-label">Recorded Repair Cost</span>
-                <span class="analytics-kpi-icon"><i class="fas fa-coins"></i></span>
-            </div>
-            <div class="analytics-kpi-value">PHP {{ number_format($totalCost, 2) }}</div>
-            <div class="analytics-kpi-context">
-                {{ $avgResolutionHours !== null ? number_format($avgResolutionHours, 1).' average hours to resolve' : 'No resolution-time data yet' }}
-            </div>
-        </article>
-        <article class="analytics-panel analytics-kpi" style="--kpi-color: #148a58;">
             <div class="analytics-kpi-header"><span class="analytics-kpi-label">Resolved Reports</span><span class="analytics-kpi-icon"><i class="fas fa-check-double"></i></span></div>
             <div class="analytics-kpi-value">{{ number_format($resolvedReports) }}</div>
             <div class="analytics-kpi-context">{{ number_format($openReports) }} still open</div>
-        </article>
-        <article class="analytics-panel analytics-kpi" style="--kpi-color: #7557c5;">
-            <div class="analytics-kpi-header"><span class="analytics-kpi-label">Average Resolution</span><span class="analytics-kpi-icon"><i class="fas fa-stopwatch"></i></span></div>
-            <div class="analytics-kpi-value">{{ $avgResolutionHours !== null ? number_format($avgResolutionHours, 1).' hrs' : 'N/A' }}</div>
-            <div class="analytics-kpi-context">Compared with {{ $slaTargetHours }}-hour SLA</div>
-        </article>
-        <article class="analytics-panel analytics-kpi" style="--kpi-color: #10a6a6;">
-            <div class="analytics-kpi-header"><span class="analytics-kpi-label">Average Report Age</span><span class="analytics-kpi-icon"><i class="fas fa-calendar-day"></i></span></div>
-            <div class="analytics-kpi-value">{{ number_format($avgReportAgeDays, 1) }} days</div>
-            <div class="analytics-kpi-context">Oldest open report: {{ number_format($oldestOpenDays) }} days</div>
-        </article>
-        <article class="analytics-panel analytics-kpi" style="--kpi-color: {{ $slaCompliance !== null && $slaCompliance >= 85 ? '#148a58' : '#d93645' }};">
-            <div class="analytics-kpi-header"><span class="analytics-kpi-label">SLA Compliance</span><span class="analytics-kpi-icon"><i class="fas fa-gauge-high"></i></span></div>
-            <div class="analytics-kpi-value">{{ $slaCompliance !== null ? number_format($slaCompliance, 1).'%' : 'N/A' }}</div>
-            <div class="analytics-kpi-context">{{ $slaTargetHours }}-hour completion benchmark</div>
         </article>
     </section>
 
@@ -1050,9 +1017,9 @@
                 <div class="analytics-small-chart"><canvas id="statusChart" aria-label="Report status chart"></canvas></div>
                 <div class="chart-selection" id="statusInsight"><strong>Explore:</strong> Click a status segment to see its share and open the matching report list.</div>
                 <div class="analytics-data-table" id="statusData">
-                    <table><thead><tr><th>Status</th><th>Reports</th><th>Avg Age</th><th>Avg Resolution</th><th>Oldest</th><th>Priority</th></tr></thead><tbody>
+                    <table><thead><tr><th>Status</th><th>Reports</th><th>Oldest</th><th>Priority</th></tr></thead><tbody>
                         @foreach($statusStats as $status)
-                            <tr><td>{{ $status['status'] }}</td><td>{{ number_format($status['count']) }}</td><td>{{ number_format($status['avg_age_days'], 1) }} days</td><td>{{ $status['avg_resolution_hours'] !== null ? number_format($status['avg_resolution_hours'], 1).' hrs' : 'N/A' }}</td><td>{{ $status['oldest_days'] }} days</td><td>{{ $status['priority'] }}</td></tr>
+                            <tr><td>{{ $status['status'] }}</td><td>{{ number_format($status['count']) }}</td><td>{{ $status['oldest_days'] }} days</td><td>{{ $status['priority'] }}</td></tr>
                         @endforeach
                     </tbody></table>
                 </div>
@@ -1825,8 +1792,6 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('locationDetailResolved').textContent = Number(location.resolved).toLocaleString();
             document.getElementById('locationDetailHazards').textContent = Number(location.hazards).toLocaleString();
             document.getElementById('locationDetailRisk').textContent = Number(location.risk_score).toLocaleString();
-            document.getElementById('locationDetailRate').textContent = Number(location.resolution_rate).toFixed(1) + '%';
-            document.getElementById('locationDetailCost').textContent = 'PHP ' + Number(location.cost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             document.getElementById('locationDetailPriority').textContent = riskLevel;
             document.getElementById('locationDetailPriority').style.color = riskColor;
             document.getElementById('locationDetailInterpretation').textContent = location.interpretation;

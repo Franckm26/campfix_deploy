@@ -52,8 +52,6 @@
                 </div>
 
                 <div class="analytics-summary-metrics">
-                    <div class="analytics-summary-metric"><span>Resolution Rate</span><strong id="locationDetailRate">0%</strong></div>
-                    <div class="analytics-summary-metric"><span>Recorded Cost</span><strong id="locationDetailCost">PHP 0.00</strong></div>
                     <div class="analytics-summary-metric"><span>Recommended Priority</span><strong id="locationDetailPriority">Low</strong></div>
                 </div>
 

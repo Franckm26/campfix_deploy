@@ -15,10 +15,10 @@
     <section class="dss-report-section">
         <h2>1. Executive Management Summary</h2>
         @if($totalReports > 0)
-            <p>During the selected period, CampFix processed <strong>{{ number_format($totalReports) }} maintenance reports across {{ number_format($locationStats->count()) }} locations</strong>. {{ number_format($openReports) }} reports remain open while {{ number_format($resolvedReports) }} have been resolved, producing a <strong>{{ number_format($resolutionRate, 1) }}% resolution rate</strong> against the {{ number_format($targetResolutionRate) }}% management target.</p>
-            <p>The open workload consists of {{ number_format($pendingReports) }} pending and {{ number_format($assignedReports) }} assigned reports. Open reports are {{ number_format($avgReportAgeDays, 1) }} days old on average, with the oldest at {{ number_format($oldestOpenDays) }} days. @if($estimatedBacklogDays !== null) Based on the previous 30 days of completions, clearing the current backlog may require approximately <strong>{{ number_format($estimatedBacklogDays) }} working days</strong> if capacity remains unchanged. @else Backlog clearance cannot yet be estimated because no recent completion throughput is available. @endif</p>
+            <p>During the selected period, CampFix processed <strong>{{ number_format($totalReports) }} maintenance reports across {{ number_format($locationStats->count()) }} locations</strong>. {{ number_format($openReports) }} reports remain open while {{ number_format($resolvedReports) }} have been resolved.</p>
+            <p>The open workload consists of {{ number_format($pendingReports) }} pending and {{ number_format($assignedReports) }} assigned reports. @if($estimatedBacklogDays !== null) Based on the previous 30 days of completions, clearing the current backlog may require approximately <strong>{{ number_format($estimatedBacklogDays) }} working days</strong> if capacity remains unchanged. @else Backlog clearance cannot yet be estimated because no recent completion throughput is available. @endif</p>
             @if($topCategory)<p><strong>{{ $topCategory['category'] }}</strong> is the leading category with {{ number_format($topCategory['count']) }} reports and a {{ strtolower($topCategory['trend_direction']) }} monthly trend. @if($topLocation)<strong>{{ $topLocation['location'] }}</strong> carries the highest operational risk score of {{ $topLocation['risk_score'] }}, with {{ $topLocation['open'] }} unresolved and {{ $topLocation['hazards'] }} hazard-related reports. @endif</p>@endif
-            <p>Safety-related reports account for <strong>{{ number_format($hazardReports) }} cases</strong>. @if($slaCompliance !== null) Completion within the documented {{ $slaTargetHours }}-hour benchmark is <strong>{{ number_format($slaCompliance, 1) }}%</strong>. @endif Recorded financial impact totals <strong>PHP {{ number_format($totalCost, 2) }}</strong>, of which PHP {{ number_format($remainingRecordedCost, 2) }} is associated with unresolved work. The overall DSS risk index is <strong>{{ $riskIndex }}/100</strong>, resulting in a <strong>{{ $priorityLevel }}</strong> management priority.</p>
+            <p>Safety-related reports account for <strong>{{ number_format($hazardReports) }} cases</strong>. The overall DSS risk index is <strong>{{ $riskIndex }}/100</strong>, resulting in a <strong>{{ $priorityLevel }}</strong> management priority.</p>
             @if($executiveSummary['top_recurring_issue'])<p>The leading repeated repair is <strong>{{ $executiveSummary['top_recurring_issue']['issue'] }} in {{ $executiveSummary['top_recurring_issue']['location'] }}</strong>, with {{ number_format($executiveSummary['top_recurring_issue']['repair_cycles']) }} completed repair cycle(s), {{ number_format($executiveSummary['top_recurring_issue']['count']) }} report(s), and PHP {{ number_format($executiveSummary['top_recurring_issue']['cost'], 2) }} in recorded repair cost. Management should compare projected repair spending with a replacement quotation before approving another repair for the same issue in the same location.</p>@endif
         @else
             <p>No reports match the selected filters. Management conclusions should be deferred until a broader date range or location scope is selected.</p>
@@ -31,11 +31,8 @@
             @foreach([
                 ['Total Reports', number_format($totalReports), 'All selected records'],
                 ['Open Reports', number_format($openReports), number_format($avgReportAgeDays, 1).' avg days old'],
-                ['Resolved', number_format($resolvedReports), number_format($resolutionRate, 1).'% resolution'],
-                ['Avg Resolution', $avgResolutionHours !== null ? number_format($avgResolutionHours, 1).' hrs' : 'N/A', $slaTargetHours.'-hour SLA'],
-                ['SLA Compliance', $slaCompliance !== null ? number_format($slaCompliance, 1).'%' : 'N/A', 'Timed completed reports'],
+                ['Resolved', number_format($resolvedReports), 'Completed reports'],
                 ['Hazards', number_format($hazardReports), number_format($openHazardItems->count()).' currently open'],
-                ['Estimated Cost', 'PHP '.number_format($totalCost, 2), 'PHP '.number_format($remainingRecordedCost, 2).' unresolved'],
                 ['Risk Index', $riskIndex.'/100', $priorityLevel.' priority'],
                 ['Trend', $trendDirection, number_format(abs($monthlyChangePercent), 1).'% monthly change'],
             ] as $score)
@@ -51,12 +48,12 @@
 
     <section class="dss-report-section dss-page-break">
         <h2>4. Report Status Analysis</h2>
-        <table class="dss-report-table"><thead><tr><th>Status</th><th>Reports</th><th>Avg Age</th><th>Avg Resolution</th><th>Oldest</th><th>Priority</th></tr></thead><tbody>@foreach($statusStats as $status)<tr><td>{{ $status['status'] }}</td><td>{{ $status['count'] }}</td><td>{{ number_format($status['avg_age_days'], 1) }} days</td><td>{{ $status['avg_resolution_hours'] !== null ? number_format($status['avg_resolution_hours'], 1).' hrs' : 'N/A' }}</td><td>{{ $status['oldest_days'] }} days</td><td>{{ $status['priority'] }}</td></tr>@endforeach</tbody></table>
+        <table class="dss-report-table"><thead><tr><th>Status</th><th>Reports</th><th>Oldest</th><th>Priority</th></tr></thead><tbody>@foreach($statusStats as $status)<tr><td>{{ $status['status'] }}</td><td>{{ $status['count'] }}</td><td>{{ $status['oldest_days'] }} days</td><td>{{ $status['priority'] }}</td></tr>@endforeach</tbody></table>
     </section>
 
     <section class="dss-report-section">
         <h2>5. Category Analysis</h2>
-        <table class="dss-report-table"><thead><tr><th>Category</th><th>Reports</th><th>Avg Cost</th><th>Avg Resolution</th><th>Hazards</th><th>Trend</th></tr></thead><tbody>@foreach($categoryStats as $category)<tr><td>{{ $category['category'] }}</td><td>{{ $category['count'] }}</td><td>PHP {{ number_format($category['avg_cost'], 2) }}</td><td>{{ $category['avg_resolution_hours'] !== null ? number_format($category['avg_resolution_hours'], 1).' hrs' : 'N/A' }}</td><td>{{ $category['hazards'] }}</td><td>{{ $category['trend_direction'] }} ({{ number_format($category['trend_percent'], 1) }}%)</td></tr>@endforeach</tbody></table>
+        <table class="dss-report-table"><thead><tr><th>Category</th><th>Reports</th><th>Hazards</th><th>Trend</th></tr></thead><tbody>@foreach($categoryStats as $category)<tr><td>{{ $category['category'] }}</td><td>{{ $category['count'] }}</td><td>{{ $category['hazards'] }}</td><td>{{ $category['trend_direction'] }} ({{ number_format($category['trend_percent'], 1) }}%)</td></tr>@endforeach</tbody></table>
     </section>
 
     <section class="dss-report-section">
@@ -68,8 +65,6 @@
     <section class="dss-report-section dss-page-break">
         <h2>7. Hazard and Financial Analysis</h2>
         <table class="dss-report-table"><thead><tr><th>Hazard Level</th><th>Reports</th><th>Open</th><th>Avg Age</th></tr></thead><tbody><tr><td>Safety Hazard</td><td>{{ $hazardReports }}</td><td>{{ $openHazardItems->count() }}</td><td>{{ number_format($hazardAvgAge, 1) }} days</td></tr></tbody></table>
-        <h3>Financial Summary by Category</h3>
-        <table class="dss-report-table"><thead><tr><th>Category</th><th>Estimated Cost</th><th>Completed Cost</th><th>Remaining Cost</th></tr></thead><tbody>@foreach($costStats as $cost)<tr><td>{{ $cost['category'] }}</td><td>PHP {{ number_format($cost['cost'], 2) }}</td><td>PHP {{ number_format($cost['completed_cost'], 2) }}</td><td>PHP {{ number_format($cost['remaining_cost'], 2) }}</td></tr>@endforeach</tbody></table>
     </section>
 
     <section class="dss-report-section">
