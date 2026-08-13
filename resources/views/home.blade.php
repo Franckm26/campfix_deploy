@@ -306,24 +306,6 @@
                 </div>
                 <button type="submit" id="login-submit" style="width: 100%; padding: 14px; background: #1e293b; color: white; border: none; border-radius: 8px; font-weight: 600; font-size: 16px; cursor: pointer;">Login</button>
             </form>
-            
-            <!-- OAuth Divider -->
-            <div style="display: flex; align-items: center; margin: 20px 0;">
-                <hr style="flex: 1; border: none; border-top: 1px solid #e2e8f0;">
-                <span style="padding: 0 10px; color: #64748b; font-size: 14px;">OR</span>
-                <hr style="flex: 1; border: none; border-top: 1px solid #e2e8f0;">
-            </div>
-            
-            <!-- Microsoft Sign In Button -->
-            <a href="{{ route('auth.microsoft') }}" style="display: flex; align-items: center; justify-content: center; width: 100%; padding: 12px; background: white; color: #5e5e5e; border: 1px solid #e2e8f0; border-radius: 8px; font-weight: 500; text-decoration: none; transition: all 0.3s ease;">
-                <svg style="width: 20px; height: 20px; margin-right: 10px;" viewBox="0 0 23 23" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="1" y="1" width="10" height="10" fill="#f25022"/>
-                    <rect x="12" y="1" width="10" height="10" fill="#7fba00"/>
-                    <rect x="1" y="12" width="10" height="10" fill="#00a4ef"/>
-                    <rect x="12" y="12" width="10" height="10" fill="#ffb900"/>
-                </svg>
-                Sign in with Microsoft
-            </a>
         </div>
     </div>
 
