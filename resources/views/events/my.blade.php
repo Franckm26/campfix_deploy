@@ -352,7 +352,7 @@
                                                         </a>
                                                         <form action="{{ route('events.delete', $request->id) }}" method="POST" class="d-inline">
                                                             @csrf
-                                                            <button type="submit" class="btn btn-sm btn-danger"
+                                                            <button type="button" class="btn btn-sm btn-danger" onclick="cancelEventRequest({{ $request->id }})"
                                                                 data-confirm="Delete this event? It will be moved to deleted events."
                                                                 data-confirm-title="Delete Event"
                                                                 data-confirm-ok="Yes, Delete"
@@ -431,7 +431,7 @@
                                             </a>
                                             <form action="{{ route('events.delete', $request->id) }}" method="POST" style="flex: 1;">
                                                 @csrf
-                                                <button type="submit" class="btn btn-sm btn-danger w-100"
+                                                <button type="button" class="btn btn-sm btn-danger w-100" onclick="cancelEventRequest({{ $request->id }})"
                                                     data-confirm="Delete this event? It will be moved to deleted events."
                                                     data-confirm-title="Delete Event"
                                                     data-confirm-ok="Yes, Delete"
@@ -2001,6 +2001,28 @@ function updateDeletedBulkActions() {
     } else {
         bulkActions.style.display = 'none';
     }
+}
+
+function cancelEventRequest(eventId) {
+    Swal.fire({
+        title: 'Cancel event request?',
+        input: 'textarea',
+        inputLabel: 'Reason (optional)',
+        inputPlaceholder: 'Tell the approvers why this request is being cancelled…',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Cancel request',
+        confirmButtonColor: '#dc3545',
+        preConfirm: (reason) => {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `/events/${eventId}/cancel`;
+            form.innerHTML = `<input type="hidden" name="_token" value="{{ csrf_token() }}"><input type="hidden" name="reason">`;
+            form.querySelector('[name="reason"]').value = reason || '';
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
 }
 
 function batchArchiveSelected() {
