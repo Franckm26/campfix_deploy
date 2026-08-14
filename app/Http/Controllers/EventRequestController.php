@@ -1909,7 +1909,7 @@ class EventRequestController extends Controller
             if ($deletedFolder) {
                 $deletedEvents = EventRequest::where('archive_folder_id', $deletedFolder->id)
                     ->where('is_deleted', true)
-                    ->where('updated_at', '<=', now()->subDays($days))
+                    ->when($days > 0, fn ($query) => $query->where('updated_at', '<=', now()->subDays($days)))
                     ->with(['user', 'deletedBy'])
                     ->orderBy('updated_at', 'desc')
                     ->get();

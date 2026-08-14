@@ -451,7 +451,7 @@ class ReportController extends Controller
         // Get deleted reports that are older than the specified days
         $query = Report::with('user', 'category', 'deletedBy')
             ->where('is_deleted', true)
-            ->where('deleted_at', '<=', now()->subDays($days));
+            ->when($days > 0, fn ($query) => $query->where('deleted_at', '<=', now()->subDays($days)));
 
         // Filter by status
         if ($request->status) {

@@ -582,7 +582,7 @@ class ConcernController extends Controller
             $query = Concern::query()
                 ->forUser(auth()->id()) // User can only see their own
                 ->where('is_deleted', true)
-                ->where('deleted_at', '>=', now()->subDays($days))
+                ->when($days > 0, fn ($query) => $query->where('deleted_at', '>=', now()->subDays($days)))
                 ->with('categoryRelation', 'user', 'deletedBy');
 
             // Apply filters
@@ -712,7 +712,7 @@ class ConcernController extends Controller
         $deletedConcerns = Concern::query()
             ->forUser(Auth::id())
             ->where('is_deleted', true)
-            ->where('deleted_at', '>=', now()->subDays($days))
+            ->when($days > 0, fn ($query) => $query->where('deleted_at', '>=', now()->subDays($days)))
             ->with('categoryRelation', 'user', 'deletedBy')
             ->orderBy('updated_at', 'desc')
             ->get();

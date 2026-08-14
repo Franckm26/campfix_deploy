@@ -1014,6 +1014,7 @@
                                     alert('Error saving preference');
                                 });
                             ">
+                                <option value="0" {{ ($days ?? 15) == 0 ? 'selected' : '' }}>Off — keep deleted concerns</option>
                                 <option value="3" {{ ($days ?? 15) == 3 ? 'selected' : '' }}>3 days</option>
                                 <option value="7" {{ ($days ?? 15) == 7 ? 'selected' : '' }}>7 days</option>
                                 <option value="15" {{ ($days ?? 15) == 15 ? 'selected' : '' }}>15 days</option>

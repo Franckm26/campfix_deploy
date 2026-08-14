@@ -64,7 +64,7 @@ class NotificationController extends Controller
             'id' => $notification->id,
             'title' => $notification->data['title'] ?? 'Notification',
             'message' => $notification->data['message'] ?? '',
-            'created_at' => $notification->created_at->copy()->timezone(self::DISPLAY_TIMEZONE)->format('M j, g:i a'),
+            'created_at' => $notification->created_at->copy()->timezone(self::DISPLAY_TIMEZONE)->format('M j, Y, g:i A').' PHT',
             'created_at_human' => $notification->created_at->copy()->timezone(self::DISPLAY_TIMEZONE)->diffForHumans(),
             'read_at' => $notification->read_at,
             'url' => $url,
@@ -133,6 +133,19 @@ class NotificationController extends Controller
         }
 
         return redirect('/dashboard');
+    }
+
+    public function markAsUnread($id)
+    {
+        $notification = auth()->user()->notifications()->find($id);
+
+        if (! $notification) {
+            return response()->json(['error' => 'Notification not found'], 404);
+        }
+
+        $notification->update(['read_at' => null]);
+
+        return response()->json(['success' => true]);
     }
 
     public function markAsRead($id)

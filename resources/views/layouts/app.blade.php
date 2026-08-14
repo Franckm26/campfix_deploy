@@ -2201,7 +2201,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     <div id="modalMessage"></div>
                 </div>
                 <div class="notification-modal-action mt-3" id="modalActionBtn" style="display:none;">
-                    <a href="#" class="btn btn-primary btn-sm" id="modalViewLink">View Details</a>
+                    <a href="#" class="btn btn-primary btn-sm" id="modalViewLink"><i class="fas fa-arrow-up-right-from-square"></i> View related record</a>
                 </div>
             </div>
             <div class="modal-footer d-flex justify-content-between">
@@ -2213,9 +2213,10 @@ document.addEventListener('DOMContentLoaded', function () {
                         <i class="fas fa-chevron-right"></i>
                     </button>
                 </div>
-                <button type="button" class="btn btn-danger btn-sm" id="modalDeleteBtn" onclick="deleteCurrentNotification()">
-                    <i class="fas fa-trash"></i> Delete
-                </button>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="modalUnreadBtn" onclick="markCurrentNotificationUnread()"><i class="fas fa-envelope"></i> Mark unread</button>
+                    <button type="button" class="btn btn-danger btn-sm" id="modalDeleteBtn" onclick="deleteCurrentNotification()"><i class="fas fa-trash"></i> Delete</button>
+                </div>
             </div>
         </div>
     </div>
@@ -2581,6 +2582,30 @@ async function navigateNotification(direction) {
             console.error('Error navigating notification:', error);
             showNotificationToast('Failed to load notification', 'error');
         }
+    }
+}
+
+// Mark the open notification as unread so it returns to the unread list.
+async function markCurrentNotificationUnread() {
+    if (!currentNotificationId) return;
+
+    try {
+        const response = await fetch(`/notifications/${currentNotificationId}/unread`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept': 'application/json'
+            }
+        });
+        if (!response.ok) throw new Error('Failed to mark notification as unread');
+
+        const notificationItem = document.querySelector(`.notification-item[onclick*="${currentNotificationId}"]`);
+        if (notificationItem) notificationItem.classList.add('unread');
+        updateNotificationCount();
+        showNotificationToast('Notification marked as unread', 'success');
+    } catch (error) {
+        console.error('Error marking notification as unread:', error);
+        showNotificationToast('Failed to mark notification as unread', 'error');
     }
 }
 

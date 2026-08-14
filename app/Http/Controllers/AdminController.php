@@ -2524,10 +2524,13 @@ class AdminController extends Controller
     public function autoDeleteOldReports(Request $request)
     {
         $request->validate([
-            'days' => 'required|integer|in:3,7,15,30',
+            'days' => 'required|integer|in:0,3,7,15,30',
         ]);
 
         $days = $request->input('days');
+        if ($days === 0) {
+            return response()->json(['success' => true, 'message' => 'Automatic deletion is off.', 'deleted_count' => 0]);
+        }
         $cutoffDate = now()->subDays($days);
 
         $deletedFolder = ArchiveFolder::where('name', 'Deleted Reports')->first();
@@ -2576,7 +2579,7 @@ class AdminController extends Controller
 
         $reports = Report::withTrashed()->where('archive_folder_id', $deletedFolder->id)
             ->where('is_deleted', true)
-            ->where('deleted_at', '<=', now()->subDays($days))
+            ->when($days > 0, fn ($query) => $query->where('deleted_at', '<=', now()->subDays($days)))
             ->with(['user', 'category', 'deletedBy'])
             ->orderBy('updated_at', 'desc')
             ->get();
@@ -7756,7 +7759,7 @@ class AdminController extends Controller
     {
         try {
             $request->validate([
-                'days' => 'required|integer|in:3,7,15,30',
+                'days' => 'required|integer|in:0,3,7,15,30',
                 'module' => 'required|string|in:reports,concerns,event_requests,facility_requests,users',
             ]);
 
