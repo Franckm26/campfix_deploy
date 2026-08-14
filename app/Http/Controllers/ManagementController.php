@@ -36,7 +36,7 @@ class ManagementController extends Controller
                 $q->where('name', 'like', '%'.$request->staff_search.'%');
             });
         }
-        $staff = $staffQuery->orderBy('name')->get();
+        $staff = $staffQuery->orderBy('name')->paginate(10, ['*'], 'staff_page')->withQueryString();
 
         // Facilities
         $facilityQuery = Facility::query();
@@ -49,10 +49,10 @@ class ManagementController extends Controller
         if ($request->filled('facility_type')) {
             $facilityQuery->where('type', $request->facility_type);
         }
-        $facilities = $facilityQuery->orderBy('name')->get();
+        $facilities = $facilityQuery->orderBy('name')->paginate(10, ['*'], 'facility_page')->withQueryString();
 
         // Categories
-        $categories = Category::orderBy('name')->get();
+        $categories = Category::orderBy('name')->paginate(10, ['*'], 'category_page')->withQueryString();
 
         return view('admin.management', compact('tab', 'staff', 'facilities', 'categories'));
     }

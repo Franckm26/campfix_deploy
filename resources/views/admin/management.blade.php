@@ -122,21 +122,21 @@
                     <a class="nav-link {{ $tab === 'staff' ? 'active' : '' }}"
                        href="{{ route('admin.management', ['tab' => 'staff']) }}">
                         <i class="fas fa-hard-hat"></i> Maintenance Staff
-                        <span class="badge bg-secondary ms-1">{{ $staff->count() }}</span>
+                        <span class="badge bg-secondary ms-1">{{ $staff->total() }}</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link {{ $tab === 'facilities' ? 'active' : '' }}"
                        href="{{ route('admin.management', ['tab' => 'facilities']) }}">
                         <i class="fas fa-building"></i> Facilities
-                        <span class="badge bg-secondary ms-1">{{ $facilities->count() }}</span>
+                        <span class="badge bg-secondary ms-1">{{ $facilities->total() }}</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link {{ $tab === 'categories' ? 'active' : '' }}"
                        href="{{ route('admin.management', ['tab' => 'categories']) }}">
                         <i class="fas fa-tags"></i> Categories
-                        <span class="badge bg-secondary ms-1">{{ $categories->count() }}</span>
+                        <span class="badge bg-secondary ms-1">{{ $categories->total() }}</span>
                     </a>
                 </li>
             </ul>
@@ -248,6 +248,7 @@
                 @endforeach
             </div>
 
+            <div class="mt-3 d-flex justify-content-center">{{ $staff->links() }}</div>
             @else
             <div class="text-center py-5">
                 <i class="fas fa-hard-hat fa-3x text-muted mb-3"></i>
@@ -366,6 +367,7 @@
                 @endforeach
             </div>
 
+            <div class="mt-3 d-flex justify-content-center">{{ $facilities->links() }}</div>
             @else
             <div class="text-center py-5">
                 <i class="fas fa-building fa-3x text-muted mb-3"></i>
@@ -463,6 +465,7 @@
                 @endforeach
             </div>
 
+            <div class="mt-3 d-flex justify-content-center">{{ $categories->links() }}</div>
             @else
             <div class="text-center py-5">
                 <i class="fas fa-tags fa-3x text-muted mb-3"></i>
