@@ -456,6 +456,8 @@
                             @endforeach
                         </div>
 
+                        <div class="mt-3 d-flex justify-content-center">{{ $requests->links() }}</div>
+
                     @else
                         <div class="text-center py-5">
                             <h4 class="text-muted">No active event requests</h4>

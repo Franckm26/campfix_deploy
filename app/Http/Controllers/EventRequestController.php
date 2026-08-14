@@ -650,7 +650,7 @@ class EventRequestController extends Controller
             $query->whereDate('event_date', '<=', $request->date_to);
         }
 
-        $requests = $query->orderBy('created_at', 'desc')->get();
+        $requests = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
 
         // Always fetch counts for tab badges
         $approvedRequests = EventRequest::where('user_id', Auth::id())
