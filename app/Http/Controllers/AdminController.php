@@ -4472,6 +4472,29 @@ class AdminController extends Controller
             ->orderBy('location')
             ->pluck('location');
 
+        $issueCostStats = $reports
+            ->groupBy(fn ($report) => trim((string) ($report->title ?: optional($report->category)->name ?: 'Unspecified issue')))
+            ->map(function ($items, $issue) use ($reportWeight) {
+                $total = $items->sum($reportWeight);
+                $open = $items->filter(fn ($report) => strtolower((string) $report->status) !== 'resolved')->sum($reportWeight);
+                $hazards = $items->filter(fn ($report) => (bool) $report->is_safety_hazard)->sum($reportWeight);
+                $cost = (float) $items->sum(fn ($report) => (float) ($report->cost ?? 0));
+
+                return [
+                    'issue' => $issue,
+                    'total' => $total,
+                    'open' => $open,
+                    'hazards' => $hazards,
+                    'cost' => $cost,
+                    'average_cost' => $total > 0 ? round($cost / $total, 2) : 0,
+                    'interpretation' => $cost >= 1000
+                        ? 'High recorded cost: review repair history and compare replacement options.'
+                        : ($open > 0 ? 'Open work remains: schedule repair and monitor further cost.' : 'No open work: continue monitoring recorded repair cost.'),
+                ];
+            })
+            ->sortByDesc('cost')
+            ->values();
+
         $locationStats = $reports
             ->filter(fn ($report) => filled($report->location))
             ->groupBy('location')
@@ -4858,6 +4881,7 @@ class AdminController extends Controller
             'totalCost',
             'resolutionRate',
             'avgResolutionHours',
+            'issueCostStats',
             'locationStats',
             'statusStats',
             'categoryStats',

@@ -1148,47 +1148,39 @@
     <section class="analytics-panel">
         <header class="analytics-panel-header">
             <div>
-                <h3>Location Risk Ranking</h3>
-                <p>Risk score weighs unresolved reports, safety hazards, and recorded cost</p>
+                <h3>Issue Cost Ranking</h3>
+                <p>Ranked by the recorded repair cost of each reported issue</p>
             </div>
             <div class="analytics-chart-actions">
-                <button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#locationSummaryModal"><i class="fas fa-file-lines"></i> Summary</button>
                 <button class="btn btn-outline-secondary" id="exportRiskCsv" type="button"><i class="fas fa-file-csv"></i> Export CSV</button>
             </div>
         </header>
-        @if($locationStats->isNotEmpty())
-            <div class="location-tools">
-                <input class="form-control" id="locationRiskSearch" type="search" placeholder="Search location..." aria-label="Search locations">
-                <select class="form-select" id="locationRiskFilter" aria-label="Filter by risk">
-                    <option value="all">All risk levels</option>
-                    <option value="high">High risk</option>
-                    <option value="medium">Medium risk</option>
-                    <option value="low">Low risk</option>
-                </select>
+        @if($issueCostStats->isNotEmpty())
+            <div class="location-tools" style="grid-template-columns: minmax(0, 1fr) auto;">
+                <input class="form-control" id="issueCostSearch" type="search" placeholder="Search issue..." aria-label="Search issues">
                 <a class="btn btn-outline-primary" href="{{ route('admin.reports') }}"><i class="fas fa-list"></i> Open Reports</a>
             </div>
             <div class="risk-table-wrap">
-                <table class="risk-table" id="locationRiskTable">
-                    <thead><tr><th>Rank</th><th><button class="risk-sort" type="button" data-sort="location">Location <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="total">Total <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="open">Open <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="hazards">Hazards <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="cost">Cost <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="risk">Risk <i class="fas fa-sort"></i></button></th><th>Interpretation</th></tr></thead>
-                    <tbody id="locationRiskBody">
-                        @foreach($locationStats->take(10) as $index => $location)
-                            @php $riskClass = $location['risk_score'] >= 12 ? 'high' : ($location['risk_score'] >= 6 ? 'medium' : 'low'); @endphp
-                            <tr data-risk-level="{{ $riskClass }}" data-location="{{ strtolower($location['location']) }}" data-total="{{ $location['total'] }}" data-open="{{ $location['open'] }}" data-hazards="{{ $location['hazards'] }}" data-cost="{{ $location['cost'] }}" data-risk="{{ $location['risk_score'] }}">
+                <table class="risk-table" id="issueCostTable">
+                    <thead><tr><th>Rank</th><th><button class="risk-sort" type="button" data-sort="issue">Issue <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="total">Reports <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="open">Open <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="hazards">Hazards <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="cost">Recorded Cost <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="averageCost">Avg. Cost <i class="fas fa-sort"></i></button></th><th>Interpretation</th></tr></thead>
+                    <tbody id="issueCostBody">
+                        @foreach($issueCostStats->take(10) as $index => $issue)
+                            <tr data-issue="{{ strtolower($issue['issue']) }}" data-total="{{ $issue['total'] }}" data-open="{{ $issue['open'] }}" data-hazards="{{ $issue['hazards'] }}" data-cost="{{ $issue['cost'] }}" data-average-cost="{{ $issue['average_cost'] }}">
                                 <td>{{ $index + 1 }}</td>
-                                <td><button class="location-detail-button" type="button" data-location-detail="{{ $location['location'] }}" title="View {{ $location['location'] }} details">{{ $location['location'] }}</button></td>
-                                <td>{{ number_format($location['total']) }}</td>
-                                <td>{{ number_format($location['open']) }}</td>
-                                <td>{{ number_format($location['hazards']) }}</td>
-                                <td>PHP {{ number_format($location['cost'], 2) }}</td>
-                                <td><span class="risk-score {{ $riskClass }}">{{ $location['risk_score'] }}</span></td>
-                                <td>{{ $location['interpretation'] }}</td>
+                                <td><strong>{{ $issue['issue'] }}</strong></td>
+                                <td>{{ number_format($issue['total']) }}</td>
+                                <td>{{ number_format($issue['open']) }}</td>
+                                <td>{{ number_format($issue['hazards']) }}</td>
+                                <td>PHP {{ number_format($issue['cost'], 2) }}</td>
+                                <td>PHP {{ number_format($issue['average_cost'], 2) }}</td>
+                                <td>{{ $issue['interpretation'] }}</td>
                             </tr>
                         @endforeach
                     </tbody>
                 </table>
             </div>
         @else
-            <div class="empty-analytics"><i class="fas fa-location-dot"></i>No location data available for this period.</div>
+            <div class="empty-analytics"><i class="fas fa-screwdriver-wrench"></i>No issue cost data available for this period.</div>
         @endif
     </section>
 </main>
@@ -1863,25 +1855,21 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    const riskBody = document.getElementById('locationRiskBody');
-    const riskSearch = document.getElementById('locationRiskSearch');
-    const riskFilter = document.getElementById('locationRiskFilter');
+    const riskBody = document.getElementById('issueCostBody');
+    const riskSearch = document.getElementById('issueCostSearch');
 
     function filterRiskRows() {
         if (!riskBody) return;
         const search = (riskSearch ? riskSearch.value : '').trim().toLowerCase();
-        const level = riskFilter ? riskFilter.value : 'all';
         let rank = 1;
         Array.from(riskBody.rows).forEach(function (row) {
-            const matchesSearch = !search || row.dataset.location.includes(search);
-            const matchesLevel = level === 'all' || row.dataset.riskLevel === level;
-            row.hidden = !(matchesSearch && matchesLevel);
+            const matchesSearch = !search || row.dataset.issue.includes(search);
+            row.hidden = !matchesSearch;
             if (!row.hidden) row.cells[0].textContent = rank++;
         });
     }
 
     if (riskSearch) riskSearch.addEventListener('input', filterRiskRows);
-    if (riskFilter) riskFilter.addEventListener('change', filterRiskRows);
 
     const sortDirections = {};
     document.querySelectorAll('.risk-sort').forEach(function (button) {
@@ -1892,7 +1880,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const direction = sortDirections[key] === 'asc' ? 1 : -1;
             const rows = Array.from(riskBody.rows);
             rows.sort(function (left, right) {
-                if (key === 'location') return left.dataset.location.localeCompare(right.dataset.location) * direction;
+                if (key === 'issue') return left.dataset.issue.localeCompare(right.dataset.issue) * direction;
                 return (Number(left.dataset[key]) - Number(right.dataset[key])) * direction;
             });
             rows.forEach(function (row) { riskBody.appendChild(row); });
@@ -1904,7 +1892,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (exportRiskButton) {
         exportRiskButton.addEventListener('click', function () {
             if (!riskBody) return;
-            const rows = [['Rank', 'Location', 'Total', 'Open', 'Hazards', 'Cost', 'Risk', 'Interpretation']];
+            const rows = [['Rank', 'Issue', 'Reports', 'Open', 'Hazards', 'Recorded Cost', 'Average Cost', 'Interpretation']];
             Array.from(riskBody.rows).filter(function (row) { return !row.hidden; }).forEach(function (row) {
                 rows.push(Array.from(row.cells).map(function (cell) { return cell.innerText.trim(); }));
             });
@@ -1914,7 +1902,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = 'location-risk-ranking.csv';
+            link.download = 'issue-cost-ranking.csv';
             link.click();
             URL.revokeObjectURL(link.href);
         });
