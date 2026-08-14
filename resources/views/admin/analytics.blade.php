@@ -814,7 +814,7 @@
 
     .dss-report-cover {
         display: grid;
-        grid-template-columns: 72px minmax(0, 1fr) auto;
+        grid-template-columns: 72px minmax(0, 1fr);
         gap: 16px;
         align-items: center;
         padding: 18px;
@@ -827,10 +827,10 @@
     .dss-report-cover span { color: #1769e0; font-size: 12px; font-weight: 800; text-transform: uppercase; }
     .dss-report-cover h1 { margin: 2px 0; color: #10233f; font-size: 22px; }
     .dss-report-cover p { margin: 0; color: #66758a; }
-    .dss-report-cover dl { margin: 0; font-size: 11px; }
-    .dss-report-cover dl div { display: grid; grid-template-columns: 78px 1fr; gap: 8px; }
+    .dss-report-cover dl { display: grid; grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 16px; margin: 0; font-size: 11px; }
+    .dss-report-cover dl div { display: grid; grid-template-columns: 78px minmax(0, 1fr); gap: 8px; }
     .dss-report-cover dt { color: #718096; }
-    .dss-report-cover dd { margin: 0; color: #263a55; font-weight: 700; }
+    .dss-report-cover dd { min-width: 0; margin: 0; overflow-wrap: anywhere; color: #263a55; font-weight: 700; }
 
     .dss-report-section { padding: 18px 4px 4px; }
     .dss-report-section h2 { margin: 0 0 10px; color: #10233f; font-size: 17px; border-bottom: 1px solid #dfe5ec; padding-bottom: 7px; }
@@ -879,7 +879,7 @@
         .location-detail-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .location-breakdowns { grid-template-columns: 1fr; }
         .dss-report-cover { grid-template-columns: 52px minmax(0, 1fr); }
-        .dss-report-cover dl { grid-column: 1 / -1; }
+        .dss-report-cover dl { grid-template-columns: 1fr; }
         .dss-scorecards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .category-metric-tabs, .category-summary-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .category-ticket-toolbar { align-items: stretch; flex-direction: column; }
@@ -1944,7 +1944,7 @@ document.addEventListener('DOMContentLoaded', function () {
             printWindow.document.write(`<!doctype html><html><head><title>CampFix Executive Maintenance Analytics Report</title><style>
                 @page { size: A4 portrait; margin: 8mm 14mm; }
                 *{box-sizing:border-box} body{margin:0;padding:37mm 0 27mm;color:#263a55;font:10pt/1.48 Arial,sans-serif}
-                .print-header{position:fixed;top:0;left:0;right:0;height:33mm;display:grid;grid-template-columns:34mm 1fr 34mm;align-items:center;padding:0 8mm 4mm;border-bottom:1px solid #111;color:#111;text-align:center;font-family:Arial,sans-serif;background:#fff}
+                .print-header{position:absolute;top:0;left:0;right:0;height:33mm;display:grid;grid-template-columns:34mm 1fr 34mm;align-items:center;padding:0 8mm 4mm;border-bottom:1px solid #111;color:#111;text-align:center;font-family:Arial,sans-serif;background:#fff}
                 .print-header img{display:block;margin:auto;max-width:25mm;max-height:25mm;object-fit:contain}.print-header .school{font-size:10.5pt;font-weight:700}.print-header .address{margin-top:2px;font-size:8pt}.print-header .system{margin-top:8px;font-size:11pt;font-weight:700;letter-spacing:.2px}
                 .print-footer{position:fixed;bottom:0;left:0;right:0;height:20mm;display:grid;grid-template-columns:18mm 1fr 32mm;align-items:center;padding:3mm 5mm 0;border-top:1px solid #111;color:#111;font-family:Arial,sans-serif;background:#fff}.print-footer img{width:14mm;height:14mm;object-fit:contain}.print-footer .footer-copy{font-size:6.7pt;line-height:1.4}.print-footer .footer-copy strong{font-size:7pt}.print-footer .brand{text-align:right;color:#1769e0;font-weight:800;font-size:14pt;letter-spacing:1px}.print-footer .brand small{display:block;color:#66758a;font-size:5.5pt;letter-spacing:0}
                 .dss-report-cover{display:grid;grid-template-columns:58px 1fr auto;gap:12px;align-items:center;padding:14px;border:1px solid #ccd5df;border-top:5px solid #1769e0}.dss-report-cover img{width:50px;height:50px;object-fit:contain}.dss-report-cover span{color:#1769e0;font-size:8pt;font-weight:bold;text-transform:uppercase}.dss-report-cover h1{margin:2px 0;color:#10233f;font-size:18pt}.dss-report-cover p,.dss-report-cover dl{margin:0}.dss-report-cover dl{font-size:7.5pt}.dss-report-cover dl div{display:grid;grid-template-columns:62px 1fr;gap:5px}.dss-report-cover dt{color:#66758a}.dss-report-cover dd{margin:0;font-weight:bold}.dss-report-section{padding-top:12px;break-inside:auto}.dss-report-section h2{margin:0 0 7px;padding-bottom:4px;border-bottom:1px solid #ccd5df;color:#10233f;font-size:12pt}.dss-report-section h3{font-size:10pt;margin:10px 0 5px}.dss-report-section p{margin:0 0 7px}.dss-scorecards{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.dss-scorecards>div{padding:7px;border:1px solid #d8e0e8;background:#f7f9fb}.dss-scorecards span,.dss-scorecards small{display:block;color:#66758a;font-size:7pt}.dss-scorecards strong{display:block;color:#10233f;font-size:12pt}.dss-insights{margin:0;padding-left:18px}.dss-report-table{width:100%;border-collapse:collapse;font-size:7.2pt}.dss-report-table thead{display:table-header-group}.dss-report-table tr{break-inside:avoid}.dss-report-table th,.dss-report-table td{padding:4px 5px;border:1px solid #ccd5df;text-align:left;vertical-align:top}.dss-report-table th{background:#edf2f7;text-transform:uppercase}.dss-recommendation{margin-bottom:6px;padding:7px 9px;border-left:3px solid #1769e0;background:#f7f9fb;break-inside:avoid}.dss-recommendation p{margin:3px 0 0}.dss-page-break{break-before:page}.dss-print-charts{break-before:page}.dss-print-charts h2{font-size:12pt;border-bottom:1px solid #ccd5df}.dss-print-charts .charts{display:grid;grid-template-columns:1fr 1fr;gap:10px}.dss-print-charts figure{margin:0;break-inside:avoid;border:1px solid #d8e0e8;padding:6px}.dss-print-charts h3{margin:0 0 4px;font-size:9pt}.dss-print-charts img{display:block;width:100%;height:190px;object-fit:contain}
