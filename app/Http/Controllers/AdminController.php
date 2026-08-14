@@ -4473,8 +4473,16 @@ class AdminController extends Controller
             ->pluck('location');
 
         $issueCostStats = $reports
-            ->groupBy(fn ($report) => trim((string) ($report->title ?: optional($report->category)->name ?: 'Unspecified issue')))
-            ->map(function ($items, $issue) use ($reportWeight) {
+            ->groupBy(function ($report) {
+                $issue = trim((string) ($report->title ?: optional($report->category)->name ?: 'Unspecified issue'));
+                $location = trim((string) ($report->location ?: 'Unspecified location'));
+
+                return $issue.'|'.$location;
+            })
+            ->map(function ($items) use ($reportWeight) {
+                $firstReport = $items->first();
+                $issue = trim((string) ($firstReport->title ?: optional($firstReport->category)->name ?: 'Unspecified issue'));
+                $location = trim((string) ($firstReport->location ?: 'Unspecified location'));
                 $total = $items->sum($reportWeight);
                 $open = $items->filter(fn ($report) => strtolower((string) $report->status) !== 'resolved')->sum($reportWeight);
                 $hazards = $items->filter(fn ($report) => (bool) $report->is_safety_hazard)->sum($reportWeight);
@@ -4482,6 +4490,7 @@ class AdminController extends Controller
 
                 return [
                     'issue' => $issue,
+                    'location' => $location,
                     'total' => $total,
                     'open' => $open,
                     'hazards' => $hazards,

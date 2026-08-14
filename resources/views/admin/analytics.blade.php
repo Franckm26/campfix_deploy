@@ -1148,8 +1148,8 @@
     <section class="analytics-panel">
         <header class="analytics-panel-header">
             <div>
-                <h3>Issue Cost Ranking</h3>
-                <p>Ranked by the recorded repair cost of each reported issue</p>
+                <h3>Issue and Room Cost Ranking</h3>
+                <p>Ranked by recorded repair cost for each issue in each room or location</p>
             </div>
             <div class="analytics-chart-actions">
                 <button class="btn btn-outline-secondary" id="exportRiskCsv" type="button"><i class="fas fa-file-csv"></i> Export CSV</button>
@@ -1157,17 +1157,18 @@
         </header>
         @if($issueCostStats->isNotEmpty())
             <div class="location-tools" style="grid-template-columns: minmax(0, 1fr) auto;">
-                <input class="form-control" id="issueCostSearch" type="search" placeholder="Search issue..." aria-label="Search issues">
+                <input class="form-control" id="issueCostSearch" type="search" placeholder="Search issue or room..." aria-label="Search issues or rooms">
                 <a class="btn btn-outline-primary" href="{{ route('admin.reports') }}"><i class="fas fa-list"></i> Open Reports</a>
             </div>
             <div class="risk-table-wrap">
                 <table class="risk-table" id="issueCostTable">
-                    <thead><tr><th>Rank</th><th><button class="risk-sort" type="button" data-sort="issue">Issue <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="total">Reports <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="open">Open <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="hazards">Hazards <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="cost">Recorded Cost <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="averageCost">Avg. Cost <i class="fas fa-sort"></i></button></th><th>Interpretation</th></tr></thead>
+                    <thead><tr><th>Rank</th><th><button class="risk-sort" type="button" data-sort="issue">Issue <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="location">Room / Location <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="total">Reports <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="open">Open <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="hazards">Hazards <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="cost">Recorded Cost <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="averageCost">Avg. Cost <i class="fas fa-sort"></i></button></th><th>Interpretation</th></tr></thead>
                     <tbody id="issueCostBody">
                         @foreach($issueCostStats->take(10) as $index => $issue)
-                            <tr data-issue="{{ strtolower($issue['issue']) }}" data-total="{{ $issue['total'] }}" data-open="{{ $issue['open'] }}" data-hazards="{{ $issue['hazards'] }}" data-cost="{{ $issue['cost'] }}" data-average-cost="{{ $issue['average_cost'] }}">
+                            <tr data-issue="{{ strtolower($issue['issue'].' '.$issue['location']) }}" data-location="{{ strtolower($issue['location']) }}" data-total="{{ $issue['total'] }}" data-open="{{ $issue['open'] }}" data-hazards="{{ $issue['hazards'] }}" data-cost="{{ $issue['cost'] }}" data-average-cost="{{ $issue['average_cost'] }}">
                                 <td>{{ $index + 1 }}</td>
                                 <td><strong>{{ $issue['issue'] }}</strong></td>
+                                <td>{{ $issue['location'] }}</td>
                                 <td>{{ number_format($issue['total']) }}</td>
                                 <td>{{ number_format($issue['open']) }}</td>
                                 <td>{{ number_format($issue['hazards']) }}</td>
@@ -1881,6 +1882,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const rows = Array.from(riskBody.rows);
             rows.sort(function (left, right) {
                 if (key === 'issue') return left.dataset.issue.localeCompare(right.dataset.issue) * direction;
+                if (key === 'location') return left.dataset.location.localeCompare(right.dataset.location) * direction;
                 return (Number(left.dataset[key]) - Number(right.dataset[key])) * direction;
             });
             rows.forEach(function (row) { riskBody.appendChild(row); });
@@ -1892,7 +1894,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (exportRiskButton) {
         exportRiskButton.addEventListener('click', function () {
             if (!riskBody) return;
-            const rows = [['Rank', 'Issue', 'Reports', 'Open', 'Hazards', 'Recorded Cost', 'Average Cost', 'Interpretation']];
+            const rows = [['Rank', 'Issue', 'Room / Location', 'Reports', 'Open', 'Hazards', 'Recorded Cost', 'Average Cost', 'Interpretation']];
             Array.from(riskBody.rows).filter(function (row) { return !row.hidden; }).forEach(function (row) {
                 rows.push(Array.from(row.cells).map(function (cell) { return cell.innerText.trim(); }));
             });
@@ -1902,7 +1904,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = 'issue-cost-ranking.csv';
+            link.download = 'issue-room-cost-ranking.csv';
             link.click();
             URL.revokeObjectURL(link.href);
         });
