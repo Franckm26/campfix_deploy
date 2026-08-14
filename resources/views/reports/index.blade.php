@@ -146,7 +146,7 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link active" id="active-tab" data-bs-toggle="tab" data-bs-target="#active-reports"
                     type="button" role="tab" aria-controls="active-reports" aria-selected="true">
-                <i class="fas fa-list"></i> Active Reports
+                <i class="fas fa-list"></i> Reported Issues
                 @if(isset($reports) && $reports->count() > 0)
                     <span class="badge bg-primary ms-1">{{ $reports->count() }}</span>
                 @endif

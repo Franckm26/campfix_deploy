@@ -1671,7 +1671,7 @@ class AdminController extends Controller
         
         // View type
         $viewLabels = [
-            'active' => 'Active Reports',
+            'active' => 'Reported Issues',
             'resolved' => 'Resolved Reports',
             'archives' => 'Archived Reports',
             'deleted' => 'Deleted Reports'

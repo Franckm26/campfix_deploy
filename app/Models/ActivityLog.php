@@ -52,6 +52,13 @@ class ActivityLog extends Model
     // Enhanced log activity helper with detailed change tracking
     public static function log($action, $description, $itemId = null, $itemType = 'concern', $oldValues = null, $newValues = null, $metadata = [])
     {
+        // This log is an investigation record for user-account and security events.
+        // Workflow activity for concerns, reports, requests, and facilities is not retained here.
+        $forensicAction = preg_match('/^(user_|users_|account_|login|logout|microsoft_login|password_|permission_|role_|security_|session_)/', (string) $action);
+        if (! $forensicAction) {
+            return null;
+        }
+
         // Superadmin actions are logged exclusively in superadmin_activity_logs — skip here
         if (auth()->check()) {
             $actor = auth()->user();

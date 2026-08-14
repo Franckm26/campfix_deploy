@@ -238,7 +238,7 @@
                 <ul class="nav nav-pills mb-0 flex-wrap">
                     <li class="nav-item">
                         <a class="nav-link {{ ($viewType ?? 'active') == 'active' ? 'active' : '' }}" href="{{ route('admin.reports', ['view' => 'active']) }}">
-                            <i class="fas fa-clipboard-list"></i> Active Reports
+                            <i class="fas fa-clipboard-list"></i> Reported Issues
                         </a>
                     </li>
                     <li class="nav-item">
