@@ -1529,6 +1529,34 @@ class EventRequestController extends Controller
         return redirect()->route('events.my')->with('success', 'Event request cancelled.');
     }
 
+    public function reschedule(Request $request, $id)
+    {
+        $eventRequest = EventRequest::findOrFail($id);
+        if ((int) $eventRequest->user_id !== (int) auth()->id()) {
+            return redirect()->route('events.my')->with('error', 'You cannot reschedule this request.');
+        }
+
+        $validated = $request->validate([
+            'event_date' => 'required|date|after_or_equal:today',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'required|date_format:H:i|after:start_time',
+            'reason' => 'nullable|string|max:1000',
+        ]);
+
+        $eventRequest->update([
+            'event_date' => $validated['event_date'],
+            'start_time' => $validated['start_time'],
+            'end_time' => $validated['end_time'],
+            'status' => 'Pending',
+            'approval_level' => 0,
+            'approved_by' => null,
+            'approved_at' => null,
+            'notes' => trim(($eventRequest->notes ? $eventRequest->notes."\n" : '').'Reschedule requested: '.($validated['reason'] ?: 'No reason provided')),
+        ]);
+
+        return redirect()->route('events.my')->with('success', 'Event request rescheduled and returned for approval.');
+    }
+
     // Delete event request (soft delete - moves to deleted events)
     public function delete(Request $request, $id)
     {

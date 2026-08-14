@@ -232,6 +232,7 @@ Route::middleware(['auth', 'throttle:web'])->group(function () {
     Route::get('/events/{id}/deleted', [EventRequestController::class, 'showDeleted'])->name('events.show.deleted');
     Route::get('/my-events', [EventRequestController::class, 'myRequests'])->name('events.my');
     Route::post('/events/{id}/cancel', [EventRequestController::class, 'cancel'])->name('events.cancel');
+    Route::post('/events/{id}/reschedule', [EventRequestController::class, 'reschedule'])->name('events.reschedule');
     Route::post('/events/{id}/archive', [EventRequestController::class, 'archive'])->name('events.archive');
     Route::post('/events/{id}/restore', [EventRequestController::class, 'restore'])->name('events.restore');
     Route::post('/events/{id}/delete', [EventRequestController::class, 'delete'])->middleware('throttle:deletes')->name('events.delete');
