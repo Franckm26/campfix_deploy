@@ -126,6 +126,13 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link {{ $tab === 'events' ? 'active' : '' }}"
+                       href="{{ route('admin.management', ['tab' => 'events']) }}">
+                        <i class="fas fa-calendar-check"></i> Event Requests
+                        <span class="badge bg-secondary ms-1">{{ $events->total() }}</span>
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link {{ $tab === 'facilities' ? 'active' : '' }}"
                        href="{{ route('admin.management', ['tab' => 'facilities']) }}">
                         <i class="fas fa-building"></i> Facilities
@@ -475,6 +482,32 @@
                     <i class="fas fa-plus"></i> Add Category
                 </button>
             </div>
+            @endif
+        </div>
+    </div>
+    @endif
+
+    @if($tab === 'events')
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-calendar-check text-primary"></i> Event Request Management</h5>
+            <a class="btn btn-primary btn-sm" href="{{ route('admin.events') }}"><i class="fas fa-arrow-up-right-from-square"></i> Review requests</a>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ route('admin.management') }}" class="row g-2 mb-3">
+                <input type="hidden" name="tab" value="events">
+                <div class="col-md-5"><input class="form-control form-control-sm" name="event_search" value="{{ request('event_search') }}" placeholder="Search requester, department, or location"></div>
+                <div class="col-auto"><button class="btn btn-primary btn-sm" type="submit">Search</button></div>
+            </form>
+            @if($events->isNotEmpty())
+            <div class="table-responsive"><table class="table table-hover align-middle"><thead><tr><th>Requester</th><th>Department</th><th>Location</th><th>Date</th><th>Time</th><th>Status</th><th></th></tr></thead><tbody>
+                @foreach($events as $event)
+                <tr><td>{{ $event->user->name ?? 'Unknown' }}</td><td>{{ $event->department ?: '—' }}</td><td>{{ $event->location }}</td><td>{{ optional($event->event_date)->format('M d, Y') }}</td><td>{{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} – {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}</td><td><span class="badge bg-{{ $event->status === 'Approved' ? 'success' : ($event->status === 'Rejected' ? 'danger' : ($event->status === 'Cancelled' ? 'secondary' : 'warning')) }}">{{ $event->status }}</span></td><td><a class="btn btn-sm btn-outline-primary" href="{{ route('admin.events') }}"><i class="fas fa-pen-to-square"></i> Manage</a></td></tr>
+                @endforeach
+            </tbody></table></div>
+            <div class="mt-3 d-flex justify-content-center">{{ $events->links() }}</div>
+            @else
+            <div class="text-center py-5 text-muted"><i class="fas fa-calendar-xmark fa-3x mb-3"></i><p>No event requests found.</p></div>
             @endif
         </div>
     </div>

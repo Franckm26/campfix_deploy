@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
 use App\Models\Category;
+use App\Models\EventRequest;
 use App\Models\Facility;
 use App\Models\MaintenanceStaff;
 use App\Models\User;
@@ -54,7 +55,18 @@ class ManagementController extends Controller
         // Categories
         $categories = Category::orderBy('name')->paginate(10, ['*'], 'category_page')->withQueryString();
 
-        return view('admin.management', compact('tab', 'staff', 'facilities', 'categories'));
+        // Event requests: management overview with access to the existing approval workflow.
+        $eventQuery = EventRequest::with('user')->where('is_deleted', false);
+        if ($request->filled('event_search')) {
+            $eventQuery->where(function ($query) use ($request) {
+                $query->where('location', 'like', '%'.$request->event_search.'%')
+                    ->orWhere('department', 'like', '%'.$request->event_search.'%')
+                    ->orWhereHas('user', fn ($users) => $users->where('name', 'like', '%'.$request->event_search.'%'));
+            });
+        }
+        $events = $eventQuery->orderByDesc('created_at')->paginate(10, ['*'], 'event_page')->withQueryString();
+
+        return view('admin.management', compact('tab', 'staff', 'facilities', 'categories', 'events'));
     }
 
     // ─── STAFF ───────────────────────────────────────────────────────────────
