@@ -442,7 +442,7 @@
             <h1 class="sa-page-title">@yield('page_title', 'Dashboard')</h1>
         </div>
         <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:12px;color:var(--sa-muted)">{{ now()->format('M d, Y') }}</span>
+            <span style="font-size:12px;color:var(--sa-muted)">{{ now()->format('m/d/Y') }}</span>
             <button class="sa-theme-toggle" id="themeToggle" title="Toggle light/dark mode" onclick="toggleTheme()">
                 <i class="fas fa-sun" id="themeIcon"></i>
             </button>

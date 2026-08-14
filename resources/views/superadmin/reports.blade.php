@@ -1,4 +1,4 @@
-﻿@extends('superadmin.layout')
+@extends('superadmin.layout')
 
 @section('page_title', 'All Reports')
 
@@ -8,7 +8,7 @@
     <form method="GET" action="{{ route('superadmin.reports') }}" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
         <div style="flex:1;min-width:200px">
             <label class="sa-label">Search</label>
-            <input type="text" name="search" value="{{ $search }}" class="sa-input" placeholder="Title, description, location…" enterkeyhint="search" inputmode="search" onkeypress="if(event.key==='Enter'){this.form.submit();}">
+            <input type="text" name="search" value="{{ $search }}" class="sa-input" placeholder="Title, description, location�" enterkeyhint="search" inputmode="search" onkeypress="if(event.key==='Enter'){this.form.submit();}">
         </div>
         <div style="min-width:150px">
             <label class="sa-label">Status</label>
@@ -29,7 +29,7 @@
 
 <div class="sa-card">
     <div style="font-size:13px;color:var(--sa-muted);margin-bottom:12px">
-        Showing {{ $reports->firstItem() }}â€“{{ $reports->lastItem() }} of {{ $reports->total() }} reports
+        Showing {{ $reports->firstItem() }}–{{ $reports->lastItem() }} of {{ $reports->total() }} reports
     </div>
     <div style="overflow-x:auto">
         <table class="sa-table">
@@ -63,11 +63,11 @@
                             <span class="sa-badge sa-badge-red" style="font-size:10px">Deleted</span>
                         @endif
                     </td>
-                    <td style="color:var(--sa-muted);font-size:12px">{{ $report->reported_by_name ?? 'â€”' }}</td>
-                    <td style="color:var(--sa-muted);font-size:12px">{{ $report->category->name ?? 'â€”' }}</td>
-                    <td style="color:var(--sa-muted);font-size:12px">{{ Str::limit($report->location ?? 'â€”', 30) }}</td>
+                    <td style="color:var(--sa-muted);font-size:12px">{{ $report->reported_by_name ?? '—' }}</td>
+                    <td style="color:var(--sa-muted);font-size:12px">{{ $report->category->name ?? '—' }}</td>
+                    <td style="color:var(--sa-muted);font-size:12px">{{ Str::limit($report->location ?? '—', 30) }}</td>
                     <td><span class="sa-badge {{ $statusColors[$report->status] ?? 'sa-badge-gray' }}">{{ $report->status }}</span></td>
-                    <td style="color:var(--sa-muted);font-size:12px">{{ $report->created_at->format('M d, Y') }}</td>
+                    <td style="color:var(--sa-muted);font-size:12px">{{ $report->created_at->format('m/d/Y') }}</td>
                     <td>
                         <form method="POST" action="{{ route('superadmin.reports.force-delete', $report->id) }}"
                               onsubmit="return confirm('Permanently delete this report? Cannot be undone.')">

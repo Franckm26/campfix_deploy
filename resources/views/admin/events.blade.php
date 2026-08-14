@@ -331,7 +331,7 @@
                     @foreach($requests as $request)
                         <tr>
                             <td>EVT-{{ str_pad($request->id, 5, '0', STR_PAD_LEFT) }}</td>
-                            <td>{{ $request->user->name ?? 'N/A' }}</td>                            <td>{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</td>
+                            <td>{{ $request->user->name ?? 'N/A' }}</td>                            <td>{{ \Carbon\Carbon::parse($request->event_date)->format('m/d/Y') }}</td>
                             <td>{{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</td>
                             <td>{{ $request->location }}</td>
                             <td>
@@ -397,7 +397,7 @@
                                             </div>
                                             <div class="col-md-6">
                                                 <p><strong>Requestor:</strong> {{ $request->user->name ?? 'N/A' }}</p>
-                                                <p><strong>Event Date:</strong> {{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</p>
+                                                <p><strong>Event Date:</strong> {{ \Carbon\Carbon::parse($request->event_date)->format('m/d/Y') }}</p>
                                                 <p><strong>Time:</strong> {{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</p>
                                                 <p><strong>Location:</strong> {{ $request->location }}</p>
                                             </div>
@@ -483,7 +483,7 @@
                         </div>
                         <div class="event-card-field">
                             <span class="event-card-label">Event Date:</span>
-                            <span class="event-card-value">{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</span>
+                            <span class="event-card-value">{{ \Carbon\Carbon::parse($request->event_date)->format('m/d/Y') }}</span>
                         </div>
                         <div class="event-card-field">
                             <span class="event-card-label">Time:</span>
@@ -558,7 +558,7 @@
                             @foreach($approvedEvents as $event)
                                 <tr>
                                     <td>EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</td>
-                                    <td>{{ $event->user->name ?? 'N/A' }}</td>                                    <td>{{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</td>
+                                    <td>{{ $event->user->name ?? 'N/A' }}</td>                                    <td>{{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</td>
                                     <td>{{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}</td>
                                     <td>{{ $event->location }}</td>
                                     <td>
@@ -597,7 +597,7 @@
                                                     </div>
                                                     <div class="col-md-6">
                                                         <p><strong>Requestor:</strong> {{ $event->user->name ?? 'N/A' }}</p>
-                                                        <p><strong>Event Date:</strong> {{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</p>
+                                                        <p><strong>Event Date:</strong> {{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</p>
                                                         <p><strong>Time:</strong> {{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}</p>
                                                         <p><strong>Location:</strong> {{ $event->location }}</p>
                                                     </div>
@@ -639,7 +639,7 @@
                                 </div>
                                 <div class="event-card-field">
                                     <span class="event-card-label">Event Date:</span>
-                                    <span class="event-card-value">{{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</span>
+                                    <span class="event-card-value">{{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</span>
                                 </div>
                                 <div class="event-card-field">
                                     <span class="event-card-label">Time:</span>
@@ -703,7 +703,7 @@
                             @foreach($finishedEvents as $event)
                                 <tr>
                                     <td>EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</td>
-                                    <td>{{ $event->user->name ?? 'N/A' }}</td>                                    <td>{{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</td>
+                                    <td>{{ $event->user->name ?? 'N/A' }}</td>                                    <td>{{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</td>
                                     <td>{{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}</td>
                                     <td>{{ $event->location }}</td>
                                     <td>
@@ -737,7 +737,7 @@
                                                     </div>
                                                     <div class="col-md-6">
                                                         <p><strong>Requestor:</strong> {{ $event->user->name ?? 'N/A' }}</p>
-                                                        <p><strong>Event Date:</strong> {{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</p>
+                                                        <p><strong>Event Date:</strong> {{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</p>
                                                         <p><strong>Time:</strong> {{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}</p>
                                                         <p><strong>Location:</strong> {{ $event->location }}</p>
                                                     </div>
@@ -779,7 +779,7 @@
                                 </div>
                                 <div class="event-card-field">
                                     <span class="event-card-label">Event Date:</span>
-                                    <span class="event-card-value">{{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</span>
+                                    <span class="event-card-value">{{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</span>
                                 </div>
                                 <div class="event-card-field">
                                     <span class="event-card-label">Time:</span>
@@ -844,7 +844,7 @@
                             @foreach($rejectedEvents as $event)
                                 <tr>
                                     <td>EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</td>
-                                    <td>{{ $event->user->name ?? 'N/A' }}</td>                                    <td>{{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</td>
+                                    <td>{{ $event->user->name ?? 'N/A' }}</td>                                    <td>{{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</td>
                                     <td>{{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}</td>
                                     <td>{{ $event->location }}</td>
                                     <td>{{ $event->notes ? \Illuminate\Support\Str::limit($event->notes, 40) : '-' }}</td>
@@ -879,7 +879,7 @@
                                                     </div>
                                                     <div class="col-md-6">
                                                         <p><strong>Requestor:</strong> {{ $event->user->name ?? 'N/A' }}</p>
-                                                        <p><strong>Event Date:</strong> {{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</p>
+                                                        <p><strong>Event Date:</strong> {{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</p>
                                                         <p><strong>Time:</strong> {{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}</p>
                                                         <p><strong>Location:</strong> {{ $event->location }}</p>
                                                     </div>
@@ -921,7 +921,7 @@
                                 </div>
                                 <div class="event-card-field">
                                     <span class="event-card-label">Event Date:</span>
-                                    <span class="event-card-value">{{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</span>
+                                    <span class="event-card-value">{{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</span>
                                 </div>
                                 <div class="event-card-field">
                                     <span class="event-card-label">Time:</span>
@@ -988,7 +988,7 @@
                                     @foreach($archivedEvents as $event)
                                         <tr>
                                             <td>EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</td>
-                                            <td>{{ $event->user->name ?? 'N/A' }}</td>                                            <td>{{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</td>
+                                            <td>{{ $event->user->name ?? 'N/A' }}</td>                                            <td>{{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</td>
                                             <td>{{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}</td>
                                             <td>{{ $event->location }}</td>
                                             <td>
@@ -1047,7 +1047,7 @@
                                                             </div>
                                                             <div class="col-md-6">
                                                                 <p><strong>Requestor:</strong> {{ $event->user->name ?? 'N/A' }}</p>
-                                                                <p><strong>Event Date:</strong> {{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</p>
+                                                                <p><strong>Event Date:</strong> {{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</p>
                                                                 <p><strong>Time:</strong> {{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}</p>
                                                                 <p><strong>Location:</strong> {{ $event->location }}</p>
                                                             </div>
@@ -1093,7 +1093,7 @@
                                         </div>
                                         <div class="event-card-field">
                                             <span class="event-card-label">Event Date:</span>
-                                            <span class="event-card-value">{{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</span>
+                                            <span class="event-card-value">{{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</span>
                                         </div>
                                         <div class="event-card-field">
                                             <span class="event-card-label">Time:</span>
@@ -1240,7 +1240,7 @@
                                             {{ $event->getCategoryLabel() }}
                                         </span>
                                     </td>
-                                    <td>{{ $event->event_date->format('M d, Y') }}</td>
+                                    <td>{{ $event->event_date->format('m/d/Y') }}</td>
                                     <td>{{ $event->location }}</td>
                                     <td>{{ $event->department }}</td>
                                     <td>
@@ -1348,7 +1348,7 @@
                                                     </div>
                                                     <div class="col-md-6">
                                                         <p><strong>Requestor:</strong> {{ $event->user->name ?? 'N/A' }}</p>
-                                                        <p><strong>Event Date:</strong> {{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</p>
+                                                        <p><strong>Event Date:</strong> {{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</p>
                                                         <p><strong>Time:</strong> {{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}</p>
                                                         <p><strong>Location:</strong> {{ $event->location }}</p>
                                                     </div>
@@ -1417,7 +1417,7 @@
                                 </div>
                                 <div class="event-card-field">
                                     <span class="event-card-label">Event Date:</span>
-                                    <span class="event-card-value">{{ $event->event_date->format('M d, Y') }}</span>
+                                    <span class="event-card-value">{{ $event->event_date->format('m/d/Y') }}</span>
                                 </div>
                                 <div class="event-card-field">
                                     <span class="event-card-label">Location:</span>

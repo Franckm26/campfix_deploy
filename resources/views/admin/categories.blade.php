@@ -41,7 +41,7 @@
                             <tr>
                                 <td class="px-3 py-2">{{ $category->id }}</td>
                                 <td class="px-3 py-2">{{ $category->name }}</td>
-                                <td class="px-3 py-2">{{ $category->created_at->format('M d, Y') }}</td>
+                                <td class="px-3 py-2">{{ $category->created_at->format('m/d/Y') }}</td>
                                 <td class="px-3 py-2">
                                     <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ $category->id }}">
                                         Edit

@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('styles')
 <link href="{{ asset('css/admin.css') }}" rel="stylesheet">
@@ -72,7 +72,7 @@
                                     </span>
                                 </td>
                                 <td>{{ $concern->is_anonymous ? 'Anonymous' : ($concern->user->name ?? 'Unknown') }}</td>
-                                <td>{{ $concern->updated_at->format('M d, Y') }}</td>
+                                <td>{{ $concern->updated_at->format('m/d/Y') }}</td>
                                 <td>
                                     <form method="POST" action="{{ route('admin.archive.restore') }}" class="d-inline">
                                         @csrf
@@ -122,7 +122,7 @@
                             <tr>
                                 <td>EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</td>
                                 <td>{{ ucfirst($event->category) }}</td>
-                                <td>{{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</td>
+                                <td>{{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</td>
                                 <td>
                                     <span class="badge bg-{{ 
                                         $event->status == 'Approved' ? 'success' : 
@@ -133,7 +133,7 @@
                                     </span>
                                 </td>
                                 <td>{{ $event->user->name ?? 'N/A' }}</td>
-                                <td>{{ $event->updated_at->format('M d, Y') }}</td>
+                                <td>{{ $event->updated_at->format('m/d/Y') }}</td>
                                 <td>
                                     <form method="POST" action="{{ route('admin.archive.restore') }}" class="d-inline">
                                         @csrf
@@ -192,7 +192,7 @@
                                     </span>
                                 </td>
                                 <td>{{ $report->reported_by_name ?? 'Unknown' }}</td>
-                                <td>{{ $report->updated_at->format('M d, Y') }}</td>
+                                <td>{{ $report->updated_at->format('m/d/Y') }}</td>
                                 <td>
                                     <form method="POST" action="{{ route('admin.archive.restore') }}" class="d-inline">
                                         @csrf
@@ -251,7 +251,7 @@
                                     </span>
                                 </td>
                                 <td>{{ $facility->user->name ?? 'Unknown' }}</td>
-                                <td>{{ $facility->updated_at->format('M d, Y') }}</td>
+                                <td>{{ $facility->updated_at->format('m/d/Y') }}</td>
                                 <td>
                                     <form method="POST" action="{{ route('admin.archive.restore') }}" class="d-inline">
                                         @csrf

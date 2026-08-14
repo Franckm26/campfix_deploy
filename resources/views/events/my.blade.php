@@ -326,7 +326,7 @@
                                                     {{ ucfirst($request->category) }}
                                                 </span>
                                             </td>
-                                            <td>{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</td>
+                                            <td>{{ \Carbon\Carbon::parse($request->event_date)->format('m/d/Y') }}</td>
                                             <td>{{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</td>
                                             <td>{{ $request->location }}</td>
                                             <td>
@@ -409,7 +409,7 @@
                                         </div>
                                         <div class="event-card-field">
                                             <span class="event-card-label">Date:</span>
-                                            <span class="event-card-value">{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</span>
+                                            <span class="event-card-value">{{ \Carbon\Carbon::parse($request->event_date)->format('m/d/Y') }}</span>
                                         </div>
                                         <div class="event-card-field">
                                             <span class="event-card-label">Time:</span>
@@ -495,7 +495,7 @@
                                                     {{ ucfirst($request->category) }}
                                                 </span>
                                             </td>
-                                            <td>{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</td>
+                                            <td>{{ \Carbon\Carbon::parse($request->event_date)->format('m/d/Y') }}</td>
                                             <td>{{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</td>
                                             <td>{{ $request->location }}</td>
                                             <td>
@@ -539,7 +539,7 @@
                                         </div>
                                         <div class="event-card-field">
                                             <span class="event-card-label">Date:</span>
-                                            <span class="event-card-value">{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</span>
+                                            <span class="event-card-value">{{ \Carbon\Carbon::parse($request->event_date)->format('m/d/Y') }}</span>
                                         </div>
                                         <div class="event-card-field">
                                             <span class="event-card-label">Time:</span>
@@ -604,7 +604,7 @@
                                                     {{ ucfirst($request->category) }}
                                                 </span>
                                             </td>
-                                            <td>{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</td>
+                                            <td>{{ \Carbon\Carbon::parse($request->event_date)->format('m/d/Y') }}</td>
                                             <td>{{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</td>
                                             <td>{{ $request->location }}</td>
                                             <td>
@@ -648,7 +648,7 @@
                                         </div>
                                         <div class="event-card-field">
                                             <span class="event-card-label">Date:</span>
-                                            <span class="event-card-value">{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</span>
+                                            <span class="event-card-value">{{ \Carbon\Carbon::parse($request->event_date)->format('m/d/Y') }}</span>
                                         </div>
                                         <div class="event-card-field">
                                             <span class="event-card-label">Time:</span>
@@ -713,7 +713,7 @@
                                                     {{ ucfirst($request->category) }}
                                                 </span>
                                             </td>
-                                            <td>{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</td>
+                                            <td>{{ \Carbon\Carbon::parse($request->event_date)->format('m/d/Y') }}</td>
                                             <td>{{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</td>
                                             <td>{{ $request->location }}</td>
                                             <td>
@@ -765,7 +765,7 @@
                                         </div>
                                         <div class="event-card-field">
                                             <span class="event-card-label">Date:</span>
-                                            <span class="event-card-value">{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</span>
+                                            <span class="event-card-value">{{ \Carbon\Carbon::parse($request->event_date)->format('m/d/Y') }}</span>
                                         </div>
                                         <div class="event-card-field">
                                             <span class="event-card-label">Time:</span>
@@ -898,7 +898,7 @@
                                                     {{ ucfirst($request->category) }}
                                                 </span>
                                             </td>
-                                            <td>{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</td>
+                                            <td>{{ \Carbon\Carbon::parse($request->event_date)->format('m/d/Y') }}</td>
                                             <td>{{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</td>
                                             <td>{{ $request->location }}</td>
                                             <td>
@@ -963,7 +963,7 @@
                                         </div>
                                         <div class="event-card-field">
                                             <span class="event-card-label">Date:</span>
-                                            <span class="event-card-value">{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</span>
+                                            <span class="event-card-value">{{ \Carbon\Carbon::parse($request->event_date)->format('m/d/Y') }}</span>
                                         </div>
                                         <div class="event-card-field">
                                             <span class="event-card-label">Time:</span>
@@ -1102,7 +1102,7 @@
                                                     {{ ucfirst($request->category) }}
                                                 </span>
                                             </td>
-                                            <td>{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</td>
+                                            <td>{{ \Carbon\Carbon::parse($request->event_date)->format('m/d/Y') }}</td>
                                             <td>{{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</td>
                                             <td>{{ $request->location }}</td>
                                             <td>
@@ -1168,7 +1168,7 @@
                                         </div>
                                         <div class="event-card-field">
                                             <span class="event-card-label">Date:</span>
-                                            <span class="event-card-value">{{ \Carbon\Carbon::parse($request->event_date)->format('M d, Y') }}</span>
+                                            <span class="event-card-value">{{ \Carbon\Carbon::parse($request->event_date)->format('m/d/Y') }}</span>
                                         </div>
                                         <div class="event-card-field">
                                             <span class="event-card-label">Time:</span>

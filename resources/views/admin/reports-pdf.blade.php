@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
@@ -184,7 +184,7 @@
     {{-- Resolved Reports Table --}}
     @if($resolvedReports->count() > 0)
     <div style="font-size:14px; font-weight:700; color:#16a34a; margin-bottom:12px; margin-top:20px; text-transform:uppercase; letter-spacing:0.05em;">
-        âœ“ Resolved Reports ({{ $resolvedReports->count() }})
+        ✓ Resolved Reports ({{ $resolvedReports->count() }})
     </div>
     <table>
         <thead>
@@ -216,7 +216,7 @@
                 <td>{{ $report->location }}</td>
                 <td><span class="badge {{ $priorityClass }}">{{ ucfirst($report->severity) }}</span></td>
                 <td>{{ $report->reported_by_name ?? 'Unknown' }}</td>
-                <td>{{ $report->created_at->format('M d, Y') }}</td>
+                <td>{{ $report->created_at->format('m/d/Y') }}</td>
                 <td>{{ $report->cost ? 'PHP '.number_format($report->cost, 2) : '-' }}</td>
             </tr>
             @endforeach
@@ -227,7 +227,7 @@
     {{-- In Progress Reports Table --}}
     @if($viewType !== 'resolved' && $inProgressReports->count() > 0)
     <div style="font-size:14px; font-weight:700; color:#d97706; margin-bottom:12px; margin-top:20px; text-transform:uppercase; letter-spacing:0.05em;">
-        âš™ In Progress Reports ({{ $inProgressReports->count() }})
+        ⚙ In Progress Reports ({{ $inProgressReports->count() }})
     </div>
     <table>
         <thead>
@@ -259,7 +259,7 @@
                 <td>{{ $report->location }}</td>
                 <td><span class="badge {{ $priorityClass }}">{{ ucfirst($report->severity) }}</span></td>
                 <td>{{ $report->reported_by_name ?? 'Unknown' }}</td>
-                <td>{{ $report->created_at->format('M d, Y') }}</td>
+                <td>{{ $report->created_at->format('m/d/Y') }}</td>
                 <td>{{ $report->assignedTo->name ?? 'Unassigned' }}</td>
             </tr>
             @endforeach
@@ -270,7 +270,7 @@
     {{-- Pending Reports Table --}}
     @if($viewType !== 'resolved' && $pendingReports->count() > 0)
     <div style="font-size:14px; font-weight:700; color:#64748b; margin-bottom:12px; margin-top:20px; text-transform:uppercase; letter-spacing:0.05em;">
-        â³ Pending Reports ({{ $pendingReports->count() }})
+        ⏳ Pending Reports ({{ $pendingReports->count() }})
     </div>
     <table>
         <thead>
@@ -301,7 +301,7 @@
                 <td>{{ $report->location }}</td>
                 <td><span class="badge {{ $priorityClass }}">{{ ucfirst($report->severity) }}</span></td>
                 <td>{{ $report->reported_by_name ?? 'Unknown' }}</td>
-                <td>{{ $report->created_at->format('M d, Y') }}</td>
+                <td>{{ $report->created_at->format('m/d/Y') }}</td>
             </tr>
             @endforeach
         </tbody>
@@ -311,7 +311,7 @@
     {{-- Assigned Reports Table (if any) --}}
     @if($viewType !== 'resolved' && $assignedReports->count() > 0)
     <div style="font-size:14px; font-weight:700; color:#1d4ed8; margin-bottom:12px; margin-top:20px; text-transform:uppercase; letter-spacing:0.05em;">
-        ðŸ“‹ Assigned Reports ({{ $assignedReports->count() }})
+        📋 Assigned Reports ({{ $assignedReports->count() }})
     </div>
     <table>
         <thead>
@@ -343,7 +343,7 @@
                 <td>{{ $report->location }}</td>
                 <td><span class="badge {{ $priorityClass }}">{{ ucfirst($report->severity) }}</span></td>
                 <td>{{ $report->reported_by_name ?? 'Unknown' }}</td>
-                <td>{{ $report->created_at->format('M d, Y') }}</td>
+                <td>{{ $report->created_at->format('m/d/Y') }}</td>
                 <td>{{ $report->assignedTo->name ?? 'Unassigned' }}</td>
             </tr>
             @endforeach
@@ -428,7 +428,7 @@
 
     {{-- Footer --}}
     <div class="footer">
-        <div class="footer-left">CampFix â€” STI College Novaliches &bull; </div>
+        <div class="footer-left">CampFix — STI College Novaliches &bull; </div>
         <div class="footer-right">Page 1 of 1 &bull; {{ now()->format('Y') }}</div>
     </div>
 

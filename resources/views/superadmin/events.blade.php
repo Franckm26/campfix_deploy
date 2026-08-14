@@ -66,10 +66,10 @@
                     <td style="color:var(--sa-muted);font-size:12px">{{ $event->user->name ?? '—' }}</td>
                     <td style="color:var(--sa-muted);font-size:12px">{{ $event->department ?? '—' }}</td>
                     <td style="color:var(--sa-muted);font-size:12px">
-                        {{ $event->event_date ? \Carbon\Carbon::parse($event->event_date)->format('M d, Y') : '—' }}
+                        {{ $event->event_date ? \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') : '—' }}
                     </td>
                     <td><span class="sa-badge {{ $statusColors[$event->status] ?? 'sa-badge-gray' }}">{{ $event->status }}</span></td>
-                    <td style="color:var(--sa-muted);font-size:12px">{{ $event->created_at->format('M d, Y') }}</td>
+                    <td style="color:var(--sa-muted);font-size:12px">{{ $event->created_at->format('m/d/Y') }}</td>
                     <td>
                         <form method="POST" action="{{ route('superadmin.events.force-delete', $event->id) }}"
                               onsubmit="return confirm('Permanently delete this event request? Cannot be undone.')">

@@ -1,4 +1,4 @@
-Ôªø@extends('layouts.app')
+@extends('layouts.app')
 
 @section('styles')
 <link href="{{ asset('css/admin.css') }}" rel="stylesheet">
@@ -418,7 +418,7 @@
                                         <td>
                                             {{ $report->reported_by_name ?? ($report->user ? $report->user->name : 'Unknown') }}
                                         </td>
-                                        <td>{{ $report->created_at->format('M d, Y') }}</td>
+                                        <td>{{ $report->created_at->format('m/d/Y') }}</td>
                                         <td>{{ $report->resolved_at ? $report->resolved_at->format('M d, Y g:i A') : '-' }}</td>
                                         <td>
                                             <div class="btn-group" role="group">
@@ -518,7 +518,7 @@
                             </div>
                             <div class="report-card-field">
                                 <span class="report-card-label">Created:</span>
-                                <span class="report-card-value">{{ $report->created_at->format('M d, Y') }}</span>
+                                <span class="report-card-value">{{ $report->created_at->format('m/d/Y') }}</span>
                             </div>
                         </div>
                         <div class="report-card-actions">
@@ -628,7 +628,7 @@
                                         @endif
                                     </td>
                                     <td>{{ $report->reported_by_name ?? ($report->user ? $report->user->name : 'Unknown') }}</td>
-                                    <td>{{ $report->created_at->format('M d, Y') }}</td>
+                                    <td>{{ $report->created_at->format('m/d/Y') }}</td>
                                     <td>{{ $report->resolved_at ? $report->resolved_at->format('M d, Y g:i A') : '-' }}</td>
                                     <td>PHP{{ number_format($report->cost ?? 0, 2) }}</td>
                                     <td>
@@ -808,8 +808,8 @@
                                             <td>
                                                 {{ $concern->is_anonymous ? 'Anonymous' : ($concern->user->name ?? 'Unknown') }}
                                             </td>
-                                            <td>{{ $concern->created_at->format('M d, Y') }}</td>
-                                            <td>{{ $concern->resolved_at ? $concern->resolved_at->format('M d, Y') : '-' }}</td>
+                                            <td>{{ $concern->created_at->format('m/d/Y') }}</td>
+                                            <td>{{ $concern->resolved_at ? $concern->resolved_at->format('m/d/Y') : '-' }}</td>
                                             <td>
                                                 <div class="btn-group" role="group">
                                                     <button type="button" class="btn btn-sm btn-info" onclick="viewConcern({{ $concern->id }})" title="View">
@@ -887,7 +887,7 @@
                                         </div>
                                         <div class="report-card-field">
                                             <span class="report-card-label">Created:</span>
-                                            <span class="report-card-value">{{ $concern->created_at->format('M d, Y') }}</span>
+                                            <span class="report-card-value">{{ $concern->created_at->format('m/d/Y') }}</span>
                                         </div>
                                     </div>
                                     <div class="report-card-actions">
@@ -1449,7 +1449,7 @@ document.addEventListener('DOMContentLoaded', function() {
             data: {
                 labels: window.chartLocations,
                 datasets: [{
-                    label: 'Total Cost (PHP‚Äö¬±)',
+                    label: 'Total Cost (PHPÇ±)',
                     data: window.chartCosts,
                     backgroundColor: '#36A2EB',
                     borderColor: '#36A2EB',
@@ -1463,7 +1463,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         beginAtZero: true,
                         ticks: {
                             callback: function(value) {
-                                return 'PHP‚Äö¬±' + value.toLocaleString();
+                                return 'PHPÇ±' + value.toLocaleString();
                             }
                         }
                     }
@@ -1472,7 +1472,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     tooltip: {
                         callbacks: {
                             label: function(context) {
-                                return 'PHP‚Äö¬±' + context.parsed.y.toLocaleString();
+                                return 'PHPÇ±' + context.parsed.y.toLocaleString();
                             }
                         }
                     }
@@ -1515,7 +1515,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Line Chart for Monthly Trend PHP‚Ç¨‚Äù one line per issue type
+    // Line Chart for Monthly Trend PHPÄî one line per issue type
     const monthlyTrendCtx = document.getElementById('monthlyTrendChart');
     if (monthlyTrendCtx) {
         // Build 6-month label range
@@ -1665,9 +1665,9 @@ document.addEventListener('DOMContentLoaded', function() {
                                     const pending = statusData['Pending'] || 0;
                                     const inProgress = statusData['In Progress'] || 0;
                                     
-                                    if (resolved > 0) lines.push('  PHP≈ì‚Äú Resolved: ' + resolved);
-                                    if (inProgress > 0) lines.push('  PHP≈∏¬≥ In Progress: ' + inProgress);
-                                    if (pending > 0) lines.push('  PHP¬è¬± Pending: ' + pending);
+                                    if (resolved > 0) lines.push('  PHPúì Resolved: ' + resolved);
+                                    if (inProgress > 0) lines.push('  PHPü≥ In Progress: ' + inProgress);
+                                    if (pending > 0) lines.push('  PHPè± Pending: ' + pending);
                                 }
                                 
                                 return lines;
@@ -2568,7 +2568,7 @@ window.viewReportProgress = async function(id) {
                     </div>
                     <div class="text-start pt-1">
                         <div style="font-weight:600;color:${txtCol};">${s.label}</div>
-                        ${s.detail ? `<div style="font-size:12px;color:#666;">PHP‚Ä†‚Äô ${s.detail}</div>` : ''}
+                        ${s.detail ? `<div style="font-size:12px;color:#666;">PHPÜí ${s.detail}</div>` : ''}
                         ${s.date   ? `<div style="font-size:11px;color:#999;">${s.date}</div>` : ''}
                     </div>
                 </div>`;
@@ -2687,7 +2687,7 @@ async function proceedReportToNextLevel(reportId, newStatus, reportTitle) {
                     <p class="mb-3">Please provide resolution details for "${reportTitle}":</p>
                     
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Cost (PHP‚Äö¬±)</label>
+                        <label class="form-label fw-bold">Cost (PHPÇ±)</label>
                         <input type="number" id="swal-cost" class="form-control" placeholder="0.00" step="0.01" min="0">
                         <small class="text-muted">Enter the total cost of repair/replacement</small>
                     </div>
@@ -2911,7 +2911,7 @@ function viewReport(id) {
                         ${report.in_progress_at ? '<p><strong>Date In Progress:</strong> ' + report.in_progress_at + '</p>' : ''}
                         ${report.resolved_at ? '<p><strong>Date Resolved:</strong> ' + report.resolved_at + '</p>' : ''}
                         ${report.assigned_to ? '<p><strong>Assigned to:</strong> ' + (report.assigned_user_name || 'Unknown') + '</p>' : ''}
-                        ${report.cost ? '<p><strong>Cost:</strong> ‚Ç±' + parseFloat(report.cost).toLocaleString('en-PH', {minimumFractionDigits: 2}) + '</p>' : ''}
+                        ${report.cost ? '<p><strong>Cost:</strong> ?' + parseFloat(report.cost).toLocaleString('en-PH', {minimumFractionDigits: 2}) + '</p>' : ''}
                         ${report.replaced_part ? '<p><strong>Replaced With:</strong> ' + report.replaced_part + '</p>' : ''}
                     </div>
                 </div>
@@ -3304,7 +3304,7 @@ function batchPermanentDelete() {
     
     if (ids.length === 0) return;
     
-    if (confirm('‚ö†Ô∏è WARNING: Are you sure you want to PERMANENTLY DELETE ' + ids.length + ' report(s)? This action CANNOT be undone!')) {
+    if (confirm('?? WARNING: Are you sure you want to PERMANENTLY DELETE ' + ids.length + ' report(s)? This action CANNOT be undone!')) {
         if (confirm('This is your final warning. The selected reports will be permanently deleted. Continue?')) {
             fetch('/concerns/batch-permanent-delete', {
                 method: 'POST',
@@ -3423,7 +3423,7 @@ function viewReport(id) {
                         ${report.in_progress_at ? '<p><strong>Date In Progress:</strong> ' + report.in_progress_at + '</p>' : ''}
                         ${report.resolved_at ? '<p><strong>Date Resolved:</strong> ' + report.resolved_at + '</p>' : ''}
                         ${report.assigned_to ? '<p><strong>Assigned to:</strong> ' + (report.assigned_user_name || 'Unknown') + '</p>' : ''}
-                        ${report.cost ? '<p><strong>Cost:</strong> ‚Ç±' + parseFloat(report.cost).toLocaleString('en-PH', {minimumFractionDigits: 2}) + '</p>' : ''}
+                        ${report.cost ? '<p><strong>Cost:</strong> ?' + parseFloat(report.cost).toLocaleString('en-PH', {minimumFractionDigits: 2}) + '</p>' : ''}
                         ${report.replaced_part ? '<p><strong>Replaced With:</strong> ' + report.replaced_part + '</p>' : ''}
                     </div>
                 </div>

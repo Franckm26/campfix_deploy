@@ -205,7 +205,7 @@
                             @foreach($upcomingEventsList->take(5) as $event)
                             <div class="list-group-item d-flex justify-content-between align-items-start border-0 px-0 py-2">
                                 <div class="ms-2 me-auto">
-                                    <div class="fw-bold text-primary" style="font-size: 0.9rem;">{{ $event->location }} - {{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</div>
+                                    <div class="fw-bold text-primary" style="font-size: 0.9rem;">{{ $event->location }} - {{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</div>
                                     <div class="text-muted small">
                                         <i class="fas fa-map-marker-alt me-1"></i>{{ $event->location }}
                                         @if($event->department)
@@ -214,7 +214,7 @@
                                     </div>
                                 </div>
                                 <div class="text-end">
-                                    <div class="badge bg-success mb-1" style="font-size: 0.75rem;">{{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</div>
+                                    <div class="badge bg-success mb-1" style="font-size: 0.75rem;">{{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</div>
                                     <div class="text-muted" style="font-size: 0.7rem;">
                                         {{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - 
                                         {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}

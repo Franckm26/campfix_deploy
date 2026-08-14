@@ -397,7 +397,7 @@
                                                 @endif
                                             </td>
                                             @endif
-                                            <td>{{ $concern->created_at->format('M d, Y') }}</td>
+                                            <td>{{ $concern->created_at->format('m/d/Y') }}</td>
                                             <td>
                                                 <div class="btn-group" role="group">
                                                     <button type="button" class="btn btn-sm btn-info bg-transparent border-0" onclick="viewConcern({{ $concern->id }})" title="View">
@@ -496,7 +496,7 @@
                                         @endif
                                         <div class="concern-card-field">
                                             <span class="concern-card-label">Date:</span>
-                                            <span class="concern-card-value">{{ $concern->created_at->format('M d, Y') }}</span>
+                                            <span class="concern-card-value">{{ $concern->created_at->format('m/d/Y') }}</span>
                                         </div>
                                     </div>
                                     <div class="concern-card-actions">
@@ -655,7 +655,7 @@
                                                 @endif
                                             </td>
                                             @endif
-                                            <td>{{ $concern->updated_at->format('M d, Y') }}</td>
+                                            <td>{{ $concern->updated_at->format('m/d/Y') }}</td>
                                             <td>
                                                 <div class="btn-group" role="group">
                                                     <button type="button" class="btn btn-sm btn-info bg-transparent border-0" onclick="viewConcern({{ $concern->id }})" title="View">
@@ -738,7 +738,7 @@
                                         @endif
                                         <div class="concern-card-field">
                                             <span class="concern-card-label">Resolved:</span>
-                                            <span class="concern-card-value">{{ $concern->updated_at->format('M d, Y') }}</span>
+                                            <span class="concern-card-value">{{ $concern->updated_at->format('m/d/Y') }}</span>
                                         </div>
                                     </div>
                                     <div class="concern-card-actions">
@@ -875,7 +875,7 @@
                                                 </span>
                                             </td>
                                             <td>{{ $concern->archivedByUsers->first()?->name ?? 'Self' }}</td>
-                                            <td>{{ $concern->archivedByUsers->first()?->pivot->archived_at ? \Carbon\Carbon::parse($concern->archivedByUsers->first()->pivot->archived_at)->format('M d, Y g:i A') : $concern->updated_at->format('M d, Y') }}</td>
+                                            <td>{{ $concern->archivedByUsers->first()?->pivot->archived_at ? \Carbon\Carbon::parse($concern->archivedByUsers->first()->pivot->archived_at)->format('M d, Y g:i A') : $concern->updated_at->format('m/d/Y') }}</td>
                                             <td>
                                                 <div class="btn-group" role="group">
                                                     <button type="button" class="btn btn-sm btn-info bg-transparent border-0" onclick="viewConcern({{ $concern->id }})" title="View">

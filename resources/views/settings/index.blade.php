@@ -594,7 +594,7 @@
                     <div class="setting-item">
                         <div class="setting-info">
                             <div class="setting-label">Member Since</div>
-                            <div class="setting-description">{{ $user->created_at->format('F d, Y') }}</div>
+                            <div class="setting-description">{{ $user->created_at->format('m/d/Y') }}</div>
                         </div>
                     </div>
                 </div>

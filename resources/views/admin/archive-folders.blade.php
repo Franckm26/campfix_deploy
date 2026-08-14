@@ -100,7 +100,7 @@
                             @endif
                         </div>
                         <div class="mt-2 text-muted small">
-                            <i class="fas fa-clock"></i> Created {{ $folder->created_at->format('M d, Y') }}
+                            <i class="fas fa-clock"></i> Created {{ $folder->created_at->format('m/d/Y') }}
                         </div>
                     </div>
                 </div>

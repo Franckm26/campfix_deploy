@@ -304,7 +304,7 @@
                                         <span class="badge bg-success">Active</span>
                                     @endif
                                 </td>
-                                <td class="text-muted">{{ $u->created_at->format('M d, Y') }}</td>
+                                <td class="text-muted">{{ $u->created_at->format('m/d/Y') }}</td>
                             </tr>
                         @empty
                             <tr><td colspan="5" class="text-center text-muted py-3">No users found.</td></tr>
@@ -358,7 +358,7 @@
                             </div>
                             <div class="dashboard-user-card-field">
                                 <span class="dashboard-user-card-label">Joined:</span>
-                                <span class="dashboard-user-card-value">{{ $u->created_at->format('M d, Y') }}</span>
+                                <span class="dashboard-user-card-value">{{ $u->created_at->format('m/d/Y') }}</span>
                             </div>
                         </div>
                     </div>

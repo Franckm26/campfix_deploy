@@ -150,7 +150,7 @@
                             </div>
                         </div>
                         <div class="text-muted" style="font-size:12px">{{ $folder->description }}</div>
-                        <div class="text-muted" style="font-size:11px">{{ $folder->created_at->format('M d, Y') }}</div>
+                        <div class="text-muted" style="font-size:11px">{{ $folder->created_at->format('m/d/Y') }}</div>
                         <div class="d-flex gap-2 mt-3">
                             <a href="{{ route('admin.logs.folder', $folder->id) }}" class="btn btn-sm btn-primary">
                                 <i class="fas fa-folder-open"></i> View
@@ -409,7 +409,7 @@
                                 </td>
                                 <td class="text-muted font-monospace" style="font-size:11px">{{ $log->ip_address ?? '—' }}</td>
                                 <td class="text-muted">
-                                    {{ $log->created_at->format('M d, Y') }}<br>
+                                    {{ $log->created_at->format('m/d/Y') }}<br>
                                     <small>{{ $log->created_at->format('h:i:s A') }}</small>
                                 </td>
                             </tr>
@@ -428,7 +428,7 @@
                     <div class="log-card">
                         <div class="log-card-header">
                             <span class="log-card-action">{{ ucfirst(str_replace('_', ' ', $log->action)) }}</span>
-                            <small class="text-muted">{{ $log->created_at->format('M d, Y') }}</small>
+                            <small class="text-muted">{{ $log->created_at->format('m/d/Y') }}</small>
                         </div>
                         <div class="log-card-body">
                             <div class="log-card-field">

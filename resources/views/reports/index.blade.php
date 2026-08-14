@@ -197,7 +197,7 @@
                                                     {{ $report->status }}
                                                 </span>
                                             </td>
-                                            <td>{{ $report->created_at->format('M d, Y') }}</td>
+                                            <td>{{ $report->created_at->format('m/d/Y') }}</td>
                                             <td>
                                                 <a href="{{ route('reports.show', $report) }}" class="btn btn-sm btn-info bg-transparent border-0">
                                                     <i class="fas fa-eye"></i> View
@@ -258,7 +258,7 @@
                                         </div>
                                         <div class="report-card-field">
                                             <span class="report-card-label">Created:</span>
-                                            <span class="report-card-value">{{ $report->created_at->format('M d, Y') }}</span>
+                                            <span class="report-card-value">{{ $report->created_at->format('m/d/Y') }}</span>
                                         </div>
                                     </div>
                                     <div class="report-card-actions">

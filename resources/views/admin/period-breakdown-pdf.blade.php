@@ -252,7 +252,7 @@
             @forelse($repairs as $index => $repair)
             <tr>
                 <td class="text-center">{{ $index + 1 }}</td>
-                <td>{{ \Carbon\Carbon::parse($repair->created_at)->format('M d, Y') }}</td>
+                <td>{{ \Carbon\Carbon::parse($repair->created_at)->format('m/d/Y') }}</td>
                 <td class="text-center">#{{ str_pad($repair->id, 4, '0', STR_PAD_LEFT) }}</td>
                 <td>{{ $repair->title ?: 'N/A' }}</td>
                 <td>{{ $repair->location ?: 'N/A' }}</td>

@@ -124,7 +124,7 @@
                                             {{ $concern->status }}
                                         </span>
                                     </td>
-                                    <td>{{ $concern->created_at->format('M d, Y') }}</td>
+                                    <td>{{ $concern->created_at->format('m/d/Y') }}</td>
                                     <td>{{ $concern->updated_at->format('M d, Y g:i A') }}</td>
                                     <td>
                                         <div class="btn-group" role="group">
@@ -194,11 +194,11 @@
                                         {{ $concern->status }}
                                     </span>
                                 </td>
-                                <td>{{ $concern->created_at->format('M d, Y') }}</td>
+                                <td>{{ $concern->created_at->format('m/d/Y') }}</td>
                                 @if($viewType === 'archives')
-                                    <td>{{ $concern->archivedByUsers->first()?->pivot->archived_at ? \Carbon\Carbon::parse($concern->archivedByUsers->first()->pivot->archived_at)->format('M d, Y g:i A') : $concern->updated_at->format('M d, Y') }}</td>
+                                    <td>{{ $concern->archivedByUsers->first()?->pivot->archived_at ? \Carbon\Carbon::parse($concern->archivedByUsers->first()->pivot->archived_at)->format('M d, Y g:i A') : $concern->updated_at->format('m/d/Y') }}</td>
                                 @elseif($viewType === 'deleted')
-                                    <td>{{ $concern->deleted_at ? \Carbon\Carbon::parse($concern->deleted_at)->format('M d, Y g:i A') : $concern->updated_at->format('M d, Y') }}</td>
+                                    <td>{{ $concern->deleted_at ? \Carbon\Carbon::parse($concern->deleted_at)->format('M d, Y g:i A') : $concern->updated_at->format('m/d/Y') }}</td>
                                 @endif
                                 <td>
                                     <div class="btn-group" role="group">

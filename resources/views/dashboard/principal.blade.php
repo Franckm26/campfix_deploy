@@ -301,11 +301,11 @@
                                 <div class="d-flex align-items-start">
                                     <input type="checkbox" class="form-check-input me-3 mt-1" disabled>
                                     <div class="flex-grow-1">
-                                        <div class="approval-title">{{ $event->location }} - {{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</div>
+                                        <div class="approval-title">{{ $event->location }} - {{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</div>
                                         <div class="approval-meta">
                                             <span class="me-3"><i class="fas fa-user text-muted me-1"></i>{{ $event->user->name ?? 'Unknown' }}</span>
                                             <span class="me-3"><i class="fas fa-map-marker-alt text-muted me-1"></i>{{ $event->location }}</span>
-                                            <span><i class="fas fa-calendar text-muted me-1"></i>{{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</span>
+                                            <span><i class="fas fa-calendar text-muted me-1"></i>{{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</span>
                                         </div>
                                     </div>
                                     <div class="text-end ms-3">

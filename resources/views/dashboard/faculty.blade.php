@@ -560,7 +560,7 @@
                                             </div>
                                             <div class="ev-title">{{ $req->title }}</div>
                                             <div class="ev-meta">
-                                                <span><i class="fas fa-calendar-day"></i> {{ \Carbon\Carbon::parse($req->event_date)->format('M d, Y') }}</span>
+                                                <span><i class="fas fa-calendar-day"></i> {{ \Carbon\Carbon::parse($req->event_date)->format('m/d/Y') }}</span>
                                                 @if($req->location)
                                                 <span><i class="fas fa-map-marker-alt"></i> {{ $req->location }}</span>
                                                 @endif
@@ -652,7 +652,7 @@
                                 <div style="flex:1; min-width:0;">
                                     <div style="font-weight:700; font-size:13px; color:var(--cal-text,#1e293b); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ $item->title }}</div>
                                     <div style="display:flex; flex-wrap:wrap; gap:8px; font-size:11px; color:#6b7280; margin-top:2px;">
-                                        <span><i class="fas fa-calendar-day me-1"></i>{{ \Carbon\Carbon::parse($item->event_date)->format('M d, Y') }}</span>
+                                        <span><i class="fas fa-calendar-day me-1"></i>{{ \Carbon\Carbon::parse($item->event_date)->format('m/d/Y') }}</span>
                                         @if($item->location)<span><i class="fas fa-map-marker-alt me-1"></i>{{ $item->location }}</span>@endif
                                         @if($item->start_time && $item->end_time)<span><i class="fas fa-clock me-1"></i>{{ \Carbon\Carbon::parse($item->start_time)->format('g:i A') }} – {{ \Carbon\Carbon::parse($item->end_time)->format('g:i A') }}</span>@endif
                                     </div>
@@ -684,7 +684,7 @@
                                     <div style="display:flex; flex-wrap:wrap; gap:8px; font-size:11px; color:#6b7280; margin-top:2px;">
                                         @if($report->category)<span><i class="fas fa-tag me-1"></i>{{ $report->category->name }}</span>@endif
                                         @if($report->location)<span><i class="fas fa-map-marker-alt me-1"></i>{{ $report->location }}</span>@endif
-                                        <span><i class="fas fa-clock me-1"></i>{{ $report->created_at->format('M d, Y') }}</span>
+                                        <span><i class="fas fa-clock me-1"></i>{{ $report->created_at->format('m/d/Y') }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -796,7 +796,7 @@
                         <div class="upcoming-dot" style="background:#26a69a;"></div>
                         <div>
                             <div class="upcoming-title">{{ $ev['title'] }}</div>
-                            <div class="upcoming-date">{{ \Carbon\Carbon::parse($ev['start'])->format('M d, Y') }}</div>
+                            <div class="upcoming-date">{{ \Carbon\Carbon::parse($ev['start'])->format('m/d/Y') }}</div>
                         </div>
                     </div>
                     @endforeach

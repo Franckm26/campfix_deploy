@@ -87,7 +87,7 @@
                             <span class="sa-badge sa-badge-green">Active</span>
                         @endif
                     </td>
-                    <td style="color:var(--sa-muted);font-size:12px">{{ $user->created_at->format('M d, Y') }}</td>
+                    <td style="color:var(--sa-muted);font-size:12px">{{ $user->created_at->format('m/d/Y') }}</td>
                     <td>
                         <div style="display:flex;gap:4px;flex-wrap:wrap">
                             <a href="{{ route('superadmin.users.edit', $user->uuid) }}" class="sa-btn sa-btn-ghost sa-btn-sm" title="Edit">

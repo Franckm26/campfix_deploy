@@ -134,7 +134,7 @@
                                         {{ $event->getCategoryLabel() }}
                                     </span>
                                 </td>
-                                <td>{{ $event->event_date->format('M d, Y') }}</td>
+                                <td>{{ $event->event_date->format('m/d/Y') }}</td>
                                 <td>{{ $event->location }}</td>
                                 <td>{{ $event->department }}</td>
                                 <td>
@@ -238,7 +238,7 @@
                                                 </div>
                                                 <div class="col-md-6">
                                                     <p><strong>Requestor:</strong> {{ $event->user->name ?? 'N/A' }}</p>
-                                                    <p><strong>Event Date:</strong> {{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</p>
+                                                    <p><strong>Event Date:</strong> {{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</p>
                                                     <p><strong>Time:</strong> {{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}</p>
                                                     <p><strong>Location:</strong> {{ $event->location }}</p>
                                                 </div>

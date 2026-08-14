@@ -106,7 +106,7 @@
                                         </span>
                                     </td>
                                     <td>{{ $concern->location }}</td>
-                                    <td>{{ $concern->updated_at->format('M d, Y') }}</td>
+                                    <td>{{ $concern->updated_at->format('m/d/Y') }}</td>
                                     <td>
                                         <form method="POST" action="{{ route('concerns.restore', $concern->id) }}" class="d-inline">
                                             @csrf
@@ -162,7 +162,7 @@
                                     <td>EVT-{{ date('Y') }}-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</td>
                                     <td>EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</td>
                                     <td>{{ ucfirst($event->category) }}</td>
-                                    <td>{{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}</td>
+                                    <td>{{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</td>
                                     <td>
                                         <span class="badge bg-{{ 
                                             $event->status == 'Approved' ? 'success' : 
@@ -173,7 +173,7 @@
                                         </span>
                                     </td>
                                     <td>{{ $event->location }}</td>
-                                    <td>{{ $event->updated_at->format('M d, Y') }}</td>
+                                    <td>{{ $event->updated_at->format('m/d/Y') }}</td>
                                     <td>
                                         <form method="POST" action="{{ route('events.restore', $event->id) }}" class="d-inline">
                                             @csrf

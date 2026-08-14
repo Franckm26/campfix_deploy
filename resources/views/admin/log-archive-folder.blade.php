@@ -100,7 +100,7 @@
                                 </td>
                                 <td class="text-muted font-monospace" style="font-size:11px">{{ $log->ip_address ?? '—' }}</td>
                                 <td class="text-muted">
-                                    {{ $log->created_at->format('M d, Y') }}<br>
+                                    {{ $log->created_at->format('m/d/Y') }}<br>
                                     <small>{{ $log->created_at->format('h:i:s A') }}</small>
                                 </td>
                                 <td>

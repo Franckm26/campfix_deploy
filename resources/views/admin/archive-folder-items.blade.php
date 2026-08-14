@@ -247,7 +247,7 @@
                                     </span>
                                 </td>
                                 <td>{{ $concern->user->name ?? 'N/A' }}</td>
-                                <td>{{ $concern->updated_at->format('M d, Y') }}</td>
+                                <td>{{ $concern->updated_at->format('m/d/Y') }}</td>
                                 <td>
                                     <button type="button" class="btn btn-sm btn-success" title="Restore" onclick="showRestoreItemModal('concern', {{ $concern->id }}, '{{ $concern->title }}')">
                                         <i class="fas fa-trash-restore"></i>
@@ -309,7 +309,7 @@
                             </div>
                             <div class="archive-item-card-field">
                                 <span class="archive-item-card-label">Archived:</span>
-                                <span class="archive-item-card-value">{{ $concern->updated_at->format('M d, Y') }}</span>
+                                <span class="archive-item-card-value">{{ $concern->updated_at->format('m/d/Y') }}</span>
                             </div>
                         </div>
                         <div class="archive-item-card-actions">
@@ -380,7 +380,7 @@
                                     </span>
                                 </td>
                                 <td>{{ $report->user->name ?? 'N/A' }}</td>
-                                <td>{{ $report->updated_at->format('M d, Y') }}</td>
+                                <td>{{ $report->updated_at->format('m/d/Y') }}</td>
                                 <td>
                                     <button type="button" class="btn btn-sm btn-success" title="Restore" onclick="showRestoreItemModal('report', {{ $report->id }}, '{{ $report->title }}')">
                                         <i class="fas fa-trash-restore"></i>
@@ -442,7 +442,7 @@
                             </div>
                             <div class="archive-item-card-field">
                                 <span class="archive-item-card-label">Archived:</span>
-                                <span class="archive-item-card-value">{{ $report->updated_at->format('M d, Y') }}</span>
+                                <span class="archive-item-card-value">{{ $report->updated_at->format('m/d/Y') }}</span>
                             </div>
                         </div>
                         <div class="archive-item-card-actions">
@@ -506,7 +506,7 @@
                                     </span>
                                 </td>
                                 <td>{{ $facility->user->name ?? 'N/A' }}</td>
-                                <td>{{ $facility->updated_at->format('M d, Y') }}</td>
+                                <td>{{ $facility->updated_at->format('m/d/Y') }}</td>
                                 <td>
                                     <button type="button" class="btn btn-sm btn-success" title="Restore" onclick="showRestoreItemModal('facility', {{ $facility->id }}, '{{ $facility->event_title }}')">
                                         <i class="fas fa-trash-restore"></i>
@@ -561,7 +561,7 @@
                             </div>
                             <div class="archive-item-card-field">
                                 <span class="archive-item-card-label">Archived:</span>
-                                <span class="archive-item-card-value">{{ $facility->updated_at->format('M d, Y') }}</span>
+                                <span class="archive-item-card-value">{{ $facility->updated_at->format('m/d/Y') }}</span>
                             </div>
                         </div>
                         <div class="archive-item-card-actions">

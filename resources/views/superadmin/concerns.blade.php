@@ -73,7 +73,7 @@
                     <td style="color:var(--sa-muted);font-size:12px">{{ Str::limit($concern->location ?? '—', 30) }}</td>
                     <td><span class="sa-badge {{ $statusColors[$concern->status] ?? 'sa-badge-gray' }}">{{ $concern->status }}</span></td>
                     <td style="color:var(--sa-muted);font-size:12px">{{ $concern->assignedTo->name ?? '—' }}</td>
-                    <td style="color:var(--sa-muted);font-size:12px">{{ $concern->created_at->format('M d, Y') }}</td>
+                    <td style="color:var(--sa-muted);font-size:12px">{{ $concern->created_at->format('m/d/Y') }}</td>
                     <td>
                         <form method="POST" action="{{ route('superadmin.concerns.force-delete', $concern->id) }}"
                               onsubmit="return confirm('Permanently delete this concern? Cannot be undone.')">

@@ -250,7 +250,7 @@
                                     </span>
                                 </td>
                                 <td>{{ $user->department ?? 'N/A' }}</td>
-                                <td>{{ $user->updated_at->format('M d, Y') }}</td>
+                                <td>{{ $user->updated_at->format('m/d/Y') }}</td>
                                 <td>
                                     <button type="button" class="btn btn-sm btn-success" title="Restore" onclick="showRestoreUserModal({{ $user->id }}, '{{ $user->name }}')">
                                         <i class="fas fa-trash-restore"></i> Restore
@@ -308,7 +308,7 @@
                             </div>
                             <div class="archived-user-card-field">
                                 <span class="archived-user-card-label">Archived:</span>
-                                <span class="archived-user-card-value">{{ $user->updated_at->format('M d, Y') }}</span>
+                                <span class="archived-user-card-value">{{ $user->updated_at->format('m/d/Y') }}</span>
                             </div>
                         </div>
                         <div class="archived-user-card-actions">

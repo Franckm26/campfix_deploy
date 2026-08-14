@@ -744,7 +744,7 @@
                                 </td>
                                 <td>{{ $folder->description ?? 'No description' }}</td>
                                 <td><span class="badge bg-primary">{{ $folder->user_count }} users</span></td>
-                                <td>{{ $folder->created_at->format('M d, Y') }}</td>
+                                <td>{{ $folder->created_at->format('m/d/Y') }}</td>
                                 <td>
                                     <div class="btn-group" role="group">
                                         <a href="{{ route('admin.archiveFolderUsers', $folder->id) }}" class="btn btn-sm btn-outline-primary" title="View Users">
@@ -810,7 +810,7 @@
                             </div>
                             <div class="user-card-field">
                                 <span class="user-card-label">Created:</span>
-                                <span class="user-card-value">{{ $folder->created_at->format('M d, Y') }}</span>
+                                <span class="user-card-value">{{ $folder->created_at->format('m/d/Y') }}</span>
                             </div>
                         </div>
                         <div class="user-card-actions">
