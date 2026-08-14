@@ -3878,32 +3878,26 @@ class AdminController extends Controller
 
         $query = ActivityLog::with('user', 'concern')
             ->where('is_archived', $isArchived)
+            ->where(function ($query) {
+                $query->whereNotNull('item_user_id')
+                    ->orWhere('action', 'like', 'user_%')
+                    ->orWhere('action', 'like', 'users_%')
+                    ->orWhere('action', 'like', 'account_%')
+                    ->orWhere('action', 'like', 'login%')
+                    ->orWhere('action', 'like', 'logout%')
+                    ->orWhere('action', 'like', 'microsoft_login%')
+                    ->orWhere('action', 'like', 'password_%')
+                    ->orWhere('action', 'like', 'permission_%')
+                    ->orWhere('action', 'like', 'role_%')
+                    ->orWhere('action', 'like', 'security_%')
+                    ->orWhere('action', 'like', 'session_%');
+            })
             // Never expose superadmin actions to regular admins
             ->whereDoesntHave('user', fn($q) => $q->withoutGlobalScopes()
                 ->where(function ($q) {
                     $q->where('is_superadmin', true)->orWhere('role', 'superadmin');
                 })
             );
-
-        if ($currentUser && $currentUser->role === 'mis') {
-            $query->where(function ($q) {
-                $q->whereNotNull('item_user_id')
-                    ->orWhere('action', 'like', 'user_%')
-                    ->orWhere('action', 'like', 'users_%')
-                    ->orWhere('action', 'like', 'log_%')
-                    ->orWhere('action', 'like', 'logs_%');
-            });
-        } elseif ($currentUser && $currentUser->role === 'building_admin') {
-            $query->where(function ($q) {
-                $q->whereNotNull('report_id')
-                    ->orWhereNotNull('event_request_id')
-                    ->orWhereNotNull('concern_id')
-                    ->orWhere('action', 'like', 'report_%')
-                    ->orWhere('action', 'like', 'event_%')
-                    ->orWhere('action', 'like', 'concern_%')
-                    ->orWhereIn('action', ['status_updated', 'resolution_added', 'cost_updated']);
-            });
-        }
 
         if ($request->filled('action')) {
             $query->where('action', $request->input('action'));
