@@ -97,6 +97,14 @@ class EventRequestController extends Controller
     public function store(Request $request)
     {
         try {
+            // The modal's visible location inputs are area_of_use / avr_selection.
+            // Normalize them before validation so a missing client-side sync cannot reject a valid request.
+            if (! filled($request->input('location'))) {
+                $request->merge([
+                    'location' => $request->input('area_of_use') ?: $request->input('avr_selection'),
+                ]);
+            }
+
             $allowedRoles = ['faculty', 'school_admin', 'academic_head', 'program_head', 'building_admin'];
             if (!in_array(auth()->user()->role, $allowedRoles)) {
                 if ($request->expectsJson()) {
