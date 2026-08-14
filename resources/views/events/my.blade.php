@@ -361,8 +361,8 @@
                                                                 <i class="fas fa-trash"></i>
                                                             </button>
                                                         </form>
-                                                    @elseif($request->status == 'Pending')
-                                                        {{-- Show only Cancel for pending events --}}
+                                                    @elseif(in_array($request->status, ['Pending', 'Approved']))
+                                                        {{-- Requesters may cancel pending or already approved events. --}}
                                                         <form action="{{ route('events.cancel', $request->id) }}" method="POST" class="d-inline">
                                                             @csrf
                                                             <button type="submit" class="btn btn-sm btn-danger"
@@ -439,7 +439,7 @@
                                                     <i class="fas fa-trash"></i> Delete
                                                 </button>
                                             </form>
-                                        @elseif($request->status == 'Pending')
+                                        @elseif(in_array($request->status, ['Pending', 'Approved']))
                                             <form action="{{ route('events.cancel', $request->id) }}" method="POST" style="flex: 1;">
                                                 @csrf
                                                 <button type="submit" class="btn btn-sm btn-danger w-100"
@@ -1636,7 +1636,6 @@ function viewEvent(id) {
                 <div class="col-md-6">
                     <p><strong>Location:</strong> ${event.location}</p>
                     <p><strong>Department:</strong> ${event.department || 'N/A'}</p>
-                    <p><strong>Priority:</strong> <span class="badge bg-${event.priority === 'urgent' ? 'danger' : (event.priority === 'high' ? 'warning' : (event.priority === 'medium' ? 'info' : 'secondary'))}">${event.priority.charAt(0).toUpperCase() + event.priority.slice(1)}</span></p>
                     <p><strong>Submitted:</strong> ${new Date(event.created_at).toLocaleString()}</p>
                 </div>
             </div>
@@ -1882,7 +1881,6 @@ function viewDeletedEvent(id) {
                 <div class="col-md-6">
                     <p><strong>Location:</strong> ${event.location}</p>
                     <p><strong>Department:</strong> ${event.department || 'N/A'}</p>
-                    <p><strong>Priority:</strong> <span class="badge bg-${event.priority === 'urgent' ? 'danger' : (event.priority === 'high' ? 'warning' : (event.priority === 'medium' ? 'info' : 'secondary'))}">${event.priority ? event.priority.charAt(0).toUpperCase() + event.priority.slice(1) : 'N/A'}</span></p>
                     <p><strong>Submitted:</strong> ${new Date(event.created_at).toLocaleString()}</p>
                 </div>
             </div>
@@ -2446,4 +2444,3 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 @endsection
-

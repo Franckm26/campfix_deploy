@@ -132,7 +132,6 @@ class EventRequestController extends Controller
                 'area_of_use' => 'required_if:category,Area Use|string',
                 'room_number' => 'nullable|string',
                 'department' => 'nullable|in:GE,ICT,Business Management,THM',
-                'priority' => 'nullable|in:low,medium,high,urgent',
                 'education_level' => 'required|in:tertiary,shs,faculty,staff,maintenance',
                 'picture' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
             ], [
@@ -193,7 +192,7 @@ class EventRequestController extends Controller
                 'other_category' => $request->other_category,
                 'department' => $isShsIntended ? null : $request->department,
                 'education_level' => $educationLevel,
-                'priority' => $request->priority ?? 'medium',
+                'priority' => null,
                 // Faculty-intended requests are auto-approved; others go through the approval chain
                 'status' => $isFacultyIntended ? 'Approved' : 'Pending',
                 'approval_level' => $isFacultyIntended ? EventRequest::LEVEL_APPROVED : $initialApprovalLevel,
@@ -1504,7 +1503,7 @@ class EventRequestController extends Controller
     }
 
     // Cancel request
-    public function cancel($id)
+    public function cancel(Request $request, $id)
     {
         $eventRequest = EventRequest::findOrFail($id);
 
@@ -1513,12 +1512,17 @@ class EventRequestController extends Controller
             return redirect()->route('events.my')->with('error', 'You cannot cancel this request.');
         }
 
-        $eventRequest->status = 'Cancelled';
-        $eventRequest->save();
+        $request->validate(['reason' => 'nullable|string|max:1000']);
+
+        $eventRequest->update([
+            'status' => 'Cancelled',
+            'cancellation_reason' => $request->input('reason'),
+            'cancelled_at' => now(),
+        ]);
 
         ActivityLog::log(
             'event_cancelled',
-            'Event cancelled: ',
+            "Event request cancelled: {$eventRequest->location}. Reason: ".($eventRequest->cancellation_reason ?: 'Not provided'),
             null
         );
 
@@ -2205,7 +2209,6 @@ class EventRequestController extends Controller
             'end_time' => $event->end_time,
             'category' => $event->category,
             'department' => $event->department,
-            'priority' => $event->priority,
             'status' => $event->status,
             'approval_level' => $event->approval_level,
             'created_at' => optional($event->created_at)->toIso8601String(),
@@ -2335,7 +2338,6 @@ class EventRequestController extends Controller
             'end_time' => 'required|date_format:H:i|after:start_time',
             'category' => 'required|in:event,meeting,activity,training,other',
             'department' => 'nullable|in:GE,ICT,Business Management,THM',
-            'priority' => 'nullable|in:low,medium,high,urgent',
         ]);
 
         $event = EventRequest::create([
@@ -2348,7 +2350,7 @@ class EventRequestController extends Controller
             'end_time' => $validated['end_time'],
             'category' => $validated['category'],
             'department' => $validated['department'] ?? null,
-            'priority' => $validated['priority'] ?? 'medium',
+            'priority' => null,
             'status' => 'Pending',
             'approval_level' => EventRequest::LEVEL_NONE,
         ]);
