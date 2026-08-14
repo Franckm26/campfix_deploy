@@ -442,7 +442,7 @@
                                         @elseif(in_array($request->status, ['Pending', 'Approved']))
                                             <form action="{{ route('events.cancel', $request->id) }}" method="POST" style="flex: 1;">
                                                 @csrf
-                                                <button type="submit" class="btn btn-sm btn-danger w-100"
+                                                <button type="button" class="btn btn-sm btn-danger w-100" onclick="cancelEventRequest({{ $request->id }})"
                                                     data-confirm="Cancel this request?"
                                                     data-confirm-title="Cancel Request"
                                                     data-confirm-ok="Yes, Cancel"
