@@ -1517,6 +1517,11 @@
                     </div>
 
                     <div class="mb-3">
+                        <label for="new_details" class="form-label">Additional description <span class="text-muted">(Optional)</span></label>
+                        <textarea class="form-control" id="new_details" name="details" rows="3" maxlength="2000" placeholder="Add useful details about the issue, if any."></textarea>
+                    </div>
+
+                    <div class="mb-3">
                         <label for="new_image" class="form-label">Upload Photo (Optional)</label>
                         <input type="file" class="form-control" id="new_image" name="image" 
                             accept="image/*">

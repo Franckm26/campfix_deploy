@@ -13,6 +13,7 @@ class Concern extends Model
     protected $fillable = [
         'title',
         'description',
+        'details',
         'location',
         'location_type',
         'room_number',

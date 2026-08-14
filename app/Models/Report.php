@@ -17,6 +17,7 @@ class Report extends Model
         'concern_id',
         'category_id',
         'description',
+        'details',
         'location',
         'severity',
         'is_safety_hazard',

@@ -173,6 +173,7 @@ class ConcernController extends Controller
                 'room_number' => 'nullable|string|max:255',
                 'category_id' => 'required|exists:categories,id',
                 'description' => 'nullable|string',
+                'details' => 'nullable|string|max:2000',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
                 'is_anonymous' => 'nullable|boolean',
             ]);
@@ -315,6 +316,7 @@ class ConcernController extends Controller
         $concernData = [
             'title' => $request->title,
             'description' => $problemTypeForStorage,
+            'details' => $request->input('details'),
             'location' => $concernLocation,
             'location_type' => $request->location_type,
             'room_number' => $request->room_number,
@@ -362,6 +364,7 @@ class ConcernController extends Controller
             'concern_id' => $concern->id,
             'category_id' => $request->category_id,
             'description' => $problemTypeForStorage,
+            'details' => $request->input('details'),
             'location' => $reportLocation,
             'location_type' => $request->location_type,
             'room_number' => $request->room_number,
