@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('styles')
 <link href="{{ asset('css/admin.css') }}" rel="stylesheet">
@@ -44,7 +44,7 @@
                 </div>
                 <div class="col-md-4">
                     <select id="retentionDays" class="form-select">
-                        <option value="3" {{ ($days ?? 15) == 3 ? 'selected' : '' }}>3 days</option>
+                        <option value="0" {{ ($days ?? 15) == 0 ? 'selected' : '' }}>Off</option>`r`n                        <option value="3" {{ ($days ?? 15) == 3 ? 'selected' : '' }}>3 days</option>
                         <option value="7" {{ ($days ?? 15) == 7 ? 'selected' : '' }}>7 days</option>
                         <option value="15" {{ ($days ?? 15) == 15 ? 'selected' : '' }}>15 days</option>
                         <option value="30" {{ ($days ?? 15) == 30 ? 'selected' : '' }}>30 days</option>

@@ -1,4 +1,4 @@
-@extends('layouts.app')
+Ôªø@extends('layouts.app')
 
 @section('styles')
 <link href="{{ asset('css/admin.css') }}" rel="stylesheet">
@@ -957,7 +957,7 @@
                 <div class="d-flex align-items-center gap-3">
                     <span class="badge bg-warning fs-6">{{ $deletedReports->count() ?? 0 }} reports</span>
                     <select id="retentionDays" class="form-select form-select-sm" style="width:120px;">
-                        <option value="3" {{ ($days ?? 15) == 3 ? 'selected' : '' }}>3 days</option>
+                        <option value="0" {{ ($days ?? 15) == 0 ? 'selected' : '' }}>Off</option>`r`n                        <option value="3" {{ ($days ?? 15) == 3 ? 'selected' : '' }}>3 days</option>
                         <option value="7" {{ ($days ?? 15) == 7 ? 'selected' : '' }}>7 days</option>
                         <option value="15" {{ ($days ?? 15) == 15 ? 'selected' : '' }}>15 days</option>
                         <option value="30" {{ ($days ?? 15) == 30 ? 'selected' : '' }}>30 days</option>
@@ -1449,7 +1449,7 @@ document.addEventListener('DOMContentLoaded', function() {
             data: {
                 labels: window.chartLocations,
                 datasets: [{
-                    label: 'Total Cost (PHPÇ±)',
+                    label: 'Total Cost (PHP‚Äö¬±)',
                     data: window.chartCosts,
                     backgroundColor: '#36A2EB',
                     borderColor: '#36A2EB',
@@ -1463,7 +1463,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         beginAtZero: true,
                         ticks: {
                             callback: function(value) {
-                                return 'PHPÇ±' + value.toLocaleString();
+                                return 'PHP‚Äö¬±' + value.toLocaleString();
                             }
                         }
                     }
@@ -1472,7 +1472,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     tooltip: {
                         callbacks: {
                             label: function(context) {
-                                return 'PHPÇ±' + context.parsed.y.toLocaleString();
+                                return 'PHP‚Äö¬±' + context.parsed.y.toLocaleString();
                             }
                         }
                     }
@@ -1515,7 +1515,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Line Chart for Monthly Trend PHPÄî one line per issue type
+    // Line Chart for Monthly Trend PHP‚Ç¨‚Äù one line per issue type
     const monthlyTrendCtx = document.getElementById('monthlyTrendChart');
     if (monthlyTrendCtx) {
         // Build 6-month label range
@@ -1665,9 +1665,9 @@ document.addEventListener('DOMContentLoaded', function() {
                                     const pending = statusData['Pending'] || 0;
                                     const inProgress = statusData['In Progress'] || 0;
                                     
-                                    if (resolved > 0) lines.push('  PHPúì Resolved: ' + resolved);
-                                    if (inProgress > 0) lines.push('  PHPü≥ In Progress: ' + inProgress);
-                                    if (pending > 0) lines.push('  PHPè± Pending: ' + pending);
+                                    if (resolved > 0) lines.push('  PHP≈ì‚Äú Resolved: ' + resolved);
+                                    if (inProgress > 0) lines.push('  PHP≈∏¬≥ In Progress: ' + inProgress);
+                                    if (pending > 0) lines.push('  PHP¬è¬± Pending: ' + pending);
                                 }
                                 
                                 return lines;
@@ -2568,7 +2568,7 @@ window.viewReportProgress = async function(id) {
                     </div>
                     <div class="text-start pt-1">
                         <div style="font-weight:600;color:${txtCol};">${s.label}</div>
-                        ${s.detail ? `<div style="font-size:12px;color:#666;">PHPÜí ${s.detail}</div>` : ''}
+                        ${s.detail ? `<div style="font-size:12px;color:#666;">PHP‚Ä†‚Äô ${s.detail}</div>` : ''}
                         ${s.date   ? `<div style="font-size:11px;color:#999;">${s.date}</div>` : ''}
                     </div>
                 </div>`;
@@ -2687,7 +2687,7 @@ async function proceedReportToNextLevel(reportId, newStatus, reportTitle) {
                     <p class="mb-3">Please provide resolution details for "${reportTitle}":</p>
                     
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Cost (PHPÇ±)</label>
+                        <label class="form-label fw-bold">Cost (PHP‚Äö¬±)</label>
                         <input type="number" id="swal-cost" class="form-control" placeholder="0.00" step="0.01" min="0">
                         <small class="text-muted">Enter the total cost of repair/replacement</small>
                     </div>

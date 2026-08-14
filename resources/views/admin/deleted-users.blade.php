@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('styles')
 <link href="{{ asset('css/admin.css') }}" rel="stylesheet">
@@ -67,7 +67,7 @@
                     <div class="d-flex align-items-center justify-content-center">
                         <label for="retentionDays" class="me-2 mb-0">Auto-filter after:</label>
                         <select id="retentionDays" class="form-select form-select-sm" style="width: auto;">
-                            <option value="3" {{ $days == 3 ? 'selected' : '' }}>3 days</option>
+                            <option value="0" {{ $days == 0 ? 'selected' : '' }}>Off</option>`r`n                            <option value="3" {{ $days == 3 ? 'selected' : '' }}>3 days</option>
                             <option value="7" {{ $days == 7 ? 'selected' : '' }}>7 days</option>
                             <option value="15" {{ $days == 15 ? 'selected' : '' }}>15 days</option>
                             <option value="30" {{ $days == 30 ? 'selected' : '' }}>30 days</option>

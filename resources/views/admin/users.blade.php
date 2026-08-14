@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('styles')
 <link href="{{ asset('css/admin.css') }}" rel="stylesheet">
@@ -447,7 +447,7 @@
                                                         </div>
                                                         <div class="edit-pw-reqs mt-2 p-3 rounded shadow-sm" style="display:none;background:#f8f9fa;font-size:13px;border:1px solid #dee2e6">
                                                             <div class="fw-semibold mb-2">Password Must Include:</div>
-                                                            <div class="edit-req-length  req-item"><i class="fas fa-times-circle text-danger me-2"></i>8–20 <strong>Characters</strong></div>
+                                                            <div class="edit-req-length  req-item"><i class="fas fa-times-circle text-danger me-2"></i>8â€“20 <strong>Characters</strong></div>
                                                             <div class="edit-req-upper   req-item mt-1"><i class="fas fa-times-circle text-danger me-2"></i>At Least One <strong>Capital Letter</strong></div>
                                                             <div class="edit-req-number  req-item mt-1"><i class="fas fa-times-circle text-danger me-2"></i>At Least One <strong>Number</strong></div>
                                                             <div class="edit-req-special req-item mt-1"><i class="fas fa-times-circle text-danger me-2"></i>At Least One <strong>Special Character</strong></div>
@@ -456,7 +456,7 @@
                                                     </div>
                                                 </div>
 
-                                                {{-- ── Access Management ── --}}
+                                                {{-- â”€â”€ Access Management â”€â”€ --}}
                                                 @php
                                                     $userPerms   = $user->permissions;
                                                     $activePerms = is_array($userPerms) && count($userPerms)
@@ -917,7 +917,7 @@
                             alert('Error saving preference');
                         });
                     ">
-                        <option value="3" {{ (isset($days) && $days == 3) ? 'selected' : '' }}>3 days</option>
+                        <option value="0" {{ (isset($days) && $days == 0) ? 'selected' : '' }}>Off</option>`r`n                        <option value="3" {{ (isset($days) && $days == 3) ? 'selected' : '' }}>3 days</option>
                         <option value="7" {{ (isset($days) && $days == 7) ? 'selected' : '' }}>7 days</option>
                         <option value="15" {{ (!isset($days) || $days == 15) ? 'selected' : '' }}>15 days</option>
                         <option value="30" {{ (isset($days) && $days == 30) ? 'selected' : '' }}>30 days</option>
@@ -1308,7 +1308,7 @@
                         </div>
                     @endif
 
-                    {{-- ── Basic Info ── --}}
+                    {{-- â”€â”€ Basic Info â”€â”€ --}}
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">First Name <span class="text-danger">*</span></label>
@@ -1360,7 +1360,7 @@
                         </div>
                     </div>
 
-                    {{-- ── Access Management ── --}}
+                    {{-- â”€â”€ Access Management â”€â”€ --}}
                     <div class="border rounded p-3" style="background:#f8fafc">
                         <div class="mb-3">
                             <span class="fw-semibold"><i class="fas fa-shield-halved me-1 text-primary"></i>Module Access</span>
@@ -2025,7 +2025,7 @@ function initializeUserTableEvents() {
     });
 }
 
-// ── Role default permissions map (mirrors User::defaultPermissions) ──
+// â”€â”€ Role default permissions map (mirrors User::defaultPermissions) â”€â”€
 const roleDefaults = {
     mis:                  ['concerns','events','users','users_create','users_archive','users_lock','users_unlock','users_edit','users_delete','module_access','categories','logs','mis_tasks','settings'],
     school_admin:         ['concerns','reports','events','analytics','settings'],
