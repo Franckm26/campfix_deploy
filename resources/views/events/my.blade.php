@@ -363,6 +363,7 @@
                                                         </form>
                                                     @elseif(in_array($request->status, ['Pending', 'Approved']))
                                                         {{-- Requesters may cancel pending or already approved events. --}}
+                                                        <button type="button" class="btn btn-sm btn-primary" onclick="rescheduleEventRequest({{ $request->id }})" title="Reschedule"><i class="fas fa-calendar-pen"></i></button>
                                                         <form action="{{ route('events.cancel', $request->id) }}" method="POST" class="d-inline">
                                                             @csrf
                                                             <button type="submit" class="btn btn-sm btn-danger"
@@ -440,6 +441,7 @@
                                                 </button>
                                             </form>
                                         @elseif(in_array($request->status, ['Pending', 'Approved']))
+                                            <button type="button" class="btn btn-sm btn-primary" style="flex: 1;" onclick="rescheduleEventRequest({{ $request->id }})"><i class="fas fa-calendar-pen"></i> Reschedule</button>
                                             <form action="{{ route('events.cancel', $request->id) }}" method="POST" style="flex: 1;">
                                                 @csrf
                                                 <button type="button" class="btn btn-sm btn-danger w-100" onclick="cancelEventRequest({{ $request->id }})"
@@ -2023,6 +2025,32 @@ function cancelEventRequest(eventId) {
             form.querySelector('[name="reason"]').value = reason || '';
             document.body.appendChild(form);
             form.submit();
+        }
+    });
+}
+
+function rescheduleEventRequest(eventId) {
+    Swal.fire({
+        title: 'Reschedule event request',
+        html: `<input id="rescheduleDate" type="date" class="swal2-input" aria-label="New event date"><input id="rescheduleStart" type="time" class="swal2-input" aria-label="New start time"><input id="rescheduleEnd" type="time" class="swal2-input" aria-label="New end time"><textarea id="rescheduleReason" class="swal2-textarea" placeholder="Reason (optional)"></textarea>`,
+        showCancelButton: true,
+        confirmButtonText: 'Submit for approval',
+        preConfirm: () => {
+            const eventDate = document.getElementById('rescheduleDate').value;
+            const startTime = document.getElementById('rescheduleStart').value;
+            const endTime = document.getElementById('rescheduleEnd').value;
+            if (!eventDate || !startTime || !endTime || endTime <= startTime) {
+                Swal.showValidationMessage('Enter a valid date and an end time after the start time.');
+                return false;
+            }
+            const form = document.createElement('form');
+            form.method = 'POST'; form.action = `/events/${eventId}/reschedule`;
+            form.innerHTML = `<input type="hidden" name="_token" value="{{ csrf_token() }}"><input type="hidden" name="event_date"><input type="hidden" name="start_time"><input type="hidden" name="end_time"><input type="hidden" name="reason">`;
+            form.querySelector('[name="event_date"]').value = eventDate;
+            form.querySelector('[name="start_time"]').value = startTime;
+            form.querySelector('[name="end_time"]').value = endTime;
+            form.querySelector('[name="reason"]').value = document.getElementById('rescheduleReason').value;
+            document.body.appendChild(form); form.submit();
         }
     });
 }
