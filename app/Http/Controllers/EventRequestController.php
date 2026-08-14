@@ -200,7 +200,8 @@ class EventRequestController extends Controller
                 'other_category' => $request->other_category,
                 'department' => $isShsIntended ? null : $request->department,
                 'education_level' => $educationLevel,
-                'priority' => null,
+                // Kept internally for the current non-null database column; it is no longer shown or chosen by users.
+                'priority' => 'medium',
                 // Faculty-intended requests are auto-approved; others go through the approval chain
                 'status' => $isFacultyIntended ? 'Approved' : 'Pending',
                 'approval_level' => $isFacultyIntended ? EventRequest::LEVEL_APPROVED : $initialApprovalLevel,
@@ -2386,7 +2387,8 @@ class EventRequestController extends Controller
             'end_time' => $validated['end_time'],
             'category' => $validated['category'],
             'department' => $validated['department'] ?? null,
-            'priority' => null,
+            // Kept internally for the current non-null database column; it is no longer shown or chosen by users.
+            'priority' => 'medium',
             'status' => 'Pending',
             'approval_level' => EventRequest::LEVEL_NONE,
         ]);
