@@ -26,14 +26,13 @@
     </section>
 
     <section class="dss-report-section">
-        <h2>2. Executive KPI Scorecard</h2>
+        <h2>2. Executive Scorecard</h2>
         <div class="dss-scorecards">
             @foreach([
                 ['Total Reports', number_format($totalReports), 'All selected records'],
                 ['Open Reports', number_format($openReports), number_format($avgReportAgeDays, 1).' avg days old'],
                 ['Resolved', number_format($resolvedReports), 'Completed reports'],
                 ['Hazards', number_format($hazardReports), number_format($openHazardItems->count()).' currently open'],
-                ['Risk Index', $riskIndex.'/100', $priorityLevel.' priority'],
                 ['Trend', $trendDirection, number_format(abs($monthlyChangePercent), 1).'% monthly change'],
             ] as $score)
                 <div><span>{{ $score[0] }}</span><strong>{{ $score[1] }}</strong><small>{{ $score[2] }}</small></div>
