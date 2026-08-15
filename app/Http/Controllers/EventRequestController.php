@@ -1523,15 +1523,19 @@ class EventRequestController extends Controller
 
         $request->validate(['reason' => 'nullable|string|max:1000']);
 
-        $eventRequest->update([
-            'status' => 'Cancelled',
-            'cancellation_reason' => $request->input('reason'),
-            'cancelled_at' => now(),
-        ]);
+        $cancellationUpdate = ['status' => 'Cancelled'];
+        // Allow cancellation to work while older deployments are still waiting for the migration.
+        if (\Illuminate\Support\Facades\Schema::hasColumn('event_requests', 'cancellation_reason')) {
+            $cancellationUpdate['cancellation_reason'] = $request->input('reason');
+        }
+        if (\Illuminate\Support\Facades\Schema::hasColumn('event_requests', 'cancelled_at')) {
+            $cancellationUpdate['cancelled_at'] = now();
+        }
+        $eventRequest->update($cancellationUpdate);
 
         ActivityLog::log(
             'event_cancelled',
-            "Event request cancelled: {$eventRequest->location}. Reason: ".($eventRequest->cancellation_reason ?: 'Not provided'),
+            "Event request cancelled: {$eventRequest->location}. Reason: ".($request->input('reason') ?: 'Not provided'),
             null
         );
 

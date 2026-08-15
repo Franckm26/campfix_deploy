@@ -363,7 +363,7 @@
                                                         </form>
                                                     @elseif(in_array($request->status, ['Pending', 'Approved']))
                                                         {{-- Requesters may cancel pending or already approved events. --}}
-                                                        <button type="button" class="btn btn-sm btn-primary" onclick="rescheduleEventRequest({{ $request->id }})" title="Reschedule"><i class="fas fa-calendar-pen"></i></button>
+                                                        <button type="button" class="btn btn-sm btn-success" onclick="rescheduleEventRequest({{ $request->id }})" title="Reschedule"><i class="fas fa-calendar-alt"></i></button>
                                                         <form action="{{ route('events.cancel', $request->id) }}" method="POST" class="d-inline">
                                                             @csrf
                                                             <button type="submit" class="btn btn-sm btn-danger"
@@ -441,7 +441,7 @@
                                                 </button>
                                             </form>
                                         @elseif(in_array($request->status, ['Pending', 'Approved']))
-                                            <button type="button" class="btn btn-sm btn-primary" style="flex: 1;" onclick="rescheduleEventRequest({{ $request->id }})"><i class="fas fa-calendar-pen"></i> Reschedule</button>
+                                            <button type="button" class="btn btn-sm btn-success" style="flex: 1;" onclick="rescheduleEventRequest({{ $request->id }})"><i class="fas fa-calendar-alt"></i> Reschedule</button>
                                             <form action="{{ route('events.cancel', $request->id) }}" method="POST" style="flex: 1;">
                                                 @csrf
                                                 <button type="button" class="btn btn-sm btn-danger w-100" onclick="cancelEventRequest({{ $request->id }})"
@@ -513,8 +513,8 @@
                                                     <a href="{{ route('events.pdf', $request->id) }}" class="btn btn-sm btn-primary" title="Download PDF" target="_blank">
                                                         <i class="fas fa-file-pdf"></i>
                                                     </a>
-                                                    <button type="button" class="btn btn-sm btn-primary" onclick="rescheduleEventRequest({{ $request->id }})" title="Reschedule">
-                                                        <i class="fas fa-calendar-pen"></i>
+                                                    <button type="button" class="btn btn-sm btn-success" onclick="rescheduleEventRequest({{ $request->id }})" title="Reschedule">
+                                                        <i class="fas fa-calendar-alt"></i>
                                                     </button>
                                                     <button type="button" class="btn btn-sm btn-danger" onclick="cancelEventRequest({{ $request->id }})" title="Cancel with reason">
                                                         <i class="fas fa-times"></i>
@@ -567,8 +567,8 @@
                                         <a href="{{ route('events.pdf', $request->id) }}" class="btn btn-sm btn-primary" target="_blank">
                                             <i class="fas fa-file-pdf"></i> PDF
                                         </a>
-                                        <button type="button" class="btn btn-sm btn-primary" onclick="rescheduleEventRequest({{ $request->id }})">
-                                            <i class="fas fa-calendar-pen"></i> Reschedule
+                                        <button type="button" class="btn btn-sm btn-success" onclick="rescheduleEventRequest({{ $request->id }})">
+                                            <i class="fas fa-calendar-alt"></i> Reschedule
                                         </button>
                                         <button type="button" class="btn btn-sm btn-danger" onclick="cancelEventRequest({{ $request->id }})">
                                             <i class="fas fa-times"></i> Cancel
