@@ -42,7 +42,7 @@
 
     <section class="dss-report-section">
         <h2>3. System-Generated Insights</h2>
-        <ul class="dss-insights">@forelse($aiInsights->reject(fn ($insight) => str_starts_with($insight, 'At the current 30-day completion rate')) as $insight)<li>{{ $insight }}</li>@empty<li>Insufficient data for automated insight generation.</li>@endforelse</ul>
+        <ul class="dss-insights">@forelse($aiInsights->reject(fn ($insight) => str_starts_with($insight, 'At the current 30-day completion rate') || str_contains($insight, 'operational risk score')) as $insight)<li>{{ $insight }}</li>@empty<li>Insufficient data for automated insight generation.</li>@endforelse</ul>
     </section>
 
     <section class="dss-report-section dss-page-break">
@@ -63,12 +63,12 @@
 
     <section class="dss-report-section dss-page-break">
         <h2>7. Hazard and Financial Analysis</h2>
-        <table class="dss-report-table"><thead><tr><th>Hazard Level</th><th>Reports</th><th>Open</th><th>Avg Age</th></tr></thead><tbody><tr><td>Safety Hazard</td><td>{{ $hazardReports }}</td><td>{{ $openHazardItems->count() }}</td><td>{{ number_format($hazardAvgAge, 1) }} days</td></tr></tbody></table>
+        <table class="dss-report-table"><thead><tr><th>Hazard Level</th><th>Reports</th><th>Open</th></tr></thead><tbody><tr><td>Safety Hazard</td><td>{{ $hazardReports }}</td><td>{{ $openHazardItems->count() }}</td></tr></tbody></table>
     </section>
 
     <section class="dss-report-section">
         <h2>8. Staff Performance</h2>
-        <table class="dss-report-table"><thead><tr><th>Staff</th><th>Assigned</th><th>Resolved</th><th>Avg Hours</th><th>SLA</th><th>Efficiency</th></tr></thead><tbody>@forelse($staffStats as $staff)<tr><td>{{ $staff['staff'] }}</td><td>{{ $staff['assigned'] }}</td><td>{{ $staff['resolved'] }}</td><td>{{ $staff['avg_hours'] !== null ? number_format($staff['avg_hours'], 1) : 'N/A' }}</td><td>{{ $staff['sla'] !== null ? number_format($staff['sla'], 1).'%' : 'N/A' }}</td><td>{{ number_format($staff['efficiency'], 1) }}%</td></tr>@empty<tr><td colspan="6">No assignment performance data is available.</td></tr>@endforelse</tbody></table>
+        <table class="dss-report-table"><thead><tr><th>Staff</th><th>Assigned</th><th>Resolved</th><th>Avg Hours</th><th>Efficiency</th></tr></thead><tbody>@forelse($staffStats as $staff)<tr><td>{{ $staff['staff'] }}</td><td>{{ $staff['assigned'] }}</td><td>{{ $staff['resolved'] }}</td><td>{{ $staff['avg_hours'] !== null ? number_format($staff['avg_hours'], 1) : 'N/A' }}</td><td>{{ number_format($staff['efficiency'], 1) }}%</td></tr>@empty<tr><td colspan="5">No assignment performance data is available.</td></tr>@endforelse</tbody></table>
     </section>
 
     <section class="dss-report-section dss-page-break">
