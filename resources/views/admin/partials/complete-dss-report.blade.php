@@ -16,9 +16,9 @@
         <h2>1. Executive Management Summary</h2>
         @if($totalReports > 0)
             <p>During the selected period, CampFix processed <strong>{{ number_format($totalReports) }} maintenance reports across {{ number_format($locationStats->count()) }} locations</strong>. {{ number_format($openReports) }} reports remain open while {{ number_format($resolvedReports) }} have been resolved.</p>
-            <p>The open workload consists of {{ number_format($pendingReports) }} pending and {{ number_format($assignedReports) }} assigned reports. @if($estimatedBacklogDays !== null) Based on the previous 30 days of completions, clearing the current backlog may require approximately <strong>{{ number_format($estimatedBacklogDays) }} working days</strong> if capacity remains unchanged. @else Backlog clearance cannot yet be estimated because no recent completion throughput is available. @endif</p>
-            @if($topCategory)<p><strong>{{ $topCategory['category'] }}</strong> is the leading category with {{ number_format($topCategory['count']) }} reports and a {{ strtolower($topCategory['trend_direction']) }} monthly trend. @if($topLocation)<strong>{{ $topLocation['location'] }}</strong> carries the highest operational risk score of {{ $topLocation['risk_score'] }}, with {{ $topLocation['open'] }} unresolved and {{ $topLocation['hazards'] }} hazard-related reports. @endif</p>@endif
-            <p>Safety-related reports account for <strong>{{ number_format($hazardReports) }} cases</strong>. The overall DSS risk index is <strong>{{ $riskIndex }}/100</strong>, resulting in a <strong>{{ $priorityLevel }}</strong> management priority.</p>
+            <p>The open workload consists of {{ number_format($pendingReports) }} pending and {{ number_format($assignedReports) }} assigned reports. These reports should be monitored and assigned promptly to support timely completion.</p>
+            @if($topCategory)<p><strong>{{ $topCategory['category'] }}</strong> is the leading category with {{ number_format($topCategory['count']) }} reports and a {{ strtolower($topCategory['trend_direction']) }} monthly trend. @if($topLocation)<strong>{{ $topLocation['location'] }}</strong> currently has {{ $topLocation['open'] }} unresolved and {{ $topLocation['hazards'] }} hazard-related reports. @endif</p>@endif
+            <p>Safety-related reports account for <strong>{{ number_format($hazardReports) }} cases</strong> and should be reviewed and addressed as a priority.</p>
             @if($executiveSummary['top_recurring_issue'])<p>The leading repeated repair is <strong>{{ $executiveSummary['top_recurring_issue']['issue'] }} in {{ $executiveSummary['top_recurring_issue']['location'] }}</strong>, with {{ number_format($executiveSummary['top_recurring_issue']['repair_cycles']) }} completed repair cycle(s), {{ number_format($executiveSummary['top_recurring_issue']['count']) }} report(s), and PHP {{ number_format($executiveSummary['top_recurring_issue']['cost'], 2) }} in recorded repair cost. Management should compare projected repair spending with a replacement quotation before approving another repair for the same issue in the same location.</p>@endif
         @else
             <p>No reports match the selected filters. Management conclusions should be deferred until a broader date range or location scope is selected.</p>
@@ -42,7 +42,7 @@
 
     <section class="dss-report-section">
         <h2>3. System-Generated Insights</h2>
-        <ul class="dss-insights">@forelse($aiInsights as $insight)<li>{{ $insight }}</li>@empty<li>Insufficient data for automated insight generation.</li>@endforelse</ul>
+        <ul class="dss-insights">@forelse($aiInsights->reject(fn ($insight) => str_starts_with($insight, 'At the current 30-day completion rate')) as $insight)<li>{{ $insight }}</li>@empty<li>Insufficient data for automated insight generation.</li>@endforelse</ul>
     </section>
 
     <section class="dss-report-section dss-page-break">

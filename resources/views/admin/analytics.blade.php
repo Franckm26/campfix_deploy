@@ -1133,16 +1133,6 @@
             <div class="analytics-small-chart"><canvas id="priorityChart" aria-label="Priority distribution chart"></canvas></div>
             <div class="chart-selection" id="priorityInsight"><strong>Explore:</strong> Click a priority segment to inspect its workload.</div>
         </section>
-        <section class="analytics-panel">
-            <header class="analytics-panel-header"><div><h3>Open Report Aging</h3><p>Backlog grouped by age</p></div><button class="btn btn-outline-secondary" type="button" data-download-chart="agingChart" data-file-name="report-aging"><i class="fas fa-download"></i></button></header>
-            <div class="analytics-small-chart"><canvas id="agingChart" aria-label="Open report aging chart"></canvas></div>
-            <div class="chart-selection" id="agingInsight"><strong>Decision use:</strong> Reports older than seven days should be reviewed for escalation.</div>
-        </section>
-        <section class="analytics-panel">
-            <header class="analytics-panel-header"><div><h3>Cost by Category</h3><p>Recorded financial impact</p></div><button class="btn btn-outline-secondary" type="button" data-download-chart="costChart" data-file-name="category-cost"><i class="fas fa-download"></i></button></header>
-            <div class="analytics-small-chart"><canvas id="costChart" aria-label="Category cost chart"></canvas></div>
-            <div class="chart-selection" id="costInsight"><strong>Explore:</strong> Click a category to review its recorded cost.</div>
-        </section>
     </div>
 
     <section class="analytics-panel">
@@ -1325,8 +1315,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     createInteractiveChart('priorityChart', 'doughnut', @json($priorityStats->pluck('priority')->values()), @json($priorityStats->pluck('count')->values()), ['#d93645', '#e99a00', '#1769e0', '#148a58', '#7557c5'], 'priorityInsight', 'reports', false);
-    createInteractiveChart('agingChart', 'bar', @json($agingStats->pluck('bucket')->values()), @json($agingStats->pluck('count')->values()), ['#148a58', '#1769e0', '#e99a00', '#d93645'], 'agingInsight', 'open reports', false);
-    createInteractiveChart('costChart', 'bar', @json($costStats->pluck('category')->values()), @json($costStats->pluck('cost')->values()), ['#1769e0', '#10a6a6', '#e99a00', '#7557c5', '#d93645', '#148a58'], 'costInsight', 'recorded cost', true);
 
     function escapeHtml(value) {
         const node = document.createElement('div');
@@ -1915,7 +1903,7 @@ document.addEventListener('DOMContentLoaded', function () {
         printDssButton.addEventListener('click', function () {
             const report = document.getElementById('dssExecutiveReportContent');
             if (!report) return;
-            const printableCharts = ['reportsTrendChart', 'statusChart', 'categoryTrendChart', 'priorityChart', 'agingChart', 'costChart']
+            const printableCharts = ['reportsTrendChart', 'statusChart', 'categoryTrendChart', 'priorityChart']
                 .map(function (id) {
                     const canvas = document.getElementById(id);
                     if (!canvas) return '';
