@@ -2201,7 +2201,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     <div id="modalMessage"></div>
                 </div>
                 <div class="notification-modal-action mt-3" id="modalActionBtn" style="display:none;">
-                    <a href="#" class="btn btn-primary btn-sm" id="modalViewLink"><i class="fas fa-arrow-up-right-from-square"></i> View related record</a>
+                    <button type="button" class="btn btn-primary btn-sm" id="modalWorkflowBtn"></button>
                 </div>
             </div>
             <div class="modal-footer d-flex justify-content-between">
@@ -2416,6 +2416,111 @@ document.addEventListener('DOMContentLoaded', function () {
 let currentNotificationId = null;
 let currentNotificationData = null;
 
+function escapeNotificationText(value) {
+    const node = document.createElement('div');
+    node.textContent = value ?? '';
+    return node.innerHTML;
+}
+
+function renderNotificationModalContent(data) {
+    const message = document.getElementById('modalMessage');
+    const action = document.getElementById('modalActionBtn');
+    const button = document.getElementById('modalWorkflowBtn');
+    const ticket = data.concern_context;
+
+    if (!ticket) {
+        message.textContent = data.message || '';
+        action.style.display = 'none';
+        return;
+    }
+
+    const timing = [
+        ticket.assigned_at ? '<p><strong>Assigned:</strong> ' + escapeNotificationText(ticket.assigned_at) + '</p>' : '',
+        ticket.in_progress_at ? '<p><strong>Work started:</strong> ' + escapeNotificationText(ticket.in_progress_at) + '</p>' : '',
+        ticket.resolved_at ? '<p><strong>Resolved:</strong> ' + escapeNotificationText(ticket.resolved_at) + '</p>' : ''
+    ].join('');
+
+    message.innerHTML = `
+        <div class="border rounded-3 p-3 text-start">
+            <div class="d-flex justify-content-between align-items-start gap-2 border-bottom pb-2 mb-3">
+                <strong>${escapeNotificationText(ticket.title)}</strong>
+                <span class="badge bg-secondary">${escapeNotificationText(ticket.status)}</span>
+            </div>
+            <div class="row g-2 small">
+                <div class="col-md-6"><p><strong>Report #:</strong> #${String(ticket.report_id || ticket.id).padStart(4, '0')}</p><p><strong>Category:</strong> ${escapeNotificationText(ticket.category)}</p><p><strong>Location:</strong> ${escapeNotificationText(ticket.location)}</p></div>
+                <div class="col-md-6"><p><strong>Reported by:</strong> ${escapeNotificationText(ticket.reported_by)}</p><p><strong>Date submitted:</strong> ${escapeNotificationText(ticket.created_at || 'N/A')}</p><p><strong>Report count:</strong> ${escapeNotificationText(ticket.report_count)}</p></div>
+            </div>
+            <hr><p><strong>Description:</strong></p><p class="mb-2" style="white-space:pre-wrap">${escapeNotificationText(ticket.description)}</p>
+            ${ticket.details ? '<p><strong>Additional details:</strong></p><p class="mb-2" style="white-space:pre-wrap">' + escapeNotificationText(ticket.details) + '</p>' : ''}
+            ${ticket.damaged_part ? '<p><strong>Damaged part:</strong> ' + escapeNotificationText(ticket.damaged_part) + '</p>' : ''}
+            ${timing}
+        </div>`;
+
+    if (!ticket.can_manage || ['Resolved', 'Closed'].includes(ticket.status)) {
+        action.style.display = 'none';
+        return;
+    }
+
+    const labels = {
+        'Pending': ['btn-primary', '<i class="fas fa-user-plus"></i> Assign'],
+        'Assigned': ['btn-warning', '<i class="fas fa-play"></i> Start work'],
+        'In Progress': ['btn-success', '<i class="fas fa-check"></i> Complete / Resolve']
+    };
+    const label = labels[ticket.status];
+    if (!label) { action.style.display = 'none'; return; }
+    button.className = 'btn btn-sm ' + label[0];
+    button.innerHTML = label[1];
+    button.onclick = () => handleNotificationWorkflow(ticket);
+    action.style.display = 'block';
+}
+
+function notificationWorkflowRequest(url, payload) {
+    return fetch(url, { method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify(payload) })
+        .then(async response => {
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || !data.success) throw new Error(data.error || data.message || 'Unable to update this report.');
+            return data;
+        });
+}
+
+function refreshNotificationWorkflow(message) {
+    return Swal.fire({ icon: 'success', title: 'Updated', text: message, timer: 1300, showConfirmButton: false })
+        .then(() => openNotificationModal(currentNotificationId));
+}
+
+function handleNotificationWorkflow(ticket) {
+    if (ticket.status === 'Pending') return assignNotificationReport(ticket);
+    if (ticket.status === 'Assigned') {
+        return notificationWorkflowRequest('/reports/' + ticket.report_id + '/update-status', { status: 'In Progress' })
+            .then(data => refreshNotificationWorkflow(data.message))
+            .catch(error => Swal.fire({ icon: 'error', title: 'Unable to start work', text: error.message }));
+    }
+    if (ticket.status === 'In Progress') return completeNotificationReport(ticket);
+}
+
+function assignNotificationReport(ticket) {
+    const technology = String(ticket.category || '').trim().toLowerCase() === 'technology/internet';
+    const endpoint = technology ? '/admin/mis-users' : '/admin/maintenance-users';
+    const label = technology ? 'MIS staff' : 'maintenance staff';
+    fetch(endpoint, { headers: { 'Accept': 'application/json' } })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.users?.length) throw new Error('No active ' + label + ' is available. Add or activate one in Management first.');
+            const options = Object.fromEntries(data.users.map(person => [person.id, person.name]));
+            return Swal.fire({ title: 'Assign report', input: 'select', inputOptions: options, inputPlaceholder: 'Select ' + label, showCancelButton: true, confirmButtonText: 'Assign', inputValidator: value => !value && 'Select a staff member.' })
+                .then(result => result.isConfirmed ? notificationWorkflowRequest('/admin/report/' + ticket.report_id + '/assign', { assigned_to: result.value }) : null);
+        })
+        .then(data => data && refreshNotificationWorkflow(data.message))
+        .catch(error => Swal.fire({ icon: 'error', title: 'Unable to assign report', text: error.message }));
+}
+
+function completeNotificationReport(ticket) {
+    Swal.fire({ title: 'Complete report', html: '<textarea id="notificationResolutionNotes" class="swal2-textarea" placeholder="Resolution notes (optional)"></textarea><input id="notificationCost" type="number" min="0" step="0.01" class="swal2-input" placeholder="Recorded cost (optional)"><input id="notificationDamagedPart" class="swal2-input" placeholder="Damaged part (optional)"><input id="notificationReplacedPart" class="swal2-input" placeholder="Replaced part (optional)">', showCancelButton: true, confirmButtonText: 'Mark resolved', confirmButtonColor: '#198754', preConfirm: () => ({ status: 'Resolved', resolution_notes: document.getElementById('notificationResolutionNotes').value.trim(), cost: document.getElementById('notificationCost').value || null, damaged_part: document.getElementById('notificationDamagedPart').value.trim(), replaced_part: document.getElementById('notificationReplacedPart').value.trim() }) })
+        .then(result => result.isConfirmed && notificationWorkflowRequest('/reports/' + ticket.report_id + '/update-status', result.value)
+            .then(data => refreshNotificationWorkflow(data.message))
+            .catch(error => Swal.fire({ icon: 'error', title: 'Unable to complete report', text: error.message })));
+}
+
 // Open notification modal
 async function openNotificationModal(notificationId, event) {
     if (event) {
@@ -2451,7 +2556,7 @@ async function openNotificationModal(notificationId, event) {
         document.getElementById('modalSenderNameFull').textContent = data.sender?.name || 'System';
         document.getElementById('modalNotificationTime').textContent = data.created_at;
         document.getElementById('modalSubject').textContent = data.title;
-        document.getElementById('modalMessage').innerHTML = data.message;
+        renderNotificationModalContent(data);
         
         // Set avatar
         const avatar = document.getElementById('modalSenderAvatar');
@@ -2462,14 +2567,6 @@ async function openNotificationModal(notificationId, event) {
             avatar.style.display = 'none';
         }
         
-        // Show/hide action button
-        if (data.url) {
-            document.getElementById('modalActionBtn').style.display = 'block';
-            document.getElementById('modalViewLink').href = data.url;
-            console.log('[Notification] View Details URL set to:', data.url);
-        } else {
-            document.getElementById('modalActionBtn').style.display = 'none';
-        }
         
         // Enable/disable navigation buttons
         document.getElementById('modalPrevBtn').disabled = !data.prev_id;
@@ -2535,7 +2632,7 @@ async function navigateNotification(direction) {
             document.getElementById('modalSenderNameFull').textContent = data.sender?.name || 'System';
             document.getElementById('modalNotificationTime').textContent = data.created_at;
             document.getElementById('modalSubject').textContent = data.title;
-            document.getElementById('modalMessage').innerHTML = data.message;
+            renderNotificationModalContent(data);
             
             // Update avatar
             const avatar = document.getElementById('modalSenderAvatar');
@@ -2546,13 +2643,6 @@ async function navigateNotification(direction) {
                 avatar.style.display = 'none';
             }
             
-            // Show/hide action button
-            if (data.url) {
-                document.getElementById('modalActionBtn').style.display = 'block';
-                document.getElementById('modalViewLink').href = data.url;
-            } else {
-                document.getElementById('modalActionBtn').style.display = 'none';
-            }
             
             // Update navigation buttons
             document.getElementById('modalPrevBtn').disabled = !data.prev_id;

@@ -55,9 +55,40 @@ class NotificationController extends Controller
 
         // Determine correct URL based on notification type
         $url = null;
+        $concernContext = null;
         if (str_contains($notification->type, 'Concern')) {
             $concernId = $notification->data['concern_id'] ?? null;
             $url = $this->concernUrlForUser($user, $concernId);
+
+            if ($concernId) {
+                $concern = \App\Models\Concern::with(['categoryRelation', 'user'])->find($concernId);
+                $report = $concern
+                    ? \App\Models\Report::where('concern_id', $concern->id)->latest('id')->first()
+                    : null;
+
+                if ($concern) {
+                    $canManage = in_array($user->role, ['admin', 'building_admin', 'school_admin', 'academic_head', 'mis']);
+                    $concernContext = [
+                        'id' => $concern->id,
+                        'report_id' => $report?->id,
+                        'title' => $concern->title ?: 'Untitled concern',
+                        'category' => $concern->categoryRelation?->name ?: 'Uncategorized',
+                        'location' => $concern->location ?: 'N/A',
+                        'status' => $concern->status ?: 'Pending',
+                        'priority' => $concern->priority ?: 'Not set',
+                        'reported_by' => $concern->user?->name ?: 'Unknown user',
+                        'created_at' => optional($concern->created_at)->format('m/d/Y g:i A'),
+                        'report_count' => $concern->report_count ?? 1,
+                        'description' => $concern->description ?: 'No description provided.',
+                        'details' => $concern->details ?? null,
+                        'damaged_part' => $concern->damaged_part ?? null,
+                        'assigned_at' => optional($concern->assigned_at)->format('m/d/Y g:i A'),
+                        'in_progress_at' => optional($concern->in_progress_at)->format('m/d/Y g:i A'),
+                        'resolved_at' => optional($concern->resolved_at)->format('m/d/Y g:i A'),
+                        'can_manage' => $canManage && (bool) $report,
+                    ];
+                }
+            }
         } elseif (str_contains($notification->type, 'EventRequest')) {
             $eventId = $notification->data['event_id'] ?? null;
             if ($eventId) {
@@ -79,6 +110,7 @@ class NotificationController extends Controller
             'created_at_human' => $notification->created_at->copy()->timezone(self::DISPLAY_TIMEZONE)->diffForHumans(),
             'read_at' => $notification->read_at,
             'url' => $url,
+            'concern_context' => $concernContext,
             'sender' => $sender ? [
                 'name' => $sender->name,
                 'profile_picture' => $sender->profile_picture ? asset('storage/' . $sender->profile_picture) : null,
