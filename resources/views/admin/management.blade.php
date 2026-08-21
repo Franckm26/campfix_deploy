@@ -501,18 +501,22 @@
             <style>
                 .event-setup-grid .border { border-color: #dbe4f0 !important; border-radius: 12px !important; }
                 .event-setup-grid h6 { font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem; }
-                .event-setup-grid select[multiple] { min-height: 144px; }
+                .event-setup-grid .approval-role-option { border: 1px solid #dbe4f0; border-radius: 8px; padding: .55rem .7rem; cursor: pointer; }
+                .event-setup-grid .approval-role-option:hover { background: #f5f9ff; border-color: #0d6efd; }
+                .event-setup-grid .approval-step { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; background: #e8f1ff; color: #0d6efd; font-weight: 700; font-size: .8rem; margin-right: .4rem; }
                 .event-setup-grid .btn-link { text-decoration: none; }
                 .event-setup-grid .border-top { padding: .8rem 0; }
                 .event-setup-grid > .col-lg-3 { width: 50%; }
+                .event-setup-grid input[name="code"] { display: none; }
                 form:has(input[name="event_search"]) { display: none !important; }
                 @media (max-width: 991.98px) { .event-setup-grid > .col-lg-3 { width: 100%; } }
             </style>
             <div class="row g-4 mb-0 event-setup-grid">
                 <div class="col-lg-12"><div class="border rounded p-4 h-100"><h6><i class="fas fa-code-branch text-primary me-2"></i>Request types and approval roles</h6>
+                    <div class="alert alert-light border small mb-3"><strong>How it works:</strong> Enter a request type, tick the roles that must approve it, then click <strong>Add type</strong>. For example, an Academic request can go from Program Head to Academic Head, then Building Admin and School Administrator.</div>
                     <form method="POST" action="{{ route('admin.management.event-types.store') }}" class="row g-2 mb-3">@csrf
                         <div class="col-md-4"><label class="form-label small">Request type</label><input class="form-control" name="name" placeholder="New request type" required></div>
-                        <div class="col-md-5"><label class="form-label small">Approver roles (in order)</label><select class="form-select" name="approval_roles[]" multiple required>@foreach($approvalRoles as $role => $label)<option value="{{ $role }}">{{ $label }}</option>@endforeach</select></div>
+                        <div class="col-md-5"><label class="form-label small mb-1">Who should approve this request?</label><div class="small text-muted mb-2">Tick every role needed. The approval flow follows this top-to-bottom order.</div><div class="row g-2">@foreach($approvalRoles as $role => $label)<div class="col-md-6"><label class="approval-role-option d-block"><input class="form-check-input me-2" type="checkbox" name="approval_roles[]" value="{{ $role }}">{{ $loop->iteration }}. {{ $label }}</label></div>@endforeach</div></div>
                         <div class="col-md-3 d-flex flex-column justify-content-end"><label class="form-check mb-2"><input class="form-check-input" type="checkbox" name="requires_department" value="1"> <span class="form-check-label">Require department</span></label><button class="btn btn-primary w-100"><i class="fas fa-plus"></i> Add type</button></div>
                     </form>
                     @foreach($eventRequestTypes as $item)<div class="border-top pt-2 mt-2"><strong>{{ $item->name }}</strong> <span class="badge bg-{{ $item->is_active ? 'success' : 'secondary' }}">{{ $item->is_active ? 'Active' : 'Inactive' }}</span><br><small class="text-muted">{{ $item->requires_department ? 'Department required · ' : '' }}{{ collect($item->approval_roles)->map(fn($role) => $approvalRoles[$role] ?? $role)->implode(' → ') }}</small><form class="d-inline" method="POST" action="{{ route('admin.management.event-setup.toggle', ['type' => 'request-type', 'id' => $item->id]) }}">@csrf @method('PATCH') <button class="btn btn-link btn-sm p-0">{{ $item->is_active ? 'Deactivate' : 'Activate' }}</button></form></div>@endforeach
@@ -520,12 +524,44 @@
                 <div class="col-lg-3"><div class="border rounded p-3 h-100"><h6><i class="fas fa-users text-primary"></i> Intended users</h6><form method="POST" action="{{ route('admin.management.event-intended-users.store') }}" class="mb-3">@csrf<input class="form-control form-control-sm mb-2" name="name" placeholder="Name" required><input class="form-control form-control-sm mb-2" name="code" placeholder="Code" required><button class="btn btn-sm btn-primary w-100">Add</button></form>@foreach($eventIntendedUsers as $item)<div class="border-top pt-2 mt-2">{{ $item->name }} <small>({{ $item->code }})</small><form class="d-inline" method="POST" action="{{ route('admin.management.event-setup.toggle', ['type' => 'intended-user', 'id' => $item->id]) }}">@csrf @method('PATCH') <button class="btn btn-link btn-sm p-0">{{ $item->is_active ? 'Deactivate' : 'Activate' }}</button></form></div>@endforeach</div></div>
                 <div class="col-lg-3"><div class="border rounded p-3 h-100"><h6><i class="fas fa-building text-primary"></i> Departments</h6><form method="POST" action="{{ route('admin.management.event-departments.store') }}" class="mb-3">@csrf<input class="form-control form-control-sm mb-2" name="name" placeholder="Department name" required><button class="btn btn-sm btn-primary w-100">Add</button></form>@foreach($eventDepartments as $item)<div class="border-top pt-2 mt-2">{{ $item->name }}<form class="d-inline" method="POST" action="{{ route('admin.management.event-setup.toggle', ['type' => 'department', 'id' => $item->id]) }}">@csrf @method('PATCH') <button class="btn btn-link btn-sm p-0">{{ $item->is_active ? 'Deactivate' : 'Activate' }}</button></form></div>@endforeach</div></div>
             </div>
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    document.querySelectorAll('.event-setup-grid form[action*="/event-setup/"]').forEach(function (form) {
+                        var match = form.action.match(/event-setup\/([^/]+)\/(\d+)\/toggle/);
+                        if (!match) return;
+                        var deleteButton = form.querySelector('button');
+                        if (deleteButton) {
+                            deleteButton.textContent = 'Delete';
+                            deleteButton.classList.remove('btn-link');
+                            deleteButton.classList.add('btn-outline-danger');
+                        }
+                        form.addEventListener('submit', function (event) {
+                            if (!window.confirm('Delete this item? Existing event requests will keep their saved information.')) event.preventDefault();
+                        });
+                        var editButton = document.createElement('button');
+                        editButton.type = 'button';
+                        editButton.className = 'btn btn-sm btn-outline-primary me-2';
+                        editButton.textContent = 'Edit';
+                        editButton.addEventListener('click', function () {
+                            var currentName = form.parentElement.firstChild.textContent.trim();
+                            var name = window.prompt('Edit name', currentName);
+                            if (!name || !name.trim()) return;
+                            var payload = new URLSearchParams();
+                            payload.append('_token', form.querySelector('input[name="_token"]').value);
+                            payload.append('_method', 'PATCH');
+                            payload.append('name', name.trim());
+                            fetch(form.action.replace('/toggle', ''), { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'text/html' }, body: payload.toString() }).then(function () { window.location.reload(); });
+                        });
+                        form.insertAdjacentElement('beforebegin', editButton);
+                    });
+                });
+            </script>
             @endif
             <form method="GET" action="{{ route('admin.management') }}" class="row g-2 mb-3">
                 <input type="hidden" name="tab" value="events">
                 <div class="col-md-5"><input class="form-control form-control-sm" name="event_search" value="{{ request('event_search') }}" placeholder="Search requester, department, or location"></div>
                 <div class="col-auto"><button class="btn btn-primary btn-sm" type="submit">Search</button></div>
-            </div>
+            </form>
             @if(false && $events->isNotEmpty())
             <div class="table-responsive"><table class="table table-hover align-middle"><thead><tr><th>Requester</th><th>Department</th><th>Location</th><th>Date</th><th>Time</th><th>Status</th><th></th></tr></thead><tbody>
                 @foreach($events as $event)

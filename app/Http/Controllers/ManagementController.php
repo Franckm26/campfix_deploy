@@ -15,6 +15,7 @@ use App\Services\DefaultCategoryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 class ManagementController extends Controller
 {
@@ -94,8 +95,12 @@ class ManagementController extends Controller
     public function storeEventIntendedUser(Request $request)
     {
         $this->guardBuildingAdmin();
-        $data = $request->validate(['name' => 'required|string|max:100|unique:event_intended_users,name', 'code' => 'required|alpha_dash|max:50|unique:event_intended_users,code']);
-        EventIntendedUser::create(['name' => trim($data['name']), 'code' => strtolower($data['code']), 'is_active' => true]);
+        $data = $request->validate(['name' => 'required|string|max:100|unique:event_intended_users,name']);
+        $baseCode = Str::slug($data['name'], '_');
+        $code = $baseCode;
+        $suffix = 2;
+        while (EventIntendedUser::where('code', $code)->exists()) $code = $baseCode.'_'.$suffix++;
+        EventIntendedUser::create(['name' => trim($data['name']), 'code' => $code, 'is_active' => true]);
         return back()->with('success', 'Intended user added.');
     }
 
@@ -109,11 +114,28 @@ class ManagementController extends Controller
 
     public function toggleEventSetup(Request $request, string $type, int $id)
     {
+        return $this->destroyEventSetup($type, $id);
+    }
+
+    public function renameEventSetup(Request $request, string $type, int $id)
+    {
+        $this->guardBuildingAdmin();
+        $models = ['request-type' => [EventRequestType::class, 'event_request_types'], 'intended-user' => [EventIntendedUser::class, 'event_intended_users'], 'department' => [EventDepartment::class, 'event_departments']];
+        abort_unless(isset($models[$type]), 404);
+        [$model, $table] = $models[$type];
+        $item = $model::findOrFail($id);
+        $data = $request->validate(['name' => 'required|string|max:100|unique:'.$table.',name,'.$item->id]);
+        $item->update(['name' => trim($data['name'])]);
+        return back()->with('success', 'Event setup item updated.');
+    }
+
+    public function destroyEventSetup(string $type, int $id)
+    {
         $this->guardBuildingAdmin();
         $model = match ($type) { 'request-type' => EventRequestType::class, 'intended-user' => EventIntendedUser::class, 'department' => EventDepartment::class, default => abort(404) };
         $item = $model::findOrFail($id);
-        $item->update(['is_active' => ! $item->is_active]);
-        return back()->with('success', 'Event setup status updated.');
+        $item->delete();
+        return back()->with('success', 'Event setup item deleted.');
     }
 
     // ─── STAFF ───────────────────────────────────────────────────────────────
