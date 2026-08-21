@@ -8,6 +8,21 @@ class NotificationController extends Controller
 {
     private const DISPLAY_TIMEZONE = 'Asia/Manila';
 
+    private function concernUrlForUser($user, ?int $concernId): string
+    {
+        $canManageReports = in_array($user->role, ['admin', 'building_admin', 'school_admin', 'academic_head', 'mis']);
+
+        if ($canManageReports) {
+            $reportId = $concernId
+                ? \App\Models\Report::where('concern_id', $concernId)->latest('id')->value('id')
+                : null;
+
+            return '/admin/reports'.($reportId ? '?open_report='.$reportId : '');
+        }
+
+        return '/my-concerns'.($concernId ? '?concern_id='.$concernId : '');
+    }
+
     /**
      * Get notification detail with adjacent notification IDs for navigation
      */
@@ -42,11 +57,7 @@ class NotificationController extends Controller
         $url = null;
         if (str_contains($notification->type, 'Concern')) {
             $concernId = $notification->data['concern_id'] ?? null;
-            if ($concernId) {
-                $url = '/my-concerns?concern_id=' . $concernId;
-            } else {
-                $url = '/my-concerns';
-            }
+            $url = $this->concernUrlForUser($user, $concernId);
         } elseif (str_contains($notification->type, 'EventRequest')) {
             $eventId = $notification->data['event_id'] ?? null;
             if ($eventId) {
@@ -88,31 +99,16 @@ class NotificationController extends Controller
             // Get the URL from notification data if available
             $url = $notification->data['url'] ?? null;
 
-            // If notification has a specific URL, redirect there
-            if ($url) {
+            // Concern notifications need a role-aware destination: managers work
+            // from Reports, while requesters continue to use My Concerns.
+            if ($url && !str_contains($notification->type, 'Concern')) {
                 return redirect($url);
             }
 
             // Fallback: Redirect based on notification type
-            if (str_contains($notification->type, 'ConcernFollowUp')) {
-                // For follow-up notifications, redirect to the specific concern
+            if (str_contains($notification->type, 'Concern')) {
                 $concernId = $notification->data['concern_id'] ?? null;
-                if ($concernId) {
-                    return redirect('/my-concerns?concern_id=' . $concernId);
-                }
-                return redirect('/my-concerns');
-            } elseif (str_contains($notification->type, 'ConcernAssigned')) {
-                $concernId = $notification->data['concern_id'] ?? null;
-                if ($concernId) {
-                    return redirect('/my-concerns?concern_id=' . $concernId);
-                }
-                return redirect('/my-concerns');
-            } elseif (str_contains($notification->type, 'ConcernResolved')) {
-                $concernId = $notification->data['concern_id'] ?? null;
-                if ($concernId) {
-                    return redirect('/my-concerns?concern_id=' . $concernId);
-                }
-                return redirect('/my-concerns');
+                return redirect($this->concernUrlForUser(auth()->user(), $concernId));
             } elseif (str_contains($notification->type, 'ReportAssigned') || str_contains($notification->type, 'ReportResolved')) {
                 $reportId = $notification->data['report_id'] ?? null;
                 if ($reportId) {

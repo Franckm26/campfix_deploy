@@ -3476,7 +3476,7 @@ function viewConcern(id) {
         const canManageWorkflow = {{ in_array(auth()->user()->role, ['admin', 'building_admin', 'school_admin', 'academic_head', 'mis']) ? 'true' : 'false' }};
         const workflowButton = canManageWorkflow && concern.report_id && concern.status !== 'Resolved' && concern.status !== 'Closed'
             ? (concern.status === 'Pending'
-                ? { text: '<i class="fas fa-user-plus me-1"></i> Assign', color: '#0d6efd', action: () => assignTicketReport(concern.report_id) }
+                ? { text: '<i class="fas fa-user-plus me-1"></i> Assign', color: '#0d6efd', action: () => assignTicketReport(concern.report_id, categoryName) }
                 : concern.status === 'Assigned'
                     ? { text: '<i class="fas fa-play me-1"></i> Start work', color: '#f0ad4e', action: () => updateTicketReportStatus(concern.report_id, 'In Progress') }
                     : { text: '<i class="fas fa-check me-1"></i> Complete', color: '#198754', action: () => completeTicketReport(concern.report_id) })
@@ -3534,13 +3534,28 @@ function updateTicketReportStatus(reportId, status) {
         .catch(error => Swal.fire({ icon: 'error', title: 'Unable to update ticket', text: error.message }));
 }
 
-function assignTicketReport(reportId) {
-    fetch('/api/maintenance-users', { headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' } })
+function assignTicketReport(reportId, categoryName) {
+    const isTechnologyCategory = String(categoryName || '').trim().toLowerCase() === 'technology/internet';
+    const staffLabel = isTechnologyCategory ? 'MIS staff' : 'maintenance staff';
+    const staffEndpoint = isTechnologyCategory ? '/admin/mis-users' : '/admin/maintenance-users';
+
+    fetch(staffEndpoint, { headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' } })
         .then(response => response.json())
         .then(data => {
-            if (!data.users || !data.users.length) throw new Error('No active maintenance staff are available.');
+            if (!data.users || !data.users.length) {
+                return Swal.fire({
+                    icon: 'warning',
+                    title: 'No ' + staffLabel + ' available',
+                    text: 'Add or activate a staff member before assigning this ticket.',
+                    showCancelButton: true,
+                    confirmButtonText: isTechnologyCategory ? 'Close' : 'Open staff management'
+                }).then(result => {
+                    if (result.isConfirmed && !isTechnologyCategory) window.location.href = '/admin/management?tab=staff';
+                    return null;
+                });
+            }
             const inputOptions = Object.fromEntries(data.users.map(user => [user.id, user.name]));
-            return Swal.fire({ title: 'Assign ticket', input: 'select', inputOptions, inputPlaceholder: 'Select maintenance staff', showCancelButton: true, confirmButtonText: 'Assign', inputValidator: value => !value && 'Select a maintenance staff member.' })
+            return Swal.fire({ title: 'Assign ticket', input: 'select', inputOptions, inputPlaceholder: 'Select ' + staffLabel, showCancelButton: true, confirmButtonText: 'Assign', inputValidator: value => !value && 'Select a staff member.' })
                 .then(result => result.isConfirmed ? ticketWorkflowRequest('/admin/report/' + reportId + '/assign', { assigned_to: result.value }) : null);
         })
         .then(data => {
