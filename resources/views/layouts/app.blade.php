@@ -2506,9 +2506,23 @@ function assignNotificationReport(ticket) {
         .then(response => response.json())
         .then(data => {
             if (!data.users?.length) throw new Error('No active ' + label + ' is available. Add or activate one in Management first.');
-            const options = Object.fromEntries(data.users.map(person => [person.id, person.name]));
-            return Swal.fire({ title: 'Assign report', input: 'select', inputOptions: options, inputPlaceholder: 'Select ' + label, showCancelButton: true, confirmButtonText: 'Assign', inputValidator: value => !value && 'Select a staff member.' })
-                .then(result => result.isConfirmed ? notificationWorkflowRequest('/admin/report/' + ticket.report_id + '/assign', { assigned_to: result.value }) : null);
+            const options = data.users.map(person => '<option value="' + person.id + '">' + escapeNotificationText(person.name) + '</option>').join('');
+            return Swal.fire({
+                title: 'Assign report',
+                html: '<label class="form-label d-block text-start">Assign to</label><select id="notificationAssignee" class="swal2-select"><option value="">Select ' + label + '</option>' + options + '</select>' +
+                    '<label class="form-label d-block text-start mt-3">Priority</label><select id="notificationPriority" class="swal2-select"><option value="">Select priority</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option><option value="safety_hazard">Safety hazard</option></select>',
+                showCancelButton: true,
+                confirmButtonText: 'Assign',
+                preConfirm: () => {
+                    const assignedTo = document.getElementById('notificationAssignee').value;
+                    const priority = document.getElementById('notificationPriority').value;
+                    if (!assignedTo || !priority) {
+                        Swal.showValidationMessage('Select both a staff member and priority.');
+                        return false;
+                    }
+                    return { assigned_to: assignedTo, priority };
+                }
+            }).then(result => result.isConfirmed ? notificationWorkflowRequest('/admin/report/' + ticket.report_id + '/assign', result.value) : null);
         })
         .then(data => data && refreshNotificationWorkflow(data.message))
         .catch(error => Swal.fire({ icon: 'error', title: 'Unable to assign report', text: error.message }));

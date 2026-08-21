@@ -106,8 +106,10 @@ class NotificationController extends Controller
             'id' => $notification->id,
             'title' => $notification->data['title'] ?? 'Notification',
             'message' => $notification->data['message'] ?? '',
-            'created_at' => $notification->created_at->copy()->timezone(self::DISPLAY_TIMEZONE)->format('M j, Y, g:i A').' PHT',
-            'created_at_human' => $notification->created_at->copy()->timezone(self::DISPLAY_TIMEZONE)->diffForHumans(),
+            // Timestamps in this application are already stored as Philippine
+            // local time. Converting them again adds eight hours.
+            'created_at' => $notification->created_at->format('M j, Y, g:i A').' PHT',
+            'created_at_human' => $notification->created_at->diffForHumans(),
             'read_at' => $notification->read_at,
             'url' => $url,
             'concern_context' => $concernContext,

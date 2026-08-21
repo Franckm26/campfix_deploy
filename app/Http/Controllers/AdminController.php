@@ -551,13 +551,17 @@ class AdminController extends Controller
 
             // Check if user is building_admin, school_admin, academic_head, or mis
             $user = auth()->user();
-            if (!in_array($user->role, ['building_admin', 'school_admin', 'academic_head', 'mis'])) {
+            if (!in_array($user->role, ['admin', 'building_admin', 'school_admin', 'academic_head', 'mis'])) {
                 if ($request->expectsJson()) {
                     return response()->json(['error' => 'You do not have permission to assign reports.'], 403);
                 }
 
                 return back()->with('error', 'You do not have permission to assign reports.');
             }
+
+            $request->validate([
+                'priority' => 'nullable|in:low,medium,high,urgent,safety_hazard',
+            ]);
 
             // Determine if assigning to MIS or Maintenance based on category
             $isTechnologyCategory = $report->category && strtolower(trim($report->category->name)) === 'technology/internet';
@@ -599,6 +603,10 @@ class AdminController extends Controller
             $report->assigned_to = $request->input('assigned_to');
             $report->assigned_at = now();
             $report->status      = 'Assigned';
+            if ($request->filled('priority')) {
+                $report->severity = $request->input('priority') === 'safety_hazard' ? 'urgent' : $request->input('priority');
+                $report->is_safety_hazard = $request->input('priority') === 'safety_hazard';
+            }
             if ($request->filled('notes')) {
                 $report->notes = $request->input('notes');
             }
@@ -612,13 +620,17 @@ class AdminController extends Controller
                 $concern->assigned_to = $request->input('assigned_to');
                 $concern->assigned_at = now();
                 $concern->status      = 'Assigned';
+                if ($request->filled('priority')) {
+                    $concern->priority = $request->input('priority') === 'safety_hazard' ? 'urgent' : $request->input('priority');
+                    $concern->is_safety_hazard = $request->input('priority') === 'safety_hazard';
+                }
                 $concern->save();
 
                 if ($oldConcernStatus !== 'Assigned' || (int) $oldConcernAssignee !== (int) $concern->assigned_to) {
                     $this->sendConcernUpdateNotification(
                         $concern,
                         'Concern Assigned',
-                        "Your concern has been assigned to {$assignedName}.",
+                        "Your concern has been assigned to {$assignedName}.".($request->filled('priority') ? ' Priority: '.$concern->priority.'.' : ''),
                         $user
                     );
                 }
