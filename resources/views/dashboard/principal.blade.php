@@ -358,7 +358,7 @@
                         <span class="ms-2 text-muted" id="current-month-label"></span>
                     </div>
                     <div>
-                        @if(in_array($user->role, ['school_admin', 'academic_head', 'program_head', 'principal_assistant']))
+                        @if(in_array($user->role, ['academic_head', 'program_head', 'principal_assistant']))
                         <button type="button" class="btn btn-sm btn-primary me-2" onclick="openEventRequestModal()">
                             <i class="fas fa-plus"></i> Add Event
                         </button>
