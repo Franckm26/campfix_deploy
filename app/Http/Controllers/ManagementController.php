@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Services\DefaultCategoryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 
 class ManagementController extends Controller
 {
@@ -58,9 +59,12 @@ class ManagementController extends Controller
         // Categories
         $categories = Category::orderBy('name')->paginate(10, ['*'], 'category_page')->withQueryString();
 
-        $eventRequestTypes = EventRequestType::orderBy('name')->get();
-        $eventIntendedUsers = EventIntendedUser::orderBy('name')->get();
-        $eventDepartments = EventDepartment::orderBy('name')->get();
+        $eventSetupReady = Schema::hasTable('event_request_types')
+            && Schema::hasTable('event_intended_users')
+            && Schema::hasTable('event_departments');
+        $eventRequestTypes = $eventSetupReady ? EventRequestType::orderBy('name')->get() : collect();
+        $eventIntendedUsers = $eventSetupReady ? EventIntendedUser::orderBy('name')->get() : collect();
+        $eventDepartments = $eventSetupReady ? EventDepartment::orderBy('name')->get() : collect();
         $events = EventRequest::with('user')->where('is_deleted', false)->latest()->paginate(10, ['*'], 'event_page')->withQueryString();
         $approvalRoles = [
             'program_head' => 'Program Head', 'academic_head' => 'Academic Head',
@@ -68,7 +72,7 @@ class ManagementController extends Controller
             'mis' => 'MIS', 'admin' => 'Administrator',
         ];
 
-        return view('admin.management', compact('tab', 'staff', 'facilities', 'categories', 'eventRequestTypes', 'eventIntendedUsers', 'eventDepartments', 'approvalRoles'));
+        return view('admin.management', compact('tab', 'staff', 'facilities', 'categories', 'eventSetupReady', 'eventRequestTypes', 'eventIntendedUsers', 'eventDepartments', 'approvalRoles'));
     }
 
     public function storeEventRequestType(Request $request)

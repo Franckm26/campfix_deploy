@@ -495,6 +495,9 @@
         </div>
         <div class="card-body">
             <p class="text-muted">Configure the event request form and the role-based approval route. Approval roles are followed in the selected order.</p>
+            @if(! $eventSetupReady)
+                <div class="alert alert-warning mb-4"><i class="fas fa-database"></i> Event Setup will be available after the latest database migration is applied. The existing event-request workflow remains available.</div>
+            @else
             <div class="row g-3 mb-4">
                 <div class="col-lg-6"><div class="border rounded p-3 h-100"><h6><i class="fas fa-code-branch text-primary"></i> Request types and approval roles</h6>
                     <form method="POST" action="{{ route('admin.management.event-types.store') }}" class="row g-2 mb-3">@csrf
@@ -507,6 +510,7 @@
                 <div class="col-lg-3"><div class="border rounded p-3 h-100"><h6><i class="fas fa-users text-primary"></i> Intended users</h6><form method="POST" action="{{ route('admin.management.event-intended-users.store') }}" class="mb-3">@csrf<input class="form-control form-control-sm mb-2" name="name" placeholder="Name" required><input class="form-control form-control-sm mb-2" name="code" placeholder="Code" required><button class="btn btn-sm btn-primary w-100">Add</button></form>@foreach($eventIntendedUsers as $item)<div class="border-top pt-2 mt-2">{{ $item->name }} <small>({{ $item->code }})</small><form class="d-inline" method="POST" action="{{ route('admin.management.event-setup.toggle', ['type' => 'intended-user', 'id' => $item->id]) }}">@csrf @method('PATCH') <button class="btn btn-link btn-sm p-0">{{ $item->is_active ? 'Deactivate' : 'Activate' }}</button></form></div>@endforeach</div></div>
                 <div class="col-lg-3"><div class="border rounded p-3 h-100"><h6><i class="fas fa-building text-primary"></i> Departments</h6><form method="POST" action="{{ route('admin.management.event-departments.store') }}" class="mb-3">@csrf<input class="form-control form-control-sm mb-2" name="name" placeholder="Department name" required><button class="btn btn-sm btn-primary w-100">Add</button></form>@foreach($eventDepartments as $item)<div class="border-top pt-2 mt-2">{{ $item->name }}<form class="d-inline" method="POST" action="{{ route('admin.management.event-setup.toggle', ['type' => 'department', 'id' => $item->id]) }}">@csrf @method('PATCH') <button class="btn btn-link btn-sm p-0">{{ $item->is_active ? 'Deactivate' : 'Activate' }}</button></form></div>@endforeach</div></div>
             </div>
+            @endif
             <form method="GET" action="{{ route('admin.management') }}" class="row g-2 mb-3">
                 <input type="hidden" name="tab" value="events">
                 <div class="col-md-5"><input class="form-control form-control-sm" name="event_search" value="{{ request('event_search') }}" placeholder="Search requester, department, or location"></div>
