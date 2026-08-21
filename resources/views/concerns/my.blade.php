@@ -3473,7 +3473,7 @@ function viewConcern(id) {
             </div>
         `;
         
-        const canManageWorkflow = @json(in_array(auth()->user()->role, ['admin', 'building_admin', 'school_admin', 'academic_head', 'mis']));
+        const canManageWorkflow = {{ in_array(auth()->user()->role, ['admin', 'building_admin', 'school_admin', 'academic_head', 'mis']) ? 'true' : 'false' }};
         const workflowButton = canManageWorkflow && concern.report_id && concern.status !== 'Resolved' && concern.status !== 'Closed'
             ? (concern.status === 'Pending'
                 ? { text: '<i class="fas fa-user-plus me-1"></i> Assign', color: '#0d6efd', action: () => assignTicketReport(concern.report_id) }
