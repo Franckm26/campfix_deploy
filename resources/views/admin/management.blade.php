@@ -503,7 +503,9 @@
                 .event-setup-grid h6 { font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem; }
                 .event-setup-grid .approval-role-option { border: 1px solid #dbe4f0; border-radius: 8px; padding: .55rem .7rem; cursor: pointer; }
                 .event-setup-grid .approval-role-option:hover { background: #f5f9ff; border-color: #0d6efd; }
+                .event-setup-grid .approval-role-option:has(input:checked) { background: #e8f1ff; border-color: #0d6efd; }
                 .event-setup-grid .approval-step { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; background: #e8f1ff; color: #0d6efd; font-weight: 700; font-size: .8rem; margin-right: .4rem; }
+                .event-setup-grid .approval-flow-preview { min-height: 42px; background: #f5f9ff; border: 1px dashed #aac8f5; border-radius: 8px; padding: .65rem .8rem; }
                 .event-setup-grid .btn-link { text-decoration: none; }
                 .event-setup-grid .border-top { padding: .8rem 0; }
                 .event-setup-grid > .col-lg-3 { width: 50%; }
@@ -515,9 +517,10 @@
                 <div class="col-lg-12"><div class="border rounded p-4 h-100"><h6><i class="fas fa-code-branch text-primary me-2"></i>Request types and approval roles</h6>
                     <div class="alert alert-light border small mb-3"><strong>How it works:</strong> Enter a request type, tick the roles that must approve it, then click <strong>Add type</strong>. For example, an Academic request can go from Program Head to Academic Head, then Building Admin and School Administrator.</div>
                     <form method="POST" action="{{ route('admin.management.event-types.store') }}" class="row g-2 mb-3">@csrf
-                        <div class="col-md-4"><label class="form-label small">Request type</label><input class="form-control" name="name" placeholder="New request type" required></div>
-                        <div class="col-md-5"><label class="form-label small mb-1">Who should approve this request?</label><div class="small text-muted mb-2">Tick every role needed. The approval flow follows this top-to-bottom order.</div><div class="row g-2">@foreach($approvalRoles as $role => $label)<div class="col-md-6"><label class="approval-role-option d-block"><input class="form-check-input me-2" type="checkbox" name="approval_roles[]" value="{{ $role }}">{{ $loop->iteration }}. {{ $label }}</label></div>@endforeach</div></div>
-                        <div class="col-md-3 d-flex flex-column justify-content-end"><label class="form-check mb-2"><input class="form-check-input" type="checkbox" name="requires_department" value="1"> <span class="form-check-label">Require department</span></label><button class="btn btn-primary w-100"><i class="fas fa-plus"></i> Add type</button></div>
+                        <div class="col-md-4"><label class="form-label">Request type</label><input class="form-control" name="name" placeholder="e.g. Academic" required></div>
+                        <div class="col-md-8"><label class="form-label mb-1">Who should approve this request?</label><div class="small text-muted mb-2">Tick the roles needed. They will approve in this order.</div><div class="row g-2">@foreach($approvalRoles as $role => $label)<div class="col-sm-6"><label class="approval-role-option d-block"><input class="form-check-input me-2 approval-role-checkbox" type="checkbox" name="approval_roles[]" value="{{ $role }}" data-label="{{ $label }}">{{ $loop->iteration }}. {{ $label }}</label></div>@endforeach</div></div>
+                        <div class="col-md-9"><div class="approval-flow-preview"><strong class="me-2">Approval flow:</strong><span class="approval-flow-text text-muted">Select one or more approvers above.</span></div></div>
+                        <div class="col-md-3 d-flex align-items-end"><div class="w-100"><label class="form-check mb-2"><input class="form-check-input" type="checkbox" name="requires_department" value="1"> <span class="form-check-label">Require department</span></label><button class="btn btn-primary w-100"><i class="fas fa-plus"></i> Add type</button></div></div>
                     </form>
                     @foreach($eventRequestTypes as $item)<div class="border-top pt-2 mt-2"><strong>{{ $item->name }}</strong> <span class="badge bg-{{ $item->is_active ? 'success' : 'secondary' }}">{{ $item->is_active ? 'Active' : 'Inactive' }}</span><br><small class="text-muted">{{ $item->requires_department ? 'Department required · ' : '' }}{{ collect($item->approval_roles)->map(fn($role) => $approvalRoles[$role] ?? $role)->implode(' → ') }}</small><form class="d-inline" method="POST" action="{{ route('admin.management.event-setup.toggle', ['type' => 'request-type', 'id' => $item->id]) }}">@csrf @method('PATCH') <button class="btn btn-link btn-sm p-0">{{ $item->is_active ? 'Deactivate' : 'Activate' }}</button></form></div>@endforeach
                 </div></div>
@@ -526,6 +529,15 @@
             </div>
             <script>
                 document.addEventListener('DOMContentLoaded', function () {
+                    var approvalText = document.querySelector('.approval-flow-text');
+                    function updateApprovalFlow() {
+                        var selected = Array.from(document.querySelectorAll('.approval-role-checkbox:checked')).map(function (checkbox) { return checkbox.dataset.label; });
+                        approvalText.textContent = selected.length ? selected.join(' → ') : 'Select one or more approvers above.';
+                        approvalText.classList.toggle('text-muted', !selected.length);
+                        approvalText.classList.toggle('text-primary', selected.length > 0);
+                    }
+                    document.querySelectorAll('.approval-role-checkbox').forEach(function (checkbox) { checkbox.addEventListener('change', updateApprovalFlow); });
+                    updateApprovalFlow();
                     document.querySelectorAll('.event-setup-grid form[action*="/event-setup/"]').forEach(function (form) {
                         var match = form.action.match(/event-setup\/([^/]+)\/(\d+)\/toggle/);
                         if (!match) return;

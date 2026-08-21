@@ -70,7 +70,6 @@ class ManagementController extends Controller
         $approvalRoles = [
             'program_head' => 'Program Head', 'academic_head' => 'Academic Head',
             'building_admin' => 'Building Admin', 'school_admin' => 'School Administrator',
-            'mis' => 'MIS', 'admin' => 'Administrator',
         ];
 
         return view('admin.management', compact('tab', 'staff', 'facilities', 'categories', 'eventSetupReady', 'eventRequestTypes', 'eventIntendedUsers', 'eventDepartments', 'events', 'approvalRoles'));
