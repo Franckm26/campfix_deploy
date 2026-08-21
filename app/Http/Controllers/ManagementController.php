@@ -65,14 +65,14 @@ class ManagementController extends Controller
         $eventRequestTypes = $eventSetupReady ? EventRequestType::orderBy('name')->get() : collect();
         $eventIntendedUsers = $eventSetupReady ? EventIntendedUser::orderBy('name')->get() : collect();
         $eventDepartments = $eventSetupReady ? EventDepartment::orderBy('name')->get() : collect();
-        $events = EventRequest::with('user')->where('is_deleted', false)->latest()->paginate(10, ['*'], 'event_page')->withQueryString();
+        $events = (Schema::hasTable('event_requests')) ? EventRequest::with('user')->where('is_deleted', false)->latest()->paginate(10, ['*'], 'event_page')->withQueryString() : collect();
         $approvalRoles = [
             'program_head' => 'Program Head', 'academic_head' => 'Academic Head',
             'building_admin' => 'Building Admin', 'school_admin' => 'School Administrator',
             'mis' => 'MIS', 'admin' => 'Administrator',
         ];
 
-        return view('admin.management', compact('tab', 'staff', 'facilities', 'categories', 'eventSetupReady', 'eventRequestTypes', 'eventIntendedUsers', 'eventDepartments', 'approvalRoles'));
+        return view('admin.management', compact('tab', 'staff', 'facilities', 'categories', 'eventSetupReady', 'eventRequestTypes', 'eventIntendedUsers', 'eventDepartments', 'events', 'approvalRoles'));
     }
 
     public function storeEventRequestType(Request $request)
