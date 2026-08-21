@@ -390,10 +390,10 @@ class ReportController extends Controller
         $reportData['assigned_user_name'] = $report->assignedTo ? $report->assignedTo->name : null;
         
         // Format dates properly
-        $reportData['created_at'] = $report->created_at ? $report->created_at->format('M d, Y h:i A') : null;
-        $reportData['assigned_at'] = $report->assigned_at ? $report->assigned_at->format('M d, Y h:i A') : null;
-        $reportData['in_progress_at'] = $report->in_progress_at ? $report->in_progress_at->format('M d, Y h:i A') : null;
-        $reportData['resolved_at'] = $report->resolved_at ? $report->resolved_at->format('M d, Y h:i A') : null;
+        $reportData['created_at'] = $report->created_at ? $report->created_at->copy()->timezone('Asia/Manila')->format('M d, Y h:i A') : null;
+        $reportData['assigned_at'] = $report->assigned_at ? $report->assigned_at->copy()->timezone('Asia/Manila')->format('M d, Y h:i A') : null;
+        $reportData['in_progress_at'] = $report->in_progress_at ? $report->in_progress_at->copy()->timezone('Asia/Manila')->format('M d, Y h:i A') : null;
+        $reportData['resolved_at'] = $report->resolved_at ? $report->resolved_at->copy()->timezone('Asia/Manila')->format('M d, Y h:i A') : null;
 
         // Remove sensitive fields for unauthorized users
         if (! $canSeeSensitiveFields) {

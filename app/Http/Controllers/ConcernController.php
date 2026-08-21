@@ -1899,10 +1899,10 @@ class ConcernController extends Controller
                 'status' => $concern->status,
                 'priority' => $concern->priority,
                 'report_count' => $concern->report_count ?? 1,
-                'created_at' => $concern->created_at ? $concern->created_at->format('M d, Y h:i A') : null,
-                'assigned_at' => $concern->assigned_at ? $concern->assigned_at->format('M d, Y h:i A') : null,
-                'in_progress_at' => $concern->in_progress_at ? $concern->in_progress_at->format('M d, Y h:i A') : null,
-                'resolved_at' => $concern->resolved_at ? $concern->resolved_at->format('M d, Y h:i A') : null,
+                'created_at' => $concern->created_at ? $concern->created_at->copy()->timezone('Asia/Manila')->format('M d, Y h:i A') : null,
+                'assigned_at' => $concern->assigned_at ? $concern->assigned_at->copy()->timezone('Asia/Manila')->format('M d, Y h:i A') : null,
+                'in_progress_at' => $concern->in_progress_at ? $concern->in_progress_at->copy()->timezone('Asia/Manila')->format('M d, Y h:i A') : null,
+                'resolved_at' => $concern->resolved_at ? $concern->resolved_at->copy()->timezone('Asia/Manila')->format('M d, Y h:i A') : null,
                 'image_path' => $concern->image_path ? (str_starts_with($concern->image_path, 'http') ? $concern->image_path : asset('storage/'.$concern->image_path)) : null,
             ];
 

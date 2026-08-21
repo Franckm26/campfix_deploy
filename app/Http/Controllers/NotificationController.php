@@ -77,7 +77,7 @@ class NotificationController extends Controller
                         'status' => $concern->status ?: 'Pending',
                         'priority' => $concern->priority ?: 'Not set',
                         'reported_by' => $concern->user?->name ?: 'Unknown user',
-                        'created_at' => optional($concern->created_at)->format('m/d/Y g:i A'),
+                        'created_at' => $concern->created_at ? $concern->created_at->copy()->timezone(self::DISPLAY_TIMEZONE)->format('m/d/Y g:i A') : null,
                         'report_count' => $concern->report_count ?? 1,
                         'description' => $concern->description ?: 'No description provided.',
                         'details' => $concern->details ?? null,
@@ -106,10 +106,9 @@ class NotificationController extends Controller
             'id' => $notification->id,
             'title' => $notification->data['title'] ?? 'Notification',
             'message' => $notification->data['message'] ?? '',
-            // Timestamps in this application are already stored as Philippine
-            // local time. Converting them again adds eight hours.
-            'created_at' => $notification->created_at->format('M j, Y, g:i A').' PHT',
-            'created_at_human' => $notification->created_at->diffForHumans(),
+            // Database timestamps are stored in UTC; show them in Philippine time.
+            'created_at' => $notification->created_at->copy()->timezone(self::DISPLAY_TIMEZONE)->format('M j, Y, g:i A').' PHT',
+            'created_at_human' => $notification->created_at->copy()->timezone(self::DISPLAY_TIMEZONE)->diffForHumans(),
             'read_at' => $notification->read_at,
             'url' => $url,
             'concern_context' => $concernContext,
