@@ -316,7 +316,6 @@ class ConcernController extends Controller
         $concernData = [
             'title' => $request->title,
             'description' => $problemTypeForStorage,
-            'details' => $request->input('details'),
             'location' => $concernLocation,
             'location_type' => $request->location_type,
             'room_number' => $request->room_number,
@@ -327,6 +326,12 @@ class ConcernController extends Controller
             'image_path' => $imagePath,
             'is_anonymous' => false,
         ];
+
+        // Keep optional details compatible with deployed databases that have not
+        // yet run the details-column migration.
+        if (Schema::hasColumn('concerns', 'details')) {
+            $concernData['details'] = $request->input('details');
+        }
 
         if (Concern::supportsReportCount()) {
             $concernData['report_count'] = 1;
@@ -364,7 +369,6 @@ class ConcernController extends Controller
             'concern_id' => $concern->id,
             'category_id' => $request->category_id,
             'description' => $problemTypeForStorage,
-            'details' => $request->input('details'),
             'location' => $reportLocation,
             'location_type' => $request->location_type,
             'room_number' => $request->room_number,
@@ -372,6 +376,10 @@ class ConcernController extends Controller
             'status' => 'Pending',
             'photo_path' => $imagePath,
         ];
+
+        if (Schema::hasColumn('reports', 'details')) {
+            $reportData['details'] = $request->input('details');
+        }
 
         if (Report::supportsReportCount()) {
             $reportData['report_count'] = 1;
