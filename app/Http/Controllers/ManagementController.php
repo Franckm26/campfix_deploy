@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\ActivityLog;
 use App\Models\Category;
 use App\Models\EventRequest;
+use App\Models\EventRequestType;
+use App\Models\EventIntendedUser;
+use App\Models\EventDepartment;
 use App\Models\Facility;
 use App\Models\MaintenanceStaff;
 use App\Models\User;
@@ -55,18 +58,58 @@ class ManagementController extends Controller
         // Categories
         $categories = Category::orderBy('name')->paginate(10, ['*'], 'category_page')->withQueryString();
 
-        // Event requests: management overview with access to the existing approval workflow.
-        $eventQuery = EventRequest::with('user')->where('is_deleted', false);
-        if ($request->filled('event_search')) {
-            $eventQuery->where(function ($query) use ($request) {
-                $query->where('location', 'like', '%'.$request->event_search.'%')
-                    ->orWhere('department', 'like', '%'.$request->event_search.'%')
-                    ->orWhereHas('user', fn ($users) => $users->where('name', 'like', '%'.$request->event_search.'%'));
-            });
-        }
-        $events = $eventQuery->orderByDesc('created_at')->paginate(10, ['*'], 'event_page')->withQueryString();
+        $eventRequestTypes = EventRequestType::orderBy('name')->get();
+        $eventIntendedUsers = EventIntendedUser::orderBy('name')->get();
+        $eventDepartments = EventDepartment::orderBy('name')->get();
+        $events = EventRequest::with('user')->where('is_deleted', false)->latest()->paginate(10, ['*'], 'event_page')->withQueryString();
+        $approvalRoles = [
+            'program_head' => 'Program Head', 'academic_head' => 'Academic Head',
+            'building_admin' => 'Building Admin', 'school_admin' => 'School Administrator',
+            'mis' => 'MIS', 'admin' => 'Administrator',
+        ];
 
-        return view('admin.management', compact('tab', 'staff', 'facilities', 'categories', 'events'));
+        return view('admin.management', compact('tab', 'staff', 'facilities', 'categories', 'eventRequestTypes', 'eventIntendedUsers', 'eventDepartments', 'approvalRoles'));
+    }
+
+    public function storeEventRequestType(Request $request)
+    {
+        $this->guardBuildingAdmin();
+        $data = $request->validate(['name' => 'required|string|max:100|unique:event_request_types,name', 'approval_roles' => 'required|array|min:1', 'approval_roles.*' => 'required|string', 'requires_department' => 'nullable|boolean']);
+        EventRequestType::create(['name' => trim($data['name']), 'requires_department' => $request->boolean('requires_department'), 'approval_roles' => array_values($data['approval_roles']), 'is_active' => true]);
+        return back()->with('success', 'Event request type added.');
+    }
+
+    public function updateEventRequestType(Request $request, EventRequestType $eventRequestType)
+    {
+        $this->guardBuildingAdmin();
+        $data = $request->validate(['name' => 'required|string|max:100|unique:event_request_types,name,'.$eventRequestType->id, 'approval_roles' => 'required|array|min:1', 'approval_roles.*' => 'required|string', 'requires_department' => 'nullable|boolean', 'is_active' => 'nullable|boolean']);
+        $eventRequestType->update(['name' => trim($data['name']), 'approval_roles' => array_values($data['approval_roles']), 'requires_department' => $request->boolean('requires_department'), 'is_active' => $request->boolean('is_active')]);
+        return back()->with('success', 'Event request type updated.');
+    }
+
+    public function storeEventIntendedUser(Request $request)
+    {
+        $this->guardBuildingAdmin();
+        $data = $request->validate(['name' => 'required|string|max:100|unique:event_intended_users,name', 'code' => 'required|alpha_dash|max:50|unique:event_intended_users,code']);
+        EventIntendedUser::create(['name' => trim($data['name']), 'code' => strtolower($data['code']), 'is_active' => true]);
+        return back()->with('success', 'Intended user added.');
+    }
+
+    public function storeEventDepartment(Request $request)
+    {
+        $this->guardBuildingAdmin();
+        $data = $request->validate(['name' => 'required|string|max:100|unique:event_departments,name']);
+        EventDepartment::create(['name' => trim($data['name']), 'is_active' => true]);
+        return back()->with('success', 'Department added.');
+    }
+
+    public function toggleEventSetup(Request $request, string $type, int $id)
+    {
+        $this->guardBuildingAdmin();
+        $model = match ($type) { 'request-type' => EventRequestType::class, 'intended-user' => EventIntendedUser::class, 'department' => EventDepartment::class, default => abort(404) };
+        $item = $model::findOrFail($id);
+        $item->update(['is_active' => ! $item->is_active]);
+        return back()->with('success', 'Event setup status updated.');
     }
 
     // ─── STAFF ───────────────────────────────────────────────────────────────

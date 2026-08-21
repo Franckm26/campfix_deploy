@@ -6,6 +6,9 @@ use App\Models\ActivityLog;
 use App\Models\ArchiveFolder;
 use App\Models\Concern;
 use App\Models\EventRequest;
+use App\Models\EventRequestType;
+use App\Models\EventIntendedUser;
+use App\Models\EventDepartment;
 use App\Models\FacilityRequest;
 use App\Models\Report;
 use App\Models\User;
@@ -136,11 +139,11 @@ class EventRequestController extends Controller
                 'start_time' => 'required',
                 'end_time' => 'required|after:start_time',
                 'category' => 'required|in:Area Use',
-                'request_type' => 'required|in:Academic,Non-Academic',
+                'request_type' => 'required|string|max:100',
                 'area_of_use' => 'required_if:category,Area Use|string',
                 'room_number' => 'nullable|string',
-                'department' => 'nullable|in:GE,ICT,Business Management,THM',
-                'education_level' => 'required|in:tertiary,shs,faculty,staff,maintenance',
+                'department' => 'nullable|string|max:100',
+                'education_level' => 'required|string|max:50',
                 'picture' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
             ], [
                 'description.required' => 'The description is required.',
@@ -175,18 +178,24 @@ class EventRequestController extends Controller
                 $imagePath = $request->file('picture')->store('event-images', 'public');
             }
 
-            $educationLevel = $request->education_level ?? 'tertiary';
-            $isFacultyIntended = $educationLevel === 'faculty';
+            $requestType = EventRequestType::where('name', $request->request_type)->where('is_active', true)->first();
+            $intendedUser = EventIntendedUser::where('code', $request->education_level)->where('is_active', true)->first();
+            if (! $requestType || ! $intendedUser) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['request_type' => 'Please select an active request type and intended user.']);
+            }
+            $educationLevel = $intendedUser->code;
+            $isFacultyIntended = false;
             $isShsIntended = $educationLevel === 'shs';
-            $isNonAcademic = $request->request_type === 'Non-Academic';
+            if ($requestType->requires_department && ! EventDepartment::where('name', $request->department)->where('is_active', true)->exists()) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['department' => 'Please select an active department.']);
+            }
+            $approvalRoute = array_values($requestType->approval_roles ?? []);
 
             // Determine initial approval level based on request type
             // Non-Academic: starts at Building Admin (level 3)
             // Academic: starts at Program Head (level 1), except SHS where level 1 is Principal Assistant
             $initialApprovalLevel = EventRequest::LEVEL_NONE;
-            if (!$isFacultyIntended) {
-                $initialApprovalLevel = $isNonAcademic ? EventRequest::LEVEL_3_BUILDING_ADMIN : EventRequest::LEVEL_1_PROGRAM_HEAD;
-            }
+            if (!$isFacultyIntended && $approvalRoute) $initialApprovalLevel = 1;
 
             $eventRequest = EventRequest::create([
                 'user_id' => auth()->id(),
@@ -198,13 +207,14 @@ class EventRequestController extends Controller
                 'category' => $request->category,
                 'request_type' => $request->request_type,
                 'other_category' => $request->other_category,
-                'department' => $isShsIntended ? null : $request->department,
+                'department' => $requestType->requires_department ? $request->department : null,
                 'education_level' => $educationLevel,
                 // Kept internally for the current non-null database column; it is no longer shown or chosen by users.
                 'priority' => 'medium',
                 // Faculty-intended requests are auto-approved; others go through the approval chain
                 'status' => $isFacultyIntended ? 'Approved' : 'Pending',
                 'approval_level' => $isFacultyIntended ? EventRequest::LEVEL_APPROVED : $initialApprovalLevel,
+                'approval_route' => $approvalRoute,
                 'approved_at' => $isFacultyIntended ? now() : null,
                 'materials_needed' => $materialsNeeded,
                 'image_path' => $imagePath,
@@ -701,6 +711,9 @@ class EventRequestController extends Controller
     {
         $eventRequest = EventRequest::findOrFail($id);
         $user = auth()->user();
+        if ($eventRequest->hasConfiguredApprovalRoute()) {
+            return $this->approveConfiguredRoute($request, $eventRequest, $user);
+        }
         $isShs = ($eventRequest->education_level ?? 'tertiary') === 'shs';
 
         if ($isShs && $user->isProgramHead()) {
@@ -1101,6 +1114,35 @@ class EventRequestController extends Controller
             : 'Your approval has been recorded. Waiting for other approvers.';
 
         return back()->with('success', $message);
+    }
+
+    private function approveConfiguredRoute(Request $request, EventRequest $eventRequest, User $user)
+    {
+        $level = $eventRequest->getNextApprovalLevel();
+        $requiredRole = $eventRequest->requiredApprovalRole();
+        if (! $level || ! $requiredRole) return back()->with('error', 'This request has already completed its approval route.');
+        $allowed = $user->role === $requiredRole || ($requiredRole === 'school_admin' && $user->role === 'admin');
+        if (! $allowed) return back()->with('error', 'This request is waiting for '.str_replace('_', ' ', $requiredRole).' approval.');
+        if ($eventRequest->hasUserApprovedAtLevel($user->id, $level)) return back()->with('error', 'You have already approved this request.');
+
+        $history = $eventRequest->approval_history ?? [];
+        $history[] = ['level' => $level, 'role' => ucwords(str_replace('_', ' ', $requiredRole)), 'approver' => $user->name, 'approver_id' => $user->id, 'at' => now()->toDateTimeString(), 'notes' => $request->notes];
+        $eventRequest->approval_history = $history;
+        $nextLevel = $eventRequest->getNextApprovalLevel();
+        if ($nextLevel === null) {
+            $eventRequest->status = EventRequest::STATUS_APPROVED;
+            $eventRequest->approved_by = $user->id;
+            $eventRequest->approved_at = now();
+            $eventRequest->approval_level = EventRequest::LEVEL_APPROVED;
+        } else {
+            $eventRequest->status = EventRequest::STATUS_PENDING;
+            $eventRequest->approval_level = $nextLevel;
+        }
+        $eventRequest->save();
+        ActivityLog::log('event_approved_configured_route', "Event request ID {$eventRequest->id} approved by {$user->name} as {$requiredRole}", null);
+        $this->sendApprovalNotification($eventRequest, $level, 'Approved');
+        if ($eventRequest->status === EventRequest::STATUS_PENDING) (new NotificationService)->notifyApproversOfNewEvent($eventRequest);
+        return back()->with('success', $eventRequest->status === EventRequest::STATUS_APPROVED ? 'Event request fully approved.' : 'Approved and forwarded to the next approver.');
     }
 
     /**

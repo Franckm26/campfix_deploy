@@ -287,6 +287,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/admin/management/categories', [\App\Http\Controllers\ManagementController::class, 'storeCategory'])->name('admin.management.categories.store');
     Route::put('/admin/management/categories/{id}', [\App\Http\Controllers\ManagementController::class, 'updateCategory'])->name('admin.management.categories.update');
     Route::delete('/admin/management/categories/{id}', [\App\Http\Controllers\ManagementController::class, 'destroyCategory'])->name('admin.management.categories.destroy');
+
+    Route::post('/admin/management/event-setup/request-types', [\App\Http\Controllers\ManagementController::class, 'storeEventRequestType'])->name('admin.management.event-types.store');
+    Route::put('/admin/management/event-setup/request-types/{eventRequestType}', [\App\Http\Controllers\ManagementController::class, 'updateEventRequestType'])->name('admin.management.event-types.update');
+    Route::post('/admin/management/event-setup/intended-users', [\App\Http\Controllers\ManagementController::class, 'storeEventIntendedUser'])->name('admin.management.event-intended-users.store');
+    Route::post('/admin/management/event-setup/departments', [\App\Http\Controllers\ManagementController::class, 'storeEventDepartment'])->name('admin.management.event-departments.store');
+    Route::patch('/admin/management/event-setup/{type}/{id}/toggle', [\App\Http\Controllers\ManagementController::class, 'toggleEventSetup'])->name('admin.management.event-setup.toggle');
 });
 
 /* EVENT APPROVAL PAGE - APPROVER ROLES */

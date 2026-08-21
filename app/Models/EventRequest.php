@@ -37,6 +37,7 @@ class EventRequest extends Model
         'maintenance_archived',
         'approval_level',
         'approval_history',
+        'approval_route',
         'approved_by_level_1',
         'approved_at_level_1',
         'approved_by_level_2',
@@ -65,6 +66,7 @@ class EventRequest extends Model
         'approved_at_level_2' => 'datetime',
         'approved_at_level_3' => 'datetime',
         'approval_history' => 'array',
+        'approval_route' => 'array',
         'materials_needed' => 'array',
         'is_archived' => 'boolean',
         'admin_archived' => 'boolean',
@@ -524,6 +526,9 @@ class EventRequest extends Model
      */
     public function isFullyApproved(): bool
     {
+        if ($this->hasConfiguredApprovalRoute()) {
+            return $this->getNextApprovalLevel() === null;
+        }
         $isShs = ($this->education_level ?? 'tertiary') === 'shs';
         $isNonAcademic = $this->request_type === 'Non-Academic';
 
@@ -549,6 +554,15 @@ class EventRequest extends Model
      */
     public function getNextApprovalLevel(): ?int
     {
+        if ($this->hasConfiguredApprovalRoute()) {
+            $roles = $this->approval_route;
+            foreach ($roles as $index => $role) {
+                if (! $this->hasApprovalAtLevel($index + 1)) {
+                    return $index + 1;
+                }
+            }
+            return null;
+        }
         $isShs = ($this->education_level ?? 'tertiary') === 'shs';
         $isNonAcademic = $this->request_type === 'Non-Academic';
 
@@ -605,6 +619,19 @@ class EventRequest extends Model
         return $this->status === self::STATUS_PENDING
             && (int) $this->approval_level === $level
             && $this->arePreviousApprovalLevelsComplete($level);
+    }
+
+    public function hasConfiguredApprovalRoute(): bool
+    {
+        return is_array($this->approval_route) && count($this->approval_route) > 0;
+    }
+
+    public function requiredApprovalRole(): ?string
+    {
+        $level = $this->getNextApprovalLevel();
+        return $level && $this->hasConfiguredApprovalRoute()
+            ? ($this->approval_route[$level - 1] ?? null)
+            : null;
     }
 
     /**

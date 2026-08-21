@@ -91,7 +91,9 @@ class NotificationService
 
             $roleToNotify = null;
 
-            if ($isShs) {
+            if ($eventRequest->hasConfiguredApprovalRoute()) {
+                $roleToNotify = $eventRequest->requiredApprovalRole();
+            } elseif ($isShs) {
                 // SHS chain: Principal Assistant → Academic Head → School Admin
                 switch ($currentLevel) {
                     case EventRequest::LEVEL_1_PROGRAM_HEAD:

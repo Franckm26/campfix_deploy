@@ -648,20 +648,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="modal_request_type" class="form-label">Request Type *</label>
+                        @php
+                            $eventSetupAvailable = \Illuminate\Support\Facades\Schema::hasTable('event_request_types');
+                            $eventTypes = $eventSetupAvailable ? \App\Models\EventRequestType::where('is_active', true)->orderBy('name')->get() : collect([['name' => 'Academic'], ['name' => 'Non-Academic']]);
+                            $eventUsers = $eventSetupAvailable ? \App\Models\EventIntendedUser::where('is_active', true)->orderBy('name')->get() : collect([['name' => 'Faculty', 'code' => 'faculty'], ['name' => 'Tertiary', 'code' => 'tertiary'], ['name' => 'Senior High School', 'code' => 'shs'], ['name' => 'Staff', 'code' => 'staff'], ['name' => 'Maintenance', 'code' => 'maintenance']]);
+                            $eventDepartments = $eventSetupAvailable ? \App\Models\EventDepartment::where('is_active', true)->orderBy('name')->get() : collect([['name' => 'GE'], ['name' => 'ICT'], ['name' => 'Business Management'], ['name' => 'THM']]);
+                        @endphp
                         <select class="form-select @error('request_type') is-invalid @enderror" id="modal_request_type" name="request_type" required>
                                 <option value="">Select type</option>
-                                <option value="Academic">Academic</option>
-                                <option value="Non-Academic">Non-Academic</option>
+                                @foreach($eventTypes as $type)<option value="{{ is_array($type) ? $type['name'] : $type->name }}" data-requires-department="{{ (is_array($type) ? $type['name'] === 'Academic' : $type->requires_department) ? '1' : '0' }}">{{ is_array($type) ? $type['name'] : $type->name }}</option>@endforeach
                             </select>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label for="modal_education_level" class="form-label">Intended User *</label>
                             <select class="form-select" id="modal_education_level" name="education_level" required>
-                                <option value="faculty" selected>Faculty</option>
-                                <option value="tertiary">Tertiary</option>
-                                <option value="shs">Senior High School</option>
-                                <option value="staff">Staff</option>
-                                <option value="maintenance">Maintenance</option>
+                                @foreach($eventUsers as $userOption)<option value="{{ is_array($userOption) ? $userOption['code'] : $userOption->code }}" {{ (is_array($userOption) ? $userOption['code'] : $userOption->code) === 'faculty' ? 'selected' : '' }}>{{ is_array($userOption) ? $userOption['name'] : $userOption->name }}</option>@endforeach
                             </select>
                         </div>
                         <!-- Hidden field for category - automatically set to Area Use -->
@@ -705,10 +706,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <label for="modal_department" class="form-label">Department *</label>
                         <select class="form-select" id="modal_department" name="department">
                             <option value="">Select department</option>
-                            <option value="GE">GE</option>
-                            <option value="ICT">ICT</option>
-                            <option value="Business Management">Business Management</option>
-                            <option value="THM">THM</option>
+                            @foreach($eventDepartments as $departmentOption)<option value="{{ is_array($departmentOption) ? $departmentOption['name'] : $departmentOption->name }}">{{ is_array($departmentOption) ? $departmentOption['name'] : $departmentOption->name }}</option>@endforeach
                         </select>
                     </div>
 
@@ -842,7 +840,8 @@ window.updateDescCount = function() {
 
 document.addEventListener('DOMContentLoaded', function() {
     function shouldRequireDepartment(requestTypeValue, educationLevelValue, areaValue) {
-        return requestTypeValue === 'Academic' && educationLevelValue !== 'shs' && !!areaValue;
+        var selected = document.querySelector('#modal_request_type option[value="' + String(requestTypeValue).replace(/"/g, '\\"') + '"]');
+        return !!selected && selected.dataset.requiresDepartment === '1' && educationLevelValue !== 'shs' && !!areaValue;
     }
 
     function syncDepartmentRequirement() {
