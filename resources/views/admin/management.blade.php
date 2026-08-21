@@ -498,12 +498,22 @@
             @if(! $eventSetupReady)
                 <div class="alert alert-warning mb-4"><i class="fas fa-database"></i> Event Setup will be available after the latest database migration is applied. The existing event-request workflow remains available.</div>
             @else
-            <div class="row g-3 mb-4">
-                <div class="col-lg-6"><div class="border rounded p-3 h-100"><h6><i class="fas fa-code-branch text-primary"></i> Request types and approval roles</h6>
+            <style>
+                .event-setup-grid .border { border-color: #dbe4f0 !important; border-radius: 12px !important; }
+                .event-setup-grid h6 { font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem; }
+                .event-setup-grid select[multiple] { min-height: 144px; }
+                .event-setup-grid .btn-link { text-decoration: none; }
+                .event-setup-grid .border-top { padding: .8rem 0; }
+                .event-setup-grid > .col-lg-3 { width: 50%; }
+                form:has(input[name="event_search"]) { display: none !important; }
+                @media (max-width: 991.98px) { .event-setup-grid > .col-lg-3 { width: 100%; } }
+            </style>
+            <div class="row g-4 mb-0 event-setup-grid">
+                <div class="col-lg-12"><div class="border rounded p-4 h-100"><h6><i class="fas fa-code-branch text-primary me-2"></i>Request types and approval roles</h6>
                     <form method="POST" action="{{ route('admin.management.event-types.store') }}" class="row g-2 mb-3">@csrf
-                        <div class="col-md-5"><input class="form-control form-control-sm" name="name" placeholder="New request type" required></div>
-                        <div class="col-md-7"><select class="form-select form-select-sm" name="approval_roles[]" multiple required>@foreach($approvalRoles as $role => $label)<option value="{{ $role }}">{{ $label }}</option>@endforeach</select></div>
-                        <div class="col-12"><label class="small"><input type="checkbox" name="requires_department" value="1"> Require department</label><button class="btn btn-sm btn-primary float-end">Add type</button></div>
+                        <div class="col-md-4"><label class="form-label small">Request type</label><input class="form-control" name="name" placeholder="New request type" required></div>
+                        <div class="col-md-5"><label class="form-label small">Approver roles (in order)</label><select class="form-select" name="approval_roles[]" multiple required>@foreach($approvalRoles as $role => $label)<option value="{{ $role }}">{{ $label }}</option>@endforeach</select></div>
+                        <div class="col-md-3 d-flex flex-column justify-content-end"><label class="form-check mb-2"><input class="form-check-input" type="checkbox" name="requires_department" value="1"> <span class="form-check-label">Require department</span></label><button class="btn btn-primary w-100"><i class="fas fa-plus"></i> Add type</button></div>
                     </form>
                     @foreach($eventRequestTypes as $item)<div class="border-top pt-2 mt-2"><strong>{{ $item->name }}</strong> <span class="badge bg-{{ $item->is_active ? 'success' : 'secondary' }}">{{ $item->is_active ? 'Active' : 'Inactive' }}</span><br><small class="text-muted">{{ $item->requires_department ? 'Department required · ' : '' }}{{ collect($item->approval_roles)->map(fn($role) => $approvalRoles[$role] ?? $role)->implode(' → ') }}</small><form class="d-inline" method="POST" action="{{ route('admin.management.event-setup.toggle', ['type' => 'request-type', 'id' => $item->id]) }}">@csrf @method('PATCH') <button class="btn btn-link btn-sm p-0">{{ $item->is_active ? 'Deactivate' : 'Activate' }}</button></form></div>@endforeach
                 </div></div>
@@ -515,8 +525,8 @@
                 <input type="hidden" name="tab" value="events">
                 <div class="col-md-5"><input class="form-control form-control-sm" name="event_search" value="{{ request('event_search') }}" placeholder="Search requester, department, or location"></div>
                 <div class="col-auto"><button class="btn btn-primary btn-sm" type="submit">Search</button></div>
-            </form>
-            @if($events->isNotEmpty())
+            </div>
+            @if(false && $events->isNotEmpty())
             <div class="table-responsive"><table class="table table-hover align-middle"><thead><tr><th>Requester</th><th>Department</th><th>Location</th><th>Date</th><th>Time</th><th>Status</th><th></th></tr></thead><tbody>
                 @foreach($events as $event)
                 <tr><td>{{ $event->user->name ?? 'Unknown' }}</td><td>{{ $event->department ?: '—' }}</td><td>{{ $event->location }}</td><td>{{ optional($event->event_date)->format('m/d/Y') }}</td><td>{{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} – {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}</td><td><span class="badge bg-{{ $event->status === 'Approved' ? 'success' : ($event->status === 'Rejected' ? 'danger' : ($event->status === 'Cancelled' ? 'secondary' : 'warning')) }}">{{ $event->status }}</span></td><td><a class="btn btn-sm btn-outline-primary" href="{{ route('admin.events') }}"><i class="fas fa-pen-to-square"></i> Manage</a></td></tr>
