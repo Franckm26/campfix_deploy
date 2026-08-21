@@ -499,7 +499,7 @@ class AdminController extends Controller
 
         // Check if user is building_admin, school_admin, academic_head, or mis
         $user = auth()->user();
-        if (!in_array($user->role, ['building_admin', 'school_admin', 'academic_head', 'mis'])) {
+        if (!in_array($user->role, ['admin', 'building_admin', 'school_admin', 'academic_head', 'mis'])) {
             if ($request->expectsJson()) {
                 return response()->json(['error' => 'You do not have permission to assign concerns.'], 403);
             }

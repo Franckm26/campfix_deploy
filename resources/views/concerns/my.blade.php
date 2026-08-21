@@ -3473,17 +3473,32 @@ function viewConcern(id) {
             </div>
         `;
         
+        const canManageWorkflow = @json(in_array(auth()->user()->role, ['admin', 'building_admin', 'school_admin', 'academic_head', 'mis']));
+        const workflowButton = canManageWorkflow && concern.report_id && concern.status !== 'Resolved' && concern.status !== 'Closed'
+            ? (concern.status === 'Pending'
+                ? { text: '<i class="fas fa-user-plus me-1"></i> Assign', color: '#0d6efd', action: () => assignTicketReport(concern.report_id) }
+                : concern.status === 'Assigned'
+                    ? { text: '<i class="fas fa-play me-1"></i> Start work', color: '#f0ad4e', action: () => updateTicketReportStatus(concern.report_id, 'In Progress') }
+                    : { text: '<i class="fas fa-check me-1"></i> Complete', color: '#198754', action: () => completeTicketReport(concern.report_id) })
+            : null;
+
         Swal.fire({
             title: '<i class="fas fa-ticket-alt me-2"></i>Ticket #' + String(concern.id).padStart(4, '0') + ' Details',
             html: htmlContent,
             width: '900px',
             showCloseButton: true,
-            showConfirmButton: true,
-            confirmButtonText: 'Close',
-            confirmButtonColor: '#6c757d',
+            showConfirmButton: !!workflowButton,
+            confirmButtonText: workflowButton ? workflowButton.text : 'Close',
+            confirmButtonColor: workflowButton ? workflowButton.color : '#6c757d',
+            showCancelButton: !!workflowButton,
+            cancelButtonText: 'Close',
             customClass: {
                 popup: 'swal-wide-popup',
                 htmlContainer: 'swal2-html-container'
+            }
+        }).then((result) => {
+            if (result.isConfirmed && workflowButton) {
+                workflowButton.action();
             }
         });
     })
@@ -3493,6 +3508,71 @@ function viewConcern(id) {
             title: 'Error',
             text: 'Error loading concern details: ' + error.message
         });
+    });
+}
+
+function ticketWorkflowRequest(url, payload) {
+    return fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify(payload)
+    }).then(async response => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) throw new Error(data.error || data.message || 'Unable to update the ticket.');
+        return data;
+    });
+}
+
+function updateTicketReportStatus(reportId, status) {
+    Swal.fire({ title: 'Updating ticket...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    ticketWorkflowRequest('/reports/' + reportId + '/update-status', { status })
+        .then(data => Swal.fire({ icon: 'success', title: 'Updated', text: data.message, timer: 1400, showConfirmButton: false }).then(() => location.reload()))
+        .catch(error => Swal.fire({ icon: 'error', title: 'Unable to update ticket', text: error.message }));
+}
+
+function assignTicketReport(reportId) {
+    fetch('/api/maintenance-users', { headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' } })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.users || !data.users.length) throw new Error('No active maintenance staff are available.');
+            const inputOptions = Object.fromEntries(data.users.map(user => [user.id, user.name]));
+            return Swal.fire({ title: 'Assign ticket', input: 'select', inputOptions, inputPlaceholder: 'Select maintenance staff', showCancelButton: true, confirmButtonText: 'Assign', inputValidator: value => !value && 'Select a maintenance staff member.' })
+                .then(result => result.isConfirmed ? ticketWorkflowRequest('/admin/report/' + reportId + '/assign', { assigned_to: result.value }) : null);
+        })
+        .then(data => {
+            if (!data) return;
+            return Swal.fire({ icon: 'success', title: 'Assigned', text: data.message, timer: 1400, showConfirmButton: false }).then(() => location.reload());
+        })
+        .catch(error => Swal.fire({ icon: 'error', title: 'Unable to assign ticket', text: error.message }));
+}
+
+function completeTicketReport(reportId) {
+    Swal.fire({
+        title: 'Complete ticket',
+        html: '<textarea id="ticketResolutionNotes" class="swal2-textarea" placeholder="Resolution notes (optional)"></textarea>' +
+            '<input id="ticketCost" type="number" min="0" step="0.01" class="swal2-input" placeholder="Recorded cost (optional)">' +
+            '<input id="ticketDamagedPart" class="swal2-input" placeholder="Damaged part (optional)">' +
+            '<input id="ticketReplacedPart" class="swal2-input" placeholder="Replaced part (optional)">',
+        showCancelButton: true,
+        confirmButtonText: 'Mark resolved',
+        confirmButtonColor: '#198754',
+        preConfirm: () => ({
+            status: 'Resolved',
+            resolution_notes: document.getElementById('ticketResolutionNotes').value.trim(),
+            cost: document.getElementById('ticketCost').value || null,
+            damaged_part: document.getElementById('ticketDamagedPart').value.trim(),
+            replaced_part: document.getElementById('ticketReplacedPart').value.trim()
+        })
+    }).then(result => {
+        if (!result.isConfirmed) return;
+        Swal.fire({ title: 'Completing ticket...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        ticketWorkflowRequest('/reports/' + reportId + '/update-status', result.value)
+            .then(data => Swal.fire({ icon: 'success', title: 'Resolved', text: data.message, timer: 1400, showConfirmButton: false }).then(() => location.reload()))
+            .catch(error => Swal.fire({ icon: 'error', title: 'Unable to complete ticket', text: error.message }));
     });
 }
 

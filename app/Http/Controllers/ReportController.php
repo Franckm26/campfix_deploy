@@ -554,7 +554,7 @@ class ReportController extends Controller
         $canUpdate = false;
 
         // MIS, School Admin, Building Admin can update any report
-        if (in_array($user->role, ['mis', 'school_admin', 'building_admin'])) {
+        if (in_array($user->role, ['admin', 'mis', 'school_admin', 'academic_head', 'building_admin'])) {
             $canUpdate = true;
         }
 
@@ -582,6 +582,10 @@ class ReportController extends Controller
         // Update status
         $report->status = $newStatus;
 
+        if ($newStatus === 'In Progress' && $oldStatus !== 'In Progress' && \Illuminate\Support\Facades\Schema::hasColumn('reports', 'in_progress_at')) {
+            $report->in_progress_at = now();
+        }
+
         // Set resolved_at timestamp if marking as resolved
         if ($newStatus === 'Resolved' && $oldStatus !== 'Resolved') {
             $report->resolved_at = now();
@@ -607,6 +611,9 @@ class ReportController extends Controller
         $concern = $report->concern;
         if ($concern && $oldStatus !== $newStatus) {
             $concern->status = $newStatus;
+            if ($newStatus === 'In Progress' && $oldStatus !== 'In Progress' && \Illuminate\Support\Facades\Schema::hasColumn('concerns', 'in_progress_at')) {
+                $concern->in_progress_at = now();
+            }
             if ($newStatus === 'Resolved') {
                 $concern->resolved_at = now();
                 $concern->resolution_notes = $request->resolution_notes ?? null;

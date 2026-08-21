@@ -1895,6 +1895,7 @@ class ConcernController extends Controller
                 ] : null,
                 'assignedTo' => $concern->assignedTo,
                 'assigned_to' => $concern->assigned_to,
+                'report_id' => Report::where('concern_id', $concern->id)->latest('id')->value('id'),
                 'status' => $concern->status,
                 'priority' => $concern->priority,
                 'report_count' => $concern->report_count ?? 1,
