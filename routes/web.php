@@ -291,6 +291,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/admin/management/event-setup/request-types', [\App\Http\Controllers\ManagementController::class, 'storeEventRequestType'])->name('admin.management.event-types.store');
     Route::put('/admin/management/event-setup/request-types/{eventRequestType}', [\App\Http\Controllers\ManagementController::class, 'updateEventRequestType'])->name('admin.management.event-types.update');
     Route::post('/admin/management/event-setup/intended-users', [\App\Http\Controllers\ManagementController::class, 'storeEventIntendedUser'])->name('admin.management.event-intended-users.store');
+    Route::put('/admin/management/event-setup/intended-users/{eventIntendedUser}', [\App\Http\Controllers\ManagementController::class, 'updateEventIntendedUser'])->name('admin.management.event-intended-users.update');
     Route::post('/admin/management/event-setup/departments', [\App\Http\Controllers\ManagementController::class, 'storeEventDepartment'])->name('admin.management.event-departments.store');
     Route::patch('/admin/management/event-setup/{type}/{id}/toggle', [\App\Http\Controllers\ManagementController::class, 'toggleEventSetup'])->name('admin.management.event-setup.toggle');
     Route::patch('/admin/management/event-setup/{type}/{id}', [\App\Http\Controllers\ManagementController::class, 'renameEventSetup'])->name('admin.management.event-setup.rename');

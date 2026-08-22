@@ -96,13 +96,21 @@ class ManagementController extends Controller
     public function storeEventIntendedUser(Request $request)
     {
         $this->guardBuildingAdmin();
-        $data = $request->validate(['name' => 'required|string|max:100|unique:event_intended_users,name']);
+        $data = $request->validate(['name' => 'required|string|max:100|unique:event_intended_users,name', 'approval_roles' => 'nullable|array', 'approval_roles.*' => 'required|string']);
         $baseCode = Str::slug($data['name'], '_');
         $code = $baseCode;
         $suffix = 2;
         while (EventIntendedUser::where('code', $code)->exists()) $code = $baseCode.'_'.$suffix++;
-        EventIntendedUser::create(['name' => trim($data['name']), 'code' => $code, 'is_active' => true]);
+        EventIntendedUser::create(['name' => trim($data['name']), 'code' => $code, 'approval_roles' => !empty($data['approval_roles']) ? array_values($data['approval_roles']) : null, 'is_active' => true]);
         return back()->with('success', 'Intended user added.');
+    }
+
+    public function updateEventIntendedUser(Request $request, EventIntendedUser $eventIntendedUser)
+    {
+        $this->guardBuildingAdmin();
+        $data = $request->validate(['name' => 'required|string|max:100|unique:event_intended_users,name,'.$eventIntendedUser->id, 'approval_roles' => 'nullable|array', 'approval_roles.*' => 'required|string']);
+        $eventIntendedUser->update(['name' => trim($data['name']), 'approval_roles' => !empty($data['approval_roles']) ? array_values($data['approval_roles']) : null]);
+        return back()->with('success', 'Intended user updated.');
     }
 
     public function storeEventDepartment(Request $request)

@@ -2,6 +2,6 @@
 namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 class EventIntendedUser extends Model {
-    protected $fillable = ['name', 'code', 'is_active'];
-    protected $casts = ['is_active' => 'boolean'];
+    protected $fillable = ['name', 'code', 'approval_roles', 'is_active'];
+    protected $casts = ['approval_roles' => 'array', 'is_active' => 'boolean'];
 }

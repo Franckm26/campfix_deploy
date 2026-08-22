@@ -189,7 +189,9 @@ class EventRequestController extends Controller
             if ($requestType->requires_department && ! EventDepartment::where('name', $request->department)->where('is_active', true)->exists()) {
                 throw \Illuminate\Validation\ValidationException::withMessages(['department' => 'Please select an active department.']);
             }
-            $approvalRoute = array_values($requestType->approval_roles ?? []);
+            // An intended-user group may have its own route (for example SHS or Tertiary).
+            // When no override is configured, use the request type's default route.
+            $approvalRoute = array_values($intendedUser->approval_roles ?: ($requestType->approval_roles ?? []));
 
             // Determine initial approval level based on request type
             // Non-Academic: starts at Building Admin (level 3)
