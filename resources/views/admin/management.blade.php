@@ -519,7 +519,7 @@
                     @foreach($eventRequestTypes as $item)<div class="border-top pt-2 mt-2"><strong>{{ $item->name }}</strong> <span class="badge bg-{{ $item->is_active ? 'success' : 'secondary' }}">{{ $item->is_active ? 'Active' : 'Inactive' }}</span><br><small class="text-muted">{{ $item->requires_department ? 'Department required · ' : '' }}{{ collect($item->approval_roles)->map(fn($role) => $approvalRoles[$role] ?? $role)->implode(' → ') }}</small><form class="d-inline" method="POST" action="{{ route('admin.management.event-setup.toggle', ['type' => 'request-type', 'id' => $item->id]) }}">@csrf @method('PATCH') <button class="btn btn-link btn-sm p-0">{{ $item->is_active ? 'Deactivate' : 'Activate' }}</button></form></div>@endforeach
                 </div></div>
                 <div class="col-lg-3"><div class="border rounded p-3 h-100"><div class="d-flex justify-content-between align-items-center gap-2 mb-3"><h6 class="mb-0"><i class="fas fa-users text-primary"></i> Intended users</h6><button class="btn btn-sm btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#eventIntendedUserModal"><i class="fas fa-plus"></i> Add</button></div><p class="small text-muted">Set a custom approval route for a group, or leave it blank to use the request type's default route.</p>@forelse($eventIntendedUsers as $item)<div class="border-top pt-2 mt-2"><strong>{{ $item->name }}</strong><small class="d-block text-muted mt-1">{{ collect($item->approval_roles ?: [])->map(fn($role) => $role === 'principal_assistant' ? 'SHS Principal' : ($approvalRoles[$role] ?? $role))->implode(' → ') ?: 'Uses request type approval' }}</small><form class="d-inline" method="POST" action="{{ route('admin.management.event-setup.toggle', ['type' => 'intended-user', 'id' => $item->id]) }}">@csrf @method('PATCH') <button class="btn btn-link btn-sm p-0">Delete</button></form></div>@empty<div class="text-muted small py-2">No intended users configured.</div>@endforelse</div></div>
-                <div class="col-lg-3"><div class="border rounded p-3 h-100"><h6><i class="fas fa-building text-primary"></i> Departments</h6><form method="POST" action="{{ route('admin.management.event-departments.store') }}" class="mb-3">@csrf<input class="form-control form-control-sm mb-2" name="name" placeholder="Department name" required><button class="btn btn-sm btn-primary w-100">Add</button></form>@foreach($eventDepartments as $item)<div class="border-top pt-2 mt-2">{{ $item->name }}<form class="d-inline" method="POST" action="{{ route('admin.management.event-setup.toggle', ['type' => 'department', 'id' => $item->id]) }}">@csrf @method('PATCH') <button class="btn btn-link btn-sm p-0">{{ $item->is_active ? 'Deactivate' : 'Activate' }}</button></form></div>@endforeach</div></div>
+                <div class="col-lg-3"><div class="border rounded p-3 h-100"><div class="d-flex justify-content-between align-items-center gap-2 mb-3"><h6 class="mb-0"><i class="fas fa-building text-primary"></i> Departments</h6><button class="btn btn-sm btn-primary" type="button" data-department-add><i class="fas fa-plus"></i> Add</button></div><p class="small text-muted">Manage the departments available on the event request form.</p>@forelse($eventDepartments as $item)<div class="border-top pt-2 mt-2 d-flex justify-content-between align-items-center gap-2"><strong>{{ $item->name }}</strong><span class="text-nowrap"><button type="button" class="btn btn-sm btn-outline-primary" data-department-edit data-id="{{ $item->id }}"><i class="fas fa-edit"></i> Edit</button><button type="button" class="btn btn-sm btn-outline-danger" data-department-delete data-id="{{ $item->id }}"><i class="fas fa-trash"></i> Delete</button></span></div>@empty<div class="text-muted small py-2">No departments configured.</div>@endforelse</div></div>
             </div>
             <script>
                 document.addEventListener('DOMContentLoaded', function () {
@@ -654,6 +654,26 @@
                         edit.addEventListener('click', function () { var item = intendedUsers.find(function (user) { return String(user.id) === id; }); if (item) openIntendedUserModal(item); });
                         deleteForm.insertAdjacentElement('beforebegin', edit);
                     });
+
+                    var departmentModal = document.getElementById('eventDepartmentModal');
+                    var departmentForm = document.getElementById('eventDepartmentForm');
+                    var departmentName = document.getElementById('eventDepartmentName');
+                    var departments = @json($eventDepartments->map(fn ($item) => ['id' => $item->id, 'name' => $item->name])->values());
+                    var departmentStoreUrl = @json(route('admin.management.event-departments.store'));
+                    var departmentRenameBaseUrl = @json(url('/admin/management/event-setup/department'));
+                    var departmentDeleteBaseUrl = @json(url('/admin/management/event-setup/department'));
+                    function openDepartmentModal(item) {
+                        var editing = Boolean(item);
+                        departmentForm.action = editing ? departmentRenameBaseUrl + '/' + item.id : departmentStoreUrl;
+                        document.getElementById('eventDepartmentMethod').value = editing ? 'PATCH' : '';
+                        document.getElementById('eventDepartmentModalLabel').textContent = editing ? 'Edit department' : 'Add department';
+                        document.getElementById('eventDepartmentSaveLabel').textContent = editing ? 'Save changes' : 'Add department';
+                        departmentName.value = editing ? item.name : '';
+                        bootstrap.Modal.getOrCreateInstance(departmentModal).show();
+                    }
+                    document.querySelector('[data-department-add]').addEventListener('click', function () { openDepartmentModal(null); });
+                    document.querySelectorAll('[data-department-edit]').forEach(function (button) { button.addEventListener('click', function () { openDepartmentModal(departments.find(function (item) { return String(item.id) === button.dataset.id; })); }); });
+                    document.querySelectorAll('[data-department-delete]').forEach(function (button) { button.addEventListener('click', function () { var item = departments.find(function (department) { return String(department.id) === button.dataset.id; }); if (!item) return; document.getElementById('eventDepartmentDeleteName').textContent = item.name; document.getElementById('eventDepartmentDeleteForm').action = departmentDeleteBaseUrl + '/' + item.id; bootstrap.Modal.getOrCreateInstance(document.getElementById('eventDepartmentDeleteModal')).show(); }); });
                 });
             </script>
             @endif
@@ -676,6 +696,16 @@
     </div>
     @endif
 
+</div>
+
+{{-- Department Add/Edit Modal --}}
+<div class="modal fade" id="eventDepartmentModal" tabindex="-1" aria-labelledby="eventDepartmentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="eventDepartmentModalLabel">Add department</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div><form id="eventDepartmentForm" method="POST" action="{{ route('admin.management.event-departments.store') }}">@csrf<input id="eventDepartmentMethod" type="hidden" name="_method" value=""><div class="modal-body"><label class="form-label" for="eventDepartmentName">Department name</label><input class="form-control" id="eventDepartmentName" name="name" placeholder="e.g. ICT" required></div><div class="modal-footer"><button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" type="submit"><i class="fas fa-save"></i> <span id="eventDepartmentSaveLabel">Add department</span></button></div></form></div></div>
+</div>
+
+{{-- Department Delete Confirmation Modal --}}
+<div class="modal fade" id="eventDepartmentDeleteModal" tabindex="-1" aria-labelledby="eventDepartmentDeleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="eventDepartmentDeleteModalLabel">Delete department</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body">Delete <strong id="eventDepartmentDeleteName"></strong>? Existing event requests will keep their saved department.</div><form id="eventDepartmentDeleteForm" method="POST"><div class="modal-footer">@csrf @method('DELETE')<button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancel</button><button class="btn btn-danger" type="submit"><i class="fas fa-trash"></i> Delete department</button></div></form></div></div>
 </div>
 
 {{-- ══════════════════════════════════════════════════════════════════════════
