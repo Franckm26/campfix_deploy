@@ -45,7 +45,7 @@ on conflict (name) do nothing;
 update public.event_intended_users
 set approval_roles = '["principal_assistant", "academic_head", "school_admin"]'::jsonb,
     updated_at = now()
-where code = 'shs' and approval_roles is null;
+where code = 'shs';
 
 insert into public.event_intended_users (name, code, is_active, created_at, updated_at)
 values

@@ -15,7 +15,6 @@ return new class extends Migration {
         // Preserve the established SHS workflow when moving it into configurable setup.
         DB::table('event_intended_users')
             ->where('code', 'shs')
-            ->whereNull('approval_roles')
             ->update(['approval_roles' => json_encode(['principal_assistant', 'academic_head', 'school_admin']), 'updated_at' => now()]);
     }
 
