@@ -63,14 +63,6 @@ class ManagementController extends Controller
         $eventSetupReady = Schema::hasTable('event_request_types')
             && Schema::hasTable('event_intended_users')
             && Schema::hasTable('event_departments');
-        if ($eventSetupReady && Schema::hasColumn('event_intended_users', 'approval_roles')) {
-            // Bring the established SHS route into the configurable setup on first use.
-            $shsUser = EventIntendedUser::where('code', 'shs')->first();
-            if ($shsUser && ! in_array('principal_assistant', $shsUser->approval_roles ?? [], true)) {
-                $shsUser->approval_roles = ['principal_assistant', 'academic_head', 'school_admin'];
-                $shsUser->save();
-            }
-        }
         $eventRequestTypes = $eventSetupReady ? EventRequestType::orderBy('name')->get() : collect();
         $eventIntendedUsers = $eventSetupReady ? EventIntendedUser::orderBy('name')->get() : collect();
         $eventDepartments = $eventSetupReady ? EventDepartment::orderBy('name')->get() : collect();
