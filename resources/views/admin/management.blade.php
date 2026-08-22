@@ -501,7 +501,7 @@
             <style>
                 .event-setup-grid .border { border-color: #dbe4f0 !important; border-radius: 12px !important; }
                 .event-setup-grid h6 { font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem; }
-                .event-setup-grid .approval-role-option { border: 1px solid #dbe4f0; border-radius: 8px; padding: .55rem .7rem; cursor: pointer; }
+                .event-setup-grid .approval-role-option { border: 1px solid #dbe4f0; border-radius: 8px; padding: .7rem .85rem; cursor: pointer; }
                 .event-setup-grid .approval-role-option:hover { background: #f5f9ff; border-color: #0d6efd; }
                 .event-setup-grid .approval-role-option:has(input:checked) { background: #e8f1ff; border-color: #0d6efd; }
                 .event-setup-grid .approval-step { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; background: #e8f1ff; color: #0d6efd; font-weight: 700; font-size: .8rem; margin-right: .4rem; }
@@ -514,14 +514,8 @@
                 @media (max-width: 991.98px) { .event-setup-grid > .col-lg-3 { width: 100%; } }
             </style>
             <div class="row g-4 mb-0 event-setup-grid">
-                <div class="col-lg-12"><div class="border rounded p-4 h-100"><h6><i class="fas fa-code-branch text-primary me-2"></i>Request types and approval roles</h6>
-                    <div class="alert alert-light border small mb-3"><strong>How it works:</strong> Enter a request type, tick the roles that must approve it, then click <strong>Add type</strong>. For example, an Academic request can go from Program Head to Academic Head, then Building Admin and School Administrator.</div>
-                    <form method="POST" action="{{ route('admin.management.event-types.store') }}" class="row g-2 mb-3">@csrf
-                        <div class="col-md-4"><label class="form-label">Request type</label><input class="form-control" name="name" placeholder="e.g. Academic" required></div>
-                        <div class="col-md-8"><label class="form-label mb-1">Who should approve this request?</label><div class="small text-muted mb-2">Tick the roles needed. They will approve in this order.</div><div class="row g-2">@foreach($approvalRoles as $role => $label)<div class="col-sm-6"><label class="approval-role-option d-block"><input class="form-check-input me-2 approval-role-checkbox" type="checkbox" name="approval_roles[]" value="{{ $role }}" data-label="{{ $label }}">{{ $loop->iteration }}. {{ $label }}</label></div>@endforeach</div></div>
-                        <div class="col-md-9"><div class="approval-flow-preview"><strong class="me-2">Approval flow:</strong><span class="approval-flow-text text-muted">Select one or more approvers above.</span></div></div>
-                        <div class="col-md-3 d-flex align-items-end"><div class="w-100"><label class="form-check mb-2"><input class="form-check-input" type="checkbox" name="requires_department" value="1"> <span class="form-check-label">Require department</span></label><button class="btn btn-primary w-100"><i class="fas fa-plus"></i> Add type</button></div></div>
-                    </form>
+                <div class="col-lg-12"><div class="border rounded p-4 h-100"><div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3"><div><h6 class="mb-1"><i class="fas fa-code-branch text-primary me-2"></i>Request types and approval roles</h6><small class="text-muted">Configure the approval route used for each event request type.</small></div><button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#eventRequestTypeModal"><i class="fas fa-plus"></i> Add request type</button></div>
+                    <div class="alert alert-light border small mb-3"><strong>How it works:</strong> Add a request type, then select the roles that approve it. They approve in the order shown. Selecting <strong>Program Head</strong> automatically requires a department.</div>
                     @foreach($eventRequestTypes as $item)<div class="border-top pt-2 mt-2"><strong>{{ $item->name }}</strong> <span class="badge bg-{{ $item->is_active ? 'success' : 'secondary' }}">{{ $item->is_active ? 'Active' : 'Inactive' }}</span><br><small class="text-muted">{{ $item->requires_department ? 'Department required · ' : '' }}{{ collect($item->approval_roles)->map(fn($role) => $approvalRoles[$role] ?? $role)->implode(' → ') }}</small><form class="d-inline" method="POST" action="{{ route('admin.management.event-setup.toggle', ['type' => 'request-type', 'id' => $item->id]) }}">@csrf @method('PATCH') <button class="btn btn-link btn-sm p-0">{{ $item->is_active ? 'Deactivate' : 'Activate' }}</button></form></div>@endforeach
                 </div></div>
                 <div class="col-lg-3"><div class="border rounded p-3 h-100"><h6><i class="fas fa-users text-primary"></i> Intended users</h6><form method="POST" action="{{ route('admin.management.event-intended-users.store') }}" class="mb-3">@csrf<input class="form-control form-control-sm mb-2" name="name" placeholder="Name" required><input class="form-control form-control-sm mb-2" name="code" placeholder="Code" required><button class="btn btn-sm btn-primary w-100">Add</button></form>@foreach($eventIntendedUsers as $item)<div class="border-top pt-2 mt-2">{{ $item->name }} <small>({{ $item->code }})</small><form class="d-inline" method="POST" action="{{ route('admin.management.event-setup.toggle', ['type' => 'intended-user', 'id' => $item->id]) }}">@csrf @method('PATCH') <button class="btn btn-link btn-sm p-0">{{ $item->is_active ? 'Deactivate' : 'Activate' }}</button></form></div>@endforeach</div></div>
@@ -531,6 +525,7 @@
                 document.addEventListener('DOMContentLoaded', function () {
                     var approvalText = document.querySelector('.approval-flow-text');
                     function updateApprovalFlow() {
+                        if (!approvalText) return;
                         var selected = Array.from(document.querySelectorAll('.approval-role-checkbox:checked')).map(function (checkbox) { return checkbox.dataset.label; });
                         approvalText.textContent = selected.length ? selected.join(' → ') : 'Select one or more approvers above.';
                         approvalText.classList.toggle('text-muted', !selected.length);
@@ -541,6 +536,7 @@
                     document.querySelectorAll('.event-setup-grid form[action*="/event-setup/"]').forEach(function (form) {
                         var match = form.action.match(/event-setup\/([^/]+)\/(\d+)\/toggle/);
                         if (!match) return;
+                        if (match[1] === 'request-type') return;
                         var deleteButton = form.querySelector('button');
                         if (deleteButton) {
                             deleteButton.textContent = 'Delete';
@@ -565,6 +561,55 @@
                             fetch(form.action.replace('/toggle', ''), { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'text/html' }, body: payload.toString() }).then(function () { window.location.reload(); });
                         });
                         form.insertAdjacentElement('beforebegin', editButton);
+                    });
+                });
+            </script>
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    var modalElement = document.getElementById('eventRequestTypeModal');
+                    var form = document.getElementById('eventRequestTypeForm');
+                    if (!modalElement || !form) return;
+
+                    var flow = document.getElementById('eventRequestTypeFlow');
+                    var departmentNotice = document.getElementById('eventRequestTypeDepartmentNotice');
+                    var types = @json($eventRequestTypes->map(fn ($item) => ['id' => $item->id, 'name' => $item->name, 'roles' => $item->approval_roles])->values());
+                    var storeUrl = @json(route('admin.management.event-types.store'));
+                    var updateBaseUrl = @json(url('/admin/management/event-setup/request-types'));
+
+                    function updateFlow() {
+                        var checked = Array.from(form.querySelectorAll('.event-request-type-role:checked'));
+                        flow.textContent = checked.length ? checked.map(function (item) { return item.dataset.label; }).join(' → ') : 'Select one or more approvers.';
+                        departmentNotice.classList.toggle('d-none', !checked.some(function (item) { return item.value === 'program_head'; }));
+                    }
+
+                    function openTypeModal(item) {
+                        form.reset();
+                        var editing = Boolean(item);
+                        document.getElementById('eventRequestTypeModalLabel').textContent = editing ? 'Edit request type' : 'Add request type';
+                        document.getElementById('eventRequestTypeSaveLabel').textContent = editing ? 'Save changes' : 'Add request type';
+                        form.action = editing ? updateBaseUrl + '/' + item.id : storeUrl;
+                        document.getElementById('eventRequestTypeMethod').value = editing ? 'PUT' : '';
+                        if (editing) {
+                            form.querySelector('[name="name"]').value = item.name;
+                            form.querySelectorAll('.event-request-type-role').forEach(function (checkbox) { checkbox.checked = item.roles.includes(checkbox.value); });
+                        }
+                        updateFlow();
+                        bootstrap.Modal.getOrCreateInstance(modalElement).show();
+                    }
+
+                    document.querySelectorAll('.event-request-type-role').forEach(function (checkbox) { checkbox.addEventListener('change', updateFlow); });
+                    modalElement.addEventListener('show.bs.modal', function (event) { if (event.relatedTarget) { form.reset(); document.getElementById('eventRequestTypeModalLabel').textContent = 'Add request type'; document.getElementById('eventRequestTypeSaveLabel').textContent = 'Add request type'; form.action = storeUrl; document.getElementById('eventRequestTypeMethod').value = ''; updateFlow(); } });
+                    document.querySelectorAll('.event-setup-grid form[action*="event-setup/request-type/"]').forEach(function (deleteForm) {
+                        var id = deleteForm.action.match(/request-type\/(\d+)/)[1];
+                        var deleteButton = deleteForm.querySelector('button');
+                        deleteButton.textContent = 'Delete';
+                        deleteButton.classList.remove('btn-link');
+                        deleteButton.classList.add('btn-outline-danger');
+                        deleteForm.addEventListener('submit', function (event) { if (!window.confirm('Delete this request type? Existing event requests will keep their saved information.')) event.preventDefault(); });
+                        var edit = document.createElement('button');
+                        edit.type = 'button'; edit.className = 'btn btn-sm btn-outline-primary me-2'; edit.innerHTML = '<i class="fas fa-edit"></i> Edit';
+                        edit.addEventListener('click', function () { var item = types.find(function (type) { return String(type.id) === id; }); if (item) openTypeModal(item); });
+                        deleteForm.insertAdjacentElement('beforebegin', edit);
                     });
                 });
             </script>
@@ -593,6 +638,35 @@
 {{-- ══════════════════════════════════════════════════════════════════════════
      MODALS
 ══════════════════════════════════════════════════════════════════════════ --}}
+
+{{-- Event Request Type Modal --}}
+<div class="modal fade" id="eventRequestTypeModal" tabindex="-1" aria-labelledby="eventRequestTypeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div><h5 class="modal-title" id="eventRequestTypeModalLabel"><i class="fas fa-code-branch text-primary"></i> Add request type</h5><small class="text-muted">Set the name and approval workflow.</small></div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="eventRequestTypeForm" method="POST" action="{{ route('admin.management.event-types.store') }}">
+                @csrf
+                <input id="eventRequestTypeMethod" type="hidden" name="_method" value="">
+                <div class="modal-body">
+                    <div class="mb-4"><label class="form-label" for="eventRequestTypeName">Request type</label><input class="form-control" id="eventRequestTypeName" name="name" placeholder="e.g. Academic" required></div>
+                    <label class="form-label mb-1">Who should approve this request?</label>
+                    <p class="small text-muted">Select every approver needed. Approval follows this order.</p>
+                    <div class="row g-2 mb-3">
+                        @foreach($approvalRoles as $role => $label)
+                            <div class="col-md-6"><label class="approval-role-option d-block"><input class="form-check-input me-2 event-request-type-role" type="checkbox" name="approval_roles[]" value="{{ $role }}" data-label="{{ $label }}">{{ $loop->iteration }}. {{ $label }}</label></div>
+                        @endforeach
+                    </div>
+                    <div class="approval-flow-preview"><strong class="me-2">Approval flow:</strong><span id="eventRequestTypeFlow" class="text-muted">Select one or more approvers.</span></div>
+                    <div id="eventRequestTypeDepartmentNotice" class="alert alert-info small mt-3 mb-0 d-none"><i class="fas fa-building"></i> Department is required because Program Head is part of this approval flow.</div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> <span id="eventRequestTypeSaveLabel">Add request type</span></button></div>
+            </form>
+        </div>
+    </div>
+</div>
 
 {{-- Add Staff Modal --}}
 <div class="modal fade" id="addStaffModal" tabindex="-1">

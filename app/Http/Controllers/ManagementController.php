@@ -78,16 +78,18 @@ class ManagementController extends Controller
     public function storeEventRequestType(Request $request)
     {
         $this->guardBuildingAdmin();
-        $data = $request->validate(['name' => 'required|string|max:100|unique:event_request_types,name', 'approval_roles' => 'required|array|min:1', 'approval_roles.*' => 'required|string', 'requires_department' => 'nullable|boolean']);
-        EventRequestType::create(['name' => trim($data['name']), 'requires_department' => $request->boolean('requires_department'), 'approval_roles' => array_values($data['approval_roles']), 'is_active' => true]);
+        $data = $request->validate(['name' => 'required|string|max:100|unique:event_request_types,name', 'approval_roles' => 'required|array|min:1', 'approval_roles.*' => 'required|string']);
+        $roles = array_values($data['approval_roles']);
+        EventRequestType::create(['name' => trim($data['name']), 'requires_department' => in_array('program_head', $roles, true), 'approval_roles' => $roles, 'is_active' => true]);
         return back()->with('success', 'Event request type added.');
     }
 
     public function updateEventRequestType(Request $request, EventRequestType $eventRequestType)
     {
         $this->guardBuildingAdmin();
-        $data = $request->validate(['name' => 'required|string|max:100|unique:event_request_types,name,'.$eventRequestType->id, 'approval_roles' => 'required|array|min:1', 'approval_roles.*' => 'required|string', 'requires_department' => 'nullable|boolean', 'is_active' => 'nullable|boolean']);
-        $eventRequestType->update(['name' => trim($data['name']), 'approval_roles' => array_values($data['approval_roles']), 'requires_department' => $request->boolean('requires_department'), 'is_active' => $request->boolean('is_active')]);
+        $data = $request->validate(['name' => 'required|string|max:100|unique:event_request_types,name,'.$eventRequestType->id, 'approval_roles' => 'required|array|min:1', 'approval_roles.*' => 'required|string', 'is_active' => 'nullable|boolean']);
+        $roles = array_values($data['approval_roles']);
+        $eventRequestType->update(['name' => trim($data['name']), 'approval_roles' => $roles, 'requires_department' => in_array('program_head', $roles, true), 'is_active' => $request->boolean('is_active')]);
         return back()->with('success', 'Event request type updated.');
     }
 
