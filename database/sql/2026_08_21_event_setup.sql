@@ -41,6 +41,12 @@ values
     ('Non-Academic', false, '["building_admin", "school_admin"]'::jsonb, true, now(), now())
 on conflict (name) do nothing;
 
+-- Preserve the existing SHS workflow: SHS Principal → Academic Head → School Administrator.
+update public.event_intended_users
+set approval_roles = '["principal_assistant", "academic_head", "school_admin"]'::jsonb,
+    updated_at = now()
+where code = 'shs' and approval_roles is null;
+
 insert into public.event_intended_users (name, code, is_active, created_at, updated_at)
 values
     ('Faculty', 'faculty', true, now(), now()),

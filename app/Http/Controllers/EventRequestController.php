@@ -191,7 +191,11 @@ class EventRequestController extends Controller
             }
             // An intended-user group may have its own route (for example SHS or Tertiary).
             // When no override is configured, use the request type's default route.
-            $approvalRoute = array_values($intendedUser->approval_roles ?: ($requestType->approval_roles ?? []));
+            $approvalRoute = array_values($intendedUser->approval_roles ?: (
+                $educationLevel === 'shs'
+                    ? ['principal_assistant', 'academic_head', 'school_admin']
+                    : ($requestType->approval_roles ?? [])
+            ));
 
             // Determine initial approval level based on request type
             // Non-Academic: starts at Building Admin (level 3)
