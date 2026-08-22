@@ -3911,6 +3911,14 @@ class AdminController extends Controller
                 })
             );
 
+        // MIS audit access is limited to forensic user/security and system records.
+        // Workflow records for concerns and reports must not be visible, even through a crafted filter URL.
+        if ($currentUser->role === 'mis') {
+            $query->where('action', 'not like', 'concern_%')
+                ->where('action', 'not like', 'report_%')
+                ->where('action', '!=', 'status_updated');
+        }
+
         if ($request->filled('action')) {
             $query->where('action', $request->input('action'));
         }

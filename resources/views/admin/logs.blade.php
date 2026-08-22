@@ -237,6 +237,7 @@
                             <option value="user_archived"          {{ request('action') == 'user_archived'          ? 'selected' : '' }}>User Archived</option>
                             <option value="users_imported"         {{ request('action') == 'users_imported'         ? 'selected' : '' }}>Users Imported</option>
                         </optgroup>
+                        @if(auth()->user()->role !== 'mis')
                         <optgroup label="Concerns">
                             <option value="concern_created"  {{ request('action') == 'concern_created'  ? 'selected' : '' }}>Concern Created</option>
                             <option value="concern_updated"  {{ request('action') == 'concern_updated'  ? 'selected' : '' }}>Concern Updated</option>
@@ -249,6 +250,7 @@
                             <option value="report_status_updated"   {{ request('action') == 'report_status_updated'   ? 'selected' : '' }}>Report Status Updated</option>
                             <option value="report_assigned"         {{ request('action') == 'report_assigned'         ? 'selected' : '' }}>Report Assigned</option>
                         </optgroup>
+                        @endif
                         <optgroup label="System">
                             <option value="export_created"         {{ request('action') == 'export_created'         ? 'selected' : '' }}>Export Created</option>
                             <option value="archive_folder_deleted" {{ request('action') == 'archive_folder_deleted' ? 'selected' : '' }}>Archive Folder Deleted</option>
