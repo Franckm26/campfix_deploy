@@ -518,7 +518,7 @@
                     <div class="alert alert-light border small mb-3"><strong>How it works:</strong> Add a request type, then select the roles that approve it. They approve in the order shown. Selecting <strong>Program Head</strong> automatically requires a department.</div>
                     @foreach($eventRequestTypes as $item)<div class="border-top pt-2 mt-2"><strong>{{ $item->name }}</strong> <span class="badge bg-{{ $item->is_active ? 'success' : 'secondary' }}">{{ $item->is_active ? 'Active' : 'Inactive' }}</span><br><small class="text-muted">{{ $item->requires_department ? 'Department required · ' : '' }}{{ collect($item->approval_roles)->map(fn($role) => $approvalRoles[$role] ?? $role)->implode(' → ') }}</small><form class="d-inline" method="POST" action="{{ route('admin.management.event-setup.toggle', ['type' => 'request-type', 'id' => $item->id]) }}">@csrf @method('PATCH') <button class="btn btn-link btn-sm p-0">{{ $item->is_active ? 'Deactivate' : 'Activate' }}</button></form></div>@endforeach
                 </div></div>
-                <div class="col-lg-3"><div class="border rounded p-3 h-100"><div class="d-flex justify-content-between align-items-center gap-2 mb-3"><h6 class="mb-0"><i class="fas fa-users text-primary"></i> Intended users</h6><button class="btn btn-sm btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#eventIntendedUserModal"><i class="fas fa-plus"></i> Add</button></div><p class="small text-muted">Set a custom approval route for a group, or leave it blank to use the request type's default route.</p>@forelse($eventIntendedUsers as $item)<div class="border-top pt-2 mt-2"><strong>{{ $item->name }}</strong><small class="d-block text-muted mt-1">{{ collect($item->approval_roles ?: [])->map(fn($role) => $intendedApprovalRoles[$role] ?? $role)->implode(' → ') ?: 'Uses request type approval' }}</small><form class="d-inline" method="POST" action="{{ route('admin.management.event-setup.toggle', ['type' => 'intended-user', 'id' => $item->id]) }}">@csrf @method('PATCH') <button class="btn btn-link btn-sm p-0">Delete</button></form></div>@empty<div class="text-muted small py-2">No intended users configured.</div>@endforelse</div></div>
+                <div class="col-lg-3"><div class="border rounded p-3 h-100"><div class="d-flex justify-content-between align-items-center gap-2 mb-3"><h6 class="mb-0"><i class="fas fa-users text-primary"></i> Intended users</h6><button class="btn btn-sm btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#eventIntendedUserModal"><i class="fas fa-plus"></i> Add</button></div><p class="small text-muted">Set a custom approval route for a group, or leave it blank to use the request type's default route.</p>@forelse($eventIntendedUsers as $item)<div class="border-top pt-2 mt-2"><strong>{{ $item->name }}</strong><small class="d-block text-muted mt-1">{{ collect($item->approval_roles ?: [])->map(fn($role) => $approvalRoles[$role] ?? $role)->implode(' → ') ?: 'Uses request type approval' }}</small><form class="d-inline" method="POST" action="{{ route('admin.management.event-setup.toggle', ['type' => 'intended-user', 'id' => $item->id]) }}">@csrf @method('PATCH') <button class="btn btn-link btn-sm p-0">Delete</button></form></div>@empty<div class="text-muted small py-2">No intended users configured.</div>@endforelse</div></div>
                 <div class="col-lg-3"><div class="border rounded p-3 h-100"><h6><i class="fas fa-building text-primary"></i> Departments</h6><form method="POST" action="{{ route('admin.management.event-departments.store') }}" class="mb-3">@csrf<input class="form-control form-control-sm mb-2" name="name" placeholder="Department name" required><button class="btn btn-sm btn-primary w-100">Add</button></form>@foreach($eventDepartments as $item)<div class="border-top pt-2 mt-2">{{ $item->name }}<form class="d-inline" method="POST" action="{{ route('admin.management.event-setup.toggle', ['type' => 'department', 'id' => $item->id]) }}">@csrf @method('PATCH') <button class="btn btn-link btn-sm p-0">{{ $item->is_active ? 'Deactivate' : 'Activate' }}</button></form></div>@endforeach</div></div>
             </div>
             <script>
@@ -616,7 +616,7 @@
                     var intendedForm = document.getElementById('eventIntendedUserForm');
                     if (!intendedModal || !intendedForm) return;
                     var intendedFlow = document.getElementById('eventIntendedUserFlow');
-                    var intendedUsers = @json($eventIntendedUsers->map(fn ($item) => ['id' => $item->id, 'name' => $item->name, 'code' => $item->code, 'roles' => $item->approval_roles])->values());
+                    var intendedUsers = @json($eventIntendedUsers->map(fn ($item) => ['id' => $item->id, 'name' => $item->name, 'roles' => $item->approval_roles])->values());
                     var intendedStoreUrl = @json(route('admin.management.event-intended-users.store'));
                     var intendedUpdateBaseUrl = @json(url('/admin/management/event-setup/intended-users'));
 
@@ -632,20 +632,16 @@
                         document.getElementById('eventIntendedUserSaveLabel').textContent = editing ? 'Save changes' : 'Add intended user';
                         intendedForm.action = editing ? intendedUpdateBaseUrl + '/' + item.id : intendedStoreUrl;
                         document.getElementById('eventIntendedUserMethod').value = editing ? 'PUT' : '';
-                        var principalOption = intendedForm.querySelector('.event-intended-user-role[value="principal_assistant"]').closest('.col-md-6');
-                        principalOption.classList.toggle('d-none', !editing || item.code !== 'shs');
                         if (editing) {
                             intendedForm.querySelector('[name="name"]').value = item.name;
-                            var roles = (item.roles || []);
-                            if (item.code === 'shs' && !roles.includes('principal_assistant')) roles = ['principal_assistant', 'academic_head', 'school_admin'];
-                            intendedForm.querySelectorAll('.event-intended-user-role').forEach(function (checkbox) { checkbox.checked = roles.includes(checkbox.value); });
+                            intendedForm.querySelectorAll('.event-intended-user-role').forEach(function (checkbox) { checkbox.checked = (item.roles || []).includes(checkbox.value); });
                         }
                         updateIntendedFlow();
                         bootstrap.Modal.getOrCreateInstance(intendedModal).show();
                     }
 
                     document.querySelectorAll('.event-intended-user-role').forEach(function (checkbox) { checkbox.addEventListener('change', updateIntendedFlow); });
-                    intendedModal.addEventListener('show.bs.modal', function (event) { if (event.relatedTarget) { intendedForm.reset(); intendedForm.querySelector('.event-intended-user-role[value="principal_assistant"]').closest('.col-md-6').classList.add('d-none'); document.getElementById('eventIntendedUserModalLabel').textContent = 'Add intended user'; document.getElementById('eventIntendedUserSaveLabel').textContent = 'Add intended user'; intendedForm.action = intendedStoreUrl; document.getElementById('eventIntendedUserMethod').value = ''; updateIntendedFlow(); } });
+                    intendedModal.addEventListener('show.bs.modal', function (event) { if (event.relatedTarget) { intendedForm.reset(); document.getElementById('eventIntendedUserModalLabel').textContent = 'Add intended user'; document.getElementById('eventIntendedUserSaveLabel').textContent = 'Add intended user'; intendedForm.action = intendedStoreUrl; document.getElementById('eventIntendedUserMethod').value = ''; updateIntendedFlow(); } });
                     document.querySelectorAll('.event-setup-grid form[action*="event-setup/intended-user/"]').forEach(function (deleteForm) {
                         var id = deleteForm.action.match(/intended-user\/(\d+)/)[1];
                         var deleteButton = deleteForm.querySelector('button');
@@ -729,8 +725,8 @@
                     <label class="form-label mb-1">Current approval route</label>
                     <p class="small text-muted">Select a custom route for this group. Leave every role unchecked to use the approval route from the selected request type.</p>
                     <div class="row g-2 mb-3">
-                        @foreach($intendedApprovalRoles as $role => $label)
-                            <div class="col-md-6 {{ $role === 'principal_assistant' ? 'd-none' : '' }}"><label class="approval-role-option d-block"><input class="form-check-input me-2 event-intended-user-role" type="checkbox" name="approval_roles[]" value="{{ $role }}" data-label="{{ $label }}">{{ $loop->iteration }}. {{ $label }}</label></div>
+                        @foreach($approvalRoles as $role => $label)
+                            <div class="col-md-6"><label class="approval-role-option d-block"><input class="form-check-input me-2 event-intended-user-role" type="checkbox" name="approval_roles[]" value="{{ $role }}" data-label="{{ $label }}">{{ $loop->iteration }}. {{ $label }}</label></div>
                         @endforeach
                     </div>
                     <div class="approval-flow-preview"><strong class="me-2">Route used:</strong><span id="eventIntendedUserFlow" class="text-muted">Uses the selected request type approval route.</span></div>

@@ -60,36 +60,18 @@ class ManagementController extends Controller
         // Categories
         $categories = Category::orderBy('name')->paginate(10, ['*'], 'category_page')->withQueryString();
 
-        $eventSetupReady = false;
-        $eventRequestTypes = collect();
-        $eventIntendedUsers = collect();
-        $eventDepartments = collect();
-
-        try {
-            $eventSetupReady = Schema::hasTable('event_request_types')
-                && Schema::hasTable('event_intended_users')
-                && Schema::hasTable('event_departments')
-                // The configurable intended-user routes need this column. Treat the
-                // setup as unavailable until the deployed database has it.
-                && Schema::hasColumn('event_intended_users', 'approval_roles');
-
-            if ($eventSetupReady) {
-                $eventRequestTypes = EventRequestType::orderBy('name')->get();
-                $eventIntendedUsers = EventIntendedUser::orderBy('name')->get();
-                $eventDepartments = EventDepartment::orderBy('name')->get();
-            }
-        } catch (\Throwable $exception) {
-            report($exception);
-            $eventSetupReady = false;
-        }
+        $eventSetupReady = Schema::hasTable('event_request_types')
+            && Schema::hasTable('event_intended_users')
+            && Schema::hasTable('event_departments');
+        $eventRequestTypes = $eventSetupReady ? EventRequestType::orderBy('name')->get() : collect();
+        $eventIntendedUsers = $eventSetupReady ? EventIntendedUser::orderBy('name')->get() : collect();
+        $eventDepartments = $eventSetupReady ? EventDepartment::orderBy('name')->get() : collect();
         $events = (Schema::hasTable('event_requests')) ? EventRequest::with('user')->where('is_deleted', false)->latest()->paginate(10, ['*'], 'event_page')->withQueryString() : collect();
         $approvalRoles = [
             'program_head' => 'Program Head', 'academic_head' => 'Academic Head',
             'building_admin' => 'Building Admin', 'school_admin' => 'School Administrator',
         ];
-        $intendedApprovalRoles = ['principal_assistant' => 'SHS Principal'] + $approvalRoles;
-
-        return view('admin.management', compact('tab', 'staff', 'facilities', 'categories', 'eventSetupReady', 'eventRequestTypes', 'eventIntendedUsers', 'eventDepartments', 'events', 'approvalRoles', 'intendedApprovalRoles'));
+        return view('admin.management', compact('tab', 'staff', 'facilities', 'categories', 'eventSetupReady', 'eventRequestTypes', 'eventIntendedUsers', 'eventDepartments', 'events', 'approvalRoles'));
     }
 
     public function storeEventRequestType(Request $request)
