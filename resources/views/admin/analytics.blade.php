@@ -1006,7 +1006,7 @@
         <div id="analyticsDistributionViews" hidden></div>
     </section>
 
-    <div class="analytics-grid-two">
+    <div class="analytics-grid-two" id="decisionAlertsSection">
         <section class="analytics-panel">
             <header class="analytics-panel-header">
                 <div>
@@ -1068,9 +1068,9 @@
         </section>
     </div>
 
-    <section class="analytics-panel category-workspace">
+    <section class="analytics-panel category-workspace" id="operationsAnalyticsSection">
         <header class="analytics-panel-header">
-            <div><h3>Category Operations Analytics</h3><p>Select a category, inspect its trend and tickets, then manage the maintenance workflow</p></div>
+            <div><h3>Operations Analytics</h3><p>Select an operation, inspect its trend and tickets, then manage the maintenance workflow</p></div>
             <div class="analytics-chart-actions">
                 <button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#categorySummaryModal"><i class="fas fa-file-lines"></i> Summary</button>
                 <button class="btn btn-outline-secondary" type="button" data-download-chart="categoryTrendChart" data-file-name="category-trend" title="Download selected category chart"><i class="fas fa-download"></i></button>
@@ -1138,6 +1138,7 @@
             <header class="analytics-panel-header"><div><h3>Priority Distribution</h3><p>Workload by reported priority</p></div><button class="btn btn-outline-secondary" type="button" data-download-chart="priorityChart" data-file-name="priority-distribution"><i class="fas fa-download"></i></button></header>
             <div class="analytics-small-chart"><canvas id="priorityChart" aria-label="Priority distribution chart"></canvas></div>
             <div class="chart-selection" id="priorityInsight"><strong>Explore:</strong> Click a priority segment to inspect its workload.</div>
+            <div class="analytics-data-table" id="priorityData"><table><thead><tr><th>Priority</th><th>Reports</th></tr></thead><tbody>@foreach($priorityStats as $priority)<tr><td>{{ $priority['priority'] }}</td><td>{{ number_format($priority['count']) }}</td></tr>@endforeach</tbody></table></div>
         </section>
     </div>
 
@@ -1158,10 +1159,10 @@
             </div>
             <div class="risk-table-wrap">
                 <table class="risk-table" id="issueCostTable">
-                    <thead><tr><th>Rank</th><th><button class="risk-sort" type="button" data-sort="issue">Issue <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="location">Room / Location <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="total">Reports <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="open">Open <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="hazards">Hazards <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="cost">Recorded Cost <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="averageCost">Avg. Cost <i class="fas fa-sort"></i></button></th><th>Interpretation</th></tr></thead>
+                    <thead><tr><th>Rank</th><th><button class="risk-sort" type="button" data-sort="issue">Issue <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="location">Room / Location <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="total">Reports <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="open">Open <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="hazards">Hazards <i class="fas fa-sort"></i></button></th><th><button class="risk-sort" type="button" data-sort="cost">Recorded Cost <i class="fas fa-sort"></i></button></th><th>Interpretation</th></tr></thead>
                     <tbody id="issueCostBody">
                         @foreach($issueCostStats->take(10) as $index => $issue)
-                            <tr data-issue="{{ strtolower($issue['issue'].' '.$issue['location']) }}" data-location="{{ strtolower($issue['location']) }}" data-total="{{ $issue['total'] }}" data-open="{{ $issue['open'] }}" data-hazards="{{ $issue['hazards'] }}" data-cost="{{ $issue['cost'] }}" data-average-cost="{{ $issue['average_cost'] }}">
+                            <tr data-issue="{{ strtolower($issue['issue'].' '.$issue['location']) }}" data-location="{{ strtolower($issue['location']) }}" data-total="{{ $issue['total'] }}" data-open="{{ $issue['open'] }}" data-hazards="{{ $issue['hazards'] }}" data-cost="{{ $issue['cost'] }}">
                                 <td>{{ $index + 1 }}</td>
                                 <td><strong>{{ $issue['issue'] }}</strong></td>
                                 <td>{{ $issue['location'] }}</td>
@@ -1169,7 +1170,6 @@
                                 <td>{{ number_format($issue['open']) }}</td>
                                 <td>{{ number_format($issue['hazards']) }}</td>
                                 <td>PHP {{ number_format($issue['cost'], 2) }}</td>
-                                <td>PHP {{ number_format($issue['average_cost'], 2) }}</td>
                                 <td>{{ $issue['interpretation'] }}</td>
                             </tr>
                         @endforeach
@@ -1203,6 +1203,13 @@
 
 @include('admin.partials.analytics-summaries')
 @include('admin.partials.analytics-evidence-modals')
+<div class="modal fade" id="distributionReportsModal" tabindex="-1" aria-labelledby="distributionReportsTitle" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable"><div class="modal-content">
+        <div class="modal-header"><div><h5 class="modal-title" id="distributionReportsTitle">Matching Reports</h5><small class="text-muted" id="distributionReportsSubtitle"></small></div><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body p-0"><div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>Ticket</th><th>Issue</th><th>Location</th><th>Status</th><th>Priority</th><th>Category</th><th>Assigned to</th><th>Submitted</th></tr></thead><tbody id="distributionReportsBody"></tbody></table></div></div>
+        <div class="modal-footer"><a class="btn btn-primary" id="distributionReportsOpenLink" href="{{ route('admin.reports') }}"><i class="fas fa-list"></i> Open Reports</a><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button></div>
+    </div></div>
+</div>
 @endsection
 
 @section('scripts')
@@ -1216,12 +1223,28 @@ document.addEventListener('DOMContentLoaded', function () {
     const resolvedValues = @json($trendStats->pluck('resolved')->values());
     const totalReportCount = {{ (int) $totalReports }};
     const reportsUrl = @json(route('admin.reports'));
+    const analyticsChartReports = @json($analyticsChartReports);
     const locationDetails = @json($locationStats->keyBy('location')->all());
     const decisionAlertDetails = @json($decisionAlerts->keyBy('key')->all());
     const categoryWorkspace = @json($categoryWorkspace->values());
 
     Chart.defaults.font.family = "'Inter', 'Segoe UI', sans-serif";
     Chart.defaults.color = '#66758a';
+
+    function showDistributionReports(kind, value) {
+        const normalized = String(value).toLowerCase();
+        const matches = analyticsChartReports.filter(function (report) {
+            return String(kind === 'status' ? report.status : report.priority).toLowerCase() === normalized;
+        });
+        document.getElementById('distributionReportsTitle').textContent = value + ' ' + (kind === 'status' ? 'Reports' : 'Priority Reports');
+        document.getElementById('distributionReportsSubtitle').textContent = matches.length + ' matching report' + (matches.length === 1 ? '' : 's');
+        document.getElementById('distributionReportsBody').innerHTML = matches.length ? matches.map(function (report) {
+            return '<tr><td>' + escapeHtml(report.ticket) + '</td><td>' + escapeHtml(report.title) + '</td><td>' + escapeHtml(report.location) + '</td><td>' + escapeHtml(report.status) + '</td><td>' + escapeHtml(report.priority) + '</td><td>' + escapeHtml(report.category) + '</td><td>' + escapeHtml(report.assigned_to) + '</td><td>' + escapeHtml(report.created_at || '—') + '</td></tr>';
+        }).join('') : '<tr><td colspan="8" class="text-center text-muted py-4">No matching reports found.</td></tr>';
+        const filter = kind === 'status' ? 'status=' + encodeURIComponent(value) : 'priority=' + encodeURIComponent(value);
+        document.getElementById('distributionReportsOpenLink').href = reportsUrl + '?' + filter;
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('distributionReportsModal')).show();
+    }
 
     const trendCanvas = document.getElementById('reportsTrendChart');
     if (trendCanvas) {
@@ -1293,12 +1316,13 @@ document.addEventListener('DOMContentLoaded', function () {
                         ? ' Resolved items are represented here for performance analysis.'
                         : ' <a href="' + reportsUrl + '?status=' + encodeURIComponent(status) + '">Open matching reports</a>';
                     insight.innerHTML = '<strong>' + escapeHtml(status) + ':</strong> ' + count.toLocaleString() + ' reports (' + share + '% of the selected workload).' + reportLink;
+                    showDistributionReports('status', status);
                 }
             }
         });
     }
 
-    function createInteractiveChart(canvasId, type, labels, values, colors, insightId, valueLabel, currency) {
+    function createInteractiveChart(canvasId, type, labels, values, colors, insightId, valueLabel, currency, onSelect) {
         const canvas = document.getElementById(canvasId);
         if (!canvas) return null;
         return new Chart(canvas, {
@@ -1315,12 +1339,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     const value = Number(chart.data.datasets[0].data[index]);
                     const formatted = currency ? 'PHP ' + value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : value.toLocaleString();
                     document.getElementById(insightId).innerHTML = '<strong>' + escapeHtml(chart.data.labels[index]) + ':</strong> ' + formatted + ' ' + escapeHtml(valueLabel) + '.';
+                    if (onSelect) onSelect(chart.data.labels[index]);
                 }
             }
         });
     }
 
-    createInteractiveChart('priorityChart', 'doughnut', @json($priorityStats->pluck('priority')->values()), @json($priorityStats->pluck('count')->values()), ['#d93645', '#e99a00', '#1769e0', '#148a58', '#7557c5'], 'priorityInsight', 'reports', false);
+    createInteractiveChart('priorityChart', 'doughnut', @json($priorityStats->pluck('priority')->values()), @json($priorityStats->pluck('count')->values()), ['#d93645', '#e99a00', '#1769e0', '#148a58', '#7557c5'], 'priorityInsight', 'reports', false, function (priority) { showDistributionReports('priority', priority); });
 
     // Keep the dashboard focused: one chart card, selected from the dropdown.
     const chartSelector = document.getElementById('analyticsChartSelector');
@@ -1333,6 +1358,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const trendChartBody = trendPanel?.querySelector('.analytics-chart-body');
     const trendInterpretation = trendPanel?.querySelector('.analytics-interpretation');
     const trendData = document.getElementById('trendData');
+    const statusData = document.getElementById('statusData');
+    const priorityData = document.getElementById('priorityData');
     const trendLegend = trendPanel?.querySelector('.chart-legend');
     const trendDataButton = trendPanel?.querySelector('[data-toggle-table="trendData"]');
     const downloadButton = trendPanel?.querySelector('[data-download-chart]');
@@ -1369,14 +1396,26 @@ document.addEventListener('DOMContentLoaded', function () {
         if (trendInterpretation) trendInterpretation.hidden = !isTrend;
         if (trendData) trendData.hidden = !isTrend;
         if (trendLegend) trendLegend.hidden = !isTrend;
-        if (trendDataButton) trendDataButton.hidden = !isTrend;
+        if (trendDataButton) {
+            const dataTable = mode === 'status' ? statusData : (mode === 'priority' ? priorityData : trendData);
+            trendDataButton.hidden = !dataTable;
+            trendDataButton.dataset.toggleTable = dataTable ? dataTable.id : '';
+            trendDataButton.innerHTML = '<i class="fas fa-table"></i> Data';
+        }
         if (statusView) statusView.hidden = mode !== 'status';
         if (priorityView) priorityView.hidden = mode !== 'priority';
         if (downloadButton) { downloadButton.dataset.downloadChart = config.download; downloadButton.dataset.fileName = config.file; }
+        requestAnimationFrame(function () { Chart.getChart(config.download)?.resize(); });
     }
     if (chartSelector) {
         chartSelector.addEventListener('change', function () { switchAnalyticsChart(this.value); });
         switchAnalyticsChart(chartSelector.value);
+    }
+
+    const operationsSection = document.getElementById('operationsAnalyticsSection');
+    const decisionsSection = document.getElementById('decisionAlertsSection');
+    if (operationsSection && decisionsSection) {
+        decisionsSection.parentNode.insertBefore(operationsSection, decisionsSection);
     }
 
     function escapeHtml(value) {
@@ -1945,7 +1984,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (exportRiskButton) {
         exportRiskButton.addEventListener('click', function () {
             if (!riskBody) return;
-            const rows = [['Rank', 'Issue', 'Room / Location', 'Reports', 'Open', 'Hazards', 'Recorded Cost', 'Average Cost', 'Interpretation']];
+            const rows = [['Rank', 'Issue', 'Room / Location', 'Reports', 'Open', 'Hazards', 'Recorded Cost', 'Interpretation']];
             Array.from(riskBody.rows).filter(function (row) { return !row.hidden; }).forEach(function (row) {
                 rows.push(Array.from(row.cells).map(function (cell) { return cell.innerText.trim(); }));
             });

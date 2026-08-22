@@ -4801,6 +4801,18 @@ class AdminController extends Controller
             ->sortByDesc('count')
             ->values();
 
+        $analyticsChartReports = $reports->map(fn ($report) => [
+            'id' => $report->id,
+            'ticket' => 'RPT-'.str_pad((string) $report->id, 5, '0', STR_PAD_LEFT),
+            'title' => $report->title ?: 'Untitled report',
+            'location' => $report->location ?: 'Not specified',
+            'status' => ucfirst(strtolower((string) ($report->status ?: 'Unknown'))),
+            'priority' => ucfirst(strtolower((string) ($report->severity ?: 'Not set'))),
+            'category' => optional($report->category)->name ?: 'Uncategorized',
+            'assigned_to' => optional($report->assignedTo)->name ?: 'Unassigned',
+            'created_at' => optional($report->created_at)->format('m/d/Y g:i A'),
+        ])->values();
+
         $agingStats = collect([
             ['bucket' => '0-2 days', 'count' => $openReportItems->filter(fn ($report) => $report->created_at && $report->created_at->diffInDays($now) <= 2)->sum($reportWeight)],
             ['bucket' => '3-7 days', 'count' => $openReportItems->filter(fn ($report) => $report->created_at && $report->created_at->diffInDays($now) >= 3 && $report->created_at->diffInDays($now) <= 7)->sum($reportWeight)],
@@ -4932,6 +4944,7 @@ class AdminController extends Controller
             'priorityLevel',
             'staffStats',
             'priorityStats',
+            'analyticsChartReports',
             'agingStats',
             'costStats',
             'aiInsights'
