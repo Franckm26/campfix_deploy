@@ -861,8 +861,9 @@
 
     /* Keep analytics dialogs inside the viewport. Long tables scroll inside the dialog. */
     .analytics-responsive-modal {
-        width: min(96vw, 1180px);
-        max-width: none;
+        --bs-modal-width: min(calc(100vw - 48px), 1180px);
+        width: min(calc(100vw - 48px), 1180px) !important;
+        max-width: min(calc(100vw - 48px), 1180px) !important;
         height: min(92vh, 820px);
         margin: 4vh auto;
     }
@@ -884,14 +885,26 @@
     }
 
     #distributionReportsModal table {
-        min-width: 940px;
+        min-width: 1080px !important;
+        table-layout: fixed !important;
     }
 
     #distributionReportsModal th,
     #distributionReportsModal td {
         white-space: nowrap;
         vertical-align: middle;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
+
+    #distributionReportsModal th:nth-child(1), #distributionReportsModal td:nth-child(1) { width: 120px !important; min-width: 120px !important; max-width: 120px !important; }
+    #distributionReportsModal th:nth-child(2), #distributionReportsModal td:nth-child(2) { width: 210px !important; min-width: 210px !important; max-width: 210px !important; }
+    #distributionReportsModal th:nth-child(3), #distributionReportsModal td:nth-child(3) { width: 140px !important; min-width: 140px !important; max-width: 140px !important; }
+    #distributionReportsModal th:nth-child(4), #distributionReportsModal td:nth-child(4) { width: 125px !important; min-width: 125px !important; max-width: 125px !important; }
+    #distributionReportsModal th:nth-child(5), #distributionReportsModal td:nth-child(5) { width: 115px !important; min-width: 115px !important; max-width: 115px !important; }
+    #distributionReportsModal th:nth-child(6), #distributionReportsModal td:nth-child(6) { width: 150px !important; min-width: 150px !important; max-width: 150px !important; }
+    #distributionReportsModal th:nth-child(7), #distributionReportsModal td:nth-child(7) { width: 150px !important; min-width: 150px !important; max-width: 150px !important; }
+    #distributionReportsModal th:nth-child(8), #distributionReportsModal td:nth-child(8) { width: 120px !important; min-width: 120px !important; max-width: 120px !important; }
 
     #executiveSummaryModal .modal-body {
         padding: 16px;
@@ -903,8 +916,13 @@
     }
 
     #executiveSummaryModal .dss-report-cover {
-        grid-template-columns: 72px minmax(0, 1fr) minmax(230px, .9fr);
+        display: grid !important;
+        grid-template-columns: 84px minmax(280px, 1fr) minmax(310px, .9fr) !important;
+        column-gap: 20px;
     }
+
+    #executiveSummaryModal .dss-report-cover > div { min-width: 0; }
+    #executiveSummaryModal .dss-report-cover h1 { font-size: clamp(20px, 2vw, 28px); overflow-wrap: normal; }
 
     #executiveSummaryModal .dss-report-cover dl {
         grid-column: auto;
@@ -915,6 +933,9 @@
     #executiveSummaryModal .dss-report-cover dl div {
         grid-template-columns: 82px minmax(0, 1fr);
     }
+
+    #executiveSummaryModal .dss-report-cover dt,
+    #executiveSummaryModal .dss-report-cover dd { white-space: normal; }
 
 
     @media (max-width: 1100px) {
@@ -943,7 +964,9 @@
         .category-ticket-toolbar .form-control { width: 100%; }
 
         .analytics-responsive-modal {
-            width: calc(100vw - 16px);
+            --bs-modal-width: calc(100vw - 16px);
+            width: calc(100vw - 16px) !important;
+            max-width: calc(100vw - 16px) !important;
             height: calc(100dvh - 16px);
             margin: 8px auto;
         }
@@ -952,8 +975,14 @@
         .analytics-responsive-modal .modal-header,
         .analytics-responsive-modal .modal-footer { padding: 12px; }
         .analytics-responsive-modal .modal-footer { flex-wrap: wrap; }
-        #executiveSummaryModal .dss-report-cover { grid-template-columns: 52px minmax(0, 1fr); padding: 13px; }
+        #executiveSummaryModal .dss-report-cover { grid-template-columns: 52px minmax(0, 1fr) !important; padding: 13px; }
         #executiveSummaryModal .dss-report-cover dl { grid-column: 1 / -1; }
+    }
+
+    @media (max-width: 900px) and (min-width: 651px) {
+        #executiveSummaryModal .dss-report-cover { grid-template-columns: 64px minmax(0, 1fr) !important; }
+        #executiveSummaryModal .dss-report-cover dl { grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        #executiveSummaryModal .dss-report-cover dl div { grid-template-columns: 78px minmax(0, 1fr); }
     }
 
     @media print {
