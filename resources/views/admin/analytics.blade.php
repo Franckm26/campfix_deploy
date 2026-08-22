@@ -859,6 +859,63 @@
     .dss-report-table th, .dss-report-table td { padding: 7px 8px; border: 1px solid #dfe5ec; font-size: 10px; text-align: left; vertical-align: top; }
     .dss-report-table th { color: #243952; background: #f1f5f9; text-transform: uppercase; }
 
+    /* Keep analytics dialogs inside the viewport. Long tables scroll inside the dialog. */
+    .analytics-responsive-modal {
+        width: min(96vw, 1180px);
+        max-width: none;
+        height: min(92vh, 820px);
+        margin: 4vh auto;
+    }
+
+    .analytics-responsive-modal .modal-content {
+        height: 100%;
+        max-height: 92vh;
+        overflow: hidden;
+    }
+
+    .analytics-responsive-modal .modal-body {
+        min-height: 0;
+        overflow: auto;
+    }
+
+    #distributionReportsModal .table-responsive {
+        height: 100%;
+        overflow: auto;
+    }
+
+    #distributionReportsModal table {
+        min-width: 940px;
+    }
+
+    #distributionReportsModal th,
+    #distributionReportsModal td {
+        white-space: nowrap;
+        vertical-align: middle;
+    }
+
+    #executiveSummaryModal .modal-body {
+        padding: 16px;
+    }
+
+    #executiveSummaryModal .dss-report {
+        width: 100%;
+        min-width: 0;
+    }
+
+    #executiveSummaryModal .dss-report-cover {
+        grid-template-columns: 72px minmax(0, 1fr) minmax(230px, .9fr);
+    }
+
+    #executiveSummaryModal .dss-report-cover dl {
+        grid-column: auto;
+        grid-template-columns: 1fr;
+        gap: 7px;
+    }
+
+    #executiveSummaryModal .dss-report-cover dl div {
+        grid-template-columns: 82px minmax(0, 1fr);
+    }
+
 
     @media (max-width: 1100px) {
         .analytics-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -884,6 +941,19 @@
         .category-metric-tabs, .category-summary-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .category-ticket-toolbar { align-items: stretch; flex-direction: column; }
         .category-ticket-toolbar .form-control { width: 100%; }
+
+        .analytics-responsive-modal {
+            width: calc(100vw - 16px);
+            height: calc(100dvh - 16px);
+            margin: 8px auto;
+        }
+
+        .analytics-responsive-modal .modal-content { max-height: calc(100dvh - 16px); }
+        .analytics-responsive-modal .modal-header,
+        .analytics-responsive-modal .modal-footer { padding: 12px; }
+        .analytics-responsive-modal .modal-footer { flex-wrap: wrap; }
+        #executiveSummaryModal .dss-report-cover { grid-template-columns: 52px minmax(0, 1fr); padding: 13px; }
+        #executiveSummaryModal .dss-report-cover dl { grid-column: 1 / -1; }
     }
 
     @media print {
@@ -1183,7 +1253,7 @@
 </main>
 
 <div class="modal fade" id="executiveSummaryModal" tabindex="-1" aria-labelledby="executiveSummaryLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable analytics-responsive-modal">
         <div class="modal-content">
             <div class="modal-header">
                 <div>
@@ -1204,7 +1274,7 @@
 @include('admin.partials.analytics-summaries')
 @include('admin.partials.analytics-evidence-modals')
 <div class="modal fade" id="distributionReportsModal" tabindex="-1" aria-labelledby="distributionReportsTitle" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable"><div class="modal-content">
+    <div class="modal-dialog modal-dialog-scrollable analytics-responsive-modal"><div class="modal-content">
         <div class="modal-header"><div><h5 class="modal-title" id="distributionReportsTitle">Matching Reports</h5><small class="text-muted" id="distributionReportsSubtitle"></small></div><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         <div class="modal-body p-0"><div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>Ticket</th><th>Issue</th><th>Location</th><th>Status</th><th>Priority</th><th>Category</th><th>Assigned to</th><th>Submitted</th></tr></thead><tbody id="distributionReportsBody"></tbody></table></div></div>
         <div class="modal-footer"><a class="btn btn-primary" id="distributionReportsOpenLink" href="{{ route('admin.reports') }}"><i class="fas fa-list"></i> Open Reports</a><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button></div>
