@@ -959,10 +959,15 @@
     <section class="analytics-panel">
         <header class="analytics-panel-header">
             <div>
-                <h3>Reports Trend</h3>
-                <p>Historical report volume and completed work</p>
+                <h3 id="analyticsChartTitle">Reports Trend</h3>
+                <p id="analyticsChartSubtitle">Historical report volume and completed work</p>
             </div>
             <div class="analytics-header-tools">
+                <select class="form-select" id="analyticsChartSelector" aria-label="Select analytics chart" style="min-width: 210px;">
+                    <option value="trend">Report Trends</option>
+                    <option value="status">Status Distribution</option>
+                    <option value="priority">Priority Distribution</option>
+                </select>
                 <div class="chart-legend" aria-label="Chart legend">
                     <span><i style="background:#1769e0"></i> Reports</span>
                     <span><i style="background:#148a58"></i> Resolved</span>
@@ -998,6 +1003,7 @@
                 @endforeach
             </tbody></table>
         </div>
+        <div id="analyticsDistributionViews" hidden></div>
     </section>
 
     <div class="analytics-grid-two">
@@ -1315,6 +1321,63 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     createInteractiveChart('priorityChart', 'doughnut', @json($priorityStats->pluck('priority')->values()), @json($priorityStats->pluck('count')->values()), ['#d93645', '#e99a00', '#1769e0', '#148a58', '#7557c5'], 'priorityInsight', 'reports', false);
+
+    // Keep the dashboard focused: one chart card, selected from the dropdown.
+    const chartSelector = document.getElementById('analyticsChartSelector');
+    const trendPanel = document.getElementById('reportsTrendChart')?.closest('.analytics-panel');
+    const statusPanel = document.getElementById('statusChart')?.closest('.analytics-panel');
+    const priorityPanel = document.getElementById('priorityChart')?.closest('.analytics-panel');
+    const distributionHolder = document.getElementById('analyticsDistributionViews');
+    const chartTitle = document.getElementById('analyticsChartTitle');
+    const chartSubtitle = document.getElementById('analyticsChartSubtitle');
+    const trendChartBody = trendPanel?.querySelector('.analytics-chart-body');
+    const trendInterpretation = trendPanel?.querySelector('.analytics-interpretation');
+    const trendData = document.getElementById('trendData');
+    const trendLegend = trendPanel?.querySelector('.chart-legend');
+    const trendDataButton = trendPanel?.querySelector('[data-toggle-table="trendData"]');
+    const downloadButton = trendPanel?.querySelector('[data-download-chart]');
+
+    function moveDistributionContent(panel, mode) {
+        if (!panel || !distributionHolder) return null;
+        const view = document.createElement('div');
+        view.dataset.chartMode = mode;
+        view.hidden = true;
+        panel.querySelectorAll('.analytics-small-chart, .chart-selection, .analytics-data-table, .empty-analytics').forEach(function (element) {
+            view.appendChild(element);
+        });
+        distributionHolder.appendChild(view);
+        panel.style.display = 'none';
+        return view;
+    }
+    const statusView = moveDistributionContent(statusPanel, 'status');
+    const priorityView = moveDistributionContent(priorityPanel, 'priority');
+    if (statusPanel?.parentElement?.classList.contains('analytics-grid-two')) statusPanel.parentElement.style.gridTemplateColumns = '1fr';
+    if (priorityPanel?.parentElement?.classList.contains('analytics-grid-three')) priorityPanel.parentElement.style.display = 'none';
+
+    const chartModes = {
+        trend: { title: 'Reports Trend', subtitle: 'Historical report volume and completed work', download: 'reportsTrendChart', file: 'reports-trend' },
+        status: { title: 'Status Distribution', subtitle: 'Current workload by report status', download: 'statusChart', file: 'status-distribution' },
+        priority: { title: 'Priority Distribution', subtitle: 'Workload by reported priority', download: 'priorityChart', file: 'priority-distribution' },
+    };
+    function switchAnalyticsChart(mode) {
+        const config = chartModes[mode] || chartModes.trend;
+        chartTitle.textContent = config.title;
+        chartSubtitle.textContent = config.subtitle;
+        const isTrend = mode === 'trend';
+        if (distributionHolder) distributionHolder.hidden = isTrend;
+        if (trendChartBody) trendChartBody.hidden = !isTrend;
+        if (trendInterpretation) trendInterpretation.hidden = !isTrend;
+        if (trendData) trendData.hidden = !isTrend;
+        if (trendLegend) trendLegend.hidden = !isTrend;
+        if (trendDataButton) trendDataButton.hidden = !isTrend;
+        if (statusView) statusView.hidden = mode !== 'status';
+        if (priorityView) priorityView.hidden = mode !== 'priority';
+        if (downloadButton) { downloadButton.dataset.downloadChart = config.download; downloadButton.dataset.fileName = config.file; }
+    }
+    if (chartSelector) {
+        chartSelector.addEventListener('change', function () { switchAnalyticsChart(this.value); });
+        switchAnalyticsChart(chartSelector.value);
+    }
 
     function escapeHtml(value) {
         const node = document.createElement('div');
