@@ -62,7 +62,10 @@ class ManagementController extends Controller
 
         $eventSetupReady = Schema::hasTable('event_request_types')
             && Schema::hasTable('event_intended_users')
-            && Schema::hasTable('event_departments');
+            && Schema::hasTable('event_departments')
+            // The configurable intended-user routes need this column. Treat the
+            // setup as unavailable until the deployed database has it.
+            && Schema::hasColumn('event_intended_users', 'approval_roles');
         $eventRequestTypes = $eventSetupReady ? EventRequestType::orderBy('name')->get() : collect();
         $eventIntendedUsers = $eventSetupReady ? EventIntendedUser::orderBy('name')->get() : collect();
         $eventDepartments = $eventSetupReady ? EventDepartment::orderBy('name')->get() : collect();
