@@ -67,7 +67,8 @@ class ManagementController extends Controller
             // Bring the established SHS route into the configurable setup on first use.
             $shsUser = EventIntendedUser::where('code', 'shs')->first();
             if ($shsUser && ! in_array('principal_assistant', $shsUser->approval_roles ?? [], true)) {
-                $shsUser->update(['approval_roles' => ['principal_assistant', 'academic_head', 'school_admin']]);
+                $shsUser->approval_roles = ['principal_assistant', 'academic_head', 'school_admin'];
+                $shsUser->save();
             }
         }
         $eventRequestTypes = $eventSetupReady ? EventRequestType::orderBy('name')->get() : collect();
