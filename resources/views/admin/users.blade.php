@@ -1353,10 +1353,13 @@
                             <input type="text" name="phone" class="form-control {{ $errors->has('phone') ? 'is-invalid' : '' }}" maxlength="11" placeholder="09XXXXXXXXX" value="{{ old('phone') }}">
                             <div class="invalid-feedback">{{ $errors->first('phone') ?: 'Enter a valid 11-digit PH number.' }}</div>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Password <span class="text-danger">*</span></label>
-                            <input type="password" name="password" id="addUserPassword" class="form-control {{ $errors->has('password') ? 'is-invalid' : '' }}" required>
-                            <div class="invalid-feedback">{{ $errors->first('password') ?: 'Password must be at least 8 characters.' }}</div>
+                        <div class="col-md-12">
+                            <div class="alert alert-info d-flex align-items-center" style="margin-bottom: 1rem;">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <div>
+                                    <strong>Auto-Generated Password:</strong> A secure password will be automatically generated and sent to the user's email address.
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -2122,7 +2125,6 @@ function submitAddUserForm() {
     const firstName = form.querySelector('[name="first_name"]');
     const lastName  = form.querySelector('[name="last_name"]');
     const email    = form.querySelector('[name="email"]');
-    const password = form.querySelector('[name="password"]');
     const phone    = form.querySelector('[name="phone"]');
 
     if (!firstName.value.trim()) { firstName.classList.add('is-invalid'); valid = false; }
@@ -2132,9 +2134,7 @@ function submitAddUserForm() {
         email.classList.add('is-invalid'); valid = false;
     }
 
-    if (!password.value || password.value.length < 8) {
-        password.classList.add('is-invalid'); valid = false;
-    }
+    // Password validation removed - passwords are now auto-generated
 
     if (phone.value && !/^09[0-9]{9}$/.test(phone.value)) {
         phone.classList.add('is-invalid'); valid = false;

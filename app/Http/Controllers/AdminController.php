@@ -2129,7 +2129,6 @@ class AdminController extends Controller
             'email' => $request->input('email'),
             'role'  => $request->input('role'),
             'phone' => $request->input('phone'),
-            'has_password' => $request->filled('password'),
         ]);
 
         try {
@@ -2137,7 +2136,6 @@ class AdminController extends Controller
                 'first_name' => 'required|string|max:255',
                 'last_name'  => 'required|string|max:255',
                 'email'    => 'required|string|email|max:255|unique:users',
-                'password' => 'required|string|min:8',
                 'phone'    => 'nullable|regex:/^09[0-9]{9}$/',
                 'role'     => 'required|in:student,faculty,maintenance,mis,school_admin,building_admin,academic_head,program_head,principal_assistant',
             ]);
@@ -2148,21 +2146,37 @@ class AdminController extends Controller
             throw $e;
         }
 
+        // Auto-generate a secure password
+        $generatedPassword = \App\Helpers\PasswordGenerator::generate(12);
+
         try {
             $user = User::create([
                 'name'                  => trim($request->input('first_name') . ' ' . $request->input('last_name')),
                 'email'                 => $request->input('email'),
-                'password'              => Hash::make($request->input('password')),
+                'password'              => Hash::make($generatedPassword),
                 'role'                  => $request->input('role'),
                 'phone'                 => $request->input('phone'),
                 'department'            => $request->input('department'),
                 'student_id'            => $request->input('student_id'),
-                'force_password_change' => $request->input('role') === 'student',
+                'force_password_change' => false, // Users can use the auto-generated password
                 'permissions'           => $request->input('permissions', []),
                 'created_by'            => auth()->id(),
             ]);
 
             \Log::info('[storeUser] User created successfully', ['user_id' => $user->id, 'email' => $user->email]);
+
+            // Send welcome email with credentials
+            try {
+                $user->notify(new \App\Notifications\NewUserCreatedNotification($generatedPassword));
+                \Log::info('[storeUser] Welcome email sent successfully', ['user_id' => $user->id, 'email' => $user->email]);
+            } catch (\Exception $e) {
+                \Log::error('[storeUser] Failed to send welcome email', [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'error' => $e->getMessage()
+                ]);
+                // Continue even if email fails
+            }
         } catch (\Exception $e) {
             \Log::error('[storeUser] User::create failed', ['error' => $e->getMessage()]);
             throw $e;
@@ -2177,7 +2191,7 @@ class AdminController extends Controller
             'student_id' => $user->student_id,
         ], ['target_user_id' => $user->id, 'target_user_name' => $user->name]);
 
-        return redirect()->route('admin.users')->with('success', 'User created successfully!');
+        return redirect()->route('admin.users')->with('success', 'User created successfully! A welcome email with login credentials has been sent to ' . $user->email);
     }
 
     // Show edit user form
