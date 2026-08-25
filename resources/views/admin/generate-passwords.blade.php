@@ -60,6 +60,9 @@
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle me-2"></i>
                         <strong>About this tool:</strong> This will generate new secure passwords for users and send them via email with their login credentials.
+                        <br><small class="mt-2 d-block">
+                            <strong>Note:</strong> Processing large numbers of users may take a few minutes. Please be patient and do not close this page.
+                        </small>
                     </div>
 
                     <form method="POST" action="{{ route('admin.passwords.generate') }}" id="generatePasswordForm">
@@ -187,7 +190,8 @@ function confirmGeneration() {
     message += '• Invalidate old passwords\n\n';
 
     if (scope === 'all') {
-        message += 'This will affect ALL users in the system!';
+        message += 'This will affect ALL users in the system!\n\n';
+        message += 'Note: Processing may take several minutes for large numbers of users.';
     } else if (scope === 'role') {
         const role = document.querySelector('[name="role"]').value;
         if (!role) {
@@ -205,6 +209,11 @@ function confirmGeneration() {
     }
 
     if (confirm(message)) {
+        // Show loading indicator
+        const submitBtn = document.querySelector('button[onclick="confirmGeneration()"]');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing... Please wait';
+        
         form.submit();
     }
 }

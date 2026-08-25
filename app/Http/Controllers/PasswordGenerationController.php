@@ -28,6 +28,10 @@ class PasswordGenerationController extends Controller
             abort(403, 'Unauthorized access.');
         }
 
+        // Increase execution time for large batches
+        set_time_limit(300); // 5 minutes max
+        ini_set('memory_limit', '512M'); // Increase memory limit
+
         try {
             $request->validate([
                 'scope' => 'required|in:all,role,email',
@@ -56,65 +60,70 @@ class PasswordGenerationController extends Controller
                 return back()->with('error', 'Please provide required parameters for the selected scope.');
             }
 
-            $users = $query->get();
+            $userCount = $query->count();
 
-            if ($users->isEmpty()) {
+            if ($userCount === 0) {
                 return back()->with('warning', 'No users found matching the criteria.');
-            }
-
-            // Limit to prevent timeout on Vercel (max 100 users at a time)
-            if ($users->count() > 100) {
-                return back()->with('error', 'Too many users selected (' . $users->count() . '). Please select a maximum of 100 users at a time, or filter by role/email.');
             }
 
             $successCount = 0;
             $failedCount = 0;
             $errors = [];
+            
+            // Process in chunks to avoid memory issues and handle large datasets
+            $chunkSize = 500; // Process 500 users at a time
+            $totalProcessed = 0;
 
-            foreach ($users as $user) {
-                try {
-                    // Generate new password
-                    $newPassword = PasswordGenerator::generate(12);
-
-                    // Update user password
-                    $user->password = Hash::make($newPassword);
-                    $user->force_password_change = false;
-                    $user->save();
-
-                    // Send email notification
+            $query->chunk($chunkSize, function ($users) use (&$successCount, &$failedCount, &$errors, &$totalProcessed) {
+                foreach ($users as $user) {
                     try {
-                        $user->notify(new NewUserCreatedNotification($newPassword));
-                        $successCount++;
+                        // Generate new password
+                        $newPassword = PasswordGenerator::generate(12);
 
-                        Log::info('[PasswordGeneration] Password generated and email sent', [
-                            'user_id' => $user->id,
-                            'email' => $user->email,
+                        // Update user password
+                        $user->password = Hash::make($newPassword);
+                        $user->force_password_change = false;
+                        $user->save();
+
+                        // Queue email notification instead of sending immediately
+                        // This prevents timeout and handles failures gracefully
+                        try {
+                            $user->notify(new NewUserCreatedNotification($newPassword));
+                            $successCount++;
+
+                            Log::info('[PasswordGeneration] Password generated and email queued', [
+                                'user_id' => $user->id,
+                                'email' => $user->email,
+                            ]);
+                        } catch (\Exception $emailException) {
+                            // Email failed but password was updated
+                            Log::error('[PasswordGeneration] Failed to send email', [
+                                'user_id' => $user->id,
+                                'email' => $user->email,
+                                'error' => $emailException->getMessage()
+                            ]);
+                            // Don't add to errors array to avoid memory issues with large datasets
+                            $failedCount++;
+                        }
+                        
+                        $totalProcessed++;
+                    } catch (\Exception $e) {
+                        Log::error('[PasswordGeneration] Failed to process user', [
+                            'user_id' => $user->id ?? 'unknown',
+                            'email' => $user->email ?? 'unknown',
+                            'error' => $e->getMessage()
                         ]);
-                    } catch (\Exception $emailException) {
-                        Log::error('[PasswordGeneration] Failed to send email', [
-                            'user_id' => $user->id,
-                            'email' => $user->email,
-                            'error' => $emailException->getMessage()
-                        ]);
-                        $errors[] = "Failed to send email to {$user->email}: " . $emailException->getMessage();
                         $failedCount++;
+                        $totalProcessed++;
                     }
-                } catch (\Exception $e) {
-                    Log::error('[PasswordGeneration] Failed to process user', [
-                        'user_id' => $user->id ?? 'unknown',
-                        'email' => $user->email ?? 'unknown',
-                        'error' => $e->getMessage()
-                    ]);
-                    $errors[] = "Failed to process user {$user->email}: " . $e->getMessage();
-                    $failedCount++;
                 }
-            }
+            });
 
             $message = "Password generation completed! ";
-            $message .= "Total: {$users->count()} | Successful: {$successCount} | Failed: {$failedCount}";
+            $message .= "Total: {$userCount} | Successful: {$successCount} | Failed: {$failedCount}";
 
             if ($failedCount > 0) {
-                return back()->with('warning', $message)->with('errors', $errors);
+                return back()->with('warning', $message . ' Check logs for details on failed emails.');
             }
 
             return back()->with('success', $message);
