@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Helpers\PasswordGenerator;
 use App\Models\User;
 use App\Notifications\NewUserCreatedNotification;
+use App\Notifications\PasswordNotification;
+use App\Notifications\EmailAddressNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -116,7 +118,7 @@ class PasswordGenerationController extends Controller
 
                         // Update user password
                         $user->password = Hash::make($newPassword);
-                        $user->force_password_change = false;
+                        $user->force_password_change = true; // Force password change when using auto-generated password
                         
                         // Only set password_reset_at if column exists
                         if (\Schema::hasColumn('users', 'password_reset_at')) {
@@ -125,18 +127,21 @@ class PasswordGenerationController extends Controller
                         
                         $user->save();
 
-                        // Send email notification immediately (sync mode set at method start)
+                        // Send separate email notifications immediately (sync mode set at method start)
                         try {
-                            $user->notify(new NewUserCreatedNotification($newPassword));
+                            // Send email address notification first
+                            $user->notify(new EmailAddressNotification());
+                            // Send password notification separately
+                            $user->notify(new PasswordNotification($newPassword));
                             $successCount++;
 
-                            Log::info('[PasswordGeneration] Password generated and email sent', [
+                            Log::info('[PasswordGeneration] Password generated and separate emails sent', [
                                 'user_id' => $user->id,
                                 'email' => $user->email,
                             ]);
                         } catch (\Exception $emailException) {
                             // Email failed but password was updated
-                            Log::error('[PasswordGeneration] Failed to send email', [
+                            Log::error('[PasswordGeneration] Failed to send emails', [
                                 'user_id' => $user->id,
                                 'email' => $user->email,
                                 'error' => $emailException->getMessage(),
@@ -145,7 +150,7 @@ class PasswordGenerationController extends Controller
                             
                             // Store first 10 errors for display
                             if (count($emailErrors) < 10) {
-                                $emailErrors[] = "Email to {$user->email} failed: " . $emailException->getMessage();
+                                $emailErrors[] = "Emails to {$user->email} failed: " . $emailException->getMessage();
                             }
                             
                             $failedCount++;
