@@ -35,6 +35,7 @@ class User extends Authenticatable implements JWTSubject
         'name',
         'email',
         'password',
+        'password_reset_at',
         'role',
         'is_admin',
         'permissions',
@@ -101,6 +102,7 @@ class User extends Authenticatable implements JWTSubject
         'email_verified_at' => 'datetime',
         'otp_expires_at'    => 'datetime',
         'locked_until'      => 'datetime',
+        'password_reset_at' => 'datetime',
         'permissions'       => 'array',
     ];
 

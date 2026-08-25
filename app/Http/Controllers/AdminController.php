@@ -2154,6 +2154,7 @@ class AdminController extends Controller
                 'name'                  => trim($request->input('first_name') . ' ' . $request->input('last_name')),
                 'email'                 => $request->input('email'),
                 'password'              => Hash::make($generatedPassword),
+                'password_reset_at'     => now(), // Mark as password was just generated
                 'role'                  => $request->input('role'),
                 'phone'                 => $request->input('phone'),
                 'department'            => $request->input('department'),

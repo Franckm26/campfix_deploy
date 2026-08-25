@@ -159,6 +159,63 @@
                     </div>
                 </div>
             </div>
+
+            <div class="mt-4">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-history me-2"></i>Password Reset Status</h5>
+                        <span class="badge bg-primary">{{ number_format($totalUsers) }} Total Users</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="alert alert-success mb-0">
+                                    <strong><i class="fas fa-check-circle me-2"></i>Reset:</strong> {{ number_format($resetUsers) }} users ({{ $totalUsers > 0 ? round(($resetUsers/$totalUsers)*100, 1) : 0 }}%)
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="alert alert-warning mb-0">
+                                    <strong><i class="fas fa-exclamation-triangle me-2"></i>Not Reset:</strong> {{ number_format($unresetUsers) }} users ({{ $totalUsers > 0 ? round(($unresetUsers/$totalUsers)*100, 1) : 0 }}%)
+                                </div>
+                            </div>
+                        </div>
+
+                        @if($recentResets->count() > 0)
+                            <h6 class="mt-3">Recent Password Resets (Last 100)</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>Role</th>
+                                            <th>Reset At</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($recentResets as $user)
+                                            <tr>
+                                                <td>{{ $user->name }}</td>
+                                                <td>{{ $user->email }}</td>
+                                                <td><span class="badge bg-secondary">{{ ucwords(str_replace('_', ' ', $user->role)) }}</span></td>
+                                                <td>
+                                                    <small class="text-muted">
+                                                        {{ $user->password_reset_at->format('M d, Y h:i A') }}
+                                                        <br>
+                                                        ({{ $user->password_reset_at->diffForHumans() }})
+                                                    </small>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @else
+                            <p class="text-muted mb-0">No password resets have been performed yet.</p>
+                        @endif
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>

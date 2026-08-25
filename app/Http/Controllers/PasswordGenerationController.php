@@ -18,7 +18,18 @@ class PasswordGenerationController extends Controller
             abort(403, 'Unauthorized access.');
         }
 
-        return view('admin.generate-passwords');
+        // Get recently reset passwords (last 100)
+        $recentResets = User::whereNotNull('password_reset_at')
+            ->orderBy('password_reset_at', 'desc')
+            ->limit(100)
+            ->get(['id', 'name', 'email', 'role', 'password_reset_at']);
+
+        // Get count of users with/without reset
+        $totalUsers = User::count();
+        $resetUsers = User::whereNotNull('password_reset_at')->count();
+        $unresetUsers = $totalUsers - $resetUsers;
+
+        return view('admin.generate-passwords', compact('recentResets', 'totalUsers', 'resetUsers', 'unresetUsers'));
     }
 
     public function generate(Request $request)
@@ -87,6 +98,7 @@ class PasswordGenerationController extends Controller
                         // Update user password
                         $user->password = Hash::make($newPassword);
                         $user->force_password_change = false;
+                        $user->password_reset_at = now(); // Track when password was reset
                         $user->save();
 
                         // Send email notification immediately (sync mode set at method start)
