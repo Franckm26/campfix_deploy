@@ -1,7 +1,23 @@
 @extends('layouts.app')
 
+@section('styles')
+<link href="{{ asset('css/admin.css') }}" rel="stylesheet">
+<style>
+    .info-box {
+        border-left: 4px solid #0dcaf0;
+    }
+    .warning-box {
+        border-left: 4px solid #ffc107;
+    }
+</style>
+@endsection
+
+@section('page_title')
+<h2>Generate User Passwords</h2>
+@endsection
+
 @section('content')
-<div class="container py-4">
+<div class="container-fluid px-3">
     <div class="row justify-content-center">
         <div class="col-md-8">
             <div class="card shadow-sm">
