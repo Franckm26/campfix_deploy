@@ -2305,7 +2305,7 @@ class AdminController extends Controller
                 'phone'                 => $request->input('phone'),
                 'department'            => $request->input('department'),
                 'student_id'            => $request->input('student_id'),
-                'force_password_change' => false, // Users can use the auto-generated password
+                'force_password_change' => true, // Force password change when using auto-generated password
                 'permissions'           => $request->input('permissions', []),
                 'created_by'            => auth()->id(),
             ];
@@ -2427,7 +2427,7 @@ class AdminController extends Controller
             // Generate new password
             $newPassword = PasswordGenerator::generate();
             $user->password = Hash::make($newPassword);
-            $user->force_password_change = false; // Remove force password change when resetting
+            $user->force_password_change = true; // Force password change when using auto-generated password
             $passwordChanged = true;
             
             // Send email notification with new password
