@@ -331,6 +331,10 @@ Route::middleware(['auth', 'admin', 'throttle:admin'])->group(function () {
     Route::post('/admin/reauth', [AdminController::class, 'reauth'])->name('admin.reauth');
     Route::get('/admin/users', [AdminController::class, 'users'])->name('admin.users');
     Route::post('/admin/users', [AdminController::class, 'storeUser'])->middleware('throttle:user-management')->name('admin.users.store');
+    
+    // Password generation tool
+    Route::get('/admin/users/generate-passwords', [\App\Http\Controllers\PasswordGenerationController::class, 'showForm'])->name('admin.passwords.form');
+    Route::post('/admin/users/generate-passwords', [\App\Http\Controllers\PasswordGenerationController::class, 'generate'])->name('admin.passwords.generate');
     Route::post('/admin/users/batch-archive', [AdminController::class, 'batchArchiveUsers'])->middleware('throttle:batch')->name('admin.users.batchArchive');
     Route::post('/admin/users/batch-delete', [AdminController::class, 'batchDeleteUsers'])->middleware('throttle:batch')->name('admin.users.batchDelete');
     Route::post('/admin/users/archive-all', [AdminController::class, 'archiveAllUsers'])->middleware('throttle:batch')->name('admin.users.archiveAll');
