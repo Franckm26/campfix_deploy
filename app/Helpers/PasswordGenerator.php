@@ -17,11 +17,11 @@ class PasswordGenerator
         // Ensure minimum length for security
         $length = max(8, $length);
 
-        // Define character sets
+        // Define character sets (excluding HTML-problematic characters &, <, >, ", ')
         $lowercase = 'abcdefghijklmnopqrstuvwxyz';
         $uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
         $numbers = '0123456789';
-        $specialChars = '!@#$%&*';
+        $specialChars = '!@#$%*+=?';
 
         // Ensure at least one character from each set
         $password = '';

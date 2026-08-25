@@ -32,7 +32,7 @@ class NewUserCreatedNotification extends Notification
             ->line('Your CampFix account has been successfully created! You now have access to the system.')
             ->line('**Your Login Credentials:**')
             ->line('**Email:** ' . $notifiable->email)
-            ->line('**Password:** `' . $this->password . '`')
+            ->line('**Password:** ' . htmlspecialchars_decode($this->password, ENT_QUOTES))
             ->line('**Role:** ' . ucwords(str_replace('_', ' ', $notifiable->role)))
             ->line('Please keep this information secure and do not share your password with anyone.')
             ->line('For security reasons, we recommend changing your password after your first login.')
