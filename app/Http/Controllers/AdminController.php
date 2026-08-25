@@ -2150,11 +2150,10 @@ class AdminController extends Controller
         $generatedPassword = \App\Helpers\PasswordGenerator::generate(12);
 
         try {
-            $user = User::create([
+            $userData = [
                 'name'                  => trim($request->input('first_name') . ' ' . $request->input('last_name')),
                 'email'                 => $request->input('email'),
                 'password'              => Hash::make($generatedPassword),
-                'password_reset_at'     => now(), // Mark as password was just generated
                 'role'                  => $request->input('role'),
                 'phone'                 => $request->input('phone'),
                 'department'            => $request->input('department'),
@@ -2162,7 +2161,14 @@ class AdminController extends Controller
                 'force_password_change' => false, // Users can use the auto-generated password
                 'permissions'           => $request->input('permissions', []),
                 'created_by'            => auth()->id(),
-            ]);
+            ];
+
+            // Only add password_reset_at if column exists
+            if (\Schema::hasColumn('users', 'password_reset_at')) {
+                $userData['password_reset_at'] = now(); // Mark as password was just generated
+            }
+
+            $user = User::create($userData);
 
             \Log::info('[storeUser] User created successfully', ['user_id' => $user->id, 'email' => $user->email]);
 

@@ -18,16 +18,35 @@ class PasswordGenerationController extends Controller
             abort(403, 'Unauthorized access.');
         }
 
-        // Get recently reset passwords (last 100)
-        $recentResets = User::whereNotNull('password_reset_at')
-            ->orderBy('password_reset_at', 'desc')
-            ->limit(100)
-            ->get(['id', 'name', 'email', 'role', 'password_reset_at']);
+        // Check if the password_reset_at column exists before querying
+        $recentResets = collect([]);
+        $totalUsers = 0;
+        $resetUsers = 0;
+        $unresetUsers = 0;
 
-        // Get count of users with/without reset
-        $totalUsers = User::count();
-        $resetUsers = User::whereNotNull('password_reset_at')->count();
-        $unresetUsers = $totalUsers - $resetUsers;
+        try {
+            // Check if column exists first
+            if (\Schema::hasColumn('users', 'password_reset_at')) {
+                // Get recently reset passwords (last 100)
+                $recentResets = User::whereNotNull('password_reset_at')
+                    ->orderBy('password_reset_at', 'desc')
+                    ->limit(100)
+                    ->get(['id', 'name', 'email', 'role', 'password_reset_at']);
+
+                // Get count of users with/without reset
+                $totalUsers = User::count();
+                $resetUsers = User::whereNotNull('password_reset_at')->count();
+                $unresetUsers = $totalUsers - $resetUsers;
+            } else {
+                // Column doesn't exist yet, just get total user count
+                $totalUsers = User::count();
+                $unresetUsers = $totalUsers;
+            }
+        } catch (\Exception $e) {
+            // If there's any database error, just show totals without reset data
+            $totalUsers = User::count();
+            $unresetUsers = $totalUsers;
+        }
 
         return view('admin.generate-passwords', compact('recentResets', 'totalUsers', 'resetUsers', 'unresetUsers'));
     }
@@ -98,7 +117,12 @@ class PasswordGenerationController extends Controller
                         // Update user password
                         $user->password = Hash::make($newPassword);
                         $user->force_password_change = false;
-                        $user->password_reset_at = now(); // Track when password was reset
+                        
+                        // Only set password_reset_at if column exists
+                        if (\Schema::hasColumn('users', 'password_reset_at')) {
+                            $user->password_reset_at = now(); // Track when password was reset
+                        }
+                        
                         $user->save();
 
                         // Send email notification immediately (sync mode set at method start)
