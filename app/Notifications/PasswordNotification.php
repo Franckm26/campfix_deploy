@@ -30,7 +30,7 @@ class PasswordNotification extends Notification
             ->subject('🔑 Your CampFix Password')
             ->greeting('Hello ' . $notifiable->name . ',')
             ->line('Here is your CampFix login password:')
-            ->line('**Password:** ' . htmlspecialchars_decode($this->password, ENT_QUOTES))
+            ->line('**Password:** ' . $this->password)
             ->line('Please keep this password secure and do not share it with anyone.')
             ->line('You will be required to change this password after your first login.')
             ->action('Login to CampFix', $this->loginUrl)
