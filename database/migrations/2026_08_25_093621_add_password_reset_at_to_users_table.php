@@ -12,7 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->timestamp('password_reset_at')->nullable()->after('password');
+            // Only add password_reset_at if it doesn't already exist
+            if (!Schema::hasColumn('users', 'password_reset_at')) {
+                $table->timestamp('password_reset_at')->nullable()->after('password');
+            }
         });
     }
 
@@ -22,7 +25,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('password_reset_at');
+            if (Schema::hasColumn('users', 'password_reset_at')) {
+                $table->dropColumn('password_reset_at');
+            }
         });
     }
 };

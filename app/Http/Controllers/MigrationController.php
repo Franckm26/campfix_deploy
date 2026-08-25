@@ -27,15 +27,24 @@ class MigrationController extends Controller
                 ]);
             }
 
-            // Run the migration
-            Artisan::call('migrate', ['--force' => true]);
+            // Run only our specific migration
+            $migrationFile = '2026_08_25_093621_add_password_reset_at_to_users_table';
+            Artisan::call('migrate', [
+                '--path' => 'database/migrations/' . $migrationFile . '.php',
+                '--force' => true
+            ]);
             $output = Artisan::output();
+
+            // Verify it worked
+            $columnExists = Schema::hasColumn('users', 'password_reset_at');
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Migration completed successfully',
+                'message' => $columnExists 
+                    ? 'Migration completed successfully! Password reset tracking is now enabled.' 
+                    : 'Migration ran but column not detected. Please refresh the page.',
                 'output' => $output,
-                'column_exists' => Schema::hasColumn('users', 'password_reset_at')
+                'column_exists' => $columnExists
             ]);
 
         } catch (\Exception $e) {
