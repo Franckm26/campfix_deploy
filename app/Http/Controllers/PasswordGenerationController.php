@@ -31,6 +31,9 @@ class PasswordGenerationController extends Controller
         // Increase execution time for large batches
         set_time_limit(300); // 5 minutes max
         ini_set('memory_limit', '512M'); // Increase memory limit
+        
+        // Force synchronous email sending (don't queue)
+        config(['queue.default' => 'sync']);
 
         try {
             $request->validate([
@@ -73,8 +76,9 @@ class PasswordGenerationController extends Controller
             // Process in chunks to avoid memory issues and handle large datasets
             $chunkSize = 500; // Process 500 users at a time
             $totalProcessed = 0;
+            $emailErrors = []; // Track first 10 email errors for display
 
-            $query->chunk($chunkSize, function ($users) use (&$successCount, &$failedCount, &$errors, &$totalProcessed) {
+            $query->chunk($chunkSize, function ($users) use (&$successCount, &$failedCount, &$errors, &$totalProcessed, &$emailErrors) {
                 foreach ($users as $user) {
                     try {
                         // Generate new password
@@ -85,13 +89,12 @@ class PasswordGenerationController extends Controller
                         $user->force_password_change = false;
                         $user->save();
 
-                        // Queue email notification instead of sending immediately
-                        // This prevents timeout and handles failures gracefully
+                        // Send email notification immediately (sync mode set at method start)
                         try {
                             $user->notify(new NewUserCreatedNotification($newPassword));
                             $successCount++;
 
-                            Log::info('[PasswordGeneration] Password generated and email queued', [
+                            Log::info('[PasswordGeneration] Password generated and email sent', [
                                 'user_id' => $user->id,
                                 'email' => $user->email,
                             ]);
@@ -100,9 +103,15 @@ class PasswordGenerationController extends Controller
                             Log::error('[PasswordGeneration] Failed to send email', [
                                 'user_id' => $user->id,
                                 'email' => $user->email,
-                                'error' => $emailException->getMessage()
+                                'error' => $emailException->getMessage(),
+                                'trace' => $emailException->getTraceAsString()
                             ]);
-                            // Don't add to errors array to avoid memory issues with large datasets
+                            
+                            // Store first 10 errors for display
+                            if (count($emailErrors) < 10) {
+                                $emailErrors[] = "Email to {$user->email} failed: " . $emailException->getMessage();
+                            }
+                            
                             $failedCount++;
                         }
                         
@@ -123,7 +132,13 @@ class PasswordGenerationController extends Controller
             $message .= "Total: {$userCount} | Successful: {$successCount} | Failed: {$failedCount}";
 
             if ($failedCount > 0) {
-                return back()->with('warning', $message . ' Check logs for details on failed emails.');
+                $warningMessage = $message;
+                if (!empty($emailErrors)) {
+                    $warningMessage .= "\n\nSample email errors (first 10):";
+                }
+                return back()
+                    ->with('warning', $warningMessage)
+                    ->with('errors', $emailErrors);
             }
 
             return back()->with('success', $message);

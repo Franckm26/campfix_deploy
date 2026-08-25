@@ -32,12 +32,20 @@ class NewUserCreatedNotification extends Notification
             ->line('Your CampFix account has been successfully created! You now have access to the system.')
             ->line('**Your Login Credentials:**')
             ->line('**Email:** ' . $notifiable->email)
-            ->line('**Password:** ' . $this->password)
+            ->line('**Password:** `' . $this->password . '`')
             ->line('**Role:** ' . ucwords(str_replace('_', ' ', $notifiable->role)))
             ->line('Please keep this information secure and do not share your password with anyone.')
             ->line('For security reasons, we recommend changing your password after your first login.')
             ->action('Login to CampFix', $this->loginUrl)
             ->line('If you have any questions or need assistance, please contact your system administrator.')
             ->salutation('Welcome to CampFix!');
+    }
+    
+    /**
+     * Determine if notification should be queued
+     */
+    public function shouldQueue(): bool
+    {
+        return false; // Send immediately, don't queue
     }
 }
