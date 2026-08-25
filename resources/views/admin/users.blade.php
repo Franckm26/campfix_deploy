@@ -430,12 +430,15 @@
                                                         <input type="text" name="student_id" class="form-control" value="{{ $user->student_id }}">
                                                     </div>
                                                     <div class="col-12">
-                                                        <label class="form-label fw-semibold">New Password <small class="text-muted fw-normal">(leave blank to keep current)</small></label>
-                                                        <div class="input-group">
-                                                            <input type="password" name="password" class="form-control edit-user-password" id="editPassword{{ $user->id }}" minlength="8" maxlength="20" autocomplete="new-password">
-                                                            <button type="button" class="btn btn-outline-secondary toggle-edit-pw" data-target="editPassword{{ $user->id }}">
-                                                                <i class="fas fa-eye"></i>
-                                                            </button>
+                                                        <div class="form-check p-3" style="background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
+                                                            <input class="form-check-input" type="checkbox" name="reset_password" id="resetPassword{{ $user->id }}" value="1">
+                                                            <label class="form-check-label fw-semibold" for="resetPassword{{ $user->id }}">
+                                                                <i class="fas fa-key text-primary me-1"></i>Reset Password
+                                                            </label>
+                                                            <div class="form-text mt-1">
+                                                                <i class="fas fa-info-circle text-info me-1"></i>
+                                                                Check this box to generate a new password and send it to the user's email address.
+                                                            </div>
                                                         </div>
                                                         <div class="edit-pw-bar-wrap mt-1" style="display:none">
                                                             <div class="d-flex align-items-center gap-2">

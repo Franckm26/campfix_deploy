@@ -17,9 +17,12 @@ use App\Models\UserArchiveFolder;
 use App\Notifications\ConcernResolvedNotification;
 use App\Notifications\ReportAssignedNotification;
 use App\Notifications\ReportResolvedNotification;
+use App\Notifications\NewUserCreatedNotification;
+use App\Helpers\PasswordGenerator;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 
 class AdminController extends Controller
@@ -2417,7 +2420,30 @@ class AdminController extends Controller
         $user->permissions = $request->input('permissions', []);
 
         $passwordChanged = false;
-        if ($request->filled('password')) {
+        $newPassword = null;
+        
+        // Handle reset password checkbox
+        if ($request->has('reset_password') && $request->input('reset_password') == '1') {
+            // Generate new password
+            $newPassword = PasswordGenerator::generate();
+            $user->password = Hash::make($newPassword);
+            $user->force_password_change = false; // Remove force password change when resetting
+            $passwordChanged = true;
+            
+            // Send email notification with new password
+            try {
+                $user->notify(new NewUserCreatedNotification($newPassword));
+            } catch (\Exception $e) {
+                \Log::error('Failed to send password reset email: ' . $e->getMessage());
+            }
+            
+            // Add password_reset_at timestamp if column exists
+            if (\Schema::hasColumn('users', 'password_reset_at')) {
+                $user->password_reset_at = now();
+            }
+        }
+        // Keep original password field logic for backward compatibility
+        elseif ($request->filled('password')) {
             $request->validate(['password' => ['string', 'min:8', 'max:20', 'regex:/[A-Z]/', 'regex:/[0-9]/', 'regex:/^\S+$/']]);
             $user->password = Hash::make($request->input('password'));
             $passwordChanged = true;
