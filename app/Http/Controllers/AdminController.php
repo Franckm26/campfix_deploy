@@ -52,6 +52,64 @@ class AdminController extends Controller
         return redirect()->route('admin.users')->with('success', "Account '{$user->name}' has been unlocked.");
     }
 
+    // Unlock user by email (for emergency access)
+    public function unlockUserByEmail(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email'
+        ]);
+
+        try {
+            // Find user by email (including potentially locked superadmin accounts)
+            $user = User::withoutGlobalScopes()->where('email', $request->email)->first();
+
+            if (!$user) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'User not found with email: ' . $request->email
+                ], 404);
+            }
+
+            // Check if user is actually locked
+            if (is_null($user->locked_until) || $user->locked_until <= now()) {
+                return response()->json([
+                    'status' => 'warning',
+                    'message' => "Account '{$user->name}' is not currently locked.",
+                    'user' => [
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'locked_until' => $user->locked_until
+                    ]
+                ]);
+            }
+
+            // Unlock the user
+            $user->update([
+                'locked_until' => null,
+                'failed_login_attempts' => 0,
+                'login_lockout_level' => 0,
+            ]);
+
+            ActivityLog::log('account_unlocked', "Unlocked account via email: {$user->name} ({$user->email})", $user->id, 'user');
+
+            return response()->json([
+                'status' => 'success',
+                'message' => "Account '{$user->name}' has been successfully unlocked!",
+                'user' => [
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to unlock account: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     // Re-authentication check for sensitive actions (e.g. Manage Users button)
     public function reauth(Request $request)
     {
