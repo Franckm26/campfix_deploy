@@ -65,6 +65,16 @@
                         </small>
                     </div>
 
+                    <!-- Migration Status Check -->
+                    <div id="migrationStatus" class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Checking system readiness...</span>
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="checkMigrationStatus()">
+                                <i class="fas fa-sync-alt"></i> Check Status
+                            </button>
+                        </div>
+                    </div>
+
                     <form method="POST" action="{{ route('admin.passwords.generate') }}" id="generatePasswordForm">
                         @csrf
 
@@ -274,5 +284,75 @@ function confirmGeneration() {
         form.submit();
     }
 }
+
+function checkMigrationStatus() {
+    const statusDiv = document.getElementById('migrationStatus');
+    statusDiv.innerHTML = '<div class="alert alert-info"><i class="fas fa-spinner fa-spin me-2"></i>Checking migration status...</div>';
+    
+    fetch('/admin/check-migration')
+        .then(response => response.json())
+        .then(data => {
+            if (data.password_reset_column_exists) {
+                statusDiv.innerHTML = `
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>System Ready: Password reset tracking is enabled
+                    </div>
+                `;
+            } else {
+                statusDiv.innerHTML = `
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Migration Needed: Password reset tracking is not enabled
+                        <button type="button" class="btn btn-warning ms-2" onclick="runMigration()">
+                            <i class="fas fa-database me-1"></i>Enable Tracking
+                        </button>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            statusDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-times-circle me-2"></i>Error checking status: ${error.message}
+                </div>
+            `;
+        });
+}
+
+function runMigration() {
+    const statusDiv = document.getElementById('migrationStatus');
+    statusDiv.innerHTML = '<div class="alert alert-info"><i class="fas fa-spinner fa-spin me-2"></i>Running migration... Please wait</div>';
+    
+    fetch('/admin/run-migration', { method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value } })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                statusDiv.innerHTML = `
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>${data.message}
+                    </div>
+                `;
+                // Reload the page to show the tracking data
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                statusDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-times-circle me-2"></i>Migration failed: ${data.message}
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            statusDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-times-circle me-2"></i>Error running migration: ${error.message}
+                </div>
+            `;
+        });
+}
+
+// Check migration status when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    checkMigrationStatus();
+});
 </script>
 @endsection

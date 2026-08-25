@@ -335,6 +335,10 @@ Route::middleware(['auth', 'admin', 'throttle:admin'])->group(function () {
     // Password generation tool
     Route::get('/admin/users/generate-passwords', [\App\Http\Controllers\PasswordGenerationController::class, 'showForm'])->name('admin.passwords.form');
     Route::post('/admin/users/generate-passwords', [\App\Http\Controllers\PasswordGenerationController::class, 'generate'])->name('admin.passwords.generate');
+    
+    // Migration endpoints
+    Route::post('/admin/run-migration', [\App\Http\Controllers\MigrationController::class, 'runMigrations'])->name('admin.migration.run');
+    Route::get('/admin/check-migration', [\App\Http\Controllers\MigrationController::class, 'checkMigrationStatus'])->name('admin.migration.check');
     Route::post('/admin/users/batch-archive', [AdminController::class, 'batchArchiveUsers'])->middleware('throttle:batch')->name('admin.users.batchArchive');
     Route::post('/admin/users/batch-delete', [AdminController::class, 'batchDeleteUsers'])->middleware('throttle:batch')->name('admin.users.batchDelete');
     Route::post('/admin/users/archive-all', [AdminController::class, 'archiveAllUsers'])->middleware('throttle:batch')->name('admin.users.archiveAll');
