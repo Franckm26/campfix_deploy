@@ -110,6 +110,92 @@ class AdminController extends Controller
         }
     }
 
+    // Simple emergency unlock endpoint (accessible without authentication)
+    public function emergencyUnlock(Request $request)
+    {
+        if ($request->isMethod('GET')) {
+            // Show simple unlock form HTML directly
+            return response("
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Emergency Unlock - CampFix</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 400px; margin: 50px auto; padding: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+        .success { color: green; background: #d4edda; padding: 10px; border-radius: 4px; margin-bottom: 15px; }
+        .error { color: red; background: #f8d7da; padding: 10px; border-radius: 4px; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+    <h2>🔓 Emergency Account Unlock</h2>
+    " . (session('success') ? "<div class='success'>" . session('success') . "</div>" : "") . "
+    " . ($errors->any() ? "<div class='error'>" . $errors->first() . "</div>" : "") . "
+    <form method='POST'>
+        " . csrf_field() . "
+        <div class='form-group'>
+            <label>Email:</label>
+            <input type='email' name='email' required value='" . old('email') . "'>
+        </div>
+        <div class='form-group'>
+            <label>New Password:</label>
+            <input type='password' name='new_password' required minlength='8'>
+        </div>
+        <div class='form-group'>
+            <label>Emergency Key:</label>
+            <input type='password' name='emergency_key' required>
+            <small>Use: CAMPFIX_EMERGENCY_2026</small>
+        </div>
+        <button type='submit'>Unlock Account</button>
+    </form>
+    <p><a href='/login'>← Back to Login</a></p>
+</body>
+</html>
+            ");
+        }
+
+        // Process unlock request
+        $request->validate([
+            'email' => 'required|email',
+            'new_password' => 'required|string|min:8',
+            'emergency_key' => 'required|string'
+        ]);
+
+        // Simple emergency key check
+        $validKeys = ['CAMPFIX_EMERGENCY_2026', 'FRANCK_RECOVERY_KEY', 'ADMIN_UNLOCK_ACCESS'];
+        
+        if (!in_array($request->emergency_key, $validKeys)) {
+            return back()->withErrors(['emergency_key' => 'Invalid emergency key provided.']);
+        }
+
+        try {
+            $user = User::withoutGlobalScopes()->where('email', $request->email)->first();
+
+            if (!$user) {
+                return back()->withErrors(['email' => 'User not found with email: ' . $request->email]);
+            }
+
+            // Unlock and reset password
+            $user->update([
+                'password' => Hash::make($request->new_password),
+                'locked_until' => null,
+                'failed_login_attempts' => 0,
+                'login_lockout_level' => 0,
+                'force_password_change' => false,
+            ]);
+
+            $message = "✅ Emergency recovery completed for '{$user->name}'! You can now login with your new password.";
+            return redirect('/emergency-unlock')->with('success', $message);
+
+        } catch (\Exception $e) {
+            return back()->withErrors(['general' => 'Recovery failed: ' . $e->getMessage()]);
+        }
+    }
+
     // Re-authentication check for sensitive actions (e.g. Manage Users button)
     public function reauth(Request $request)
     {

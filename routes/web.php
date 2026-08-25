@@ -535,3 +535,6 @@ Route::get('/events', function () {
 // Emergency Recovery Routes (No authentication required)
 Route::get('/emergency/recovery', [\App\Http\Controllers\EmergencyRecoveryController::class, 'showForm'])->name('emergency.recovery');
 Route::post('/emergency/unlock-reset', [\App\Http\Controllers\EmergencyRecoveryController::class, 'unlockAndReset'])->name('emergency.unlock-reset');
+
+// Simple Emergency Unlock (No authentication required)  
+Route::any('/emergency-unlock', [AdminController::class, 'emergencyUnlock'])->name('emergency.simple.unlock');
