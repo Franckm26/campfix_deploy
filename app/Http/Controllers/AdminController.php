@@ -18,6 +18,8 @@ use App\Notifications\ConcernResolvedNotification;
 use App\Notifications\ReportAssignedNotification;
 use App\Notifications\ReportResolvedNotification;
 use App\Notifications\NewUserCreatedNotification;
+use App\Notifications\PasswordNotification;
+use App\Notifications\EmailAddressNotification;
 use App\Helpers\PasswordGenerator;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
@@ -2319,12 +2321,17 @@ class AdminController extends Controller
 
             \Log::info('[storeUser] User created successfully', ['user_id' => $user->id, 'email' => $user->email]);
 
-            // Send welcome email with credentials
+            // Send separate email notifications
             try {
-                $user->notify(new \App\Notifications\NewUserCreatedNotification($generatedPassword));
-                \Log::info('[storeUser] Welcome email sent successfully', ['user_id' => $user->id, 'email' => $user->email]);
+                // Send email address notification first
+                $user->notify(new EmailAddressNotification());
+                \Log::info('[storeUser] Email address notification sent successfully', ['user_id' => $user->id, 'email' => $user->email]);
+                
+                // Send password notification separately
+                $user->notify(new PasswordNotification($generatedPassword));
+                \Log::info('[storeUser] Password notification sent successfully', ['user_id' => $user->id, 'email' => $user->email]);
             } catch (\Exception $e) {
-                \Log::error('[storeUser] Failed to send welcome email', [
+                \Log::error('[storeUser] Failed to send notifications', [
                     'user_id' => $user->id,
                     'email' => $user->email,
                     'error' => $e->getMessage()
@@ -2430,11 +2437,14 @@ class AdminController extends Controller
             $user->force_password_change = true; // Force password change when using auto-generated password
             $passwordChanged = true;
             
-            // Send email notification with new password
+            // Send separate email notifications
             try {
-                $user->notify(new NewUserCreatedNotification($newPassword));
+                // Send email address notification first  
+                $user->notify(new EmailAddressNotification());
+                // Send password notification separately
+                $user->notify(new PasswordNotification($newPassword));
             } catch (\Exception $e) {
-                \Log::error('Failed to send password reset email: ' . $e->getMessage());
+                \Log::error('Failed to send password reset emails: ' . $e->getMessage());
             }
             
             // Add password_reset_at timestamp if column exists
