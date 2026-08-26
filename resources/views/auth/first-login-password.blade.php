@@ -15,7 +15,7 @@
                 <div class="card">
                     <div class="card-header text-center pt-4">
                         <h3 class="mb-1"><i class="fas fa-user-lock"></i> Welcome!</h3>
-                        <p class="text-muted">Please set your new password and contact number</p>
+                        <p class="text-muted">Please set your new password and mobile number</p>
                     </div>
                     <div class="card-body px-4 pb-4">
                         @if(session('info'))
@@ -79,9 +79,9 @@
                             </div>
 
                             <div class="mb-4">
-                                <label for="phone" class="form-label">Contact Number</label>
+                                <label for="phone" class="form-label">Mobile Number</label>
                                 <div class="input-group">
-                                    <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                    <span class="input-group-text"><i class="fas fa-mobile-alt"></i></span>
                                     <input type="text" class="form-control" id="phone" name="phone" placeholder="09XXXXXXXXX" maxlength="11" pattern="09[0-9]{9}" required>
                                 </div>
                                 <small class="text-muted" style="font-size:11px">11-digit PH mobile number (e.g., 09123456789)</small>

@@ -222,7 +222,7 @@
                     <form method="GET" action="{{ route('admin.users') }}" class="row g-2 align-items-center" id="userFilterForm">
                         <input type="hidden" name="view" value="{{ $viewType ?? 'active' }}">
                         <div class="col-auto position-relative">
-                            <input type="text" name="search" id="searchInput" class="form-control form-control-sm" placeholder="Search Name, Email, ID, Phone, Dept..." 
+                            <input type="text" name="search" id="searchInput" class="form-control form-control-sm" placeholder="Search Name, Email, ID, Mobile, Dept..." 
                                 value="{{ request('search') }}" autocomplete="off">
                             <div id="searchSpinner" class="spinner-border spinner-border-sm text-primary position-absolute" 
                                 style="right: 10px; top: 50%; transform: translateY(-50%); display: none;" role="status">
@@ -317,7 +317,7 @@
                             <th>Name</th>
                             <th>Email</th>
                             <th>Department</th>
-                            <th>Phone</th>
+                            <th>Mobile Number</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -421,7 +421,7 @@
                                 </span>
                             </div>
                             <div class="user-card-field">
-                                <span class="user-card-label">Phone:</span>
+                                <span class="user-card-label">Mobile Number:</span>
                                 <span class="user-card-value">{{ $user->phone ?? 'N/A' }}</span>
                             </div>
                         </div>
@@ -1127,7 +1127,7 @@
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Phone <small class="text-muted fw-normal">(optional)</small></label>
+                            <label class="form-label fw-semibold">Mobile Number <small class="text-muted fw-normal">(optional)</small></label>
                             <input type="text" name="phone" class="form-control {{ $errors->has('phone') ? 'is-invalid' : '' }}" maxlength="11" placeholder="09XXXXXXXXX" value="{{ old('phone') }}">
                             <div class="invalid-feedback">{{ $errors->first('phone') ?: 'Enter a valid 11-digit PH number.' }}</div>
                         </div>
@@ -2263,7 +2263,7 @@ async function viewUser(userUuid) {
                     </div>
                     <div class="row mb-3">
                         <div class="col-6">
-                            <label style="font-weight:bold;display:block;margin-bottom:5px">Phone</label>
+                            <label style="font-weight:bold;display:block;margin-bottom:5px">Mobile Number</label>
                             <p>${userData.phone || 'N/A'}</p>
                         </div>
                         <div class="col-6">
@@ -2454,7 +2454,7 @@ async function editUser(userUuid) {
                     </div>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:15px">
                         <div>
-                            <label style="display:block;font-weight:600;margin-bottom:5px">Phone</label>
+                            <label style="display:block;font-weight:600;margin-bottom:5px">Mobile Number</label>
                             <input id="swal-phone" class="swal2-input" value="${userData.phone || ''}" placeholder="09XXXXXXXXX" maxlength="11" style="width:100%;margin:0">
                         </div>
                         <div>
