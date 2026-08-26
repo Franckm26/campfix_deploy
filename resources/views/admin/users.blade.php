@@ -477,15 +477,16 @@
                                                     <input type="hidden" name="use_custom_permissions" value="1">
                                                     <div class="row g-2">
                                                         @foreach($allMods as $key => $mod)
-                                                        {{-- Hide MIS-only modules for non-MIS users --}}
                                                         @php
-                                                            $isMisOnly = in_array($key, ['module_access', 'mis_tasks']);
-                                                            $showModule = !$isMisOnly || $user->role === 'mis';
+                                                            // Get role-appropriate modules
+                                                            $roleDefaults = \App\Models\User::defaultPermissions($user->role);
+                                                            $parentModule = explode('_', $key)[0];
+                                                            $shouldShow = in_array($key, $roleDefaults) || in_array($parentModule, $roleDefaults);
                                                         @endphp
+                                                        @if($shouldShow)
                                                         <div class="col-6 col-md-4 permission-module" 
                                                              data-module="{{ $key }}"
-                                                             data-mis-only="{{ $isMisOnly ? '1' : '0' }}"
-                                                             style="{{ $showModule ? '' : 'display:none' }}">
+                                                             data-role-relevant="{{ $shouldShow ? '1' : '0' }}">
                                                             <div class="form-check">
                                                                 <input class="form-check-input" type="checkbox"
                                                                        name="permissions[]" value="{{ $key }}"
@@ -500,6 +501,10 @@
                                                             @if(isset($subPerms[$key]))
                                                             <div id="edit{{ $user->id }}_sub_{{ $key }}" class="ms-4 mt-1{{ in_array($key, $activePerms) ? '' : ' d-none' }}">
                                                                 @foreach($subPerms[$key] as $subKey => $subLabel)
+                                                                @php
+                                                                    $shouldShowSub = in_array($subKey, $roleDefaults);
+                                                                @endphp
+                                                                @if($shouldShowSub)
                                                                 <div class="form-check">
                                                                     <input class="form-check-input" type="checkbox"
                                                                            name="permissions[]" value="{{ $subKey }}"
@@ -509,10 +514,12 @@
                                                                         {{ $subLabel }}
                                                                     </label>
                                                                 </div>
+                                                                @endif
                                                                 @endforeach
                                                             </div>
                                                             @endif
                                                         </div>
+                                                        @endif
                                                         @endforeach
                                                     </div>
                                                     <div class="d-flex gap-2 mt-3">
@@ -2436,10 +2443,26 @@ async function editUser(userUuid) {
         // Get all modules and sub-permissions
         const allModules = @json(\App\Models\User::allModules());
         const subPerms = @json(\App\Models\User::subPermissions());
+        const roleDefaults = @json(collect(\App\Models\User::class)::defaultPermissions('mis')); // Will be replaced per role
         const currentRole = userData.role;
+        
+        // Get default permissions for each role
+        const rolePermissionsMap = {
+            'mis': @json(\App\Models\User::defaultPermissions('mis')),
+            'school_admin': @json(\App\Models\User::defaultPermissions('school_admin')),
+            'building_admin': @json(\App\Models\User::defaultPermissions('building_admin')),
+            'academic_head': @json(\App\Models\User::defaultPermissions('academic_head')),
+            'program_head': @json(\App\Models\User::defaultPermissions('program_head')),
+            'principal_assistant': @json(\App\Models\User::defaultPermissions('principal_assistant')),
+            'maintenance': @json(\App\Models\User::defaultPermissions('maintenance')),
+            'faculty': @json(\App\Models\User::defaultPermissions('faculty')),
+            'student': @json(\App\Models\User::defaultPermissions('student')),
+        };
         
         // Build module access HTML with role-based visibility
         function buildModuleHtml(role) {
+            const allowedModules = rolePermissionsMap[role] || ['settings'];
+            
             let moduleHtml = '<div style="max-height:400px;overflow-y:auto;padding:10px;background:#f8f9fa;border-radius:8px">';
             moduleHtml += '<div style="margin-bottom:15px"><strong style="color:#0d6efd"><i class="fas fa-shield-halved me-2"></i>Module Access</strong><br><small class="text-muted">Select which modules this user can access</small></div>';
             moduleHtml += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">';
@@ -2449,13 +2472,14 @@ async function editUser(userUuid) {
                 const isChecked = userData.permissions && userData.permissions.includes(key);
                 const hasSubPerms = subPerms[key] !== undefined;
                 
-                // Hide MIS-only modules for non-MIS users
-                const isMisOnly = (key === 'module_access' || key === 'mis_tasks');
-                const shouldShow = !isMisOnly || role === 'mis';
+                // Only show modules that are in the role's default permissions
+                // Extract parent module from sub-permissions (e.g., 'users_create' -> 'users')
+                const parentModule = key.split('_')[0];
+                const shouldShow = allowedModules.includes(key) || allowedModules.includes(parentModule);
                 
-                if (!shouldShow) return; // Skip this module
+                if (!shouldShow) return; // Skip modules not relevant to this role
                 
-                moduleHtml += `<div class="perm-module-item" data-module="${key}" data-mis-only="${isMisOnly ? '1' : '0'}" style="background:white;padding:10px;border-radius:6px;border:1px solid #dee2e6">`;
+                moduleHtml += `<div class="perm-module-item" data-module="${key}" style="background:white;padding:10px;border-radius:6px;border:1px solid #dee2e6">`;
                 moduleHtml += `<label style="display:flex;align-items:center;cursor:pointer;margin:0">`;
                 moduleHtml += `<input type="checkbox" class="perm-checkbox" value="${key}" ${isChecked ? 'checked' : ''} 
                                ${hasSubPerms ? `onchange="toggleSwalSubPerms('${key}',this.checked)"` : ''}
@@ -2469,6 +2493,10 @@ async function editUser(userUuid) {
                     Object.keys(subPerms[key]).forEach(subKey => {
                         const subLabel = subPerms[key][subKey];
                         const isSubChecked = userData.permissions && userData.permissions.includes(subKey);
+                        const shouldShowSub = allowedModules.includes(subKey);
+                        
+                        if (!shouldShowSub) return; // Skip sub-permissions not allowed for this role
+                        
                         moduleHtml += `<label style="display:flex;align-items:center;cursor:pointer;margin:4px 0;font-size:13px;color:#666">`;
                         moduleHtml += `<input type="checkbox" class="perm-checkbox" value="${subKey}" ${isSubChecked ? 'checked' : ''} style="margin-right:6px;width:16px;height:16px">`;
                         moduleHtml += `<span>${subLabel}</span>`;
