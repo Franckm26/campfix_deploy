@@ -477,7 +477,15 @@
                                                     <input type="hidden" name="use_custom_permissions" value="1">
                                                     <div class="row g-2">
                                                         @foreach($allMods as $key => $mod)
-                                                        <div class="col-6 col-md-4">
+                                                        {{-- Hide MIS-only modules for non-MIS users --}}
+                                                        @php
+                                                            $isMisOnly = in_array($key, ['module_access', 'mis_tasks']);
+                                                            $showModule = !$isMisOnly || $user->role === 'mis';
+                                                        @endphp
+                                                        <div class="col-6 col-md-4 permission-module" 
+                                                             data-module="{{ $key }}"
+                                                             data-mis-only="{{ $isMisOnly ? '1' : '0' }}"
+                                                             style="{{ $showModule ? '' : 'display:none' }}">
                                                             <div class="form-check">
                                                                 <input class="form-check-input" type="checkbox"
                                                                        name="permissions[]" value="{{ $key }}"
@@ -2049,14 +2057,38 @@ function onRoleChange(role) {
     document.getElementById('departmentField').style.display =
         role === 'program_head' ? 'block' : 'none';
 
+    // Hide/show MIS-only modules based on role
+    const misOnlyModules = ['module_access', 'mis_tasks'];
+    const isMis = role === 'mis';
+    
+    misOnlyModules.forEach(moduleKey => {
+        const moduleDiv = document.querySelector(`#addUserModal .permission-module[data-module="${moduleKey}"]`);
+        if (moduleDiv) {
+            moduleDiv.style.display = isMis ? '' : 'none';
+            if (!isMis) {
+                // Uncheck MIS-only modules for non-MIS roles
+                const checkbox = moduleDiv.querySelector('input[type="checkbox"]');
+                if (checkbox) checkbox.checked = false;
+            }
+        }
+    });
+
     // Auto-apply role defaults to the checkboxes
     applyRoleDefaults(role);
 }
 
 function applyRoleDefaults(role) {
     const defaults = roleDefaults[role] || ['settings'];
+    const misOnlyModules = ['module_access', 'mis_tasks'];
+    const isMis = role === 'mis';
+    
     document.querySelectorAll('#addUserModal input[name="permissions[]"]').forEach(cb => {
-        cb.checked = defaults.includes(cb.value);
+        // Don't check MIS-only modules for non-MIS roles
+        if (misOnlyModules.includes(cb.value) && !isMis) {
+            cb.checked = false;
+        } else {
+            cb.checked = defaults.includes(cb.value);
+        }
     });
     // Show/hide sub-permission sections based on defaults
     const subParents = ['users'];
@@ -2095,25 +2127,67 @@ function selectAllEditPerms(uid, checked) {
     if (sub) sub.classList.toggle('d-none', !checked);
 }
 
-// Wire up edit-modal role selects for department field
+// Wire up edit-modal role selects for department field and MIS-only modules
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.edit-role-select').forEach(function (sel) {
         sel.addEventListener('change', function () {
             const uid = this.dataset.userid;
+            const role = this.value;
+            const isMis = role === 'mis';
+            const misOnlyModules = ['module_access', 'mis_tasks'];
+            
+            // Show/hide department field
             const deptField = document.getElementById('editDeptField' + uid);
-            if (deptField) deptField.style.display = this.value === 'program_head' ? 'block' : 'none';
+            if (deptField) deptField.style.display = role === 'program_head' ? 'block' : 'none';
+            
+            // Show/hide MIS-only modules
+            const modal = document.getElementById('editUserModal' + uid);
+            if (modal) {
+                misOnlyModules.forEach(moduleKey => {
+                    const moduleDiv = modal.querySelector(`.permission-module[data-module="${moduleKey}"]`);
+                    if (moduleDiv) {
+                        moduleDiv.style.display = isMis ? '' : 'none';
+                        if (!isMis) {
+                            // Uncheck MIS-only modules for non-MIS roles
+                            const checkbox = moduleDiv.querySelector('input[type="checkbox"]');
+                            if (checkbox) checkbox.checked = false;
+                        }
+                    }
+                });
+            }
         });
     });
 });
 
 
-// Wire up edit-modal role selects for department field
+// Wire up edit-modal role selects for department field and MIS-only modules
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.edit-role-select').forEach(function (sel) {
         sel.addEventListener('change', function () {
             const uid = this.dataset.userid;
+            const role = this.value;
+            const isMis = role === 'mis';
+            const misOnlyModules = ['module_access', 'mis_tasks'];
+            
+            // Show/hide department field
             const deptField = document.getElementById('editDeptField' + uid);
-            if (deptField) deptField.style.display = this.value === 'program_head' ? 'block' : 'none';
+            if (deptField) deptField.style.display = role === 'program_head' ? 'block' : 'none';
+            
+            // Show/hide MIS-only modules
+            const modal = document.getElementById('editUserModal' + uid);
+            if (modal) {
+                misOnlyModules.forEach(moduleKey => {
+                    const moduleDiv = modal.querySelector(`.permission-module[data-module="${moduleKey}"]`);
+                    if (moduleDiv) {
+                        moduleDiv.style.display = isMis ? '' : 'none';
+                        if (!isMis) {
+                            // Uncheck MIS-only modules for non-MIS roles
+                            const checkbox = moduleDiv.querySelector('input[type="checkbox"]');
+                            if (checkbox) checkbox.checked = false;
+                        }
+                    }
+                });
+            }
         });
     });
 });
@@ -2362,48 +2436,61 @@ async function editUser(userUuid) {
         // Get all modules and sub-permissions
         const allModules = @json(\App\Models\User::allModules());
         const subPerms = @json(\App\Models\User::subPermissions());
+        const currentRole = userData.role;
         
-        // Build module access HTML
-        let moduleHtml = '<div style="max-height:400px;overflow-y:auto;padding:10px;background:#f8f9fa;border-radius:8px">';
-        moduleHtml += '<div style="margin-bottom:15px"><strong style="color:#0d6efd"><i class="fas fa-shield-halved me-2"></i>Module Access</strong><br><small class="text-muted">Select which modules this user can access</small></div>';
-        moduleHtml += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">';
-        
-        Object.keys(allModules).forEach(key => {
-            const mod = allModules[key];
-            const isChecked = userData.permissions && userData.permissions.includes(key);
-            const hasSubPerms = subPerms[key] !== undefined;
+        // Build module access HTML with role-based visibility
+        function buildModuleHtml(role) {
+            let moduleHtml = '<div style="max-height:400px;overflow-y:auto;padding:10px;background:#f8f9fa;border-radius:8px">';
+            moduleHtml += '<div style="margin-bottom:15px"><strong style="color:#0d6efd"><i class="fas fa-shield-halved me-2"></i>Module Access</strong><br><small class="text-muted">Select which modules this user can access</small></div>';
+            moduleHtml += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">';
             
-            moduleHtml += `<div style="background:white;padding:10px;border-radius:6px;border:1px solid #dee2e6">`;
-            moduleHtml += `<label style="display:flex;align-items:center;cursor:pointer;margin:0">`;
-            moduleHtml += `<input type="checkbox" class="perm-checkbox" value="${key}" ${isChecked ? 'checked' : ''} 
-                           ${hasSubPerms ? `onchange="toggleSwalSubPerms('${key}',this.checked)"` : ''}
-                           style="margin-right:8px;width:18px;height:18px">`;
-            moduleHtml += `<span style="font-size:14px;font-weight:500">${mod.label}</span>`;
-            moduleHtml += `</label>`;
-            
-            // Add sub-permissions if they exist
-            if (hasSubPerms) {
-                moduleHtml += `<div id="swal_sub_${key}" style="margin-left:26px;margin-top:8px;${isChecked ? '' : 'display:none'}">`;
-                Object.keys(subPerms[key]).forEach(subKey => {
-                    const subLabel = subPerms[key][subKey];
-                    const isSubChecked = userData.permissions && userData.permissions.includes(subKey);
-                    moduleHtml += `<label style="display:flex;align-items:center;cursor:pointer;margin:4px 0;font-size:13px;color:#666">`;
-                    moduleHtml += `<input type="checkbox" class="perm-checkbox" value="${subKey}" ${isSubChecked ? 'checked' : ''} style="margin-right:6px;width:16px;height:16px">`;
-                    moduleHtml += `<span>${subLabel}</span>`;
-                    moduleHtml += `</label>`;
-                });
+            Object.keys(allModules).forEach(key => {
+                const mod = allModules[key];
+                const isChecked = userData.permissions && userData.permissions.includes(key);
+                const hasSubPerms = subPerms[key] !== undefined;
+                
+                // Hide MIS-only modules for non-MIS users
+                const isMisOnly = (key === 'module_access' || key === 'mis_tasks');
+                const shouldShow = !isMisOnly || role === 'mis';
+                
+                if (!shouldShow) return; // Skip this module
+                
+                moduleHtml += `<div class="perm-module-item" data-module="${key}" data-mis-only="${isMisOnly ? '1' : '0'}" style="background:white;padding:10px;border-radius:6px;border:1px solid #dee2e6">`;
+                moduleHtml += `<label style="display:flex;align-items:center;cursor:pointer;margin:0">`;
+                moduleHtml += `<input type="checkbox" class="perm-checkbox" value="${key}" ${isChecked ? 'checked' : ''} 
+                               ${hasSubPerms ? `onchange="toggleSwalSubPerms('${key}',this.checked)"` : ''}
+                               style="margin-right:8px;width:18px;height:18px">`;
+                moduleHtml += `<span style="font-size:14px;font-weight:500">${mod.label}</span>`;
+                moduleHtml += `</label>`;
+                
+                // Add sub-permissions if they exist
+                if (hasSubPerms) {
+                    moduleHtml += `<div id="swal_sub_${key}" style="margin-left:26px;margin-top:8px;${isChecked ? '' : 'display:none'}">`;
+                    Object.keys(subPerms[key]).forEach(subKey => {
+                        const subLabel = subPerms[key][subKey];
+                        const isSubChecked = userData.permissions && userData.permissions.includes(subKey);
+                        moduleHtml += `<label style="display:flex;align-items:center;cursor:pointer;margin:4px 0;font-size:13px;color:#666">`;
+                        moduleHtml += `<input type="checkbox" class="perm-checkbox" value="${subKey}" ${isSubChecked ? 'checked' : ''} style="margin-right:6px;width:16px;height:16px">`;
+                        moduleHtml += `<span>${subLabel}</span>`;
+                        moduleHtml += `</label>`;
+                    });
+                    moduleHtml += `</div>`;
+                }
+                
                 moduleHtml += `</div>`;
-            }
+            });
             
-            moduleHtml += `</div>`;
-        });
+            moduleHtml += '</div>';
+            moduleHtml += '<div style="margin-top:15px;display:flex;gap:10px">';
+            moduleHtml += '<button type="button" class="swal2-confirm swal2-styled" onclick="selectAllSwalPerms(true)" style="padding:8px 16px;font-size:13px"><i class="fas fa-check-double me-1"></i>Select All</button>';
+            moduleHtml += '<button type="button" class="swal2-cancel swal2-styled" onclick="selectAllSwalPerms(false)" style="padding:8px 16px;font-size:13px"><i class="fas fa-xmark me-1"></i>Clear All</button>';
+            moduleHtml += '</div>';
+            moduleHtml += '</div>';
+            
+            return moduleHtml;
+        }
         
-        moduleHtml += '</div>';
-        moduleHtml += '<div style="margin-top:15px;display:flex;gap:10px">';
-        moduleHtml += '<button type="button" class="swal2-confirm swal2-styled" onclick="selectAllSwalPerms(true)" style="padding:8px 16px;font-size:13px"><i class="fas fa-check-double me-1"></i>Select All</button>';
-        moduleHtml += '<button type="button" class="swal2-cancel swal2-styled" onclick="selectAllSwalPerms(false)" style="padding:8px 16px;font-size:13px"><i class="fas fa-xmark me-1"></i>Clear All</button>';
-        moduleHtml += '</div>';
-        moduleHtml += '</div>';
+        let moduleHtml = buildModuleHtml(currentRole);
         
         const { value: formValues } = await Swal.fire({
             title: '<i class="fas fa-user-pen me-2"></i>Edit User',
@@ -2420,7 +2507,7 @@ async function editUser(userUuid) {
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:15px">
                         <div>
                             <label style="display:block;font-weight:600;margin-bottom:5px">Role *</label>
-                            <select id="swal-role" class="swal2-select" style="width:100%;margin:0" onchange="toggleSwalDept()">
+                            <select id="swal-role" class="swal2-select" style="width:100%;margin:0" onchange="onSwalRoleChange(this.value)">
                                 <option value="student" ${userData.role === 'student' ? 'selected' : ''}>Student</option>
                                 <option value="faculty" ${userData.role === 'faculty' ? 'selected' : ''}>Faculty</option>
                                 <option value="mis" ${userData.role === 'mis' ? 'selected' : ''}>MIS</option>
@@ -2575,6 +2662,33 @@ function toggleSwalDept() {
     if (deptField) {
         deptField.style.display = role === 'program_head' ? 'block' : 'none';
     }
+}
+
+// Handle role change in SweetAlert modal - hide/show MIS-only modules
+function onSwalRoleChange(role) {
+    // Toggle department field
+    toggleSwalDept();
+    
+    // Hide/show MIS-only modules and uncheck them if not MIS
+    const misOnlyModules = ['module_access', 'mis_tasks'];
+    const isMis = role === 'mis';
+    
+    misOnlyModules.forEach(moduleKey => {
+        const checkbox = document.querySelector(`.perm-checkbox[value="${moduleKey}"]`);
+        if (checkbox) {
+            const moduleDiv = checkbox.closest('.perm-module-item');
+            if (moduleDiv) {
+                if (isMis) {
+                    // Show module for MIS
+                    moduleDiv.style.display = '';
+                } else {
+                    // Hide module and uncheck for non-MIS
+                    moduleDiv.style.display = 'none';
+                    checkbox.checked = false;
+                }
+            }
+        }
+    });
 }
 
 // Context menu actions
