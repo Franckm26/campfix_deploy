@@ -2169,10 +2169,146 @@ document.addEventListener('DOMContentLoaded', function() {
 
 });
 
-// View user function
-function viewUser(userId) {
-    const modal = new bootstrap.Modal(document.getElementById('viewUserModal' + userId));
-    modal.show();
+// View user function - now uses SweetAlert instead of Bootstrap modal
+async function viewUser(userUuid) {
+    // Show loading
+    Swal.fire({
+        title: 'Loading...',
+        html: '<div class="spinner-border text-primary"></div>',
+        showConfirmButton: false,
+        allowOutsideClick: false
+    });
+    
+    try {
+        // Fetch user data from server
+        const response = await fetch(`/admin/users/${userUuid}/edit`, {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch user data');
+        }
+        
+        const userData = await response.json();
+        const allModules = @json(\App\Models\User::allModules());
+        const rolePermissionsMap = {
+            'mis': @json(\App\Models\User::defaultPermissions('mis')),
+            'school_admin': @json(\App\Models\User::defaultPermissions('school_admin')),
+            'building_admin': @json(\App\Models\User::defaultPermissions('building_admin')),
+            'academic_head': @json(\App\Models\User::defaultPermissions('academic_head')),
+            'program_head': @json(\App\Models\User::defaultPermissions('program_head')),
+            'principal_assistant': @json(\App\Models\User::defaultPermissions('principal_assistant')),
+            'maintenance': @json(\App\Models\User::defaultPermissions('maintenance')),
+            'faculty': @json(\App\Models\User::defaultPermissions('faculty')),
+            'student': @json(\App\Models\User::defaultPermissions('student')),
+        };
+        
+        // Build permissions list
+        const allowedModules = rolePermissionsMap[userData.role] || ['settings'];
+        let permissionsHtml = '<div style="max-height:300px;overflow-y:auto">';
+        if (userData.permissions && userData.permissions.length > 0) {
+            userData.permissions.forEach(perm => {
+                if (allModules[perm]) {
+                    permissionsHtml += `<span class="badge bg-primary me-1 mb-1">${allModules[perm].label}</span>`;
+                }
+            });
+        } else {
+            permissionsHtml += '<span class="text-muted">No permissions set</span>';
+        }
+        permissionsHtml += '</div>';
+        
+        // Format dates
+        const createdAt = new Date(userData.created_at).toLocaleString('en-US', {month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true});
+        const updatedAt = new Date(userData.updated_at).toLocaleString('en-US', {month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true});
+        
+        // Role badge color
+        const roleBadgeMap = {
+            'mis': 'danger',
+            'school_admin': 'dark',
+            'building_admin': 'secondary',
+            'academic_head': 'warning',
+            'program_head': 'info',
+            'principal_assistant': 'warning',
+            'faculty': 'info',
+            'student': 'primary'
+        };
+        const badgeColor = roleBadgeMap[userData.role] || 'primary';
+        
+        Swal.fire({
+            title: `<i class="fas fa-user me-2"></i>User Details: ${userData.name}`,
+            html: `
+                <div style="text-align:left">
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label style="font-weight:bold;display:block;margin-bottom:5px">Name</label>
+                            <p>${userData.name}</p>
+                        </div>
+                        <div class="col-6">
+                            <label style="font-weight:bold;display:block;margin-bottom:5px">Email</label>
+                            <p>${userData.email}</p>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label style="font-weight:bold;display:block;margin-bottom:5px">Role</label>
+                            <p><span class="badge bg-${badgeColor}">${userData.role.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span></p>
+                        </div>
+                        <div class="col-6">
+                            <label style="font-weight:bold;display:block;margin-bottom:5px">Department</label>
+                            <p>${userData.department || 'N/A'}</p>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label style="font-weight:bold;display:block;margin-bottom:5px">Phone</label>
+                            <p>${userData.phone || 'N/A'}</p>
+                        </div>
+                        <div class="col-6">
+                            <label style="font-weight:bold;display:block;margin-bottom:5px">Student ID</label>
+                            <p>${userData.student_id || 'N/A'}</p>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label style="font-weight:bold;display:block;margin-bottom:5px">Created At</label>
+                            <p>${createdAt}</p>
+                        </div>
+                        <div class="col-6">
+                            <label style="font-weight:bold;display:block;margin-bottom:5px">Last Updated</label>
+                            <p>${updatedAt}</p>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12">
+                            <label style="font-weight:bold;display:block;margin-bottom:5px">Module Access</label>
+                            ${permissionsHtml}
+                        </div>
+                    </div>
+                </div>
+            `,
+            width: '700px',
+            showCancelButton: true,
+            showConfirmButton: {{ auth()->user()->canAccess('users_edit') ? 'true' : 'false' }},
+            confirmButtonText: '<i class="fas fa-edit me-1"></i>Edit User',
+            cancelButtonText: 'Close',
+            confirmButtonColor: '#0d6efd'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                editUser(userUuid);
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error fetching user:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to load user details'
+        });
+    }
 }
 
 // Edit user function with SweetAlert2 - fetch data via AJAX
@@ -2451,30 +2587,82 @@ function toggleSwalDept() {
     }
 }
 
-// Handle role change in SweetAlert modal - hide/show MIS-only modules
+// Handle role change in SweetAlert modal - rebuild modules to show role-appropriate permissions
 function onSwalRoleChange(role) {
     // Toggle department field
     toggleSwalDept();
     
-    // Hide/show MIS-only modules and uncheck them if not MIS
-    const misOnlyModules = ['module_access', 'mis_tasks'];
-    const isMis = role === 'mis';
+    // Get the module container
+    const moduleContainer = document.querySelector('.swal2-html-container > div > div:last-child');
+    if (!moduleContainer) return;
     
-    misOnlyModules.forEach(moduleKey => {
-        const checkbox = document.querySelector(`.perm-checkbox[value="${moduleKey}"]`);
-        if (checkbox) {
-            const moduleDiv = checkbox.closest('.perm-module-item');
-            if (moduleDiv) {
-                if (isMis) {
-                    // Show module for MIS
-                    moduleDiv.style.display = '';
-                } else {
-                    // Hide module and uncheck for non-MIS
-                    moduleDiv.style.display = 'none';
-                    checkbox.checked = false;
-                }
-            }
+    // Get role permissions map (needs to be defined in the same scope as editUser)
+    const rolePermissionsMap = {
+        'mis': @json(\App\Models\User::defaultPermissions('mis')),
+        'school_admin': @json(\App\Models\User::defaultPermissions('school_admin')),
+        'building_admin': @json(\App\Models\User::defaultPermissions('building_admin')),
+        'academic_head': @json(\App\Models\User::defaultPermissions('academic_head')),
+        'program_head': @json(\App\Models\User::defaultPermissions('program_head')),
+        'principal_assistant': @json(\App\Models\User::defaultPermissions('principal_assistant')),
+        'maintenance': @json(\App\Models\User::defaultPermissions('maintenance')),
+        'faculty': @json(\App\Models\User::defaultPermissions('faculty')),
+        'student': @json(\App\Models\User::defaultPermissions('student')),
+    };
+    
+    const allModules = @json(\App\Models\User::allModules());
+    const subPerms = @json(\App\Models\User::subPermissions());
+    const allowedModules = rolePermissionsMap[role] || ['settings'];
+    
+    // Get currently checked permissions before rebuild
+    const currentChecked = Array.from(document.querySelectorAll('.perm-checkbox:checked')).map(cb => cb.value);
+    
+    // Rebuild the module access HTML
+    const modulesGrid = moduleContainer.querySelector('div[style*="grid-template-columns"]');
+    if (!modulesGrid) return;
+    
+    modulesGrid.innerHTML = '';
+    
+    Object.keys(allModules).forEach(key => {
+        const mod = allModules[key];
+        const hasSubPerms = subPerms[key] !== undefined;
+        
+        // Only show modules that are in the role's default permissions
+        const parentModule = key.split('_')[0];
+        const shouldShow = allowedModules.includes(key) || allowedModules.includes(parentModule);
+        
+        if (!shouldShow) return; // Skip modules not relevant to this role
+        
+        // Check if this was previously checked (for sub-permissions that are still relevant)
+        const isChecked = currentChecked.includes(key) && shouldShow;
+        
+        let moduleHtml = `<div class="perm-module-item" data-module="${key}" style="background:white;padding:10px;border-radius:6px;border:1px solid #dee2e6">`;
+        moduleHtml += `<label style="display:flex;align-items:center;cursor:pointer;margin:0">`;
+        moduleHtml += `<input type="checkbox" class="perm-checkbox" value="${key}" ${isChecked ? 'checked' : ''} 
+                       ${hasSubPerms ? `onchange="toggleSwalSubPerms('${key}',this.checked)"` : ''}
+                       style="margin-right:8px;width:18px;height:18px">`;
+        moduleHtml += `<span style="font-size:14px;font-weight:500">${mod.label}</span>`;
+        moduleHtml += `</label>`;
+        
+        // Add sub-permissions if they exist
+        if (hasSubPerms) {
+            moduleHtml += `<div id="swal_sub_${key}" style="margin-left:26px;margin-top:8px;${isChecked ? '' : 'display:none'}">`;
+            Object.keys(subPerms[key]).forEach(subKey => {
+                const subLabel = subPerms[key][subKey];
+                const shouldShowSub = allowedModules.includes(subKey);
+                
+                if (!shouldShowSub) return; // Skip sub-permissions not allowed for this role
+                
+                const isSubChecked = currentChecked.includes(subKey) && shouldShowSub;
+                moduleHtml += `<label style="display:flex;align-items:center;cursor:pointer;margin:4px 0;font-size:13px;color:#666">`;
+                moduleHtml += `<input type="checkbox" class="perm-checkbox" value="${subKey}" ${isSubChecked ? 'checked' : ''} style="margin-right:6px;width:16px;height:16px">`;
+                moduleHtml += `<span>${subLabel}</span>`;
+                moduleHtml += `</label>`;
+            });
+            moduleHtml += `</div>`;
         }
+        
+        moduleHtml += `</div>`;
+        modulesGrid.innerHTML += moduleHtml;
     });
 }
 
