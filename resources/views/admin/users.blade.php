@@ -2462,9 +2462,16 @@ async function editUser(userUuid) {
                             <input id="swal-studentid" class="swal2-input" value="${userData.student_id || ''}" style="width:100%;margin:0">
                         </div>
                     </div>
-                    <div style="margin-bottom:15px">
-                        <label style="display:block;font-weight:600;margin-bottom:5px">New Password <small style="color:#666;font-weight:400">(leave blank to keep current)</small></label>
-                        <input id="swal-password" type="password" class="swal2-input" placeholder="Min 8 characters" minlength="8" maxlength="20" style="width:100%;margin:0">
+                    <div style="margin-bottom:15px;padding:15px;background:#f8f9fa;border-radius:8px;border:1px solid #e9ecef">
+                        <label style="display:flex;align-items:center;cursor:pointer;margin:0">
+                            <input type="checkbox" id="swal-reset-password" style="width:18px;height:18px;margin-right:10px">
+                            <div>
+                                <span style="font-weight:600;color:#333"><i class="fas fa-key text-primary me-1"></i>Reset Password</span>
+                                <div style="font-size:13px;color:#666;margin-top:4px">
+                                    <i class="fas fa-info-circle text-info me-1"></i>Check this box to generate a new password and send it to the user's email address
+                                </div>
+                            </div>
+                        </label>
                     </div>
                     ${moduleHtml}
                 </div>
@@ -2481,7 +2488,7 @@ async function editUser(userUuid) {
                 const dept = document.getElementById('swal-dept')?.value || '';
                 const phone = document.getElementById('swal-phone').value;
                 const studentId = document.getElementById('swal-studentid').value;
-                const password = document.getElementById('swal-password').value;
+                const resetPassword = document.getElementById('swal-reset-password').checked;
                 const permissions = Array.from(document.querySelectorAll('.perm-checkbox:checked')).map(cb => cb.value);
                 
                 if (!name || !email || !role) {
@@ -2489,7 +2496,7 @@ async function editUser(userUuid) {
                     return false;
                 }
                 
-                return { name, email, role, dept, phone, studentId, password, permissions };
+                return { name, email, role, dept, phone, studentId, resetPassword, permissions };
             }
         });
         
@@ -2504,8 +2511,8 @@ async function editUser(userUuid) {
             formData.append('department', formValues.dept);
             formData.append('phone', formValues.phone);
             formData.append('student_id', formValues.studentId);
-            if (formValues.password) {
-                formData.append('password', formValues.password);
+            if (formValues.resetPassword) {
+                formData.append('reset_password', '1');
             }
             formData.append('use_custom_permissions', '1');
             formValues.permissions.forEach(perm => {
