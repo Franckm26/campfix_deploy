@@ -62,6 +62,19 @@
             </label>
         </div>
         
+        <!-- Backup Email Option - Only show if user has backup email -->
+        @if(session('otp_backup_email'))
+        <div class="form-group">
+            <label class="radio-label" id="backup-email-option">
+                <input type="radio" name="delivery_method" value="backup_email">
+                <span class="radio-text">
+                    <i class="fas fa-envelope" style="margin-right: 8px; color: #666;"></i>
+                    Send to backup email: <strong>{{ session('otp_backup_email') }}</strong>
+                </span>
+            </label>
+        </div>
+        @endif
+        
         <!-- Phone Option - Only show if user has phone number -->
         @if(session('otp_phone'))
         <div class="form-group">

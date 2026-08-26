@@ -110,6 +110,7 @@ class AuthController extends Controller
                 session([
                     'otp_user' => $user->id,
                     'otp_email' => $user->email,
+                    'otp_backup_email' => $user->backup_email ?? null,
                     'otp_phone' => $user->phone ?? 'your phone number',
                 ]);
 
@@ -251,7 +252,7 @@ class AuthController extends Controller
     public function sendOtp(Request $request)
     {
         $request->validate([
-            'delivery_method' => 'required|in:email,phone',
+            'delivery_method' => 'required|in:email,backup_email,phone',
         ]);
 
         $userId = session('otp_user');
@@ -273,6 +274,11 @@ class AuthController extends Controller
         }
 
         $deliveryMethod = $request->delivery_method;
+
+        // Check if backup email is available when backup_email method is selected
+        if ($deliveryMethod === 'backup_email' && empty($user->backup_email)) {
+            return back()->with('error', 'No backup email on file. Please select primary email instead.');
+        }
 
         // Check if phone is available when phone method is selected
         if ($deliveryMethod === 'phone' && empty($user->phone)) {
@@ -296,12 +302,16 @@ class AuthController extends Controller
 
         $destination = '';
 
-        if ($deliveryMethod === 'email') {
+        if ($deliveryMethod === 'email' || $deliveryMethod === 'backup_email') {
+            // Determine which email to use
+            $emailAddress = $deliveryMethod === 'backup_email' ? $user->backup_email : $user->email;
+            
             // Send via email immediately (not queued to avoid queue issues)
             try {
                 \Log::info('[OTP] Attempting to send OTP email', [
                     'user_id'  => $user->id,
-                    'email'    => $user->email,
+                    'email'    => $emailAddress,
+                    'type'     => $deliveryMethod,
                     'mailer'   => config('mail.default'),
                     'host'     => config('mail.mailers.smtp.host'),
                     'port'     => config('mail.mailers.smtp.port'),
@@ -309,17 +319,19 @@ class AuthController extends Controller
                     'from'     => config('mail.from.address'),
                 ]);
 
-                Mail::to($user->email)->send(new SendOtpMail($otp));
+                Mail::to($emailAddress)->send(new SendOtpMail($otp));
 
-                $destination = $user->email;
+                $destination = $emailAddress;
                 \Log::info('[OTP] Email sent successfully', [
                     'user_id' => $user->id,
-                    'email'   => $user->email,
+                    'email'   => $emailAddress,
+                    'type'    => $deliveryMethod,
                 ]);
             } catch (\Exception $e) {
                 \Log::error('[OTP] Failed to send OTP email', [
                     'user_id' => $user->id,
-                    'email'   => $user->email,
+                    'email'   => $emailAddress,
+                    'type'    => $deliveryMethod,
                     'from'    => config('mail.from.address'),
                     'error'   => $e->getMessage(),
                     'trace'   => $e->getTraceAsString(),
@@ -342,7 +354,10 @@ class AuthController extends Controller
         // Store delivery info for the verify page
         session(['otp_delivery' => $deliveryMethod, 'otp_destination' => $destination, 'reset_timer' => true]);
 
-        return redirect('/verify-otp')->with('success', "OTP sent to your {$deliveryMethod}.");
+        // Format the display message
+        $methodDisplay = $deliveryMethod === 'backup_email' ? 'backup email' : $deliveryMethod;
+        
+        return redirect('/verify-otp')->with('success', "OTP sent to your {$methodDisplay}.");
     }
 
     public function resendOtp()
