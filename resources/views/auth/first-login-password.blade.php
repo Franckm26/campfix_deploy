@@ -87,6 +87,15 @@
                                 <small class="text-muted" style="font-size:11px">11-digit PH mobile number (e.g., 09123456789)</small>
                             </div>
 
+                            <div class="mb-4">
+                                <label for="backup_email" class="form-label">Backup Email Address</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                    <input type="email" class="form-control" id="backup_email" name="backup_email" placeholder="your.backup@email.com" required>
+                                </div>
+                                <small class="text-muted" style="font-size:11px">Alternative email for account recovery</small>
+                            </div>
+
                             <div class="d-grid">
                                 <button type="submit" class="btn btn-primary btn-lg">
                                     <i class="fas fa-save me-2"></i> Save & Continue

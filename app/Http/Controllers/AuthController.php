@@ -447,16 +447,21 @@ class AuthController extends Controller
                 'regex:/[0-9]/',           // at least one number
             ],
             'phone' => 'required|regex:/^09[0-9]{9}$/',
+            'backup_email' => 'required|email|max:255|different:email',
         ], [
             'password.min'   => 'Password must be at least 8 characters.',
             'password.max'   => 'Password must not exceed 20 characters.',
             'password.regex' => 'Password must contain at least one uppercase letter, one number, and no spaces.',
             'phone.regex'    => 'Please enter a valid 11-digit Philippine mobile number (e.g., 09123456789)',
+            'backup_email.required' => 'Backup email is required.',
+            'backup_email.email' => 'Please enter a valid backup email address.',
+            'backup_email.different' => 'Backup email must be different from your primary email.',
         ]);
 
         $user->update([
             'password' => Hash::make($request->password),
             'phone' => $request->phone,
+            'backup_email' => $request->backup_email,
             'force_password_change' => false,
         ]);
 

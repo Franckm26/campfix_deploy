@@ -7,6 +7,7 @@ use App\Http\Middleware\ApiSecurityHeaders;
 use App\Http\Middleware\BlockSuspiciousQuery;
 use App\Http\Middleware\EnforceApiResourceLimits;
 use App\Http\Middleware\EnforceSingleSession;
+use App\Http\Middleware\EnsurePasswordChanged;
 use App\Http\Middleware\JwtAuthenticate;
 use App\Http\Middleware\RateLimitMiddleware;
 use App\Http\Middleware\RequestSizeLimit;
@@ -62,6 +63,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Enforce single active session per user
         $middleware->appendToGroup('web', EnforceSingleSession::class);
+
+        // Ensure users complete first-login password setup
+        $middleware->appendToGroup('web', EnsurePasswordChanged::class);
 
         $middleware->prependToGroup('api', ApiRequestContext::class);
         $middleware->appendToGroup('api', BlockSuspiciousQuery::class);
