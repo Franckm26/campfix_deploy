@@ -1,6 +1,6 @@
 /* First Login Password Page Styles */
 body {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #2563eb;
     min-height: 100vh;
     display: flex;
     align-items: center;
@@ -39,14 +39,14 @@ body {
 .mb-4 { margin-bottom: 10px !important; }
 
 .btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #1d4ed8;
     border: none;
     padding: 9px 30px;
     font-weight: 600;
 }
 
 .btn-primary:hover {
-    background: linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%);
+    background: #1e40af;
 }
 
 .form-label {
@@ -61,7 +61,7 @@ body {
 }
 
 .form-control:focus {
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3);
 }
 
 .input-group-text {
