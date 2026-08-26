@@ -2437,14 +2437,11 @@ class AdminController extends Controller
             $user->force_password_change = true; // Force password change when using auto-generated password
             $passwordChanged = true;
             
-            // Send separate email notifications
+            // Send password reset notification (NOT email address notification - this is a reset, not a new account)
             try {
-                // Send email address notification first  
-                $user->notify(new EmailAddressNotification());
-                // Send password notification separately
-                $user->notify(new PasswordNotification($newPassword));
+                $user->notify(new \App\Notifications\PasswordResetNotification($newPassword));
             } catch (\Exception $e) {
-                \Log::error('Failed to send password reset emails: ' . $e->getMessage());
+                \Log::error('Failed to send password reset email: ' . $e->getMessage());
             }
             
             // Add password_reset_at timestamp if column exists
