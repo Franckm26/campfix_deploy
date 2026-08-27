@@ -2437,6 +2437,12 @@ class AdminController extends Controller
             $user->force_password_change = true; // Force password change when using auto-generated password
             $passwordChanged = true;
             
+            // Logout user from all devices by regenerating remember token
+            $user->setRememberToken(\Illuminate\Support\Str::random(60));
+            
+            // Invalidate all existing sessions for this user
+            \DB::table('sessions')->where('user_id', $user->id)->delete();
+            
             // Send password reset notification (NOT email address notification - this is a reset, not a new account)
             try {
                 $user->notify(new \App\Notifications\PasswordResetNotification($newPassword));
@@ -2448,6 +2454,17 @@ class AdminController extends Controller
             if (\Schema::hasColumn('users', 'password_reset_at')) {
                 $user->password_reset_at = now();
             }
+            
+            // Log the session invalidation for security audit
+            ActivityLog::log(
+                'password_reset_sessions_invalidated',
+                "Password reset by admin. All sessions invalidated for user: {$user->name}",
+                $user->id,
+                'user',
+                null,
+                null,
+                ['reset_by' => auth()->id(), 'reset_by_name' => auth()->user()->name]
+            );
         }
         // Keep original password field logic for backward compatibility
         elseif ($request->filled('password')) {

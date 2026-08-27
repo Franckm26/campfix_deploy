@@ -31,6 +31,7 @@ class PasswordResetNotification extends Notification
             ->greeting('Hello ' . $notifiable->name . ',')
             ->line('Your CampFix account password has been reset by an administrator.')
             ->line('**New Password:** ' . $this->password)
+            ->line('**Important:** For your security, you have been logged out of all devices. You will need to log in again with this new password.')
             ->line('Please keep this password secure and do not share it with anyone.')
             ->line('You will be required to change this password after your next login.')
             ->action('Login to CampFix', $this->loginUrl)

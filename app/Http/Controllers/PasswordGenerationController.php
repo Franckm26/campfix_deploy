@@ -120,12 +120,18 @@ class PasswordGenerationController extends Controller
                         $user->password = Hash::make($newPassword);
                         $user->force_password_change = true; // Force password change when using auto-generated password
                         
+                        // Logout user from all devices by regenerating remember token
+                        $user->setRememberToken(\Illuminate\Support\Str::random(60));
+                        
                         // Only set password_reset_at if column exists
                         if (\Schema::hasColumn('users', 'password_reset_at')) {
                             $user->password_reset_at = now(); // Track when password was reset
                         }
                         
                         $user->save();
+                        
+                        // Invalidate all existing sessions for this user
+                        \DB::table('sessions')->where('user_id', $user->id)->delete();
 
                         // Send separate email notifications immediately (sync mode set at method start)
                         try {
@@ -135,7 +141,7 @@ class PasswordGenerationController extends Controller
                             $user->notify(new PasswordNotification($newPassword));
                             $successCount++;
 
-                            Log::info('[PasswordGeneration] Password generated and separate emails sent', [
+                            Log::info('[PasswordGeneration] Password generated, sessions invalidated, and separate emails sent', [
                                 'user_id' => $user->id,
                                 'email' => $user->email,
                             ]);
