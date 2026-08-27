@@ -56,6 +56,20 @@
         .countdown-timer.hidden {
             display: none;
         }
+        .try-another-way-link {
+            color: #1a73e8;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 4px;
+            transition: background 0.2s;
+            font-size: 14px;
+        }
+        .try-another-way-link:hover {
+            background: #f1f3f4;
+        }
     </style>
 </head>
 <body>
@@ -142,6 +156,13 @@
         Didn't receive the code? 
         <a href="{{ route('resend.otp') }}">Resend</a>
     </p>
+    
+    <!-- Try Another Way Link (Always visible) -->
+    <div style="text-align: center; margin-top: 20px;">
+        <a href="/otp-choice" class="try-another-way-link">
+            <i class="fas fa-sync-alt"></i> Try another way
+        </a>
+    </div>
     
 </div>
 
