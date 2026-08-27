@@ -15,9 +15,12 @@ use App\Models\MaintenanceStaff;
 use App\Models\User;
 use App\Services\DefaultCategoryService;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Throwable;
 
 class ManagementController extends Controller
 {
@@ -62,25 +65,67 @@ class ManagementController extends Controller
         // Categories
         $categories = Category::orderBy('name')->paginate(10, ['*'], 'category_page')->withQueryString();
 
-        $eventSetupReady = Schema::hasTable('event_request_types')
-            && Schema::hasTable('event_intended_users')
-            && Schema::hasTable('event_departments');
-        $approvalConfigurationReady = $eventSetupReady
-            && Schema::hasTable('event_education_levels')
-            && Schema::hasTable('event_approval_chains');
-        $eventRequestTypes = $eventSetupReady ? EventRequestType::orderBy('name')->get() : collect();
-        $eventIntendedUsers = $eventSetupReady ? EventIntendedUser::orderBy('name')->get() : collect();
-        $eventDepartments = $eventSetupReady ? EventDepartment::orderBy('name')->get() : collect();
-        $eventEducationLevels = $approvalConfigurationReady ? EventEducationLevel::orderBy('name')->get() : collect();
-        $eventApprovalChains = $approvalConfigurationReady
-            ? EventApprovalChain::with(['educationLevel', 'requestType'])->get()
-            : collect();
-        $events = (Schema::hasTable('event_requests')) ? EventRequest::with('user')->where('is_deleted', false)->latest()->paginate(10, ['*'], 'event_page')->withQueryString() : collect();
+        $eventSetupReady = false;
+        $approvalConfigurationReady = false;
+        $eventRequestTypes = collect();
+        $eventIntendedUsers = collect();
+        $eventDepartments = collect();
+        $eventEducationLevels = collect();
+        $eventApprovalChains = collect();
+
+        try {
+            $eventSetupReady = Schema::hasColumns('event_request_types', ['id', 'name', 'requires_department', 'approval_roles', 'is_active'])
+                && Schema::hasColumns('event_intended_users', ['id', 'name', 'code', 'approval_roles', 'is_active'])
+                && Schema::hasColumns('event_departments', ['id', 'name', 'is_active']);
+
+            if ($eventSetupReady) {
+                $eventRequestTypes = EventRequestType::orderBy('name')->get();
+                $eventIntendedUsers = EventIntendedUser::orderBy('name')->get();
+                $eventDepartments = EventDepartment::orderBy('name')->get();
+            }
+
+            $approvalConfigurationReady = $eventSetupReady
+                && Schema::hasColumns('event_education_levels', ['id', 'name', 'code', 'is_active'])
+                && Schema::hasColumns('event_approval_chains', ['id', 'event_education_level_id', 'event_request_type_id', 'approval_roles']);
+
+            if ($approvalConfigurationReady) {
+                $eventEducationLevels = EventEducationLevel::orderBy('name')->get();
+                $eventApprovalChains = EventApprovalChain::with(['educationLevel', 'requestType'])->get();
+            }
+        } catch (Throwable $exception) {
+            // A partially applied production migration must not take down the entire
+            // management page. The UI will show its migration-required message.
+            Log::warning('Event approval configuration could not be loaded.', [
+                'exception' => $exception->getMessage(),
+            ]);
+            $eventSetupReady = false;
+            $approvalConfigurationReady = false;
+            $eventRequestTypes = collect();
+            $eventIntendedUsers = collect();
+            $eventDepartments = collect();
+            $eventEducationLevels = collect();
+            $eventApprovalChains = collect();
+        }
+        try {
+            $events = Schema::hasColumns('event_requests', ['id', 'user_id', 'is_deleted'])
+                ? EventRequest::with('user')->where('is_deleted', false)->latest()->paginate(10, ['*'], 'event_page')->withQueryString()
+                : new LengthAwarePaginator([], 0, 10, 1, ['path' => $request->url(), 'pageName' => 'event_page']);
+        } catch (Throwable $exception) {
+            Log::warning('Event requests could not be loaded on the management page.', [
+                'exception' => $exception->getMessage(),
+            ]);
+            $events = new LengthAwarePaginator([], 0, 10, 1, ['path' => $request->url(), 'pageName' => 'event_page']);
+        }
         $approvalRoles = [
             'principal_assistant' => 'Principal Assistant', 'program_head' => 'Program Head', 'academic_head' => 'Academic Head',
             'building_admin' => 'Building Admin', 'school_admin' => 'School Administrator',
         ];
-        return view('admin.management', compact('tab', 'staff', 'facilities', 'categories', 'eventSetupReady', 'approvalConfigurationReady', 'eventRequestTypes', 'eventIntendedUsers', 'eventDepartments', 'eventEducationLevels', 'eventApprovalChains', 'events', 'approvalRoles'));
+        $eventRequestTypeOptions = $eventRequestTypes->map(fn ($item) => ['id' => $item->id, 'name' => $item->name, 'roles' => $item->approval_roles])->values()->all();
+        $eventIntendedUserOptions = $eventIntendedUsers->map(fn ($item) => ['id' => $item->id, 'name' => $item->name, 'code' => $item->code, 'roles' => $item->approval_roles])->values()->all();
+        $eventApprovalChainOptions = $eventApprovalChains->map(fn ($chain) => ['education_level_id' => $chain->event_education_level_id, 'request_type_id' => $chain->event_request_type_id, 'roles' => $chain->approval_roles])->values()->all();
+        $eventRequestTypeDefaults = $eventRequestTypes->mapWithKeys(fn ($type) => [(string) $type->id => $type->approval_roles])->all();
+
+        return view('admin.management', compact('tab', 'staff', 'facilities', 'categories', 'eventSetupReady', 'approvalConfigurationReady', 'eventRequestTypes', 'eventIntendedUsers', 'eventDepartments', 'eventEducationLevels', 'eventApprovalChains', 'events', 'approvalRoles', 'eventRequestTypeOptions', 'eventIntendedUserOptions', 'eventApprovalChainOptions', 'eventRequestTypeDefaults'));
     }
 
     public function storeEventEducationLevel(Request $request)

@@ -623,7 +623,7 @@
 
                     var flow = document.getElementById('eventRequestTypeFlow');
                     var departmentNotice = document.getElementById('eventRequestTypeDepartmentNotice');
-                    var types = @json($eventRequestTypes->map(fn ($item) => ['id' => $item->id, 'name' => $item->name, 'roles' => $item->approval_roles])->values());
+                    var types = @json($eventRequestTypeOptions);
                     var storeUrl = @json(route('admin.management.event-types.store'));
                     var updateBaseUrl = @json(url('/admin/management/event-setup/request-types'));
 
@@ -667,7 +667,7 @@
                     var intendedForm = document.getElementById('eventIntendedUserForm');
                     if (!intendedModal || !intendedForm) return;
                     var intendedFlow = document.getElementById('eventIntendedUserFlow');
-                    var intendedUsers = @json($eventIntendedUsers->map(fn ($item) => ['id' => $item->id, 'name' => $item->name, 'code' => $item->code, 'roles' => $item->approval_roles])->values());
+                    var intendedUsers = @json($eventIntendedUserOptions);
                     var intendedStoreUrl = @json(route('admin.management.event-intended-users.store'));
                     var intendedUpdateBaseUrl = @json(url('/admin/management/event-setup/intended-users'));
 
@@ -714,8 +714,8 @@
                     var typeSelect = document.getElementById('chainRequestType');
                     var flow = document.getElementById('chainFlowPreview');
                     var status = document.getElementById('chainConfigurationStatus');
-                    var chains = @json($eventApprovalChains->map(fn ($chain) => ['education_level_id' => $chain->event_education_level_id, 'request_type_id' => $chain->event_request_type_id, 'roles' => $chain->approval_roles])->values());
-                    var typeDefaults = @json($eventRequestTypes->mapWithKeys(fn ($type) => [(string) $type->id => $type->approval_roles])->all());
+                    var chains = @json($eventApprovalChainOptions);
+                    var typeDefaults = @json($eventRequestTypeDefaults);
 
                     function checkedRoles() {
                         return Array.from(form.querySelectorAll('.chain-role-checkbox:checked'));
