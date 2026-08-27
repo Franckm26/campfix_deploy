@@ -19,32 +19,39 @@
             flex-direction: column;
         }
 
-        /* Back button - inside card at bottom */
-        .back-link {
-            text-align: center;
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid #dadce0;
+        /* Back link - at top of content area */
+        .back-link-top {
+            text-align: left;
+            margin-bottom: 20px;
         }
 
-        .back-link a {
+        .back-link-top a {
             color: #1a73e8;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            padding: 8px 16px;
+            padding: 8px 12px;
             border-radius: 4px;
             transition: background 0.2s;
             font-size: 14px;
         }
 
-        .back-link a:hover {
+        .back-link-top a:hover {
             background: #f1f3f4;
         }
 
-        .back-link a i {
+        .back-link-top a i {
             font-size: 14px;
+        }
+        
+        /* No options message */
+        .no-options-message {
+            text-align: center;
+            padding: 20px;
+            color: #5f6368;
+            font-size: 14px;
+            line-height: 1.6;
         }
 
         /* Main container */
@@ -275,6 +282,13 @@
 <div class="container">
     <div class="card">
         
+        <!-- Back to sign in link at top -->
+        <div class="back-link-top">
+            <a href="/">
+                <i class="fas fa-arrow-left"></i> Back to sign in
+            </a>
+        </div>
+        
         <!-- Centered Logo and Brand -->
         <div class="logo-container">
             <div class="logo-wrapper">
@@ -314,9 +328,31 @@
                 // Check if this is from "Try another way" (coming back from verify page)
                 $fromVerify = request()->get('from') === 'verify';
                 $lastMethod = session('last_otp_method');
+                
+                // Check if there are no more options (user used backup_email)
+                $noMoreOptions = false;
+                if ($fromVerify && $lastMethod === 'backup_email') {
+                    $noMoreOptions = true;
+                }
             @endphp
             
-            @if($fromVerify && $lastMethod)
+            @if($noMoreOptions)
+                <!-- No more options available -->
+                <div class="no-options-message">
+                    <p style="font-size: 16px; color: #202124; margin-bottom: 16px;">
+                        We couldn't find a way to login you
+                    </p>
+                    <p>
+                        You've tried all available verification methods. Please contact support or try again later.
+                    </p>
+                </div>
+                
+                <!-- Back to Login Button -->
+                <a href="/" class="btn-primary" style="display: block; text-align: center; text-decoration: none;">
+                    Back to Login
+                </a>
+                
+            @elseif($fromVerify && $lastMethod)
                 <!-- Coming from verify page - show alternative methods excluding the one used -->
                 
                 @if($lastMethod === 'email')
@@ -374,6 +410,11 @@
                     </div>
                     @endif
                     
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn-primary">
+                        Continue
+                    </button>
+                    
                 @elseif($lastMethod === 'phone')
                     <!-- User chose phone, show Primary Email and Backup Email -->
                     
@@ -418,6 +459,11 @@
                     </div>
                     @endif
                     
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn-primary">
+                        Continue
+                    </button>
+                    
                 @endif
                 
             @else
@@ -456,20 +502,13 @@
                 </div>
                 @endif
                 
+                <!-- Submit Button -->
+                <button type="submit" class="btn-primary">
+                    Continue
+                </button>
+                
             @endif
-            
-            <!-- Submit Button -->
-            <button type="submit" class="btn-primary">
-                Continue
-            </button>
         </form>
-        
-        <!-- Back to sign in link -->
-        <div class="back-link">
-            <a href="/">
-                <i class="fas fa-arrow-left"></i> Back to sign in
-            </a>
-        </div>
         
     </div>
 </div>
