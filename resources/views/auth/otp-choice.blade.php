@@ -19,28 +19,32 @@
             flex-direction: column;
         }
 
-        /* Back button at top */
-        .back-button-top {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: #5f6368;
-            text-decoration: none;
-            font-size: 14px;
-            padding: 8px 12px;
-            border-radius: 4px;
-            transition: background 0.2s;
+        /* Back button - inside card at bottom */
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #dadce0;
         }
 
-        .back-button-top:hover {
+        .back-link a {
+            color: #1a73e8;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 4px;
+            transition: background 0.2s;
+            font-size: 14px;
+        }
+
+        .back-link a:hover {
             background: #f1f3f4;
         }
 
-        .back-button-top i {
-            font-size: 16px;
+        .back-link a i {
+            font-size: 14px;
         }
 
         /* Main container */
@@ -268,11 +272,6 @@
 </head>
 <body>
 
-<!-- Back button at top -->
-<a href="/" class="back-button-top">
-    <i class="fas fa-arrow-left"></i> Back to sign in
-</a>
-
 <div class="container">
     <div class="card">
         
@@ -464,6 +463,13 @@
                 Continue
             </button>
         </form>
+        
+        <!-- Back to sign in link -->
+        <div class="back-link">
+            <a href="/">
+                <i class="fas fa-arrow-left"></i> Back to sign in
+            </a>
+        </div>
         
     </div>
 </div>
