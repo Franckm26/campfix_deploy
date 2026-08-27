@@ -311,77 +311,153 @@
         <form method="POST" action="/otp-delivery" id="otpForm">
             @csrf
             
-            <!-- Primary Email Option (Always Visible) -->
-            <div class="primary-method">
-                <div class="method-card selected" onclick="selectMethod('email', this)">
-                    <i class="fas fa-envelope method-icon"></i>
-                    <div class="method-text">
-                        <div class="method-label">Send to email</div>
-                        <div class="method-value">{{ session('otp_email', 'your email') }}</div>
-                    </div>
-                </div>
-                <input type="radio" name="delivery_method" value="email" checked required>
-            </div>
+            @php
+                // Check if this is from "Try another way" (coming back from verify page)
+                $fromVerify = request()->get('from') === 'verify';
+                $lastMethod = session('last_otp_method');
+            @endphp
             
-            <!-- Try Another Way Link -->
-            <a href="#" class="try-another-way" id="tryAnotherWayLink" onclick="showOtherMethods(event)">
-                <i class="fas fa-sync-alt"></i> Try another way
-            </a>
-            
-            <!-- Hidden Methods (Backup Email and Phone) -->
-            <div class="hidden-methods" id="hiddenMethods">
+            @if($fromVerify && $lastMethod)
+                <!-- Coming from verify page - show alternative methods excluding the one used -->
                 
-                @if(session('otp_backup_email'))
-                <div class="hidden-method-item" onclick="selectMethod('backup_email', this)">
-                    <i class="fas fa-envelope method-icon"></i>
-                    <div class="method-text">
-                        <div class="method-label">Send to backup email</div>
-                        <div class="method-value">
-                            @php
-                                $backupEmail = session('otp_backup_email');
-                                $parts = explode('@', $backupEmail);
-                                if (count($parts) === 2) {
-                                    $username = $parts[0];
-                                    $domain = $parts[1];
-                                    // Show first 2 chars and last char of username
-                                    if (strlen($username) > 3) {
-                                        $masked = substr($username, 0, 2) . str_repeat('*', strlen($username) - 3) . substr($username, -1);
-                                    } else {
-                                        $masked = substr($username, 0, 1) . str_repeat('*', strlen($username) - 1);
-                                    }
-                                    echo $masked . '@' . $domain;
-                                } else {
-                                    echo $backupEmail;
-                                }
-                            @endphp
+                @if($lastMethod === 'email')
+                    <!-- User chose primary email, show Phone and Backup Email -->
+                    
+                    @if(session('otp_phone'))
+                    <div class="primary-method">
+                        <div class="method-card selected" onclick="selectMethod('phone', this)">
+                            <i class="fas fa-mobile-alt method-icon"></i>
+                            <div class="method-text">
+                                <div class="method-label">Send to phone</div>
+                                <div class="method-value">
+                                    @php
+                                        $phone = session('otp_phone');
+                                        if ($phone && strlen($phone) > 2) {
+                                            echo str_repeat('•', strlen($phone) - 2) . substr($phone, -2);
+                                        } else {
+                                            echo $phone;
+                                        }
+                                    @endphp
+                                </div>
+                            </div>
+                        </div>
+                        <input type="radio" name="delivery_method" value="phone" checked required>
+                    </div>
+                    @endif
+                    
+                    @if(session('otp_backup_email'))
+                    <div class="primary-method">
+                        <div class="method-card @if(!session('otp_phone')) selected @endif" onclick="selectMethod('backup_email', this)">
+                            <i class="fas fa-envelope method-icon"></i>
+                            <div class="method-text">
+                                <div class="method-label">Send to backup email</div>
+                                <div class="method-value">
+                                    @php
+                                        $backupEmail = session('otp_backup_email');
+                                        $parts = explode('@', $backupEmail);
+                                        if (count($parts) === 2) {
+                                            $username = $parts[0];
+                                            $domain = $parts[1];
+                                            if (strlen($username) > 3) {
+                                                $masked = substr($username, 0, 2) . str_repeat('*', strlen($username) - 3) . substr($username, -1);
+                                            } else {
+                                                $masked = substr($username, 0, 1) . str_repeat('*', strlen($username) - 1);
+                                            }
+                                            echo $masked . '@' . $domain;
+                                        } else {
+                                            echo $backupEmail;
+                                        }
+                                    @endphp
+                                </div>
+                            </div>
+                        </div>
+                        <input type="radio" name="delivery_method" value="backup_email" @if(!session('otp_phone')) checked @endif>
+                    </div>
+                    @endif
+                    
+                @elseif($lastMethod === 'phone')
+                    <!-- User chose phone, show Primary Email and Backup Email -->
+                    
+                    <div class="primary-method">
+                        <div class="method-card selected" onclick="selectMethod('email', this)">
+                            <i class="fas fa-envelope method-icon"></i>
+                            <div class="method-text">
+                                <div class="method-label">Send to email</div>
+                                <div class="method-value">{{ session('otp_email', 'your email') }}</div>
+                            </div>
+                        </div>
+                        <input type="radio" name="delivery_method" value="email" checked required>
+                    </div>
+                    
+                    @if(session('otp_backup_email'))
+                    <div class="primary-method">
+                        <div class="method-card" onclick="selectMethod('backup_email', this)">
+                            <i class="fas fa-envelope method-icon"></i>
+                            <div class="method-text">
+                                <div class="method-label">Send to backup email</div>
+                                <div class="method-value">
+                                    @php
+                                        $backupEmail = session('otp_backup_email');
+                                        $parts = explode('@', $backupEmail);
+                                        if (count($parts) === 2) {
+                                            $username = $parts[0];
+                                            $domain = $parts[1];
+                                            if (strlen($username) > 3) {
+                                                $masked = substr($username, 0, 2) . str_repeat('*', strlen($username) - 3) . substr($username, -1);
+                                            } else {
+                                                $masked = substr($username, 0, 1) . str_repeat('*', strlen($username) - 1);
+                                            }
+                                            echo $masked . '@' . $domain;
+                                        } else {
+                                            echo $backupEmail;
+                                        }
+                                    @endphp
+                                </div>
+                            </div>
+                        </div>
+                        <input type="radio" name="delivery_method" value="backup_email">
+                    </div>
+                    @endif
+                    
+                @endif
+                
+            @else
+                <!-- Initial load - show Primary Email and Phone only (NO backup email) -->
+                
+                <div class="primary-method">
+                    <div class="method-card selected" onclick="selectMethod('email', this)">
+                        <i class="fas fa-envelope method-icon"></i>
+                        <div class="method-text">
+                            <div class="method-label">Send to email</div>
+                            <div class="method-value">{{ session('otp_email', 'your email') }}</div>
                         </div>
                     </div>
+                    <input type="radio" name="delivery_method" value="email" checked required>
                 </div>
-                <input type="radio" name="delivery_method" value="backup_email">
-                @endif
                 
                 @if(session('otp_phone'))
-                <div class="hidden-method-item" onclick="selectMethod('phone', this)">
-                    <i class="fas fa-mobile-alt method-icon"></i>
-                    <div class="method-text">
-                        <div class="method-label">Send to phone</div>
-                        <div class="method-value">
-                            @php
-                                $phone = session('otp_phone');
-                                if ($phone && strlen($phone) > 4) {
-                                    // Show format like Google: •••••••87
-                                    echo str_repeat('•', strlen($phone) - 2) . substr($phone, -2);
-                                } else {
-                                    echo $phone;
-                                }
-                            @endphp
+                <div class="primary-method">
+                    <div class="method-card" onclick="selectMethod('phone', this)">
+                        <i class="fas fa-mobile-alt method-icon"></i>
+                        <div class="method-text">
+                            <div class="method-label">Send to phone</div>
+                            <div class="method-value">
+                                @php
+                                    $phone = session('otp_phone');
+                                    if ($phone && strlen($phone) > 2) {
+                                        echo str_repeat('•', strlen($phone) - 2) . substr($phone, -2);
+                                    } else {
+                                        echo $phone;
+                                    }
+                                @endphp
+                            </div>
                         </div>
                     </div>
+                    <input type="radio" name="delivery_method" value="phone">
                 </div>
-                <input type="radio" name="delivery_method" value="phone">
                 @endif
                 
-            </div>
+            @endif
             
             <!-- Submit Button -->
             <button type="submit" class="btn-primary">

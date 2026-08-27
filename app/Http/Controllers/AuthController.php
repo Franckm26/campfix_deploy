@@ -352,7 +352,12 @@ class AuthController extends Controller
         }
 
         // Store delivery info for the verify page
-        session(['otp_delivery' => $deliveryMethod, 'otp_destination' => $destination, 'reset_timer' => true]);
+        session([
+            'otp_delivery' => $deliveryMethod,
+            'otp_destination' => $destination,
+            'last_otp_method' => $deliveryMethod, // Store the last method used
+            'reset_timer' => true
+        ]);
 
         // Format the display message
         $methodDisplay = $deliveryMethod === 'backup_email' ? 'backup email' : $deliveryMethod;

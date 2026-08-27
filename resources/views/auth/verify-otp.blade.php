@@ -159,7 +159,7 @@
     
     <!-- Try Another Way Link (Always visible) -->
     <div style="text-align: center; margin-top: 20px;">
-        <a href="/otp-choice" class="try-another-way-link">
+        <a href="/otp-choice?from=verify" class="try-another-way-link">
             <i class="fas fa-sync-alt"></i> Try another way
         </a>
     </div>
