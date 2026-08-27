@@ -646,22 +646,31 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
 
                     <div class="row">
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-4 mb-3">
                         <label for="modal_request_type" class="form-label">Request Type *</label>
                         @php
                             $eventSetupAvailable = \Illuminate\Support\Facades\Schema::hasTable('event_request_types');
                             $eventTypes = $eventSetupAvailable ? \App\Models\EventRequestType::where('is_active', true)->orderBy('name')->get() : collect([['name' => 'Academic'], ['name' => 'Non-Academic']]);
                             $eventUsers = $eventSetupAvailable ? \App\Models\EventIntendedUser::where('is_active', true)->orderBy('name')->get() : collect([['name' => 'Faculty', 'code' => 'faculty'], ['name' => 'Tertiary', 'code' => 'tertiary'], ['name' => 'Senior High School', 'code' => 'shs'], ['name' => 'Staff', 'code' => 'staff'], ['name' => 'Maintenance', 'code' => 'maintenance']]);
                             $eventDepartments = $eventSetupAvailable ? \App\Models\EventDepartment::where('is_active', true)->orderBy('name')->get() : collect([['name' => 'GE'], ['name' => 'ICT'], ['name' => 'Business Management'], ['name' => 'THM']]);
+                            $educationSetupAvailable = $eventSetupAvailable && \Illuminate\Support\Facades\Schema::hasTable('event_education_levels') && \Illuminate\Support\Facades\Schema::hasTable('event_approval_chains');
+                            $eventEducationLevels = $educationSetupAvailable ? \App\Models\EventEducationLevel::where('is_active', true)->orderBy('name')->get() : collect([['name' => 'College/University', 'code' => 'tertiary'], ['name' => 'Senior High School (SHS)', 'code' => 'shs']]);
+                            $eventApprovalChains = $educationSetupAvailable ? \App\Models\EventApprovalChain::with(['educationLevel', 'requestType'])->get() : collect();
                         @endphp
                         <select class="form-select @error('request_type') is-invalid @enderror" id="modal_request_type" name="request_type" required>
                                 <option value="">Select type</option>
                                 @foreach($eventTypes as $type)<option value="{{ is_array($type) ? $type['name'] : $type->name }}" data-requires-department="{{ (is_array($type) ? $type['name'] === 'Academic' : $type->requires_department) ? '1' : '0' }}">{{ is_array($type) ? $type['name'] : $type->name }}</option>@endforeach
                             </select>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="modal_education_level" class="form-label">Intended User *</label>
+                        <div class="col-md-4 mb-3">
+                            <label for="modal_education_level" class="form-label">Education Level *</label>
                             <select class="form-select" id="modal_education_level" name="education_level" required>
+                                @foreach($eventEducationLevels as $levelOption)<option value="{{ is_array($levelOption) ? $levelOption['code'] : $levelOption->code }}" {{ (is_array($levelOption) ? $levelOption['code'] : $levelOption->code) === 'tertiary' ? 'selected' : '' }}>{{ is_array($levelOption) ? $levelOption['name'] : $levelOption->name }}</option>@endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="modal_intended_user" class="form-label">Intended User *</label>
+                            <select class="form-select" id="modal_intended_user" name="intended_user" required>
                                 @foreach($eventUsers as $userOption)<option value="{{ is_array($userOption) ? $userOption['code'] : $userOption->code }}" {{ (is_array($userOption) ? $userOption['code'] : $userOption->code) === 'faculty' ? 'selected' : '' }}>{{ is_array($userOption) ? $userOption['name'] : $userOption->name }}</option>@endforeach
                             </select>
                         </div>
@@ -777,8 +786,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="col-md-8" id="preview_request_type"></div>
                 </div>
                 <div class="row mb-2">
-                    <div class="col-md-4 fw-bold">Intended User:</div>
+                    <div class="col-md-4 fw-bold">Education Level:</div>
                     <div class="col-md-8" id="preview_education_level"></div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-4 fw-bold">Intended User:</div>
+                    <div class="col-md-8" id="preview_intended_user"></div>
                 </div>
                 <div class="row mb-2" id="preview_area_of_use_row" style="display: none;">
                     <div class="col-md-4 fw-bold">Location:</div>
@@ -839,9 +852,21 @@ window.updateDescCount = function() {
 };
 
 document.addEventListener('DOMContentLoaded', function() {
+    var approvalChainMap = @json($eventApprovalChains->mapWithKeys(fn ($chain) => [($chain->educationLevel->code ?? '').'|'.($chain->requestType->name ?? '') => $chain->approval_roles]));
+    var intendedRouteMap = @json($eventUsers->mapWithKeys(fn ($item) => [(is_array($item) ? $item['code'] : $item->code) => (is_array($item) ? [] : ($item->approval_roles ?: []))]));
+    var approvalRoleLabels = { principal_assistant: 'Principal Assistant', program_head: 'Program Head', academic_head: 'Academic Head', building_admin: 'Building Admin', school_admin: 'School Administrator' };
+
+    function selectedApprovalRoute(requestTypeValue, educationLevelValue) {
+        var intendedUser = document.getElementById('modal_intended_user');
+        var intendedRoute = intendedUser ? (intendedRouteMap[intendedUser.value] || []) : [];
+        return intendedRoute.length ? intendedRoute : (approvalChainMap[educationLevelValue + '|' + requestTypeValue] || []);
+    }
+
     function shouldRequireDepartment(requestTypeValue, educationLevelValue, areaValue) {
+        var configuredRoute = selectedApprovalRoute(requestTypeValue, educationLevelValue);
+        if (configuredRoute.length) return configuredRoute.includes('program_head') && !!areaValue;
         var selected = document.querySelector('#modal_request_type option[value="' + String(requestTypeValue).replace(/"/g, '\\"') + '"]');
-        return !!selected && selected.dataset.requiresDepartment === '1' && educationLevelValue !== 'shs' && !!areaValue;
+        return !!selected && selected.dataset.requiresDepartment === '1' && !!areaValue;
     }
 
     function syncDepartmentRequirement() {
@@ -1183,6 +1208,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var areaOfUse = document.getElementById('modal_area_of_use');
         var department = document.getElementById('modal_department');
         var educationLevel = document.getElementById('modal_education_level');
+        var intendedUser = document.getElementById('modal_intended_user');
         var avrSelection = document.getElementById('modal_avr_selection');
         var eventDate = document.getElementById('modal_event_date');
         var startTime = document.getElementById('modal_start_time');
@@ -1197,6 +1223,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Request type is required
         if (!requestTypeValue) isValid = false;
+        if (!educationLevel || !educationLevel.value) isValid = false;
+        if (!intendedUser || !intendedUser.value) isValid = false;
 
         // Area of use is always required (category is always "Area Use")
         if (!areaValue) isValid = false;
@@ -1226,7 +1254,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Add event listeners to all required fields to update Preview button state
-    var requiredFieldIds = ['modal_request_type', 'modal_area_of_use', 'modal_department', 'modal_education_level', 'modal_avr_selection', 'modal_event_date', 'modal_start_time', 'modal_end_time', 'modal_description'];
+    var requiredFieldIds = ['modal_request_type', 'modal_area_of_use', 'modal_department', 'modal_education_level', 'modal_intended_user', 'modal_avr_selection', 'modal_event_date', 'modal_start_time', 'modal_end_time', 'modal_description'];
     requiredFieldIds.forEach(function(fieldId) {
         var field = document.getElementById(fieldId);
         if (field) {
@@ -1255,6 +1283,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Get form values
             var requestType = document.getElementById('modal_request_type').value;
             var educationLevel = document.getElementById('modal_education_level').value;
+            var intendedUser = document.getElementById('modal_intended_user').value;
             var areaOfUse = document.getElementById('modal_area_of_use').value;
             var department = document.getElementById('modal_department').value;
             var avrSelection = document.getElementById('modal_avr_selection').value;
@@ -1263,17 +1292,14 @@ document.addEventListener('DOMContentLoaded', function() {
             var endTime = document.getElementById('modal_end_time').value;
             var description = document.getElementById('modal_description').value;
 
-            if (educationLevel === 'shs') {
-                department = '';
-            }
-
             // Build location from selected options
             var location = areaOfUse || '';
 
             // Populate preview fields
             document.getElementById('preview_category').textContent = 'Area Use';
             document.getElementById('preview_request_type').textContent = requestType || 'Not specified';
-            document.getElementById('preview_education_level').textContent = educationLevel === 'shs' ? 'Senior High School' : educationLevel === 'faculty' ? 'Faculty' : educationLevel === 'staff' ? 'Staff' : educationLevel === 'maintenance' ? 'Maintenance' : 'Tertiary';
+            document.getElementById('preview_education_level').textContent = document.getElementById('modal_education_level').selectedOptions[0]?.textContent || 'Not specified';
+            document.getElementById('preview_intended_user').textContent = document.getElementById('modal_intended_user').selectedOptions[0]?.textContent || intendedUser || 'Not specified';
             document.getElementById('preview_area_of_use').textContent = areaOfUse || 'Not specified';
             document.getElementById('preview_department').textContent = department || 'Not specified';
             var avrSelectionEl = document.getElementById('preview_avr_selection');
@@ -1298,14 +1324,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 roomNumberRow.style.display = 'none';
             }
 
-            // Show/hide department row - hide for SHS
+            // Show the department whenever the configured route requires it.
             var departmentRow = document.getElementById('preview_department_row');
-            if (!departmentRow || educationLevel === 'shs') {
-                // Always hide department for Senior High School
-                if (departmentRow) departmentRow.style.display = 'none';
-            } else if (department) {
+            if (departmentRow && department) {
                 departmentRow.style.display = 'block';
-            } else {
+            } else if (departmentRow) {
                 departmentRow.style.display = 'none';
             }
 
@@ -1333,6 +1356,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Get form elements
         var requestType = document.getElementById('modal_request_type');
+        var educationLevel = document.getElementById('modal_education_level');
+        var intendedUser = document.getElementById('modal_intended_user');
         var eventDate = document.getElementById('modal_event_date');
         var startTime = document.getElementById('modal_start_time');
         var endTime = document.getElementById('modal_end_time');
@@ -1342,6 +1367,16 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!requestType.value) {
             showFieldError(requestType, 'Please select a request type');
             errors.push('Request type is required');
+            isValid = false;
+        }
+        if (!educationLevel || !educationLevel.value) {
+            showFieldError(educationLevel, 'Please select an education level');
+            errors.push('Education level is required');
+            isValid = false;
+        }
+        if (!intendedUser || !intendedUser.value) {
+            showFieldError(intendedUser, 'Please select an intended user');
+            errors.push('Intended user is required');
             isValid = false;
         }
 
@@ -1358,7 +1393,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Validate Department (if Academic request type is selected and location is chosen)
         var department = document.getElementById('modal_department');
-        var educationLevel = document.getElementById('modal_education_level');
         var educationLevelValue = educationLevel ? educationLevel.value : 'faculty';
         var isRoom = areaOfUse.value && (areaOfUse.value.toLowerCase().includes('room') || areaOfUse.value.toLowerCase().includes('lab') || areaOfUse.value.match(/^\d{3}$/));
         var isCourt = areaOfUse.value && areaOfUse.value.toLowerCase().includes('court');
@@ -1513,6 +1547,7 @@ document.addEventListener('DOMContentLoaded', function() {
             var areaOfUse = document.getElementById('modal_area_of_use').value;
             var department = document.getElementById('modal_department').value;
             var educationLevel = document.getElementById('modal_education_level').value;
+            var intendedUser = document.getElementById('modal_intended_user').value;
             var avrSelectionValue = document.getElementById('modal_avr_selection').value;
             var eventDate = document.getElementById('modal_event_date').value;
             var startTime = document.getElementById('modal_start_time').value;
@@ -1539,7 +1574,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
             document.getElementById('preview_category').textContent = 'Area Use';
             document.getElementById('preview_request_type').textContent = requestType || 'Not specified';
-            document.getElementById('preview_education_level').textContent = educationLevel === 'shs' ? 'Senior High School' : educationLevel === 'faculty' ? 'Faculty' : educationLevel === 'staff' ? 'Staff' : educationLevel === 'maintenance' ? 'Maintenance' : 'Tertiary';
+            document.getElementById('preview_education_level').textContent = document.getElementById('modal_education_level').selectedOptions[0]?.textContent || 'Not specified';
+            document.getElementById('preview_intended_user').textContent = document.getElementById('modal_intended_user').selectedOptions[0]?.textContent || intendedUser || 'Not specified';
             document.getElementById('preview_area_of_use').textContent = areaOfUse || 'Not specified';
             document.getElementById('preview_department').textContent = department || 'Not specified';
             document.getElementById('preview_avr_selection').textContent = avrSelectionValue || 'Not specified';
@@ -1551,7 +1587,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             document.getElementById('preview_area_of_use_row').style.display = areaOfUse ? 'flex' : 'none';
             document.getElementById('preview_room_number_row').style.display = 'none'; // Room number row is no longer used
-            document.getElementById('preview_department_row').style.display = (educationLevel !== 'shs' && department) ? 'flex' : 'none';
+            document.getElementById('preview_department_row').style.display = department ? 'flex' : 'none';
             
             // Check if location contains "avr" keyword
             var isAVR = areaOfUse && areaOfUse.toLowerCase().includes('avr');
@@ -1590,6 +1626,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             var approvalRecipientsEl = document.getElementById('approval_recipients');
             if (approvalRecipientsEl) {
+                var previewRoute = selectedApprovalRoute(requestType, educationLevel);
+                if (previewRoute.length) approvalRecipients = previewRoute.map(function (role) { return approvalRoleLabels[role] || role; }).join(' → ');
                 approvalRecipientsEl.textContent = approvalRecipients;
             }
 
@@ -1643,6 +1681,12 @@ document.addEventListener('DOMContentLoaded', function() {
         var requestType = requestTypeSelect ? requestTypeSelect.value : '';
         var department = departmentSelect ? departmentSelect.value : '';
         var educationLevel = educationLevelEl ? educationLevelEl.value : 'faculty';
+        var configuredRoute = selectedApprovalRoute(requestType, educationLevel);
+        if (configuredRoute.length) {
+            var configuredRecipients = document.getElementById('approval_recipients');
+            if (configuredRecipients) configuredRecipients.textContent = configuredRoute.map(function (role) { return approvalRoleLabels[role] || role; }).join(' → ');
+            return;
+        }
         var approvalRecipients = 'Chosen Department on the selection, Academic Head, Building Admin, and School Administrator';
 
         if (educationLevel === 'shs') {
@@ -1687,6 +1731,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     if (requestTypeSelect) {
         requestTypeSelect.addEventListener('change', updateApprovalRecipients);
+    }
+    var intendedUserSelect = document.getElementById('modal_intended_user');
+    if (intendedUserSelect) {
+        intendedUserSelect.addEventListener('change', function() {
+            syncDepartmentRequirement();
+            updateApprovalRecipients();
+        });
     }
 
     // Add listener for education level changes

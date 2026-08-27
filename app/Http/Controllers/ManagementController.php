@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\ActivityLog;
 use App\Models\Category;
 use App\Models\EventRequest;
+use App\Models\EventApprovalChain;
+use App\Models\EventEducationLevel;
 use App\Models\EventRequestType;
 use App\Models\EventIntendedUser;
 use App\Models\EventDepartment;
@@ -63,21 +65,58 @@ class ManagementController extends Controller
         $eventSetupReady = Schema::hasTable('event_request_types')
             && Schema::hasTable('event_intended_users')
             && Schema::hasTable('event_departments');
+        $approvalConfigurationReady = $eventSetupReady
+            && Schema::hasTable('event_education_levels')
+            && Schema::hasTable('event_approval_chains');
         $eventRequestTypes = $eventSetupReady ? EventRequestType::orderBy('name')->get() : collect();
         $eventIntendedUsers = $eventSetupReady ? EventIntendedUser::orderBy('name')->get() : collect();
         $eventDepartments = $eventSetupReady ? EventDepartment::orderBy('name')->get() : collect();
+        $eventEducationLevels = $approvalConfigurationReady ? EventEducationLevel::orderBy('name')->get() : collect();
+        $eventApprovalChains = $approvalConfigurationReady
+            ? EventApprovalChain::with(['educationLevel', 'requestType'])->get()
+            : collect();
         $events = (Schema::hasTable('event_requests')) ? EventRequest::with('user')->where('is_deleted', false)->latest()->paginate(10, ['*'], 'event_page')->withQueryString() : collect();
         $approvalRoles = [
-            'program_head' => 'Program Head', 'academic_head' => 'Academic Head',
+            'principal_assistant' => 'Principal Assistant', 'program_head' => 'Program Head', 'academic_head' => 'Academic Head',
             'building_admin' => 'Building Admin', 'school_admin' => 'School Administrator',
         ];
-        return view('admin.management', compact('tab', 'staff', 'facilities', 'categories', 'eventSetupReady', 'eventRequestTypes', 'eventIntendedUsers', 'eventDepartments', 'events', 'approvalRoles'));
+        return view('admin.management', compact('tab', 'staff', 'facilities', 'categories', 'eventSetupReady', 'approvalConfigurationReady', 'eventRequestTypes', 'eventIntendedUsers', 'eventDepartments', 'eventEducationLevels', 'eventApprovalChains', 'events', 'approvalRoles'));
+    }
+
+    public function storeEventEducationLevel(Request $request)
+    {
+        $this->guardBuildingAdmin();
+        $data = $request->validate(['name' => 'required|string|max:100|unique:event_education_levels,name']);
+        $baseCode = Str::slug($data['name'], '_');
+        $code = $baseCode;
+        $suffix = 2;
+        while (EventEducationLevel::where('code', $code)->exists()) $code = $baseCode.'_'.$suffix++;
+        EventEducationLevel::create(['name' => trim($data['name']), 'code' => $code, 'is_active' => true]);
+        return back()->with('success', 'Education level added. You can now configure its approval chains.');
+    }
+
+    public function storeEventApprovalChain(Request $request)
+    {
+        $this->guardBuildingAdmin();
+        $allowedRoles = ['principal_assistant', 'program_head', 'academic_head', 'building_admin', 'school_admin'];
+        $data = $request->validate([
+            'event_education_level_id' => 'required|exists:event_education_levels,id',
+            'event_request_type_id' => 'required|exists:event_request_types,id',
+            'approval_roles' => 'required|array|min:1',
+            'approval_roles.*' => 'required|string|in:'.implode(',', $allowedRoles),
+        ]);
+        EventApprovalChain::updateOrCreate(
+            ['event_education_level_id' => $data['event_education_level_id'], 'event_request_type_id' => $data['event_request_type_id']],
+            ['approval_roles' => array_values($data['approval_roles'])]
+        );
+        return back()->with('success', 'Approval chain saved. New event requests will use this route.');
     }
 
     public function storeEventRequestType(Request $request)
     {
         $this->guardBuildingAdmin();
-        $data = $request->validate(['name' => 'required|string|max:100|unique:event_request_types,name', 'approval_roles' => 'required|array|min:1', 'approval_roles.*' => 'required|string']);
+        $allowedRoles = 'principal_assistant,program_head,academic_head,building_admin,school_admin';
+        $data = $request->validate(['name' => 'required|string|max:100|unique:event_request_types,name', 'approval_roles' => 'required|array|min:1', 'approval_roles.*' => 'required|string|in:'.$allowedRoles]);
         $roles = array_values($data['approval_roles']);
         EventRequestType::create(['name' => trim($data['name']), 'requires_department' => in_array('program_head', $roles, true), 'approval_roles' => $roles, 'is_active' => true]);
         return back()->with('success', 'Event request type added.');
@@ -86,7 +125,8 @@ class ManagementController extends Controller
     public function updateEventRequestType(Request $request, EventRequestType $eventRequestType)
     {
         $this->guardBuildingAdmin();
-        $data = $request->validate(['name' => 'required|string|max:100|unique:event_request_types,name,'.$eventRequestType->id, 'approval_roles' => 'required|array|min:1', 'approval_roles.*' => 'required|string', 'is_active' => 'nullable|boolean']);
+        $allowedRoles = 'principal_assistant,program_head,academic_head,building_admin,school_admin';
+        $data = $request->validate(['name' => 'required|string|max:100|unique:event_request_types,name,'.$eventRequestType->id, 'approval_roles' => 'required|array|min:1', 'approval_roles.*' => 'required|string|in:'.$allowedRoles, 'is_active' => 'nullable|boolean']);
         $roles = array_values($data['approval_roles']);
         $eventRequestType->update(['name' => trim($data['name']), 'approval_roles' => $roles, 'requires_department' => in_array('program_head', $roles, true), 'is_active' => $request->boolean('is_active')]);
         return back()->with('success', 'Event request type updated.');
@@ -95,7 +135,8 @@ class ManagementController extends Controller
     public function storeEventIntendedUser(Request $request)
     {
         $this->guardBuildingAdmin();
-        $data = $request->validate(['name' => 'required|string|max:100|unique:event_intended_users,name', 'approval_roles' => 'nullable|array', 'approval_roles.*' => 'required|string']);
+        $allowedRoles = 'principal_assistant,program_head,academic_head,building_admin,school_admin';
+        $data = $request->validate(['name' => 'required|string|max:100|unique:event_intended_users,name', 'approval_roles' => 'nullable|array', 'approval_roles.*' => 'required|string|in:'.$allowedRoles]);
         $baseCode = Str::slug($data['name'], '_');
         $code = $baseCode;
         $suffix = 2;
@@ -107,7 +148,8 @@ class ManagementController extends Controller
     public function updateEventIntendedUser(Request $request, EventIntendedUser $eventIntendedUser)
     {
         $this->guardBuildingAdmin();
-        $data = $request->validate(['name' => 'required|string|max:100|unique:event_intended_users,name,'.$eventIntendedUser->id, 'approval_roles' => 'nullable|array', 'approval_roles.*' => 'required|string']);
+        $allowedRoles = 'principal_assistant,program_head,academic_head,building_admin,school_admin';
+        $data = $request->validate(['name' => 'required|string|max:100|unique:event_intended_users,name,'.$eventIntendedUser->id, 'approval_roles' => 'nullable|array', 'approval_roles.*' => 'required|string|in:'.$allowedRoles]);
         $eventIntendedUser->update(['name' => trim($data['name']), 'approval_roles' => !empty($data['approval_roles']) ? array_values($data['approval_roles']) : null]);
         return back()->with('success', 'Intended user updated.');
     }
@@ -128,7 +170,7 @@ class ManagementController extends Controller
     public function renameEventSetup(Request $request, string $type, int $id)
     {
         $this->guardBuildingAdmin();
-        $models = ['request-type' => [EventRequestType::class, 'event_request_types'], 'intended-user' => [EventIntendedUser::class, 'event_intended_users'], 'department' => [EventDepartment::class, 'event_departments']];
+        $models = ['education-level' => [EventEducationLevel::class, 'event_education_levels'], 'request-type' => [EventRequestType::class, 'event_request_types'], 'intended-user' => [EventIntendedUser::class, 'event_intended_users'], 'department' => [EventDepartment::class, 'event_departments']];
         abort_unless(isset($models[$type]), 404);
         [$model, $table] = $models[$type];
         $item = $model::findOrFail($id);
@@ -140,7 +182,7 @@ class ManagementController extends Controller
     public function destroyEventSetup(string $type, int $id)
     {
         $this->guardBuildingAdmin();
-        $model = match ($type) { 'request-type' => EventRequestType::class, 'intended-user' => EventIntendedUser::class, 'department' => EventDepartment::class, default => abort(404) };
+        $model = match ($type) { 'education-level' => EventEducationLevel::class, 'request-type' => EventRequestType::class, 'intended-user' => EventIntendedUser::class, 'department' => EventDepartment::class, default => abort(404) };
         $item = $model::findOrFail($id);
         $item->delete();
         return back()->with('success', 'Event setup item deleted.');

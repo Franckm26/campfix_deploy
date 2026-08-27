@@ -16,14 +16,34 @@ class EventRequestApprovalNotification extends Notification
 
     protected $status;
 
+    protected $approverName;
+
+    protected $nextApproverName;
+
+    protected $totalLevels;
+
+    protected $fullyApproved;
+
     /**
      * Create a new notification instance.
      */
-    public function __construct(string $eventTitle, int $approvalLevel, string $status)
+    public function __construct(
+        string $eventTitle,
+        int $approvalLevel,
+        string $status,
+        ?string $approverName = null,
+        ?string $nextApproverName = null,
+        int $totalLevels = 4,
+        bool $fullyApproved = false
+    )
     {
         $this->eventTitle = $eventTitle;
         $this->approvalLevel = $approvalLevel;
         $this->status = $status;
+        $this->approverName = $approverName;
+        $this->nextApproverName = $nextApproverName;
+        $this->totalLevels = $totalLevels;
+        $this->fullyApproved = $fullyApproved;
     }
 
     /**
@@ -54,7 +74,7 @@ class EventRequestApprovalNotification extends Notification
             4 => 'School Admin',
         ];
 
-        $levelName = $levelNames[$this->approvalLevel] ?? 'Approval';
+        $levelName = $this->approverName ?: ($levelNames[$this->approvalLevel] ?? 'Approval');
 
         if ($this->status === 'Expired') {
             return (new MailMessage)
@@ -76,7 +96,7 @@ class EventRequestApprovalNotification extends Notification
                 ->line('Thank you for using CampFix!');
         }
 
-        if ($this->approvalLevel === 4) {
+        if ($this->fullyApproved || $this->approvalLevel >= $this->totalLevels) {
             return (new MailMessage)
                 ->subject("Event Request FULLY APPROVED - {$this->eventTitle}")
                 ->greeting("Congratulations {$notifiable->name}!")
@@ -87,13 +107,13 @@ class EventRequestApprovalNotification extends Notification
         }
 
         $nextLevel = $this->approvalLevel + 1;
-        $nextLevelName = $levelNames[$nextLevel] ?? 'Next Level';
+        $nextLevelName = $this->nextApproverName ?: ($levelNames[$nextLevel] ?? 'Next Level');
 
         return (new MailMessage)
             ->subject("Event Request Update - {$this->eventTitle}")
             ->greeting("Hello {$notifiable->name}!")
             ->line("Your event request **'{$this->eventTitle}'** has been approved by {$levelName}.")
-            ->line("Current progress: Level {$this->approvalLevel} of 4 approved.")
+            ->line("Current progress: Level {$this->approvalLevel} of {$this->totalLevels} approved.")
             ->line("Waiting for {$nextLevelName} review.")
             ->action('View My Requests', url('/events/my'))
             ->line('Thank you for using CampFix!');
@@ -113,7 +133,7 @@ class EventRequestApprovalNotification extends Notification
             4 => 'School Admin',
         ];
 
-        $levelName = $levelNames[$this->approvalLevel] ?? 'Approval';
+        $levelName = $this->approverName ?: ($levelNames[$this->approvalLevel] ?? 'Approval');
 
         if ($this->status === 'Expired') {
             return [
@@ -137,7 +157,7 @@ class EventRequestApprovalNotification extends Notification
             ];
         }
 
-        if ($this->approvalLevel === 4) {
+        if ($this->fullyApproved || $this->approvalLevel >= $this->totalLevels) {
             return [
                 'title' => 'Event Request Fully Approved',
                 'message' => "Your event request '{$this->eventTitle}' has been FULLY APPROVED!",
@@ -149,7 +169,7 @@ class EventRequestApprovalNotification extends Notification
         }
 
         $nextLevel = $this->approvalLevel + 1;
-        $nextLevelName = $levelNames[$nextLevel] ?? 'Next Level';
+        $nextLevelName = $this->nextApproverName ?: ($levelNames[$nextLevel] ?? 'Next Level');
 
         return [
             'title' => 'Event Request Update',

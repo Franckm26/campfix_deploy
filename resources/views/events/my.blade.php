@@ -1498,8 +1498,27 @@ function viewEvent(id) {
         const isShsEvent = event.education_level === 'shs';
         const isNonAcademicEvent = event.request_type === 'Non-Academic';
         let approvalSteps;
+        const configuredRoleLabels = {
+            principal_assistant: 'Principal Assistant',
+            program_head: 'Program Head',
+            academic_head: 'Academic Head',
+            building_admin: 'Building Admin',
+            school_admin: 'School Administrator'
+        };
+        const approvalHistory = Array.isArray(event.approval_history) ? event.approval_history : [];
 
-        if (isShsEvent) {
+        if (Array.isArray(event.approval_route) && event.approval_route.length) {
+            approvalSteps = event.approval_route.map((role, index) => {
+                const level = index + 1;
+                const approvedInHistory = approvalHistory.some(entry => Number(entry.level) === level && String(entry.action || entry.status || 'approved').toLowerCase() !== 'rejected');
+                return {
+                    label: configuredRoleLabels[role] || role.replaceAll('_', ' '),
+                    level,
+                    approved: approvedInHistory || (event.status === 'Approved' && level === event.approval_route.length),
+                    current: event.status === 'Pending' && approvalLevel === level
+                };
+            });
+        } else if (isShsEvent) {
             approvalSteps = [
                 {
                     label: 'Principal Assistant',

@@ -6,6 +6,8 @@ use App\Models\ActivityLog;
 use App\Models\ArchiveFolder;
 use App\Models\Concern;
 use App\Models\EventRequest;
+use App\Models\EventApprovalChain;
+use App\Models\EventEducationLevel;
 use App\Models\EventRequestType;
 use App\Models\EventIntendedUser;
 use App\Models\EventDepartment;
@@ -16,6 +18,7 @@ use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 class EventRequestController extends Controller
 {
@@ -68,8 +71,9 @@ class EventRequestController extends Controller
                     $notificationService->notifyEventRequestStatus(
                         $eventRequest->user,
                         $eventName,
-                        max(1, min(4, $level ?: 1)),
-                        'Expired'
+                        max(1, (int) ($level ?: 1)),
+                        'Expired',
+                        $eventRequest
                     );
                 }
 
@@ -143,7 +147,8 @@ class EventRequestController extends Controller
                 'area_of_use' => 'required_if:category,Area Use|string',
                 'room_number' => 'nullable|string',
                 'department' => 'nullable|string|max:100',
-                'education_level' => 'required|string|max:50',
+                'education_level' => 'required|string|max:100',
+                'intended_user' => 'nullable|string|max:100',
                 'picture' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
             ], [
                 'description.required' => 'The description is required.',
@@ -179,19 +184,28 @@ class EventRequestController extends Controller
             }
 
             $requestType = EventRequestType::where('name', $request->request_type)->where('is_active', true)->first();
-            $intendedUser = EventIntendedUser::where('code', $request->education_level)->where('is_active', true)->first();
-            if (! $requestType || ! $intendedUser) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['request_type' => 'Please select an active request type and intended user.']);
+            $intendedUserCode = $request->intended_user ?: $request->education_level;
+            $intendedUser = EventIntendedUser::where('code', $intendedUserCode)->where('is_active', true)->first();
+            $educationLevelRecord = Schema::hasTable('event_education_levels')
+                ? EventEducationLevel::where('code', $request->education_level)->where('is_active', true)->first()
+                : null;
+            if (! $requestType || ! $intendedUser || (Schema::hasTable('event_education_levels') && ! $educationLevelRecord)) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['request_type' => 'Please select an active education level, request type, and intended user.']);
             }
-            $educationLevel = $intendedUser->code;
+            $educationLevel = $educationLevelRecord?->code ?? $request->education_level;
             $isFacultyIntended = false;
             $isShsIntended = $educationLevel === 'shs';
-            if ($requestType->requires_department && ! EventDepartment::where('name', $request->department)->where('is_active', true)->exists()) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['department' => 'Please select an active department.']);
+            $configuredChain = $educationLevelRecord && Schema::hasTable('event_approval_chains')
+                ? EventApprovalChain::where('event_education_level_id', $educationLevelRecord->id)
+                    ->where('event_request_type_id', $requestType->id)->first()
+                : null;
+            // Specific intended-user overrides take precedence, followed by the
+            // education-level/request-type combination, then the request-type default.
+            $approvalRoute = array_values($intendedUser->approval_roles ?: ($configuredChain?->approval_roles ?: ($requestType->approval_roles ?? [])));
+            $requiresDepartment = in_array('program_head', $approvalRoute, true);
+            if ($requiresDepartment && ! EventDepartment::where('name', $request->department)->where('is_active', true)->exists()) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['department' => 'Please select an active department for this approval chain.']);
             }
-            // An intended-user group may have its own route (for example SHS or Tertiary).
-            // When no override is configured, use the request type's default route.
-            $approvalRoute = array_values($intendedUser->approval_roles ?: ($requestType->approval_roles ?? []));
 
             // Determine initial approval level based on request type
             // Non-Academic: starts at Building Admin (level 3)
@@ -209,8 +223,9 @@ class EventRequestController extends Controller
                 'category' => $request->category,
                 'request_type' => $request->request_type,
                 'other_category' => $request->other_category,
-                'department' => $requestType->requires_department ? $request->department : null,
+                'department' => $requiresDepartment ? $request->department : null,
                 'education_level' => $educationLevel,
+                ...(Schema::hasColumn('event_requests', 'intended_user') ? ['intended_user' => $intendedUser->code] : []),
                 // Kept internally for the current non-null database column; it is no longer shown or chosen by users.
                 'priority' => 'medium',
                 // Faculty-intended requests are auto-approved; others go through the approval chain
@@ -257,62 +272,97 @@ class EventRequestController extends Controller
             $autoApproved = false;
             $approvalHistory = [];
 
-            // Check if requester is a Program Head
-            if (!$isShsIntended && $user->isProgramHead()) {
-                $eventRequest->approved_by_level_1 = $user->id;
-                $eventRequest->approved_at_level_1 = now();
-                $approvalHistory[] = [
-                    'level' => 1,
-                    'role' => 'Program Head',
-                    'approver' => $user->name,
-                    'approver_id' => $user->id,
-                    'at' => now()->toDateTimeString(),
-                    'notes' => 'Auto-approved (requester is also approver)',
-                ];
-                $autoApproved = true;
-            }
+            if ($eventRequest->hasConfiguredApprovalRoute()) {
+                $requiredRole = $eventRequest->requiredApprovalRole();
+                $requesterMatchesCurrentRole = $user->role === $requiredRole
+                    || ($requiredRole === 'school_admin' && $user->role === 'admin');
+                $requesterMatchesDepartment = $requiredRole !== 'program_head'
+                    || ! $user->department
+                    || $eventRequest->department === $user->department;
 
-            // Check if requester is an Academic Head
-            if ($user->isAcademicHead()) {
-                $eventRequest->approved_by_level_2 = $user->id;
-                $eventRequest->approved_at_level_2 = now();
-                $approvalHistory[] = [
-                    'level' => 2,
-                    'role' => 'Academic Head',
-                    'approver' => $user->name,
-                    'approver_id' => $user->id,
-                    'at' => now()->toDateTimeString(),
-                    'notes' => 'Auto-approved (requester is also approver)',
-                ];
-                $autoApproved = true;
-            }
+                if ($requesterMatchesCurrentRole && $requesterMatchesDepartment) {
+                    $approvalHistory[] = [
+                        'level' => 1,
+                        'role' => ucwords(str_replace('_', ' ', $requiredRole)),
+                        'approver' => $user->name,
+                        'approver_id' => $user->id,
+                        'at' => now()->toDateTimeString(),
+                        'notes' => 'Auto-approved (requester is the first configured approver)',
+                    ];
+                    $autoApproved = true;
+                }
+            } else {
+                // Legacy requests retain the original fixed-level auto-approval behavior.
+                if (! $isShsIntended && $user->isProgramHead()) {
+                    $eventRequest->approved_by_level_1 = $user->id;
+                    $eventRequest->approved_at_level_1 = now();
+                    $approvalHistory[] = [
+                        'level' => 1,
+                        'role' => 'Program Head',
+                        'approver' => $user->name,
+                        'approver_id' => $user->id,
+                        'at' => now()->toDateTimeString(),
+                        'notes' => 'Auto-approved (requester is also approver)',
+                    ];
+                    $autoApproved = true;
+                }
 
-            // Check if requester is a Building Admin
-            if ($user->isBuildingAdmin()) {
-                $eventRequest->approved_by_level_3 = $user->id;
-                $eventRequest->approved_at_level_3 = now();
-                $approvalHistory[] = [
-                    'level' => 3,
-                    'role' => 'Building Admin',
-                    'approver' => $user->name,
-                    'approver_id' => $user->id,
-                    'at' => now()->toDateTimeString(),
-                    'notes' => 'Auto-approved (requester is also approver)',
-                ];
-                $autoApproved = true;
-            }
+                if ($isShsIntended && $user->isPrincipalAssistant()) {
+                    $eventRequest->approved_by_level_1 = $user->id;
+                    $eventRequest->approved_at_level_1 = now();
+                    $approvalHistory[] = [
+                        'level' => 1,
+                        'role' => 'Principal Assistant',
+                        'approver' => $user->name,
+                        'approver_id' => $user->id,
+                        'at' => now()->toDateTimeString(),
+                        'notes' => 'Auto-approved (requester is also approver)',
+                    ];
+                    $autoApproved = true;
+                }
 
-            // Check if requester is a School Admin
-            if ($user->isSchoolAdmin() || $user->isAdmin()) {
-                $approvalHistory[] = [
-                    'level' => 4,
-                    'role' => 'School Admin',
-                    'approver' => $user->name,
-                    'approver_id' => $user->id,
-                    'at' => now()->toDateTimeString(),
-                    'notes' => 'Auto-approved (requester is also approver)',
-                ];
-                $autoApproved = true;
+                // Check if requester is an Academic Head
+                if ($user->isAcademicHead()) {
+                    $eventRequest->approved_by_level_2 = $user->id;
+                    $eventRequest->approved_at_level_2 = now();
+                    $approvalHistory[] = [
+                        'level' => 2,
+                        'role' => 'Academic Head',
+                        'approver' => $user->name,
+                        'approver_id' => $user->id,
+                        'at' => now()->toDateTimeString(),
+                        'notes' => 'Auto-approved (requester is also approver)',
+                    ];
+                    $autoApproved = true;
+                }
+
+                // Check if requester is a Building Admin
+                if ($user->isBuildingAdmin()) {
+                    $eventRequest->approved_by_level_3 = $user->id;
+                    $eventRequest->approved_at_level_3 = now();
+                    $approvalHistory[] = [
+                        'level' => 3,
+                        'role' => 'Building Admin',
+                        'approver' => $user->name,
+                        'approver_id' => $user->id,
+                        'at' => now()->toDateTimeString(),
+                        'notes' => 'Auto-approved (requester is also approver)',
+                    ];
+                    $autoApproved = true;
+                }
+
+                // Check if requester is a School Admin
+                if ($user->isSchoolAdmin() || $user->isAdmin()) {
+                    $approvalHistory[] = [
+                        'level' => 4,
+                        'role' => 'School Admin',
+                        'approver' => $user->name,
+                        'approver_id' => $user->id,
+                        'at' => now()->toDateTimeString(),
+                        'notes' => 'Auto-approved (requester is also approver)',
+                    ];
+                    $autoApproved = true;
+                }
             }
 
             // Save approval history if auto-approved
@@ -1160,7 +1210,8 @@ class EventRequestController extends Controller
                     $requester,
                     $eventRequest->location.' - '.\Carbon\Carbon::parse($eventRequest->event_date)->format('M d, Y'),
                     $level,
-                    $status
+                    $status,
+                    $eventRequest
                 );
             }
         } catch (\Exception $e) {
@@ -1175,22 +1226,43 @@ class EventRequestController extends Controller
         $eventRequest = EventRequest::findOrFail($id);
         $user = auth()->user();
 
-        // Determine which level is rejecting
-        $rejectLevel = 0;
-        $rejectRole = 'Unknown';
+        if ($eventRequest->hasConfiguredApprovalRoute()) {
+            $rejectLevel = $eventRequest->getNextApprovalLevel();
+            $requiredRole = $eventRequest->requiredApprovalRole();
+            $isAllowed = $requiredRole
+                && ($user->role === $requiredRole
+                    || ($requiredRole === 'school_admin' && $user->role === 'admin'));
 
-        if ($user->isProgramHead()) {
-            $rejectLevel = 1;
-            $rejectRole = 'Program Head';
-        } elseif ($user->isAcademicHead()) {
-            $rejectLevel = 2;
-            $rejectRole = 'Academic Head';
-        } elseif ($user->isBuildingAdmin()) {
-            $rejectLevel = 3;
-            $rejectRole = 'Building Admin';
-        } elseif ($user->isSchoolAdmin() || $user->isAdmin()) {
-            $rejectLevel = 4;
-            $rejectRole = 'School Admin';
+            if (! $rejectLevel || ! $isAllowed) {
+                return back()->with('error', 'Only the approver currently assigned to this step can reject the request.');
+            }
+
+            $rejectRole = ucwords(str_replace('_', ' ', $requiredRole));
+        } else {
+            // Determine which level is rejecting for legacy requests.
+            $rejectLevel = 0;
+            $rejectRole = 'Unknown';
+
+            if ($user->isProgramHead()) {
+                $rejectLevel = 1;
+                $rejectRole = 'Program Head';
+            } elseif ($user->isPrincipalAssistant()) {
+                $rejectLevel = 1;
+                $rejectRole = 'SHS Principal';
+            } elseif ($user->isAcademicHead()) {
+                $rejectLevel = 2;
+                $rejectRole = 'Academic Head';
+            } elseif ($user->isBuildingAdmin()) {
+                $rejectLevel = 3;
+                $rejectRole = 'Building Admin';
+            } elseif ($user->isSchoolAdmin() || $user->isAdmin()) {
+                $rejectLevel = 4;
+                $rejectRole = 'School Admin';
+            }
+
+            if ($rejectLevel === 0 || (int) $eventRequest->approval_level !== $rejectLevel) {
+                return back()->with('error', 'This request is not waiting for your approval.');
+            }
         }
 
         $eventRequest->status = 'Rejected';
@@ -1939,9 +2011,7 @@ class EventRequestController extends Controller
         }
 
         if ($viewType === 'approved') {
-            $approvedEvents = $this->approvedEventsForApprover($user)
-                ->orderBy('event_date', 'asc')
-                ->get();
+            $approvedEvents = $this->approvedEventsForApprover($user);
 
             return view('admin.events', [
                 'viewType' => $viewType,
@@ -2059,6 +2129,27 @@ class EventRequestController extends Controller
         // Filter events to show only those at the current user's approval level
         $user = auth()->user();
         $requests = $allRequests->filter(function ($eventRequest) use ($user) {
+            if ($eventRequest->hasConfiguredApprovalRoute()) {
+                $requiredRole = $eventRequest->requiredApprovalRole();
+                $matchesRole = $user->role === $requiredRole
+                    || ($requiredRole === 'school_admin' && $user->role === 'admin');
+
+                if (! $matchesRole) {
+                    return false;
+                }
+
+                if ($requiredRole === 'program_head'
+                    && $user->department
+                    && $eventRequest->department !== $user->department) {
+                    return false;
+                }
+
+                $level = $eventRequest->getNextApprovalLevel();
+
+                return $level !== null
+                    && ! $eventRequest->hasUserApprovedAtLevel($user->id, $level);
+            }
+
             $isShs = ($eventRequest->education_level ?? 'tertiary') === 'shs';
 
             // Determine the user's approval level
@@ -2132,26 +2223,23 @@ class EventRequestController extends Controller
             ->where('is_deleted', false)
             ->whereRaw("(event_date + end_time::time) > NOW()")
             ->whereNotIn('status', ['Rejected', 'Cancelled'])
-            ->where(function ($query) use ($user) {
-                if ($user->isProgramHead() || $user->isPrincipalAssistant()) {
-                    $query->orWhere('approved_by_level_1', $user->id);
+            ->orderBy('event_date', 'asc')
+            ->get()
+            ->filter(function (EventRequest $eventRequest) use ($user) {
+                $approvedInHistory = collect($eventRequest->approval_history ?? [])
+                    ->contains(fn ($entry) => (int) ($entry['approver_id'] ?? 0) === (int) $user->id
+                        && strtolower((string) ($entry['action'] ?? 'approved')) !== 'rejected');
+
+                if ($approvedInHistory) {
+                    return true;
                 }
 
-                if ($user->isAcademicHead()) {
-                    $query->orWhere('approved_by_level_2', $user->id);
-                }
-
-                if ($user->isBuildingAdmin()) {
-                    $query->orWhere('approved_by_level_3', $user->id);
-                }
-
-                if ($user->isSchoolAdmin() || $user->isAdmin()) {
-                    $query->orWhere(function ($finalApproval) use ($user) {
-                        $finalApproval->where('approved_by', $user->id)
-                            ->where('status', EventRequest::STATUS_APPROVED);
-                    });
-                }
-            });
+                return (($user->isProgramHead() || $user->isPrincipalAssistant()) && (int) $eventRequest->approved_by_level_1 === (int) $user->id)
+                    || ($user->isAcademicHead() && (int) $eventRequest->approved_by_level_2 === (int) $user->id)
+                    || ($user->isBuildingAdmin() && (int) $eventRequest->approved_by_level_3 === (int) $user->id)
+                    || (($user->isSchoolAdmin() || $user->isAdmin()) && (int) $eventRequest->approved_by === (int) $user->id);
+            })
+            ->values();
     }
 
     // Generate PDF for approved event request

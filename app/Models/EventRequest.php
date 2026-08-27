@@ -18,6 +18,7 @@ class EventRequest extends Model
         'other_category',
         'department',
         'education_level',
+        'intended_user',
         'priority',
         'cancellation_reason',
         'cancelled_at',
