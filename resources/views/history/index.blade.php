@@ -5,39 +5,6 @@
 <p>Your personal account and security activity</p>
 @endsection
 
-@push('styles')
-<style>
-    /* Fix table layout to prevent column overlap */
-    .history-table {
-        table-layout: fixed;
-        width: 100%;
-    }
-    
-    .history-table th,
-    .history-table td {
-        padding: 0.75rem;
-        vertical-align: top;
-    }
-    
-    /* Make pagination arrows smaller */
-    .pagination-sm-arrows .pagination {
-        font-size: 0.875rem;
-    }
-    
-    .pagination-sm-arrows .page-link {
-        padding: 0.375rem 0.75rem;
-        line-height: 1.25;
-    }
-    
-    .pagination-sm-arrows .page-link svg,
-    .pagination-sm-arrows .page-link i {
-        font-size: 0.75rem;
-        width: 0.875rem;
-        height: 0.875rem;
-    }
-</style>
-@endpush
-
 @section('content')
 <div class="container-fluid px-3">
     <div class="card shadow-sm border-0 mb-3">
@@ -75,29 +42,37 @@
             </form>
 
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0 history-table">
-                    <thead class="table-light">
+                <table class="table table-hover mb-0" style="font-size:13px">
+                    <thead class="table-dark">
                         <tr>
-                            <th scope="col" style="width: 15%;">Action</th>
-                            <th scope="col" style="width: 50%;">Details</th>
-                            <th scope="col" style="width: 15%;">IP Address</th>
-                            <th scope="col" style="width: 20%;">Date / Time</th>
+                            <th style="width:14%">Action</th>
+                            <th>Details</th>
+                            <th style="width:12%">IP Address</th>
+                            <th style="width:14%">Date / Time</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($history as $entry)
                             <tr>
-                                <td class="fw-semibold">{{ str($entry->action)->replace('_', ' ')->title() }}</td>
-                                <td style="word-wrap: break-word; overflow-wrap: break-word;">{{ $entry->description ?: 'No additional details recorded.' }}</td>
-                                <td class="text-nowrap">{{ $entry->ip_address ?: 'N/A' }}</td>
-                                <td class="text-nowrap">
+                                <td style="font-size:13px; color:#374151; font-weight:500;">
+                                    {{ str($entry->action)->replace('_', ' ')->title() }}
+                                </td>
+                                <td>
+                                    <div style="font-size:13px; line-height:1.7;">
+                                        {{ $entry->description ?: 'No additional details recorded.' }}
+                                    </div>
+                                </td>
+                                <td class="text-muted font-monospace" style="font-size:11px">
+                                    {{ $entry->ip_address ?: 'N/A' }}
+                                </td>
+                                <td class="text-muted">
                                     {{ optional($entry->created_at)->timezone('Asia/Manila')->format('m/d/Y') }}<br>
-                                    <span class="text-muted small">{{ optional($entry->created_at)->timezone('Asia/Manila')->format('g:i:s A') }} PHT</span>
+                                    <small>{{ optional($entry->created_at)->timezone('Asia/Manila')->format('g:i:s A') }} PHT</small>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="text-center text-muted py-5">
+                                <td colspan="4" class="text-center py-4 text-muted">
                                     <i class="fas fa-history fa-2x mb-2 d-block"></i>
                                     No activity matches the selected filters.
                                 </td>
@@ -107,11 +82,10 @@
                 </table>
             </div>
 
-            @if($history->hasPages())
-                <div class="mt-3 pagination-sm-arrows">
-                    {{ $history->links() }}
-                </div>
-            @endif
+            <div class="d-flex justify-content-between align-items-center px-3 py-2">
+                <small class="text-muted">Showing {{ $history->firstItem() ?? 0 }} – {{ $history->lastItem() ?? 0 }} of {{ $history->total() }} entries</small>
+                {{ $history->appends(request()->except('page'))->links('pagination::bootstrap-4') }}
+            </div>
         </div>
     </div>
 </div>
