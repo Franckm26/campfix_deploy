@@ -6,13 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class EventApprovalChain extends Model
 {
-    protected $fillable = ['event_education_level_id', 'event_request_type_id', 'approval_roles'];
+    protected $fillable = ['event_intended_user_id', 'event_request_type_id', 'approval_roles'];
 
     protected $casts = ['approval_roles' => 'array'];
 
-    public function educationLevel()
+    public function intendedUser()
     {
-        return $this->belongsTo(EventEducationLevel::class, 'event_education_level_id');
+        return $this->belongsTo(EventIntendedUser::class, 'event_intended_user_id');
     }
 
     public function requestType()

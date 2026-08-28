@@ -7,7 +7,6 @@ use App\Models\ArchiveFolder;
 use App\Models\Concern;
 use App\Models\EventRequest;
 use App\Models\EventApprovalChain;
-use App\Models\EventEducationLevel;
 use App\Models\EventRequestType;
 use App\Models\EventIntendedUser;
 use App\Models\EventDepartment;
@@ -147,8 +146,7 @@ class EventRequestController extends Controller
                 'area_of_use' => 'required_if:category,Area Use|string',
                 'room_number' => 'nullable|string',
                 'department' => 'nullable|string|max:100',
-                'education_level' => 'required|string|max:100',
-                'intended_user' => 'nullable|string|max:100',
+                'intended_user' => 'required|string|max:100',
                 'picture' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
             ], [
                 'description.required' => 'The description is required.',
@@ -184,24 +182,19 @@ class EventRequestController extends Controller
             }
 
             $requestType = EventRequestType::where('name', $request->request_type)->where('is_active', true)->first();
-            $intendedUserCode = $request->intended_user ?: $request->education_level;
-            $intendedUser = EventIntendedUser::where('code', $intendedUserCode)->where('is_active', true)->first();
-            $educationLevelRecord = Schema::hasTable('event_education_levels')
-                ? EventEducationLevel::where('code', $request->education_level)->where('is_active', true)->first()
-                : null;
-            if (! $requestType || ! $intendedUser || (Schema::hasTable('event_education_levels') && ! $educationLevelRecord)) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['request_type' => 'Please select an active education level, request type, and intended user.']);
+            $intendedUser = EventIntendedUser::where('code', $request->intended_user)->where('is_active', true)->first();
+            if (! $requestType || ! $intendedUser) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['request_type' => 'Please select an active request type and intended user.']);
             }
-            $educationLevel = $educationLevelRecord?->code ?? $request->education_level;
-            $isFacultyIntended = false;
-            $isShsIntended = $educationLevel === 'shs';
-            $configuredChain = $educationLevelRecord && Schema::hasTable('event_approval_chains')
-                ? EventApprovalChain::where('event_education_level_id', $educationLevelRecord->id)
+            // Keep the legacy value synchronized for existing SHS-specific displays
+            // while intended_user remains the single user-facing audience field.
+            $educationLevel = $intendedUser->code === 'shs' ? 'shs' : 'tertiary';
+            $isShsIntended = $intendedUser->code === 'shs';
+            $configuredChain = Schema::hasColumns('event_approval_chains', ['event_intended_user_id', 'event_request_type_id'])
+                ? EventApprovalChain::where('event_intended_user_id', $intendedUser->id)
                     ->where('event_request_type_id', $requestType->id)->first()
                 : null;
-            // Specific intended-user overrides take precedence, followed by the
-            // education-level/request-type combination, then the request-type default.
-            $approvalRoute = array_values($intendedUser->approval_roles ?: ($configuredChain?->approval_roles ?: ($requestType->approval_roles ?? [])));
+            $approvalRoute = array_values($configuredChain?->approval_roles ?: ($intendedUser->approval_roles ?: ($requestType->approval_roles ?? [])));
             $requiresDepartment = in_array('program_head', $approvalRoute, true);
             if ($requiresDepartment && ! EventDepartment::where('name', $request->department)->where('is_active', true)->exists()) {
                 throw \Illuminate\Validation\ValidationException::withMessages(['department' => 'Please select an active department for this approval chain.']);
@@ -211,7 +204,7 @@ class EventRequestController extends Controller
             // Non-Academic: starts at Building Admin (level 3)
             // Academic: starts at Program Head (level 1), except SHS where level 1 is Principal Assistant
             $initialApprovalLevel = EventRequest::LEVEL_NONE;
-            if (!$isFacultyIntended && $approvalRoute) $initialApprovalLevel = 1;
+            if ($approvalRoute) $initialApprovalLevel = 1;
 
             $eventRequest = EventRequest::create([
                 'user_id' => auth()->id(),
@@ -228,11 +221,11 @@ class EventRequestController extends Controller
                 ...(Schema::hasColumn('event_requests', 'intended_user') ? ['intended_user' => $intendedUser->code] : []),
                 // Kept internally for the current non-null database column; it is no longer shown or chosen by users.
                 'priority' => 'medium',
-                // Faculty-intended requests are auto-approved; others go through the approval chain
-                'status' => $isFacultyIntended ? 'Approved' : 'Pending',
-                'approval_level' => $isFacultyIntended ? EventRequest::LEVEL_APPROVED : $initialApprovalLevel,
+                // Requests without configured approvers are approved immediately.
+                'status' => $approvalRoute ? 'Pending' : 'Approved',
+                'approval_level' => $approvalRoute ? $initialApprovalLevel : EventRequest::LEVEL_APPROVED,
                 'approval_route' => $approvalRoute,
-                'approved_at' => $isFacultyIntended ? now() : null,
+                'approved_at' => $approvalRoute ? null : now(),
                 'materials_needed' => $materialsNeeded,
                 'image_path' => $imagePath,
             ]);
@@ -250,8 +243,8 @@ class EventRequestController extends Controller
 
             $notificationService = new NotificationService;
 
-            if ($isFacultyIntended) {
-                // Faculty-intended: no approval needed — notify building admin and school admin only
+            if (! $approvalRoute) {
+                // No approval route is configured, so notify the administrators directly.
                 try {
                     $notificationService->notifyAdminsOfFacultyRequest($eventRequest);
                 } catch (\Exception $notifEx) {

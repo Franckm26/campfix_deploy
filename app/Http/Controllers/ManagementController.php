@@ -6,7 +6,6 @@ use App\Models\ActivityLog;
 use App\Models\Category;
 use App\Models\EventRequest;
 use App\Models\EventApprovalChain;
-use App\Models\EventEducationLevel;
 use App\Models\EventRequestType;
 use App\Models\EventIntendedUser;
 use App\Models\EventDepartment;
@@ -70,7 +69,6 @@ class ManagementController extends Controller
         $eventRequestTypes = collect();
         $eventIntendedUsers = collect();
         $eventDepartments = collect();
-        $eventEducationLevels = collect();
         $eventApprovalChains = collect();
 
         try {
@@ -85,12 +83,10 @@ class ManagementController extends Controller
             }
 
             $approvalConfigurationReady = $eventSetupReady
-                && Schema::hasColumns('event_education_levels', ['id', 'name', 'code', 'is_active'])
-                && Schema::hasColumns('event_approval_chains', ['id', 'event_education_level_id', 'event_request_type_id', 'approval_roles']);
+                && Schema::hasColumns('event_approval_chains', ['id', 'event_intended_user_id', 'event_request_type_id', 'approval_roles']);
 
             if ($approvalConfigurationReady) {
-                $eventEducationLevels = EventEducationLevel::orderBy('name')->get();
-                $eventApprovalChains = EventApprovalChain::with(['educationLevel', 'requestType'])->get();
+                $eventApprovalChains = EventApprovalChain::with(['intendedUser', 'requestType'])->get();
             }
         } catch (Throwable $exception) {
             // A partially applied production migration must not take down the entire
@@ -103,7 +99,6 @@ class ManagementController extends Controller
             $eventRequestTypes = collect();
             $eventIntendedUsers = collect();
             $eventDepartments = collect();
-            $eventEducationLevels = collect();
             $eventApprovalChains = collect();
         }
         try {
@@ -122,22 +117,10 @@ class ManagementController extends Controller
         ];
         $eventRequestTypeOptions = $eventRequestTypes->map(fn ($item) => ['id' => $item->id, 'name' => $item->name, 'roles' => $item->approval_roles])->values()->all();
         $eventIntendedUserOptions = $eventIntendedUsers->map(fn ($item) => ['id' => $item->id, 'name' => $item->name, 'code' => $item->code, 'roles' => $item->approval_roles])->values()->all();
-        $eventApprovalChainOptions = $eventApprovalChains->map(fn ($chain) => ['education_level_id' => $chain->event_education_level_id, 'request_type_id' => $chain->event_request_type_id, 'roles' => $chain->approval_roles])->values()->all();
+        $eventApprovalChainOptions = $eventApprovalChains->map(fn ($chain) => ['intended_user_id' => $chain->event_intended_user_id, 'request_type_id' => $chain->event_request_type_id, 'roles' => $chain->approval_roles])->values()->all();
         $eventRequestTypeDefaults = $eventRequestTypes->mapWithKeys(fn ($type) => [(string) $type->id => $type->approval_roles])->all();
 
-        return view('admin.management', compact('tab', 'staff', 'facilities', 'categories', 'eventSetupReady', 'approvalConfigurationReady', 'eventRequestTypes', 'eventIntendedUsers', 'eventDepartments', 'eventEducationLevels', 'eventApprovalChains', 'events', 'approvalRoles', 'eventRequestTypeOptions', 'eventIntendedUserOptions', 'eventApprovalChainOptions', 'eventRequestTypeDefaults'));
-    }
-
-    public function storeEventEducationLevel(Request $request)
-    {
-        $this->guardBuildingAdmin();
-        $data = $request->validate(['name' => 'required|string|max:100|unique:event_education_levels,name']);
-        $baseCode = Str::slug($data['name'], '_');
-        $code = $baseCode;
-        $suffix = 2;
-        while (EventEducationLevel::where('code', $code)->exists()) $code = $baseCode.'_'.$suffix++;
-        EventEducationLevel::create(['name' => trim($data['name']), 'code' => $code, 'is_active' => true]);
-        return back()->with('success', 'Education level added. You can now configure its approval chains.');
+        return view('admin.management', compact('tab', 'staff', 'facilities', 'categories', 'eventSetupReady', 'approvalConfigurationReady', 'eventRequestTypes', 'eventIntendedUsers', 'eventDepartments', 'eventApprovalChains', 'events', 'approvalRoles', 'eventRequestTypeOptions', 'eventIntendedUserOptions', 'eventApprovalChainOptions', 'eventRequestTypeDefaults'));
     }
 
     public function storeEventApprovalChain(Request $request)
@@ -145,13 +128,13 @@ class ManagementController extends Controller
         $this->guardBuildingAdmin();
         $allowedRoles = ['principal_assistant', 'program_head', 'academic_head', 'building_admin', 'school_admin'];
         $data = $request->validate([
-            'event_education_level_id' => 'required|exists:event_education_levels,id',
+            'event_intended_user_id' => 'required|exists:event_intended_users,id',
             'event_request_type_id' => 'required|exists:event_request_types,id',
             'approval_roles' => 'required|array|min:1',
             'approval_roles.*' => 'required|string|in:'.implode(',', $allowedRoles),
         ]);
         EventApprovalChain::updateOrCreate(
-            ['event_education_level_id' => $data['event_education_level_id'], 'event_request_type_id' => $data['event_request_type_id']],
+            ['event_intended_user_id' => $data['event_intended_user_id'], 'event_request_type_id' => $data['event_request_type_id']],
             ['approval_roles' => array_values($data['approval_roles'])]
         );
         return back()->with('success', 'Approval chain saved. New event requests will use this route.');
@@ -215,7 +198,7 @@ class ManagementController extends Controller
     public function renameEventSetup(Request $request, string $type, int $id)
     {
         $this->guardBuildingAdmin();
-        $models = ['education-level' => [EventEducationLevel::class, 'event_education_levels'], 'request-type' => [EventRequestType::class, 'event_request_types'], 'intended-user' => [EventIntendedUser::class, 'event_intended_users'], 'department' => [EventDepartment::class, 'event_departments']];
+        $models = ['request-type' => [EventRequestType::class, 'event_request_types'], 'intended-user' => [EventIntendedUser::class, 'event_intended_users'], 'department' => [EventDepartment::class, 'event_departments']];
         abort_unless(isset($models[$type]), 404);
         [$model, $table] = $models[$type];
         $item = $model::findOrFail($id);
@@ -227,7 +210,7 @@ class ManagementController extends Controller
     public function destroyEventSetup(string $type, int $id)
     {
         $this->guardBuildingAdmin();
-        $model = match ($type) { 'education-level' => EventEducationLevel::class, 'request-type' => EventRequestType::class, 'intended-user' => EventIntendedUser::class, 'department' => EventDepartment::class, default => abort(404) };
+        $model = match ($type) { 'request-type' => EventRequestType::class, 'intended-user' => EventIntendedUser::class, 'department' => EventDepartment::class, default => abort(404) };
         $item = $model::findOrFail($id);
         $item->delete();
         return back()->with('success', 'Event setup item deleted.');
