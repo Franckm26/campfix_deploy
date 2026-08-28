@@ -304,70 +304,120 @@ class AdminController extends Controller
         }
 
         $viewType = $request->get('view', 'active');
+        $currentMisId = (int) auth()->id();
+        $misUsers = collect([$currentMisId]);
 
-        // Get concerns assigned to MIS users
-        $misUsers = User::where('role', 'mis')->pluck('id');
-
-        if ($viewType === 'resolved') {
-            // Get resolved concerns assigned to MIS users
-            $resolvedConcerns = Concern::with('categoryRelation', 'assignedTo', 'user')
-                ->whereIn('assigned_to', $misUsers)
-                ->where('status', 'Resolved')
-                ->where('is_deleted', false)
-                ->whereDoesntHave('archivedByUsers', function ($query) {
-                    $query->where('user_id', auth()->id());
+        $activeTasks = function () use ($currentMisId) {
+            return Concern::with('categoryRelation', 'user')
+                ->where(function ($query) use ($currentMisId) {
+                    $query->where('assigned_to', $currentMisId)
+                        ->orWhere(function ($unclaimed) {
+                            $unclaimed->whereNull('assigned_to')
+                                ->whereHas('categoryRelation', function ($category) {
+                                    $category->whereRaw('LOWER(TRIM(name)) = ?', ['technology/internet']);
+                                });
+                        });
                 })
-                ->orderBy('updated_at', 'desc')
-                ->paginate(20);
-
-            // Get active concerns for tab count
-            $concerns = Concern::with('categoryRelation', 'assignedTo', 'user')
-                ->whereIn('assigned_to', $misUsers)
                 ->where('status', '!=', 'Resolved')
                 ->where('is_deleted', false)
-                ->whereDoesntHave('archivedByUsers', function ($query) {
-                    $query->where('user_id', auth()->id());
-                })
-                ->orderBy('created_at', 'desc')
-                ->paginate(20);
+                ->whereDoesntHave('archivedByUsers', function ($query) use ($currentMisId) {
+                    $query->where('user_id', $currentMisId);
+                });
+        };
 
+        if ($viewType === 'resolved') {
+            $resolvedConcerns = Concern::with('categoryRelation', 'user')
+                ->where('assigned_to', $currentMisId)
+                ->where('status', 'Resolved')
+                ->where('is_deleted', false)
+                ->whereDoesntHave('archivedByUsers', function ($query) use ($currentMisId) {
+                    $query->where('user_id', $currentMisId);
+                })
+                ->orderBy('updated_at', 'desc')
+                ->paginate(20, ['*'], 'resolved_page');
+
+            $concerns = $activeTasks()->orderBy('created_at', 'desc')->paginate(20, ['*'], 'active_page');
             return view('admin.mis-tasks', compact('resolvedConcerns', 'concerns', 'viewType', 'misUsers'));
-        } elseif ($viewType === 'archives') {
-            // Get archived concerns assigned to MIS users
-            $concerns = Concern::with('categoryRelation', 'assignedTo', 'user', 'archivedByUsers')
-                ->whereIn('assigned_to', $misUsers)
-                ->whereHas('archivedByUsers', function ($query) {
-                    $query->where('user_id', auth()->id());
+        }
+
+        if ($viewType === 'archives') {
+            $concerns = Concern::with('categoryRelation', 'user', 'archivedByUsers')
+                ->where('assigned_to', $currentMisId)
+                ->whereHas('archivedByUsers', function ($query) use ($currentMisId) {
+                    $query->where('user_id', $currentMisId);
                 })
                 ->where('is_deleted', false)
                 ->orderBy('created_at', 'desc')
                 ->paginate(20);
-
-            return view('admin.mis-tasks', compact('concerns', 'viewType', 'misUsers'));
-        } elseif ($viewType === 'deleted') {
-            // Get deleted concerns assigned to MIS users (only those deleted by MIS users)
-            $concerns = Concern::with('categoryRelation', 'assignedTo', 'user', 'deletedBy')
-                ->whereIn('assigned_to', $misUsers)
-                ->where('is_deleted', true)
-                ->where('deleted_by', auth()->id()) // Only show concerns deleted by current MIS user
-                ->orderBy('created_at', 'desc')
-                ->paginate(20);
-
             return view('admin.mis-tasks', compact('concerns', 'viewType', 'misUsers'));
         }
 
-        // Active concerns assigned to MIS users (excluding resolved and deleted)
-        $concerns = Concern::with('categoryRelation', 'assignedTo', 'user')
-            ->whereIn('assigned_to', $misUsers)
-            ->where('status', '!=', 'Resolved')
-            ->where('is_deleted', false)
-            ->whereDoesntHave('archivedByUsers', function ($query) {
-                $query->where('user_id', auth()->id());
-            })
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
+        if ($viewType === 'deleted') {
+            $concerns = Concern::with('categoryRelation', 'user', 'deletedBy')
+                ->where('assigned_to', $currentMisId)
+                ->where('is_deleted', true)
+                ->where('deleted_by', $currentMisId)
+                ->orderBy('created_at', 'desc')
+                ->paginate(20);
+            return view('admin.mis-tasks', compact('concerns', 'viewType', 'misUsers'));
+        }
 
+        $concerns = $activeTasks()->orderBy('created_at', 'desc')->paginate(20);
         return view('admin.mis-tasks', compact('concerns', 'viewType', 'misUsers'));
+    }
+
+    public function claimMisTask(Request $request, int $id)
+    {
+        abort_unless(auth()->user()?->role === 'mis', 403);
+
+        try {
+            $concern = \Illuminate\Support\Facades\DB::transaction(function () use ($id) {
+                $concern = Concern::with('categoryRelation')->lockForUpdate()->findOrFail($id);
+                $categoryName = strtolower(trim((string) $concern->categoryRelation?->name));
+
+                abort_unless($categoryName === 'technology/internet', 422, 'Only Technology/Internet concerns can be claimed as MIS tasks.');
+                abort_if($concern->status === 'Resolved', 422, 'This task is already resolved.');
+                abort_if($concern->assigned_to && (int) $concern->assigned_to !== (int) auth()->id(), 409, 'Another MIS staff member already claimed this task.');
+
+                if (! $concern->assigned_to) {
+                    $concern->assigned_to = auth()->id();
+                    $concern->assigned_at = now();
+                    $concern->status = 'Assigned';
+                    $concern->save();
+
+                    Report::where('concern_id', $concern->id)
+                        ->where('status', '!=', 'Resolved')
+                        ->update([
+                            'assigned_to' => auth()->id(),
+                            'assigned_at' => now(),
+                            'status' => 'Assigned',
+                        ]);
+                }
+
+                return $concern;
+            });
+
+            $this->sendConcernUpdateNotification(
+                $concern,
+                'MIS Task Assigned',
+                'Your Technology/Internet concern was accepted by '.auth()->user()->name.'.',
+                auth()->user()
+            );
+            ActivityLog::log('mis_task_claimed', 'MIS task assigned to self by '.auth()->user()->name, $concern->id, 'concern');
+
+            if ($request->expectsJson()) {
+                return response()->json(['success' => true, 'message' => 'The task is now assigned to you.']);
+            }
+            return back()->with('success', 'The task is now assigned to you.');
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $exception) {
+            throw $exception;
+        } catch (\Throwable $exception) {
+            \Log::error('MIS task claim failed.', ['concern_id' => $id, 'user_id' => auth()->id(), 'error' => $exception->getMessage()]);
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'error' => 'Unable to assign this task. Please try again.'], 500);
+            }
+            return back()->with('error', 'Unable to assign this task. Please try again.');
+        }
     }
 
     // Update concern status - Admin or maintenance can update any concern
@@ -384,9 +434,8 @@ class AdminController extends Controller
             return back()->with('error', 'You do not have permission to update this concern.');
         }
 
-        // Maintenance can only update their own assigned concerns.
-        // MIS users can update any concern assigned to any MIS user (department-level access).
-        if ($user->role === 'maintenance' && $concern->assigned_to !== $user->id) {
+        // Staff can only progress work that is assigned to them.
+        if ($user->role === 'maintenance' && (int) $concern->assigned_to !== (int) $user->id) {
             if ($request->expectsJson()) {
                 return response()->json(['error' => 'You can only update concerns assigned to you.'], 403);
             }
@@ -394,12 +443,11 @@ class AdminController extends Controller
         }
 
         if ($user->role === 'mis') {
-            $misUserIds = \App\Models\User::where('role', 'mis')->pluck('id');
-            if (! $misUserIds->contains($concern->assigned_to)) {
+            if ((int) $concern->assigned_to !== (int) $user->id) {
                 if ($request->expectsJson()) {
-                    return response()->json(['error' => 'This concern is not assigned to the MIS department.'], 403);
+                    return response()->json(['error' => 'Claim this MIS task before updating its status.'], 403);
                 }
-                return back()->with('error', 'This concern is not assigned to the MIS department.');
+                return back()->with('error', 'Claim this MIS task before updating its status.');
             }
         }
 
@@ -716,23 +764,16 @@ class AdminController extends Controller
             $isTechnologyCategory = $report->category && strtolower(trim($report->category->name)) === 'technology/internet';
             
             if ($isTechnologyCategory) {
-                // Validate for MIS user (from users table)
-                $request->validate([
-                    'assigned_to' => 'required|exists:users,id',
-                    'notes'       => 'nullable|string|max:1000',
-                ]);
-                
-                // Get the MIS user
-                $assignedUser = User::findOrFail($request->input('assigned_to'));
-                
-                // Verify the user is actually MIS
-                if ($assignedUser->role !== 'mis') {
+                if ($user->role !== 'mis') {
                     if ($request->expectsJson()) {
-                        return response()->json(['error' => 'Selected user is not a MIS staff member.'], 422);
+                        return response()->json(['error' => 'Technology/Internet tasks must be claimed by MIS staff from the MIS Task page.'], 403);
                     }
-                    return back()->with('error', 'Selected user is not a MIS staff member.');
+                    return back()->with('error', 'Technology/Internet tasks must be claimed by MIS staff from the MIS Task page.');
                 }
-                
+
+                $request->merge(['assigned_to' => $user->id]);
+                $request->validate(['notes' => 'nullable|string|max:1000']);
+                $assignedUser = $user;
                 $assignedName = $assignedUser->name;
             } else {
                 // Validate for Maintenance staff (from maintenance_staff table)
@@ -1963,13 +2004,12 @@ class AdminController extends Controller
 
         $concern = Concern::findOrFail($id);
 
-        // Verify this concern is assigned to a MIS user
-        $misUsers = User::where('role', 'mis')->pluck('id');
-        if (!$misUsers->contains($concern->assigned_to)) {
+        // MIS staff may only manage tasks that they claimed themselves.
+        if ((int) $concern->assigned_to !== (int) auth()->id()) {
             if ($request->expectsJson()) {
-                return response()->json(['error' => 'This concern is not assigned to the MIS department.'], 403);
+                return response()->json(['error' => 'This MIS task is not assigned to you.'], 403);
             }
-            return back()->with('error', 'This concern is not assigned to the MIS department.');
+            return back()->with('error', 'This MIS task is not assigned to you.');
         }
 
         // Archive for the current MIS user only (not affecting personal concerns)
@@ -2001,13 +2041,12 @@ class AdminController extends Controller
 
         $concern = Concern::findOrFail($id);
 
-        // Verify this concern is assigned to a MIS user
-        $misUsers = User::where('role', 'mis')->pluck('id');
-        if (!$misUsers->contains($concern->assigned_to)) {
+        // MIS staff may only manage tasks that they claimed themselves.
+        if ((int) $concern->assigned_to !== (int) auth()->id()) {
             if ($request->expectsJson()) {
-                return response()->json(['error' => 'This concern is not assigned to the MIS department.'], 403);
+                return response()->json(['error' => 'This MIS task is not assigned to you.'], 403);
             }
-            return back()->with('error', 'This concern is not assigned to the MIS department.');
+            return back()->with('error', 'This MIS task is not assigned to you.');
         }
 
         // Check if concern is assigned but not resolved - assigned concerns cannot be deleted unless resolved
@@ -2050,13 +2089,12 @@ class AdminController extends Controller
 
         $concern = Concern::findOrFail($id);
 
-        // Verify this concern is assigned to a MIS user
-        $misUsers = User::where('role', 'mis')->pluck('id');
-        if (!$misUsers->contains($concern->assigned_to)) {
+        // MIS staff may only manage tasks that they claimed themselves.
+        if ((int) $concern->assigned_to !== (int) auth()->id()) {
             if ($request->expectsJson()) {
-                return response()->json(['error' => 'This concern is not assigned to the MIS department.'], 403);
+                return response()->json(['error' => 'This MIS task is not assigned to you.'], 403);
             }
-            return back()->with('error', 'This concern is not assigned to the MIS department.');
+            return back()->with('error', 'This MIS task is not assigned to you.');
         }
 
         // Remove from archive for the current MIS user
@@ -2088,8 +2126,9 @@ class AdminController extends Controller
 
         $concern = Concern::findOrFail($id);
 
-        // Verify this concern was deleted by current MIS user
-        if ($concern->deleted_by !== auth()->id()) {
+        // Only the MIS owner who deleted the task may restore it.
+        if ((int) $concern->assigned_to !== (int) auth()->id()
+            || (int) $concern->deleted_by !== (int) auth()->id()) {
             if ($request->expectsJson()) {
                 return response()->json(['error' => 'You can only restore MIS task concerns that you deleted.'], 403);
             }
@@ -2358,7 +2397,16 @@ class AdminController extends Controller
     // Show edit user form
     public function editUser($uuid)
     {
-        $user = User::hideSuperadmin()->where('uuid', $uuid)->firstOrFail();
+        // Older imported accounts may not have a UUID yet. Accept their numeric
+        // primary key as a compatibility fallback while preferring UUIDs.
+        $user = User::hideSuperadmin()
+            ->where(function ($query) use ($uuid) {
+                $query->where('uuid', $uuid);
+                if (ctype_digit((string) $uuid)) {
+                    $query->orWhere('id', (int) $uuid);
+                }
+            })
+            ->firstOrFail();
         
         // If it's an AJAX request, return JSON
         if (request()->expectsJson() || request()->ajax()) {
@@ -2371,7 +2419,9 @@ class AdminController extends Controller
                 'department' => $user->department,
                 'phone' => $user->phone,
                 'student_id' => $user->student_id,
-                'permissions' => $user->permissions ?? []
+                'permissions' => $user->permissions ?? [],
+                'created_at' => $user->created_at?->toIso8601String(),
+                'updated_at' => $user->updated_at?->toIso8601String(),
             ]);
         }
         

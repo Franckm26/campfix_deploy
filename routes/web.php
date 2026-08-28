@@ -311,6 +311,7 @@ Route::middleware(['auth', 'admin', 'throttle:admin'])->group(function () {
 
     // MIS Task Module
     Route::get('/admin/mis-tasks', [AdminController::class, 'misTasks'])->name('admin.mis-tasks');
+    Route::post('/admin/mis-tasks/{id}/claim', [AdminController::class, 'claimMisTask'])->name('admin.mis-tasks.claim');
 
     // Archive management
     Route::get('/admin/archive', [AdminController::class, 'archive'])->name('admin.archive');

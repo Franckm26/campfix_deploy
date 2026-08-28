@@ -6,7 +6,7 @@
 
 @section('page_title')
 <h2><i class="fas fa-tasks"></i> MIS Task Module</h2>
-<p>Manage concerns assigned to MIS department</p>
+<p>Claim available Technology/Internet concerns and manage your own MIS tasks</p>
 @endsection
 
 @section('content')
@@ -63,7 +63,7 @@
     <!-- Concerns Table -->
     <div class="card">
         <div class="card-header py-2 py-md-3">
-            <h5 class="mb-0">Assigned Concerns</h5>
+            <h5 class="mb-0">Available and My MIS Tasks</h5>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -206,6 +206,11 @@
                                             <i class="fas fa-eye"></i>
                                         </button>
                                         @if($viewType === 'active')
+                                            @if(!$concern->assigned_to)
+                                            <button type="button" class="btn btn-sm btn-primary bg-transparent border-0" onclick="claimMisTask({{ $concern->id }})" title="Assign this task to me">
+                                                <i class="fas fa-user-check"></i>
+                                            </button>
+                                            @else
                                             <button type="button" class="btn btn-sm btn-secondary bg-transparent border-0" onclick="showArchiveModal({{ $concern->id }})" title="Archive">
                                                 <i class="fas fa-archive"></i>
                                             </button>
@@ -217,6 +222,7 @@
                                             <button type="button" class="btn btn-sm btn-secondary bg-transparent border-0" disabled title="Cannot delete assigned concerns until resolved">
                                                 <i class="fas fa-trash"></i>
                                             </button>
+                                            @endif
                                             @endif
                                         @elseif($viewType === 'archives')
                                             <form method="POST" action="{{ route('admin.mis-tasks.restore', $concern->id) }}" class="d-inline">
@@ -250,7 +256,7 @@
                                     @elseif($viewType === 'deleted')
                                         No deleted concerns found
                                     @else
-                                        No concerns assigned to MIS department
+                                        No available Technology/Internet concerns or tasks assigned to you
                                     @endif
                                 </td>
                             </tr>
@@ -459,6 +465,41 @@ function viewConcern(id) {
             icon: 'error',
             title: 'Error',
             text: 'Error loading concern details: ' + error.message
+        });
+    });
+}
+
+function claimMisTask(id) {
+    Swal.fire({
+        icon: 'question',
+        title: 'Assign this task to you?',
+        text: 'Once assigned, you can start work and continue the task until it is resolved.',
+        showCancelButton: true,
+        confirmButtonText: '<i class="fas fa-user-check me-1"></i> Assign to me',
+        confirmButtonColor: '#0d6efd'
+    }).then(function (result) {
+        if (!result.isConfirmed) return;
+        Swal.fire({ title: 'Assigning task...', allowOutsideClick: false, showConfirmButton: false, didOpen: function () { Swal.showLoading(); } });
+        fetch('/admin/mis-tasks/' + id + '/claim', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(async function (response) {
+            var data = await response.json().catch(function () { return {}; });
+            if (!response.ok) throw new Error(data.error || data.message || 'Unable to assign this task.');
+            return data;
+        })
+        .then(function (data) {
+            Swal.fire({ icon: 'success', title: 'Task Assigned', text: data.message, timer: 1500, showConfirmButton: false })
+                .then(function () { window.location.reload(); });
+        })
+        .catch(function (error) {
+            Swal.fire({ icon: 'error', title: 'Unable to Assign Task', text: error.message });
         });
     });
 }

@@ -323,7 +323,7 @@
                     </thead>
                     <tbody>
                         @forelse($users as $user)
-                            <tr data-id="{{ $user->id }}" data-role="{{ $user->role }}" data-archived="{{ $user->is_archived ? '1' : '0' }}">
+                            <tr data-id="{{ $user->uuid ?? $user->id }}" data-role="{{ $user->role }}" data-archived="{{ $user->is_archived ? '1' : '0' }}">
                                 <td style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" class="user-checkbox active-user-checkbox" value="{{ $user->id }}" onchange="updateSelectedCount(); updateActiveBulkActions()"></td>
                                 <td>{{ $user->student_id ?? 'N/A' }}</td>
                                 <td>{{ $user->name }}</td>
@@ -341,7 +341,7 @@
                                 <td>{{ $user->phone ?? 'N/A' }}</td>
                                 <td>
                                     <div class="btn-group" role="group">
-                                        <button type="button" class="btn btn-sm btn-info" onclick="viewUser({{ $user->id }})" title="View">
+                                        <button type="button" class="btn btn-sm btn-info" onclick="viewUser('{{ $user->uuid ?? $user->id }}')" title="View">
                                             <i class="fas fa-eye"></i>
                                         </button>
                                         @if(auth()->user()->canAccess('users_edit') && !$user->isProtectedFrom(auth()->user()))
@@ -426,7 +426,7 @@
                             </div>
                         </div>
                         <div class="user-card-actions">
-                            <button type="button" class="btn btn-sm btn-info" onclick="viewUser({{ $user->id }})">
+                            <button type="button" class="btn btn-sm btn-info" onclick="viewUser('{{ $user->uuid ?? $user->id }}')">
                                 <i class="fas fa-eye"></i> View
                             </button>
                             @if(auth()->user()->canAccess('users_edit') && !$user->isProtectedFrom(auth()->user()))
