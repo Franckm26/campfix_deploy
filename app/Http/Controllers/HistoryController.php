@@ -28,7 +28,9 @@ class HistoryController extends Controller
             'per_page' => ['nullable', 'integer', 'in:10,20,50,100'],
         ]);
 
-        $query = ActivityLog::query()->where('user_id', $user->id);
+        $query = ActivityLog::query()
+            ->where('user_id', $user->id)
+            ->where('action', '!=', 'event_auto_rejected_expired');
 
         if (! empty($validated['search'])) {
             $search = trim($validated['search']);
