@@ -498,6 +498,8 @@
             @if(! $eventSetupReady)
                 <div class="alert alert-warning mb-4"><i class="fas fa-database"></i> Event Setup will be available after the latest database migration is applied. The existing event-request workflow remains available.</div>
             @else
+            @include('admin.partials.event-setup-lists')
+            @if(false)
             <style>
                 .event-setup-grid .border { border-color: #dbe4f0 !important; border-radius: 12px !important; }
                 .event-setup-grid h6 { font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem; }
@@ -567,6 +569,8 @@
             <div class="row g-4 mb-0 event-setup-grid">
                 <div class="col-12"><div class="border rounded p-3 h-100"><h6><i class="fas fa-building text-primary"></i> Departments</h6><form method="POST" action="{{ route('admin.management.event-departments.store') }}" class="mb-3">@csrf<input class="form-control form-control-sm mb-2" name="name" placeholder="Department name" required><button class="btn btn-sm btn-primary">Add department</button></form>@foreach($eventDepartments as $item)<div class="border-top pt-2 mt-2">{{ $item->name }}<form class="d-inline" method="POST" action="{{ route('admin.management.event-setup.toggle', ['type' => 'department', 'id' => $item->id]) }}">@csrf @method('PATCH') <button class="btn btn-link btn-sm p-0">{{ $item->is_active ? 'Deactivate' : 'Activate' }}</button></form></div>@endforeach</div></div>
             </div>
+            @endif
+            @if(false)
             <script>
                 document.addEventListener('DOMContentLoaded', function () {
                     var approvalText = document.querySelector('.approval-flow-text');
@@ -646,17 +650,11 @@
 
                     document.querySelectorAll('.event-request-type-role').forEach(function (checkbox) { checkbox.addEventListener('change', updateFlow); });
                     modalElement.addEventListener('show.bs.modal', function (event) { if (event.relatedTarget) { form.reset(); document.getElementById('eventRequestTypeModalLabel').textContent = 'Add request type'; document.getElementById('eventRequestTypeSaveLabel').textContent = 'Add request type'; form.action = storeUrl; document.getElementById('eventRequestTypeMethod').value = ''; updateFlow(); } });
-                    document.querySelectorAll('.event-setup-grid form[action*="event-setup/request-type/"]').forEach(function (deleteForm) {
-                        var id = deleteForm.action.match(/request-type\/(\d+)/)[1];
-                        var deleteButton = deleteForm.querySelector('button');
-                        deleteButton.textContent = 'Delete';
-                        deleteButton.classList.remove('btn-link');
-                        deleteButton.classList.add('btn-outline-danger');
-                        deleteForm.addEventListener('submit', function (event) { if (!window.confirm('Delete this request type? Existing event requests will keep their saved information.')) event.preventDefault(); });
-                        var edit = document.createElement('button');
-                        edit.type = 'button'; edit.className = 'btn btn-sm btn-outline-primary me-2'; edit.innerHTML = '<i class="fas fa-edit"></i> Edit';
-                        edit.addEventListener('click', function () { var item = types.find(function (type) { return String(type.id) === id; }); if (item) openTypeModal(item); });
-                        deleteForm.insertAdjacentElement('beforebegin', edit);
+                    document.querySelectorAll('.edit-request-type').forEach(function (editButton) {
+                        editButton.addEventListener('click', function () {
+                            var item = types.find(function (type) { return String(type.id) === editButton.dataset.id; });
+                            if (item) openTypeModal(item);
+                        });
                     });
 
                     var intendedModal = document.getElementById('eventIntendedUserModal');
@@ -680,15 +678,11 @@
                     }
 
                     intendedModal.addEventListener('show.bs.modal', function (event) { if (event.relatedTarget) { intendedForm.reset(); document.getElementById('eventIntendedUserModalLabel').textContent = 'Add intended user'; document.getElementById('eventIntendedUserSaveLabel').textContent = 'Add intended user'; intendedForm.action = intendedStoreUrl; document.getElementById('eventIntendedUserMethod').value = ''; } });
-                    document.querySelectorAll('.event-setup-grid form[action*="event-setup/intended-user/"]').forEach(function (deleteForm) {
-                        var id = deleteForm.action.match(/intended-user\/(\d+)/)[1];
-                        var deleteButton = deleteForm.querySelector('button');
-                        deleteButton.textContent = 'Delete'; deleteButton.classList.remove('btn-link'); deleteButton.classList.add('btn-outline-danger');
-                        deleteForm.addEventListener('submit', function (event) { if (!window.confirm('Delete this intended user? Existing event requests will keep their saved information.')) event.preventDefault(); });
-                        var edit = document.createElement('button');
-                        edit.type = 'button'; edit.className = 'btn btn-sm btn-outline-primary me-2'; edit.innerHTML = '<i class="fas fa-edit"></i> Edit';
-                        edit.addEventListener('click', function () { var item = intendedUsers.find(function (user) { return String(user.id) === id; }); if (item) openIntendedUserModal(item); });
-                        deleteForm.insertAdjacentElement('beforebegin', edit);
+                    document.querySelectorAll('.edit-intended-user').forEach(function (editButton) {
+                        editButton.addEventListener('click', function () {
+                            var item = intendedUsers.find(function (user) { return String(user.id) === editButton.dataset.id; });
+                            if (item) openIntendedUserModal(item);
+                        });
                     });
                 });
             </script>
@@ -697,6 +691,7 @@
                 document.addEventListener('DOMContentLoaded', function () {
                     var form = document.getElementById('eventApprovalChainForm');
                     if (!form) return;
+                    var modalElement = document.getElementById('eventApprovalChainModal');
                     var intendedUserSelect = document.getElementById('chainIntendedUser');
                     var typeSelect = document.getElementById('chainRequestType');
                     var flow = document.getElementById('chainFlowPreview');
@@ -730,10 +725,213 @@
                     intendedUserSelect.addEventListener('change', loadCombination);
                     typeSelect.addEventListener('change', loadCombination);
                     form.querySelectorAll('.chain-role-checkbox').forEach(function (checkbox) { checkbox.addEventListener('change', renderFlow); });
+                    document.querySelectorAll('.configure-approval-chain').forEach(function (button) {
+                        button.addEventListener('click', function () {
+                            if (button.dataset.intendedUserId) intendedUserSelect.value = button.dataset.intendedUserId;
+                            if (button.dataset.requestTypeId) typeSelect.value = button.dataset.requestTypeId;
+                            loadCombination();
+                            bootstrap.Modal.getOrCreateInstance(modalElement).show();
+                        });
+                    });
                     loadCombination();
                 });
             </script>
             @endif
+            @endif
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    var csrfToken = @json(csrf_token());
+                    var roleLabels = @json($approvalRoles);
+                    var requestTypes = @json($eventRequestTypeOptions);
+                    var intendedUsers = @json($eventIntendedUserOptions);
+                    var approvalChains = @json($eventApprovalChainOptions);
+                    var requestTypeDefaults = @json($eventRequestTypeDefaults);
+                    var requestTypeStoreUrl = @json(route('admin.management.event-types.store'));
+                    var requestTypeUpdateUrl = @json(url('/admin/management/event-setup/request-types'));
+                    var intendedUserStoreUrl = @json(route('admin.management.event-intended-users.store'));
+                    var intendedUserUpdateUrl = @json(url('/admin/management/event-setup/intended-users'));
+                    var departmentStoreUrl = @json(route('admin.management.event-departments.store'));
+                    var departmentUpdateUrl = @json(url('/admin/management/event-setup/department'));
+                    var approvalChainStoreUrl = @json(route('admin.management.event-approval-chains.store'));
+
+                    function escapeHtml(value) {
+                        var element = document.createElement('div');
+                        element.textContent = value == null ? '' : String(value);
+                        return element.innerHTML;
+                    }
+
+                    function submitEventSetup(url, method, fields) {
+                        var form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = url;
+                        form.style.display = 'none';
+                        var values = Object.assign({ _token: csrfToken }, fields || {});
+                        if (method && method !== 'POST') values._method = method;
+                        Object.keys(values).forEach(function (name) {
+                            var fieldValues = Array.isArray(values[name]) ? values[name] : [values[name]];
+                            fieldValues.forEach(function (value) {
+                                var input = document.createElement('input');
+                                input.type = 'hidden';
+                                input.name = Array.isArray(values[name]) ? name + '[]' : name;
+                                input.value = value;
+                                form.appendChild(input);
+                            });
+                        });
+                        document.body.appendChild(form);
+                        form.submit();
+                    }
+
+                    function roleChecklist(selectedRoles, checkboxClass) {
+                        var selected = selectedRoles || [];
+                        return '<div class="event-swal-role-grid">' + Object.keys(roleLabels).map(function (role, index) {
+                            return '<label class="event-swal-role"><input type="checkbox" class="form-check-input me-2 ' + checkboxClass + '" value="' + escapeHtml(role) + '" data-label="' + escapeHtml(roleLabels[role]) + '" ' + (selected.includes(role) ? 'checked' : '') + '><span><strong>' + (index + 1) + '.</strong> ' + escapeHtml(roleLabels[role]) + '</span></label>';
+                        }).join('') + '</div>';
+                    }
+
+                    function selectedRoles(popup, checkboxClass) {
+                        return Array.from(popup.querySelectorAll('.' + checkboxClass + ':checked')).map(function (checkbox) { return checkbox.value; });
+                    }
+
+                    function renderSwalFlow(popup, checkboxClass, targetId) {
+                        var roles = Array.from(popup.querySelectorAll('.' + checkboxClass + ':checked'));
+                        var target = popup.querySelector('#' + targetId);
+                        if (!target) return;
+                        target.innerHTML = roles.length
+                            ? roles.map(function (checkbox, index) { return '<span class="event-swal-flow-step"><b>' + (index + 1) + '</b>' + escapeHtml(checkbox.dataset.label) + '</span>' + (index < roles.length - 1 ? '<i class="fas fa-arrow-right text-muted"></i>' : ''); }).join('')
+                            : '<span class="text-muted">Select one or more approvers.</span>';
+                    }
+
+                    function openRequestType(item) {
+                        var editing = Boolean(item);
+                        Swal.fire({
+                            title: editing ? 'Edit Request Type' : 'Add Request Type',
+                            html: '<div class="text-start"><label class="form-label fw-semibold">Request type</label><input id="eventSwalTypeName" class="swal2-input event-swal-input" placeholder="e.g. Academic" value="' + escapeHtml(editing ? item.name : '') + '"><div class="mt-3"><label class="form-label fw-semibold mb-1">Who should approve this request?</label><p class="small text-muted mb-2">Select the approvers. They will act in the order shown.</p>' + roleChecklist(editing ? item.roles : [], 'event-swal-type-role') + '<div id="eventSwalTypeFlow" class="event-swal-flow mt-3"></div><div id="eventSwalDepartmentNotice" class="alert alert-info small mt-3 mb-0 d-none"><i class="fas fa-building me-1"></i>A department will be required because Program Head is included.</div></div></div>',
+                            width: 820,
+                            showCancelButton: true,
+                            confirmButtonText: editing ? 'Save Changes' : 'Add Request Type',
+                            confirmButtonColor: '#0d6efd',
+                            focusConfirm: false,
+                            didOpen: function (popup) {
+                                function refresh() {
+                                    renderSwalFlow(popup, 'event-swal-type-role', 'eventSwalTypeFlow');
+                                    popup.querySelector('#eventSwalDepartmentNotice').classList.toggle('d-none', !selectedRoles(popup, 'event-swal-type-role').includes('program_head'));
+                                }
+                                popup.querySelectorAll('.event-swal-type-role').forEach(function (checkbox) { checkbox.addEventListener('change', refresh); });
+                                refresh();
+                            },
+                            preConfirm: function () {
+                                var popup = Swal.getPopup();
+                                var name = popup.querySelector('#eventSwalTypeName').value.trim();
+                                var roles = selectedRoles(popup, 'event-swal-type-role');
+                                if (!name) return Swal.showValidationMessage('Enter a request type name.');
+                                if (!roles.length) return Swal.showValidationMessage('Select at least one approver.');
+                                return { name: name, approval_roles: roles };
+                            }
+                        }).then(function (result) {
+                            if (result.isConfirmed) submitEventSetup(editing ? requestTypeUpdateUrl + '/' + item.id : requestTypeStoreUrl, editing ? 'PUT' : 'POST', result.value);
+                        });
+                    }
+
+                    function openIntendedUser(item) {
+                        var editing = Boolean(item);
+                        Swal.fire({
+                            title: editing ? 'Edit Intended User' : 'Add Intended User',
+                            text: editing ? 'Update the audience-group name.' : 'Add an audience group for the event request form.',
+                            input: 'text',
+                            inputValue: editing ? item.name : '',
+                            inputPlaceholder: 'e.g. Junior High School',
+                            showCancelButton: true,
+                            confirmButtonText: editing ? 'Save Changes' : 'Add User Group',
+                            confirmButtonColor: '#0d6efd',
+                            inputValidator: function (value) { return !value.trim() ? 'Enter an intended user name.' : null; }
+                        }).then(function (result) {
+                            if (result.isConfirmed) submitEventSetup(editing ? intendedUserUpdateUrl + '/' + item.id : intendedUserStoreUrl, editing ? 'PUT' : 'POST', { name: result.value.trim() });
+                        });
+                    }
+
+                    function openDepartment(item) {
+                        var editing = Boolean(item);
+                        Swal.fire({
+                            title: editing ? 'Edit Department' : 'Add Department',
+                            input: 'text',
+                            inputValue: editing ? item.name : '',
+                            inputPlaceholder: 'e.g. ICT',
+                            showCancelButton: true,
+                            confirmButtonText: editing ? 'Save Changes' : 'Add Department',
+                            confirmButtonColor: '#0d6efd',
+                            inputValidator: function (value) { return !value.trim() ? 'Enter a department name.' : null; }
+                        }).then(function (result) {
+                            if (result.isConfirmed) submitEventSetup(editing ? departmentUpdateUrl + '/' + item.id : departmentStoreUrl, editing ? 'PATCH' : 'POST', { name: result.value.trim() });
+                        });
+                    }
+
+                    function openApprovalChain(initialIntendedUserId, initialRequestTypeId) {
+                        if (!intendedUsers.length || !requestTypes.length) {
+                            Swal.fire({ icon: 'info', title: 'Setup Required', text: 'Add at least one intended user and request type first.' });
+                            return;
+                        }
+                        var intendedId = String(initialIntendedUserId || intendedUsers[0].id);
+                        var typeId = String(initialRequestTypeId || requestTypes[0].id);
+                        var intendedOptions = intendedUsers.map(function (item) { return '<option value="' + item.id + '" ' + (String(item.id) === intendedId ? 'selected' : '') + '>' + escapeHtml(item.name) + '</option>'; }).join('');
+                        var typeOptions = requestTypes.map(function (item) { return '<option value="' + item.id + '" ' + (String(item.id) === typeId ? 'selected' : '') + '>' + escapeHtml(item.name) + '</option>'; }).join('');
+                        Swal.fire({
+                            title: 'Configure Approval Chain',
+                            html: '<div class="text-start"><p class="text-muted">Choose a combination, then select the approvers in first-to-last order.</p><div class="row g-3"><div class="col-md-6"><label class="form-label fw-semibold">Intended user</label><select id="eventSwalChainUser" class="form-select">' + intendedOptions + '</select></div><div class="col-md-6"><label class="form-label fw-semibold">Request type</label><select id="eventSwalChainType" class="form-select">' + typeOptions + '</select></div></div><div id="eventSwalChainStatus" class="alert alert-light border small mt-3 mb-3"></div><label class="form-label fw-semibold">Approvers, in order</label>' + roleChecklist([], 'event-swal-chain-role') + '<div id="eventSwalChainFlow" class="event-swal-flow mt-3"></div><p class="small text-muted mt-3 mb-0"><i class="fas fa-info-circle me-1"></i>Including Program Head automatically requires a department.</p></div>',
+                            width: 920,
+                            showCancelButton: true,
+                            confirmButtonText: 'Save Approval Chain',
+                            confirmButtonColor: '#0d6efd',
+                            focusConfirm: false,
+                            didOpen: function (popup) {
+                                var userSelect = popup.querySelector('#eventSwalChainUser');
+                                var typeSelect = popup.querySelector('#eventSwalChainType');
+                                function loadCombination() {
+                                    var chain = approvalChains.find(function (entry) { return String(entry.intended_user_id) === userSelect.value && String(entry.request_type_id) === typeSelect.value; });
+                                    var roles = chain ? (chain.roles || []) : (requestTypeDefaults[typeSelect.value] || []);
+                                    popup.querySelectorAll('.event-swal-chain-role').forEach(function (checkbox) { checkbox.checked = roles.includes(checkbox.value); });
+                                    popup.querySelector('#eventSwalChainStatus').innerHTML = chain
+                                        ? '<i class="fas fa-circle-check text-success me-1"></i><strong>Saved chain.</strong> Change the approvers below to update it.'
+                                        : '<i class="fas fa-circle-info text-primary me-1"></i><strong>Using request-type default.</strong> Save to create a custom chain.';
+                                    renderSwalFlow(popup, 'event-swal-chain-role', 'eventSwalChainFlow');
+                                }
+                                userSelect.addEventListener('change', loadCombination);
+                                typeSelect.addEventListener('change', loadCombination);
+                                popup.querySelectorAll('.event-swal-chain-role').forEach(function (checkbox) { checkbox.addEventListener('change', function () { renderSwalFlow(popup, 'event-swal-chain-role', 'eventSwalChainFlow'); }); });
+                                loadCombination();
+                            },
+                            preConfirm: function () {
+                                var popup = Swal.getPopup();
+                                var roles = selectedRoles(popup, 'event-swal-chain-role');
+                                if (!roles.length) return Swal.showValidationMessage('Select at least one approver.');
+                                return { event_intended_user_id: popup.querySelector('#eventSwalChainUser').value, event_request_type_id: popup.querySelector('#eventSwalChainType').value, approval_roles: roles };
+                            }
+                        }).then(function (result) {
+                            if (result.isConfirmed) submitEventSetup(approvalChainStoreUrl, 'POST', result.value);
+                        });
+                    }
+
+                    document.querySelectorAll('.add-request-type').forEach(function (button) { button.addEventListener('click', function () { openRequestType(null); }); });
+                    document.querySelectorAll('.edit-request-type').forEach(function (button) { button.addEventListener('click', function () { openRequestType(requestTypes.find(function (item) { return String(item.id) === button.dataset.id; })); }); });
+                    document.querySelectorAll('.add-intended-user').forEach(function (button) { button.addEventListener('click', function () { openIntendedUser(null); }); });
+                    document.querySelectorAll('.edit-intended-user').forEach(function (button) { button.addEventListener('click', function () { openIntendedUser(intendedUsers.find(function (item) { return String(item.id) === button.dataset.id; })); }); });
+                    document.querySelectorAll('.add-event-department').forEach(function (button) { button.addEventListener('click', function () { openDepartment(null); }); });
+                    document.querySelectorAll('.edit-event-department').forEach(function (button) { button.addEventListener('click', function () { openDepartment({ id: button.dataset.id, name: button.dataset.name }); }); });
+                    document.querySelectorAll('.configure-approval-chain').forEach(function (button) { button.addEventListener('click', function () { openApprovalChain(button.dataset.intendedUserId, button.dataset.requestTypeId); }); });
+                    document.querySelectorAll('.event-config-delete-form').forEach(function (form) {
+                        form.addEventListener('submit', function (event) {
+                            event.preventDefault();
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Delete ' + form.dataset.itemType + '?',
+                                text: form.dataset.itemName + ' will be removed. Existing event requests keep their saved information.',
+                                showCancelButton: true,
+                                confirmButtonText: 'Delete',
+                                confirmButtonColor: '#dc3545'
+                            }).then(function (result) { if (result.isConfirmed) form.submit(); });
+                        });
+                    });
+                });
+            </script>
             @endif
         </div>
     </div>
@@ -745,6 +943,7 @@
      MODALS
 ══════════════════════════════════════════════════════════════════════════ --}}
 
+@if(false)
 {{-- Event Request Type Modal --}}
 <div class="modal fade" id="eventRequestTypeModal" tabindex="-1" aria-labelledby="eventRequestTypeModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
@@ -794,6 +993,91 @@
         </div>
     </div>
 </div>
+
+{{-- Approval Chain Modal --}}
+@if($approvalConfigurationReady)
+<div class="modal fade" id="eventApprovalChainModal" tabindex="-1" aria-labelledby="eventApprovalChainModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div><h5 class="modal-title" id="eventApprovalChainModalLabel"><i class="fas fa-sitemap text-primary me-2"></i>Configure Approval Chain</h5><small class="text-muted">Choose the combination and arrange approvers from first to last.</small></div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ route('admin.management.event-approval-chains.store') }}" id="eventApprovalChainForm">
+                @csrf
+                <div class="modal-body">
+                    <div class="row g-3 align-items-end mb-4">
+                        <div class="col-md-5"><label class="form-label" for="chainIntendedUser">Intended user</label><select class="form-select" name="event_intended_user_id" id="chainIntendedUser" required>@foreach($eventIntendedUsers->where('is_active', true) as $intendedUser)<option value="{{ $intendedUser->id }}">{{ $intendedUser->name }}</option>@endforeach</select></div>
+                        <div class="col-md-2 text-center pb-2 fw-bold text-muted">chooses</div>
+                        <div class="col-md-5"><label class="form-label" for="chainRequestType">Request type</label><select class="form-select" name="event_request_type_id" id="chainRequestType" required>@foreach($eventRequestTypes->where('is_active', true) as $type)<option value="{{ $type->id }}">{{ $type->name }}</option>@endforeach</select></div>
+                    </div>
+                    <div class="alert alert-light border py-2 mb-3" id="chainConfigurationStatus"></div>
+                    <label class="form-label fw-bold">Approvers, in order</label>
+                    <div class="row g-2 mb-3">
+                        @foreach($approvalRoles as $role => $label)
+                            <div class="col-md"><label class="approval-role-option d-block h-100"><input class="form-check-input me-2 chain-role-checkbox" type="checkbox" name="approval_roles[]" value="{{ $role }}" data-label="{{ $label }}">{{ $label }}</label></div>
+                        @endforeach
+                    </div>
+                    <div class="approval-flow-preview d-flex flex-wrap align-items-center gap-2" id="chainFlowPreview"><span class="text-muted">Select one or more approvers.</span></div>
+                    <div class="small text-muted mt-3"><i class="fas fa-info-circle"></i> Including Program Head automatically requires a department in the event request form.</div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" type="submit"><i class="fas fa-save"></i> Save Approval Chain</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+@endif
+
+{{-- Department Modal --}}
+<div class="modal fade" id="eventDepartmentModal" tabindex="-1" aria-labelledby="eventDepartmentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title" id="eventDepartmentModalLabel"><i class="fas fa-building text-primary me-2"></i>Add Department</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+            <form id="eventDepartmentForm" method="POST" action="{{ route('admin.management.event-departments.store') }}">
+                @csrf
+                <input id="eventDepartmentMethod" type="hidden" name="_method" value="">
+                <div class="modal-body"><label class="form-label" for="eventDepartmentName">Department name</label><input class="form-control" id="eventDepartmentName" name="name" placeholder="e.g. ICT" required></div>
+                <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> <span id="eventDepartmentSaveLabel">Add Department</span></button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@if($tab === 'events')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var modalElement = document.getElementById('eventDepartmentModal');
+    var form = document.getElementById('eventDepartmentForm');
+    if (!modalElement || !form) return;
+    var storeUrl = @json(route('admin.management.event-departments.store'));
+    var updateBaseUrl = @json(url('/admin/management/event-setup/department'));
+
+    function resetDepartmentModal() {
+        form.reset();
+        form.action = storeUrl;
+        document.getElementById('eventDepartmentMethod').value = '';
+        document.getElementById('eventDepartmentModalLabel').textContent = 'Add Department';
+        document.getElementById('eventDepartmentSaveLabel').textContent = 'Add Department';
+    }
+
+    modalElement.addEventListener('show.bs.modal', function (event) {
+        if (event.relatedTarget && !event.relatedTarget.classList.contains('edit-event-department')) resetDepartmentModal();
+    });
+    document.querySelectorAll('.edit-event-department').forEach(function (button) {
+        button.addEventListener('click', function () {
+            form.reset();
+            form.action = updateBaseUrl + '/' + button.dataset.id;
+            document.getElementById('eventDepartmentMethod').value = 'PATCH';
+            document.getElementById('eventDepartmentName').value = button.dataset.name;
+            document.getElementById('eventDepartmentModalLabel').textContent = 'Edit Department';
+            document.getElementById('eventDepartmentSaveLabel').textContent = 'Save Changes';
+            bootstrap.Modal.getOrCreateInstance(modalElement).show();
+        });
+    });
+});
+</script>
+@endif
+@endif
 
 {{-- Add Staff Modal --}}
 <div class="modal fade" id="addStaffModal" tabindex="-1">
