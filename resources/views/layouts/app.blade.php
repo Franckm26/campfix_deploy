@@ -382,7 +382,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <i class="fas fa-users"></i> {{ app()->getLocale() === 'tl' ? 'Mga Gumagamit' : 'Users' }}
             </a>
 
-            <a href="/admin/logs" class="{{ Request::is('admin/logs') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
+            <a href="{{ route('admin.logs') }}" class="{{ Request::is('admin/logs*') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-history"></i> {{ app()->getLocale() === 'tl' ? 'Audit Logs' : 'Audit Logs' }}
             </a>
 
@@ -437,9 +437,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 <i class="fas fa-tools"></i> Management
             </a>
 
-            <a href="/admin/logs" class="{{ Request::is('admin/logs') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
-                <i class="fas fa-history"></i> Audit Logs
-            </a>
         @endif
 
         {{-- School Admin, Academic Head, Program Head, Principal Assistant navigation --}}
@@ -467,7 +464,11 @@ document.addEventListener('DOMContentLoaded', function() {
         @endif
 
         {{-- Settings — visible to all roles --}}
-        @if(auth()->user()->role !== 'mis')
+        @if(auth()->user()->role !== 'mis' && auth()->user()->role !== 'superadmin' && !auth()->user()->is_superadmin)
+            <a href="{{ route('history.index') }}" class="{{ Request::is('history') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
+                <i class="fas fa-history"></i> History
+            </a>
+
             <a href="/settings" class="{{ Request::is('settings') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-cog"></i> {{ app()->getLocale() === 'tl' ? 'Mga Setting' : 'Settings' }}
             </a>

@@ -4304,20 +4304,7 @@ class AdminController extends Controller
 
         $query = ActivityLog::with('user', 'concern')
             ->where('is_archived', $isArchived)
-            ->where(function ($query) {
-                $query->whereNotNull('item_user_id')
-                    ->orWhere('action', 'like', 'user_%')
-                    ->orWhere('action', 'like', 'users_%')
-                    ->orWhere('action', 'like', 'account_%')
-                    ->orWhere('action', 'like', 'login%')
-                    ->orWhere('action', 'like', 'logout%')
-                    ->orWhere('action', 'like', 'microsoft_login%')
-                    ->orWhere('action', 'like', 'password_%')
-                    ->orWhere('action', 'like', 'permission_%')
-                    ->orWhere('action', 'like', 'role_%')
-                    ->orWhere('action', 'like', 'security_%')
-                    ->orWhere('action', 'like', 'session_%');
-            })
+            ->forensic()
             // Never expose superadmin actions to regular admins
             ->whereDoesntHave('user', fn($q) => $q->withoutGlobalScopes()
                 ->where(function ($q) {
@@ -4401,7 +4388,7 @@ class AdminController extends Controller
             ['description' => 'Archived on ' . now()->format('M d, Y'), 'log_count' => 0]
         );
 
-        $count = ActivityLog::where('is_archived', false)->update([
+        $count = ActivityLog::forensic()->where('is_archived', false)->update([
             'is_archived'           => true,
             'archived_at'           => now(),
             'archived_by'           => auth()->id(),
