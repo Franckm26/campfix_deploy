@@ -5,6 +5,27 @@
 <p>Your personal account and security activity</p>
 @endsection
 
+@push('styles')
+<style>
+    /* Make pagination arrows smaller */
+    .pagination-sm-arrows .pagination {
+        font-size: 0.875rem;
+    }
+    
+    .pagination-sm-arrows .page-link {
+        padding: 0.375rem 0.75rem;
+        line-height: 1.25;
+    }
+    
+    .pagination-sm-arrows .page-link svg,
+    .pagination-sm-arrows .page-link i {
+        font-size: 0.75rem;
+        width: 0.875rem;
+        height: 0.875rem;
+    }
+</style>
+@endpush
+
 @section('content')
 <div class="container-fluid px-3">
     <div class="card shadow-sm border-0 mb-3">
@@ -45,17 +66,17 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th scope="col">Action</th>
+                            <th scope="col" style="width: 180px;">Action</th>
                             <th scope="col">Details</th>
-                            <th scope="col">IP Address</th>
-                            <th scope="col">Date / Time</th>
+                            <th scope="col" style="width: 130px;">IP Address</th>
+                            <th scope="col" style="width: 150px;">Date / Time</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($history as $entry)
                             <tr>
                                 <td class="fw-semibold text-nowrap">{{ str($entry->action)->replace('_', ' ')->title() }}</td>
-                                <td style="min-width:280px">{{ $entry->description ?: 'No additional details recorded.' }}</td>
+                                <td style="min-width:280px; max-width: 500px; word-wrap: break-word;">{{ $entry->description ?: 'No additional details recorded.' }}</td>
                                 <td class="text-nowrap">{{ $entry->ip_address ?: 'N/A' }}</td>
                                 <td class="text-nowrap">
                                     {{ optional($entry->created_at)->timezone('Asia/Manila')->format('m/d/Y') }}<br>
@@ -75,7 +96,9 @@
             </div>
 
             @if($history->hasPages())
-                <div class="mt-3">{{ $history->links() }}</div>
+                <div class="mt-3 pagination-sm-arrows">
+                    {{ $history->links() }}
+                </div>
             @endif
         </div>
     </div>
