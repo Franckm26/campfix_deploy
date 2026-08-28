@@ -13,27 +13,65 @@
         overflow-x: auto;
     }
 
-    .history-table {
+    table.table.history-table {
         width: 100%;
-        min-width: 860px;
-        table-layout: fixed;
+        min-width: 960px !important;
+        table-layout: fixed !important;
     }
 
-    .history-table th,
-    .history-table td {
+    table.table.history-table > thead > tr > th,
+    table.table.history-table > tbody > tr > td {
         padding: .9rem 1rem !important;
         vertical-align: top;
         text-align: left;
+        box-sizing: border-box;
     }
 
-    .history-table th {
+    table.table.history-table > thead > tr > th {
         white-space: nowrap;
     }
 
-    .history-table .history-action,
-    .history-table .history-description {
-        overflow-wrap: anywhere;
-        word-break: normal;
+    table.table.history-table > thead > tr > th:nth-child(1),
+    table.table.history-table > tbody > tr > td:nth-child(1) {
+        width: 20% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        white-space: normal !important;
+        text-align: left !important;
+    }
+
+    table.table.history-table > thead > tr > th:nth-child(2),
+    table.table.history-table > tbody > tr > td:nth-child(2) {
+        width: 50% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        white-space: normal !important;
+    }
+
+    table.table.history-table > thead > tr > th:nth-child(3),
+    table.table.history-table > tbody > tr > td:nth-child(3) {
+        width: 13% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+    }
+
+    table.table.history-table > thead > tr > th:nth-child(4),
+    table.table.history-table > tbody > tr > td:nth-child(4) {
+        width: 17% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        text-align: left !important;
+    }
+
+    .history-action-text,
+    .history-description-text {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        white-space: normal !important;
+        overflow-wrap: anywhere !important;
+        word-break: normal !important;
+        line-height: 1.4;
     }
 
     .history-table .history-ip,
@@ -155,8 +193,8 @@
             <div class="history-table-wrap">
                 <table class="table table-hover align-middle mb-0 history-table">
                     <colgroup>
-                        <col style="width: 18%">
-                        <col style="width: 52%">
+                        <col style="width: 20%">
+                        <col style="width: 50%">
                         <col style="width: 13%">
                         <col style="width: 17%">
                     </colgroup>
@@ -171,8 +209,8 @@
                     <tbody>
                         @forelse($history as $entry)
                             <tr>
-                                <td class="history-action fw-semibold">{{ str($entry->action)->replace('_', ' ')->title() }}</td>
-                                <td class="history-description">{{ $entry->description ?: 'No additional details recorded.' }}</td>
+                                <td class="history-action fw-semibold"><span class="history-action-text">{{ str($entry->action)->replace('_', ' ')->title() }}</span></td>
+                                <td class="history-description"><span class="history-description-text">{{ $entry->description ?: 'No additional details recorded.' }}</span></td>
                                 <td class="history-ip">{{ $entry->ip_address ?: 'N/A' }}</td>
                                 <td class="history-date">
                                     {{ optional($entry->created_at)->timezone('Asia/Manila')->format('m/d/Y') }}<br>
