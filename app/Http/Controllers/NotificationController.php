@@ -76,7 +76,7 @@ class NotificationController extends Controller
                         'location' => $concern->location ?: 'N/A',
                         'status' => $concern->status ?: 'Pending',
                         'priority' => $concern->priority ?: 'Not set',
-                        'reported_by' => $concern->user?->name ?: 'Unknown user',
+                        'reported_by' => $concern->is_anonymous ? 'Anonymous' : $concern->reporter_display_name,
                         'created_at' => $concern->created_at ? $concern->created_at->copy()->timezone(self::DISPLAY_TIMEZONE)->format('m/d/Y g:i A') : null,
                         'report_count' => $concern->report_count ?? 1,
                         'description' => $concern->description ?: 'No description provided.',

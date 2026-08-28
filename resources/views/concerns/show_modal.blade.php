@@ -39,7 +39,7 @@
                     @if(auth()->user()->role === 'mis')
                     <p>
                         <strong>Reported by:</strong>
-                        {{ $concern->is_anonymous ? 'Anonymous' : ($concern->user->name ?? 'Unknown') }}
+                        {{ $concern->is_anonymous ? 'Anonymous' : $concern->reporter_display_name }}
                     </p>
                     @endif
                 </div>

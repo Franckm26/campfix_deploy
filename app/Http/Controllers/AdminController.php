@@ -23,6 +23,7 @@ use App\Notifications\EmailAddressNotification;
 use App\Helpers\PasswordGenerator;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
@@ -1212,7 +1213,7 @@ class AdminController extends Controller
                             'location' => $report->location,
                             'priority' => $report->priority,
                             'status' => $report->status,
-                            'user' => $report->user ? $report->user->name : 'Unknown',
+                            'user' => $report->reporter_display_name,
                             'updated_at' => $report->updated_at->format('M d, Y h:i A'),
                             'deleted_by' => $report->deletedBy ? $report->deletedBy->name : 'System',
                         ];
@@ -2814,16 +2815,20 @@ class AdminController extends Controller
         $userName = $user->name;
         $folderId = $user->archive_folder_id;
 
-        // Permanently delete the user
-        ActivityLog::log('user_permanent_delete', "Permanently deleted user: {$userName}");
-        $user->forceDelete();
+        DB::transaction(function () use ($user, $userName, $folderId): void {
+            // Detach submissions before deleting the account. This is a second
+            // line of defense in addition to the database SET NULL foreign key.
+            $this->preserveUserSubmissions($user);
 
-        // Update folder user count
-        $folder = UserArchiveFolder::find($folderId);
-        if ($folder) {
-            $folder->user_count = $folder->archivedUsers()->count();
-            $folder->save();
-        }
+            ActivityLog::log('user_permanent_delete', "Permanently deleted user: {$userName}");
+            $user->forceDelete();
+
+            $folder = UserArchiveFolder::find($folderId);
+            if ($folder) {
+                $folder->user_count = $folder->archivedUsers()->count();
+                $folder->save();
+            }
+        });
 
         return redirect()->route('admin.users', ['view' => 'deleted'])->with('success', "User '{$userName}' has been permanently deleted!");
     }
@@ -2844,16 +2849,49 @@ class AdminController extends Controller
 
         $count = $users->count();
 
-        foreach ($users as $user) {
-            ActivityLog::log('user_permanent_delete', "Permanently deleted user: {$user->name}");
-            $user->forceDelete();
-        }
+        DB::transaction(function () use ($users, $deletedFolder): void {
+            foreach ($users as $user) {
+                $this->preserveUserSubmissions($user);
+                ActivityLog::log('user_permanent_delete', "Permanently deleted user: {$user->name}");
+                $user->forceDelete();
+            }
 
-        // Reset folder count
-        $deletedFolder->user_count = 0;
-        $deletedFolder->save();
+            $deletedFolder->user_count = 0;
+            $deletedFolder->save();
+        });
 
         return redirect()->route('admin.users', ['view' => 'deleted'])->with('success', "{$count} user(s) have been permanently deleted!");
+    }
+
+    /**
+     * Freeze the account data on every submitted concern/report, then detach
+     * the live account reference so deleting the user cannot delete history.
+     */
+    private function preserveUserSubmissions(User $user): void
+    {
+        Concern::where('user_id', $user->id)->chunkById(100, function ($concerns) use ($user): void {
+            foreach ($concerns as $concern) {
+                $snapshot = array_filter(
+                    Concern::reporterSnapshotFor($user),
+                    fn ($value, $column) => $concern->getAttribute($column) === null,
+                    ARRAY_FILTER_USE_BOTH
+                );
+
+                $concern->forceFill($snapshot + ['user_id' => null])->save();
+            }
+        });
+
+        Report::withTrashed()->where('user_id', $user->id)->chunkById(100, function ($reports) use ($user): void {
+            foreach ($reports as $report) {
+                $snapshot = array_filter(
+                    Report::reporterSnapshotFor($user, true),
+                    fn ($value, $column) => $report->getAttribute($column) === null,
+                    ARRAY_FILTER_USE_BOTH
+                );
+
+                $report->forceFill($snapshot + ['user_id' => null])->save();
+            }
+        });
     }
 
     // =====================================================

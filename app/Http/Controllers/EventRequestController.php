@@ -1609,7 +1609,7 @@ class EventRequestController extends Controller
                     'type' => strtolower(str_replace('-', '_', $concern->status)),
                     'location' => $location,
                     'description' => $concern->description,
-                    'requestedBy' => $concern->user->name ?? 'Anonymous',
+                    'requestedBy' => $concern->is_anonymous ? 'Anonymous' : $concern->reporter_display_name,
                     'status' => $concern->status,
                 ],
             ];

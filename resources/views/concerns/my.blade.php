@@ -390,7 +390,7 @@
                                                 @if($concern->is_anonymous)
                                                     Anonymous
                                                 @else
-                                                    {{ $concern->user->name ?? 'Unknown' }}
+                                                    {{ $concern->reporter_display_name }}
                                                     @if($concern->user)
                                                         <small class="text-muted">({{ $concern->user->role }})</small>
                                                     @endif
@@ -489,7 +489,7 @@
                                                 @if($concern->is_anonymous)
                                                     Anonymous
                                                 @else
-                                                    {{ $concern->user->name ?? 'Unknown' }}
+                                                    {{ $concern->reporter_display_name }}
                                                 @endif
                                             </span>
                                         </div>
@@ -648,7 +648,7 @@
                                                 @if($concern->is_anonymous)
                                                     Anonymous
                                                 @else
-                                                    {{ $concern->user->name ?? 'Unknown' }}
+                                                    {{ $concern->reporter_display_name }}
                                                     @if($concern->user)
                                                         <small class="text-muted">({{ $concern->user->role }})</small>
                                                     @endif
@@ -731,7 +731,7 @@
                                                 @if($concern->is_anonymous)
                                                     Anonymous
                                                 @else
-                                                    {{ $concern->user->name ?? 'Unknown' }}
+                                                    {{ $concern->reporter_display_name }}
                                                 @endif
                                             </span>
                                         </div>

@@ -68,7 +68,7 @@
                             <span class="sa-badge sa-badge-yellow" style="font-size:10px">Archived</span>
                         @endif
                     </td>
-                    <td style="color:var(--sa-muted);font-size:12px">{{ $concern->user->name ?? '—' }}</td>
+                    <td style="color:var(--sa-muted);font-size:12px">{{ $concern->is_anonymous ? 'Anonymous' : $concern->reporter_display_name }}</td>
                     <td style="color:var(--sa-muted);font-size:12px">{{ $concern->category ?? '—' }}</td>
                     <td style="color:var(--sa-muted);font-size:12px">{{ Str::limit($concern->location ?? '—', 30) }}</td>
                     <td><span class="sa-badge {{ $statusColors[$concern->status] ?? 'sa-badge-gray' }}">{{ $concern->status }}</span></td>

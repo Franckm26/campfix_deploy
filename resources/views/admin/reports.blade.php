@@ -416,7 +416,7 @@
                                             </span>
                                         </td>
                                         <td>
-                                            {{ $report->reported_by_name ?? ($report->user ? $report->user->name : 'Unknown') }}
+                                            {{ $report->reporter_display_name }}
                                         </td>
                                         <td>{{ $report->created_at->format('m/d/Y') }}</td>
                                         <td>{{ $report->resolved_at ? $report->resolved_at->format('M d, Y g:i A') : '-' }}</td>
@@ -520,7 +520,7 @@
                             </div>
                             <div class="report-card-field">
                                 <span class="report-card-label">Reported By:</span>
-                                <span class="report-card-value">{{ $report->reported_by_name ?? ($report->user ? $report->user->name : 'Unknown') }}</span>
+                                <span class="report-card-value">{{ $report->reporter_display_name }}</span>
                             </div>
                             <div class="report-card-field">
                                 <span class="report-card-label">Created:</span>
@@ -639,7 +639,7 @@
                                             </span>
                                         @endif
                                     </td>
-                                    <td>{{ $report->reported_by_name ?? ($report->user ? $report->user->name : 'Unknown') }}</td>
+                                    <td>{{ $report->reporter_display_name }}</td>
                                     <td>{{ $report->created_at->format('m/d/Y') }}</td>
                                     <td>{{ $report->resolved_at ? $report->resolved_at->format('M d, Y g:i A') : '-' }}</td>
                                     <td>PHP{{ number_format($report->cost ?? 0, 2) }}</td>
@@ -712,7 +712,7 @@
                                 </div>
                                 <div class="report-card-field">
                                     <span class="report-card-label">Reported By:</span>
-                                    <span class="report-card-value">{{ $report->reported_by_name ?? ($report->user ? $report->user->name : 'Unknown') }}</span>
+                                    <span class="report-card-value">{{ $report->reporter_display_name }}</span>
                                 </div>
                                 <div class="report-card-field">
                                     <span class="report-card-label">Resolved:</span>
@@ -818,7 +818,7 @@
                                                 </span>
                                             </td>
                                             <td>
-                                                {{ $concern->is_anonymous ? 'Anonymous' : ($concern->user->name ?? 'Unknown') }}
+                                                {{ $concern->is_anonymous ? 'Anonymous' : $concern->reporter_display_name }}
                                             </td>
                                             <td>{{ $concern->created_at->format('m/d/Y') }}</td>
                                             <td>{{ $concern->resolved_at ? $concern->resolved_at->format('m/d/Y') : '-' }}</td>
@@ -895,7 +895,7 @@
                                         </div>
                                         <div class="report-card-field">
                                             <span class="report-card-label">Reported By:</span>
-                                            <span class="report-card-value">{{ $concern->is_anonymous ? 'Anonymous' : ($concern->user->name ?? 'Unknown') }}</span>
+                                            <span class="report-card-value">{{ $concern->is_anonymous ? 'Anonymous' : $concern->reporter_display_name }}</span>
                                         </div>
                                         <div class="report-card-field">
                                             <span class="report-card-label">Created:</span>
@@ -1074,7 +1074,7 @@
                                             {{ ucfirst($report->status) }}
                                         </span>
                                     </td>
-                                    <td>{{ $report->reported_by_name ?? ($report->user ? $report->user->name : 'Unknown') }}</td>
+                                    <td>{{ $report->reporter_display_name }}</td>
                                     <td>{{ $report->updated_at->format('M d, Y h:i A') }}</td>
                                     <td>{{ $report->deletedBy ? $report->deletedBy->name : 'System' }}</td>
                                     <td>
@@ -1187,7 +1187,7 @@
                                 </div>
                                 <div class="report-card-field">
                                     <span class="report-card-label">Reported By:</span>
-                                    <span class="report-card-value">{{ $report->reported_by_name ?? ($report->user ? $report->user->name : 'Unknown') }}</span>
+                                    <span class="report-card-value">{{ $report->reporter_display_name }}</span>
                                 </div>
                                 <div class="report-card-field">
                                     <span class="report-card-label">Deleted Date:</span>

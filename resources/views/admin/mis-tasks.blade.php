@@ -101,7 +101,7 @@
                                             <i class="fas fa-image text-muted ms-1" title="Has photo"></i>
                                         @endif
                                     </td>
-                                    <td>{{ $concern->user->name ?? 'N/A' }}</td>
+                                    <td>{{ $concern->is_anonymous ? 'Anonymous' : $concern->reporter_display_name }}</td>
                                     <td>{{ $concern->categoryRelation->name ?? 'N/A' }}</td>
                                     <td>{{ $concern->location }}</td>
                                     <td>
@@ -167,7 +167,7 @@
                                         <i class="fas fa-image text-muted ms-1" title="Has photo"></i>
                                     @endif
                                 </td>
-                                <td>{{ $concern->user->name ?? 'N/A' }}</td>
+                                <td>{{ $concern->is_anonymous ? 'Anonymous' : $concern->reporter_display_name }}</td>
                                 <td>{{ $concern->categoryRelation->name ?? 'N/A' }}</td>
                                 <td>{{ $concern->location }}</td>
                                 <td>
