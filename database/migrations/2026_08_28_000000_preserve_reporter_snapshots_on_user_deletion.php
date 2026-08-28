@@ -9,6 +9,7 @@ return new class extends Migration
 {
     public function up(): void
     {
+        $this->ensureReporterSnapshotColumns();
         $this->backfillReporterSnapshots();
         $this->preserveOwnedRecords('concerns');
         $this->preserveOwnedRecords('reports');
@@ -19,6 +20,35 @@ return new class extends Migration
     {
         // Restoring cascade deletion would make historical submissions unsafe.
         // Keep SET NULL semantics when rolling back application releases.
+    }
+
+    private function ensureReporterSnapshotColumns(): void
+    {
+        $tables = [
+            'concerns' => ['reporter_name', 'reporter_email', 'reporter_role', 'reporter_department', 'reporter_phone', 'reporter_student_id'],
+            'reports' => ['reported_by_name', 'reporter_email', 'reporter_role', 'reporter_department', 'reporter_phone', 'reporter_student_id'],
+        ];
+
+        foreach ($tables as $table => $columns) {
+            if (! Schema::hasTable($table)) {
+                continue;
+            }
+
+            $missingColumns = array_values(array_filter(
+                $columns,
+                fn (string $column): bool => ! Schema::hasColumn($table, $column)
+            ));
+
+            if ($missingColumns === []) {
+                continue;
+            }
+
+            Schema::table($table, function (Blueprint $blueprint) use ($missingColumns): void {
+                foreach ($missingColumns as $column) {
+                    $blueprint->string($column)->nullable();
+                }
+            });
+        }
     }
 
     private function preserveOwnedRecords(string $table): void

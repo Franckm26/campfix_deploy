@@ -1,6 +1,22 @@
 -- Run once in Supabase SQL Editor if production does not execute Laravel migrations.
 -- This preserves concerns/reports after permanent account deletion.
 
+-- Some production databases did not receive the earlier snapshot migration.
+-- Create every required column before attempting the historical backfill.
+alter table public.concerns add column if not exists reporter_name varchar(255);
+alter table public.concerns add column if not exists reporter_email varchar(255);
+alter table public.concerns add column if not exists reporter_role varchar(255);
+alter table public.concerns add column if not exists reporter_department varchar(255);
+alter table public.concerns add column if not exists reporter_phone varchar(255);
+alter table public.concerns add column if not exists reporter_student_id varchar(255);
+
+alter table public.reports add column if not exists reported_by_name varchar(255);
+alter table public.reports add column if not exists reporter_email varchar(255);
+alter table public.reports add column if not exists reporter_role varchar(255);
+alter table public.reports add column if not exists reporter_department varchar(255);
+alter table public.reports add column if not exists reporter_phone varchar(255);
+alter table public.reports add column if not exists reporter_student_id varchar(255);
+
 update public.concerns records
 set reporter_name = coalesce(records.reporter_name, (select log.old_values->>'name' from public.activity_logs log where log.item_user_id = records.user_id and log.action = 'user_updated' and log.created_at >= records.created_at and log.old_values->>'name' is not null order by log.created_at asc limit 1), users.name, 'Unknown'),
     reporter_email = coalesce(records.reporter_email, (select log.old_values->>'email' from public.activity_logs log where log.item_user_id = records.user_id and log.action = 'user_updated' and log.created_at >= records.created_at and log.old_values->>'email' is not null order by log.created_at asc limit 1), users.email),
