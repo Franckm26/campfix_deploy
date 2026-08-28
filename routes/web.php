@@ -348,6 +348,7 @@ Route::middleware(['auth', 'admin', 'throttle:admin'])->group(function () {
     Route::post('/admin/users/unlock/{uuid}', [AdminController::class, 'unlockUser'])->name('admin.users.unlock');
     Route::post('/admin/users/archive-selected', [AdminController::class, 'archiveSelectedUsers'])->name('admin.users.archiveSelected');
     Route::post('/admin/users/delete-all-archived', [AdminController::class, 'deleteAllArchived'])->name('admin.users.deleteAllArchived');
+    Route::post('/admin/users/restore-all-archived', [AdminController::class, 'restoreAllArchivedUsers'])->name('admin.users.restoreAllArchived');
     Route::post('/admin/users/restore-selected', [AdminController::class, 'restoreSelectedUsers'])->name('admin.users.restoreSelected');
     Route::post('/admin/users/restore-all-folder/{folder_id}', [AdminController::class, 'restoreAllFolderUsers'])->name('admin.users.restoreAllFolder');
     Route::post('/admin/users/import', [AdminController::class, 'importUsers'])->name('admin.users.import');

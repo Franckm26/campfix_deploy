@@ -3314,27 +3314,75 @@ class AdminController extends Controller
     // Restore all users in a folder
     public function restoreAllFolderUsers($folder_id)
     {
-        $folder = UserArchiveFolder::findOrFail($folder_id);
+        $folder = UserArchiveFolder::where('name', '!=', 'Deleted Users')->findOrFail($folder_id);
         $folderName = $folder->name;
 
         // Restore in one database statement. Loading and saving thousands of
         // users one-by-one can exceed serverless request limits on Vercel.
         $count = User::withoutGlobalScopes()
             ->where('archive_folder_id', $folder_id)
+            ->where('is_archived', true)
+            ->where('is_deleted', false)
             ->update([
                 'is_archived' => false,
                 'archive_folder_id' => null,
                 'updated_at' => now(),
             ]);
 
-        // Delete the folder if all users were restored
-        if ($count > 0) {
+        $remainingUsers = $folder->archivedUsers()->count();
+        if ($remainingUsers === 0) {
             $folder->delete();
             ActivityLog::log('archive_folder_deleted', "Deleted empty archive folder: {$folderName}");
-            ActivityLog::log('users_restored', "Restored {$count} users from archive folder: {$folderName}");
+        } else {
+            $folder->update(['user_count' => $remainingUsers]);
         }
 
-        return redirect()->route('admin.users', ['view' => 'archives'])->with('success', "Successfully restored {$count} users from folder '{$folderName}'! The empty folder has been deleted.");
+        ActivityLog::log('users_restored', "Restored {$count} users from archive folder: {$folderName}");
+
+        $message = "Successfully restored {$count} user(s) from folder '{$folderName}'.";
+        if ($remainingUsers === 0) {
+            $message .= ' The empty folder was removed.';
+        }
+
+        return redirect()->route('admin.users', ['view' => 'archives'])->with('success', $message);
+    }
+
+    // Restore every non-deleted user from all user archive folders.
+    public function restoreAllArchivedUsers(Request $request)
+    {
+        $count = \Illuminate\Support\Facades\DB::transaction(function () {
+            $restored = User::withoutGlobalScopes()
+                ->where('is_archived', true)
+                ->where('is_deleted', false)
+                ->update([
+                    'is_archived' => false,
+                    'archive_folder_id' => null,
+                    'updated_at' => now(),
+                ]);
+
+            UserArchiveFolder::where('name', '!=', 'Deleted Users')->get()->each(function ($folder) {
+                $remainingUsers = $folder->archivedUsers()->count();
+                if ($remainingUsers === 0) {
+                    $folder->delete();
+                } else {
+                    $folder->update(['user_count' => $remainingUsers]);
+                }
+            });
+
+            return $restored;
+        });
+
+        ActivityLog::log('users_restored', "Restored {$count} users from all archive folders");
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Successfully restored {$count} archived user(s).",
+            ]);
+        }
+
+        return redirect()->route('admin.users', ['view' => 'archives'])
+            ->with('success', "Successfully restored {$count} archived user(s)!");
     }
 
     // Archive all users
