@@ -7,6 +7,18 @@
 
 @push('styles')
 <style>
+    /* Fix table layout to prevent column overlap */
+    .history-table {
+        table-layout: fixed;
+        width: 100%;
+    }
+    
+    .history-table th,
+    .history-table td {
+        padding: 0.75rem;
+        vertical-align: top;
+    }
+    
     /* Make pagination arrows smaller */
     .pagination-sm-arrows .pagination {
         font-size: 0.875rem;
@@ -63,24 +75,24 @@
             </form>
 
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
+                <table class="table table-hover align-middle mb-0 history-table">
                     <thead class="table-light">
                         <tr>
-                            <th scope="col" style="width: 180px;">Action</th>
-                            <th scope="col">Details</th>
-                            <th scope="col" style="width: 130px;">IP Address</th>
-                            <th scope="col" style="width: 150px;">Date / Time</th>
+                            <th scope="col" style="width: 15%;">Action</th>
+                            <th scope="col" style="width: 50%;">Details</th>
+                            <th scope="col" style="width: 15%;">IP Address</th>
+                            <th scope="col" style="width: 20%;">Date / Time</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($history as $entry)
                             <tr>
-                                <td class="fw-semibold text-nowrap">{{ str($entry->action)->replace('_', ' ')->title() }}</td>
-                                <td style="min-width:280px; max-width: 500px; word-wrap: break-word;">{{ $entry->description ?: 'No additional details recorded.' }}</td>
+                                <td class="fw-semibold">{{ str($entry->action)->replace('_', ' ')->title() }}</td>
+                                <td style="word-wrap: break-word; overflow-wrap: break-word;">{{ $entry->description ?: 'No additional details recorded.' }}</td>
                                 <td class="text-nowrap">{{ $entry->ip_address ?: 'N/A' }}</td>
                                 <td class="text-nowrap">
                                     {{ optional($entry->created_at)->timezone('Asia/Manila')->format('m/d/Y') }}<br>
-                                    <span class="text-muted">{{ optional($entry->created_at)->timezone('Asia/Manila')->format('g:i:s A') }} PHT</span>
+                                    <span class="text-muted small">{{ optional($entry->created_at)->timezone('Asia/Manila')->format('g:i:s A') }} PHT</span>
                                 </td>
                             </tr>
                         @empty
