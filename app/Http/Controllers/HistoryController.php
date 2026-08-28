@@ -25,7 +25,7 @@ class HistoryController extends Controller
             'search' => ['nullable', 'string', 'max:100'],
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date'],
-            'per_page' => ['nullable', 'integer', 'in:10,20,50'],
+            'per_page' => ['nullable', 'integer', 'in:10,20,50,100'],
         ]);
 
         $query = ActivityLog::query()->where('user_id', $user->id);
