@@ -23,6 +23,7 @@ use App\Notifications\EmailAddressNotification;
 use App\Helpers\PasswordGenerator;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
@@ -304,70 +305,134 @@ class AdminController extends Controller
         }
 
         $viewType = $request->get('view', 'active');
+        $currentMisId = (int) auth()->id();
+        $misUsers = collect([$currentMisId]);
 
-        // Get concerns assigned to MIS users
-        $misUsers = User::where('role', 'mis')->pluck('id');
-
-        if ($viewType === 'resolved') {
-            // Get resolved concerns assigned to MIS users
-            $resolvedConcerns = Concern::with('categoryRelation', 'assignedTo', 'user')
-                ->whereIn('assigned_to', $misUsers)
-                ->where('status', 'Resolved')
-                ->where('is_deleted', false)
-                ->whereDoesntHave('archivedByUsers', function ($query) {
-                    $query->where('user_id', auth()->id());
+        $activeTasks = function () use ($currentMisId) {
+            return Concern::with('categoryRelation', 'user')
+                ->where(function ($query) use ($currentMisId) {
+                    $query->where('assigned_to', $currentMisId)
+                        ->orWhere(function ($unclaimed) {
+                            $unclaimed->whereNull('assigned_to')
+                                ->whereHas('categoryRelation', function ($category) {
+                                    $category->whereRaw('LOWER(TRIM(name)) = ?', ['technology/internet']);
+                                });
+                        });
                 })
-                ->orderBy('updated_at', 'desc')
-                ->paginate(20);
-
-            // Get active concerns for tab count
-            $concerns = Concern::with('categoryRelation', 'assignedTo', 'user')
-                ->whereIn('assigned_to', $misUsers)
                 ->where('status', '!=', 'Resolved')
                 ->where('is_deleted', false)
-                ->whereDoesntHave('archivedByUsers', function ($query) {
-                    $query->where('user_id', auth()->id());
-                })
-                ->orderBy('created_at', 'desc')
-                ->paginate(20);
+                ->whereDoesntHave('archivedByUsers', function ($query) use ($currentMisId) {
+                    $query->where('user_id', $currentMisId);
+                });
+        };
 
+        if ($viewType === 'resolved') {
+            $resolvedConcerns = Concern::with('categoryRelation', 'user')
+                ->where('assigned_to', $currentMisId)
+                ->where('status', 'Resolved')
+                ->where('is_deleted', false)
+                ->whereDoesntHave('archivedByUsers', function ($query) use ($currentMisId) {
+                    $query->where('user_id', $currentMisId);
+                })
+                ->orderBy('updated_at', 'desc')
+                ->paginate(20, ['*'], 'resolved_page');
+
+            $concerns = $activeTasks()->orderBy('created_at', 'desc')->paginate(20, ['*'], 'active_page');
             return view('admin.mis-tasks', compact('resolvedConcerns', 'concerns', 'viewType', 'misUsers'));
-        } elseif ($viewType === 'archives') {
-            // Get archived concerns assigned to MIS users
-            $concerns = Concern::with('categoryRelation', 'assignedTo', 'user', 'archivedByUsers')
-                ->whereIn('assigned_to', $misUsers)
-                ->whereHas('archivedByUsers', function ($query) {
-                    $query->where('user_id', auth()->id());
+        }
+
+        if ($viewType === 'archives') {
+            $concerns = Concern::with('categoryRelation', 'user', 'archivedByUsers')
+                ->where('assigned_to', $currentMisId)
+                ->whereHas('archivedByUsers', function ($query) use ($currentMisId) {
+                    $query->where('user_id', $currentMisId);
                 })
                 ->where('is_deleted', false)
                 ->orderBy('created_at', 'desc')
                 ->paginate(20);
-
-            return view('admin.mis-tasks', compact('concerns', 'viewType', 'misUsers'));
-        } elseif ($viewType === 'deleted') {
-            // Get deleted concerns assigned to MIS users (only those deleted by MIS users)
-            $concerns = Concern::with('categoryRelation', 'assignedTo', 'user', 'deletedBy')
-                ->whereIn('assigned_to', $misUsers)
-                ->where('is_deleted', true)
-                ->where('deleted_by', auth()->id()) // Only show concerns deleted by current MIS user
-                ->orderBy('created_at', 'desc')
-                ->paginate(20);
-
             return view('admin.mis-tasks', compact('concerns', 'viewType', 'misUsers'));
         }
 
-        // Active concerns assigned to MIS users (excluding resolved and deleted)
-        $concerns = Concern::with('categoryRelation', 'assignedTo', 'user')
-            ->whereIn('assigned_to', $misUsers)
-            ->where('status', '!=', 'Resolved')
-            ->where('is_deleted', false)
-            ->whereDoesntHave('archivedByUsers', function ($query) {
-                $query->where('user_id', auth()->id());
-            })
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
+        if ($viewType === 'deleted') {
+            $concerns = Concern::with('categoryRelation', 'user', 'deletedBy')
+                ->where('assigned_to', $currentMisId)
+                ->where('is_deleted', true)
+                ->where('deleted_by', $currentMisId)
+                ->orderBy('created_at', 'desc')
+                ->paginate(20);
+            return view('admin.mis-tasks', compact('concerns', 'viewType', 'misUsers'));
+        }
 
+        $concerns = $activeTasks()->orderBy('created_at', 'desc')->paginate(20);
         return view('admin.mis-tasks', compact('concerns', 'viewType', 'misUsers'));
+    }
+
+    public function claimMisTask(Request $request, int $id)
+    {
+        abort_unless(auth()->user()?->role === 'mis', 403);
+
+        $validated = $request->validate([
+            'priority' => 'required|in:low,medium,high,urgent,safety_hazard',
+        ]);
+
+        try {
+            $concern = \Illuminate\Support\Facades\DB::transaction(function () use ($id, $validated) {
+                $concern = Concern::with('categoryRelation')->lockForUpdate()->findOrFail($id);
+                $categoryName = strtolower(trim((string) $concern->categoryRelation?->name));
+
+                abort_unless($categoryName === 'technology/internet', 422, 'Only Technology/Internet concerns can be claimed as MIS tasks.');
+                abort_if($concern->status === 'Resolved', 422, 'This task is already resolved.');
+                abort_if($concern->assigned_to && (int) $concern->assigned_to !== (int) auth()->id(), 409, 'Another MIS staff member already claimed this task.');
+
+                if (! $concern->assigned_to) {
+                    $concern->assigned_to = auth()->id();
+                    $concern->assigned_at = now();
+                    $concern->status = 'Assigned';
+                }
+
+                $isSafetyHazard = $validated['priority'] === 'safety_hazard';
+                $concern->priority = $isSafetyHazard ? 'urgent' : $validated['priority'];
+                $concern->is_safety_hazard = $isSafetyHazard;
+                $concern->save();
+
+                Report::where('concern_id', $concern->id)
+                    ->where('status', '!=', 'Resolved')
+                    ->update([
+                        'assigned_to' => auth()->id(),
+                        'assigned_at' => $concern->assigned_at,
+                        'status' => 'Assigned',
+                        'severity' => $concern->priority,
+                        'is_safety_hazard' => $isSafetyHazard,
+                    ]);
+
+                return $concern;
+            });
+
+            $priorityLabel = $validated['priority'] === 'safety_hazard'
+                ? 'Safety Hazard'
+                : ucfirst($validated['priority']);
+
+            $this->sendConcernUpdateNotification(
+                $concern,
+                'MIS Task Assigned',
+                'Your Technology/Internet concern was accepted by '.auth()->user()->name.' with '.$priorityLabel.' priority.',
+                auth()->user()
+            );
+            ActivityLog::log('mis_task_claimed', 'MIS task assigned to self by '.auth()->user()->name, $concern->id, 'concern');
+
+            if ($request->expectsJson()) {
+                return response()->json(['success' => true, 'message' => 'The task is now assigned to you.']);
+            }
+            return back()->with('success', 'The task is now assigned to you.');
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $exception) {
+            throw $exception;
+        } catch (\Throwable $exception) {
+            \Log::error('MIS task claim failed.', ['concern_id' => $id, 'user_id' => auth()->id(), 'error' => $exception->getMessage()]);
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'error' => 'Unable to assign this task. Please try again.'], 500);
+            }
+            return back()->with('error', 'Unable to assign this task. Please try again.');
+        }
     }
 
     // Update concern status - Admin or maintenance can update any concern
@@ -384,9 +449,8 @@ class AdminController extends Controller
             return back()->with('error', 'You do not have permission to update this concern.');
         }
 
-        // Maintenance can only update their own assigned concerns.
-        // MIS users can update any concern assigned to any MIS user (department-level access).
-        if ($user->role === 'maintenance' && $concern->assigned_to !== $user->id) {
+        // Staff can only progress work that is assigned to them.
+        if ($user->role === 'maintenance' && (int) $concern->assigned_to !== (int) $user->id) {
             if ($request->expectsJson()) {
                 return response()->json(['error' => 'You can only update concerns assigned to you.'], 403);
             }
@@ -394,12 +458,11 @@ class AdminController extends Controller
         }
 
         if ($user->role === 'mis') {
-            $misUserIds = \App\Models\User::where('role', 'mis')->pluck('id');
-            if (! $misUserIds->contains($concern->assigned_to)) {
+            if ((int) $concern->assigned_to !== (int) $user->id) {
                 if ($request->expectsJson()) {
-                    return response()->json(['error' => 'This concern is not assigned to the MIS department.'], 403);
+                    return response()->json(['error' => 'Claim this MIS task before updating its status.'], 403);
                 }
-                return back()->with('error', 'This concern is not assigned to the MIS department.');
+                return back()->with('error', 'Claim this MIS task before updating its status.');
             }
         }
 
@@ -415,6 +478,16 @@ class AdminController extends Controller
         $oldStatus = $concern->status;
         $newStatus = $request->input('status');
 
+        if ($user->role === 'mis'
+            && in_array($newStatus, ['In Progress', 'Resolved'], true)
+            && ! in_array($concern->priority, ['low', 'medium', 'high', 'urgent'], true)) {
+            return response()->json(['error' => 'Set the task priority before starting work.'], 422);
+        }
+
+        if ($user->role === 'mis' && $newStatus === 'Resolved' && blank($request->input('resolution_notes'))) {
+            return response()->json(['error' => 'Resolution notes are required before resolving an MIS task.'], 422);
+        }
+
         // OWASP API6: Validate business logic - status transitions
         if (! $this->isValidStatusTransition($oldStatus, $newStatus)) {
             if ($request->expectsJson()) {
@@ -424,6 +497,10 @@ class AdminController extends Controller
         }
 
         $concern->status = $newStatus;
+
+        if ($newStatus === 'In Progress' && $oldStatus !== 'In Progress' && Schema::hasColumn('concerns', 'in_progress_at')) {
+            $concern->in_progress_at = now();
+        }
 
         // Update additional fields when resolving (for maintenance)
         if ($newStatus === 'Resolved') {
@@ -449,6 +526,23 @@ class AdminController extends Controller
         }
 
         $concern->save();
+
+        $reportUpdates = ['status' => $newStatus];
+        if ($newStatus === 'In Progress' && $oldStatus !== 'In Progress' && Schema::hasColumn('reports', 'in_progress_at')) {
+            $reportUpdates['in_progress_at'] = now();
+        }
+        if ($newStatus === 'Resolved') {
+            $reportUpdates += [
+                'resolution_notes' => $concern->resolution_notes,
+                'cost' => $concern->cost,
+                'damaged_part' => $concern->damaged_part,
+                'replaced_part' => $concern->replaced_part,
+                'resolved_at' => $concern->resolved_at,
+            ];
+        }
+        Report::where('concern_id', $concern->id)
+            ->where('status', '!=', 'Resolved')
+            ->update($reportUpdates);
 
         if ($newStatus !== 'Resolved') {
             $this->sendConcernUpdateNotification(
@@ -716,23 +810,16 @@ class AdminController extends Controller
             $isTechnologyCategory = $report->category && strtolower(trim($report->category->name)) === 'technology/internet';
             
             if ($isTechnologyCategory) {
-                // Validate for MIS user (from users table)
-                $request->validate([
-                    'assigned_to' => 'required|exists:users,id',
-                    'notes'       => 'nullable|string|max:1000',
-                ]);
-                
-                // Get the MIS user
-                $assignedUser = User::findOrFail($request->input('assigned_to'));
-                
-                // Verify the user is actually MIS
-                if ($assignedUser->role !== 'mis') {
+                if ($user->role !== 'mis') {
                     if ($request->expectsJson()) {
-                        return response()->json(['error' => 'Selected user is not a MIS staff member.'], 422);
+                        return response()->json(['error' => 'Technology/Internet tasks must be claimed by MIS staff from the MIS Task page.'], 403);
                     }
-                    return back()->with('error', 'Selected user is not a MIS staff member.');
+                    return back()->with('error', 'Technology/Internet tasks must be claimed by MIS staff from the MIS Task page.');
                 }
-                
+
+                $request->merge(['assigned_to' => $user->id]);
+                $request->validate(['notes' => 'nullable|string|max:1000']);
+                $assignedUser = $user;
                 $assignedName = $assignedUser->name;
             } else {
                 // Validate for Maintenance staff (from maintenance_staff table)
@@ -873,9 +960,16 @@ class AdminController extends Controller
     {
         $request->validate(['priority' => 'required|in:low,medium,high,urgent,safety_hazard']);
 
-        $concern = Concern::findOrFail($id);
+        $concern = Concern::with('categoryRelation')->findOrFail($id);
+        $user = auth()->user();
 
-        if (auth()->user()->role !== 'building_admin') {
+        $isBuildingAdmin = $user->role === 'building_admin';
+        $isClaimedMisTask = $user->role === 'mis'
+            && (int) $concern->assigned_to === (int) $user->id
+            && strtolower(trim((string) $concern->categoryRelation?->name)) === 'technology/internet'
+            && $concern->status !== 'Resolved';
+
+        if (! $isBuildingAdmin && ! $isClaimedMisTask) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
@@ -890,11 +984,22 @@ class AdminController extends Controller
         
         $concern->save();
 
+        Report::where('concern_id', $concern->id)
+            ->where('status', '!=', 'Resolved')
+            ->update([
+                'severity' => $concern->priority,
+                'is_safety_hazard' => $concern->is_safety_hazard,
+            ]);
+
+        $priorityLabel = $request->priority === 'safety_hazard'
+            ? 'Safety Hazard'
+            : ucfirst($request->priority);
+
         $this->sendConcernUpdateNotification(
             $concern,
             'Concern Priority Updated',
-            'Your concern priority has been updated to '.$request->priority.'.',
-            auth()->user()
+            'Your concern priority has been updated to '.$priorityLabel.'.',
+            $user
         );
 
         return response()->json(['success' => true, 'priority' => $request->priority]);
@@ -1108,7 +1213,7 @@ class AdminController extends Controller
                             'location' => $report->location,
                             'priority' => $report->priority,
                             'status' => $report->status,
-                            'user' => $report->user ? $report->user->name : 'Unknown',
+                            'user' => $report->reporter_display_name,
                             'updated_at' => $report->updated_at->format('M d, Y h:i A'),
                             'deleted_by' => $report->deletedBy ? $report->deletedBy->name : 'System',
                         ];
@@ -1963,13 +2068,12 @@ class AdminController extends Controller
 
         $concern = Concern::findOrFail($id);
 
-        // Verify this concern is assigned to a MIS user
-        $misUsers = User::where('role', 'mis')->pluck('id');
-        if (!$misUsers->contains($concern->assigned_to)) {
+        // MIS staff may only manage tasks that they claimed themselves.
+        if ((int) $concern->assigned_to !== (int) auth()->id()) {
             if ($request->expectsJson()) {
-                return response()->json(['error' => 'This concern is not assigned to the MIS department.'], 403);
+                return response()->json(['error' => 'This MIS task is not assigned to you.'], 403);
             }
-            return back()->with('error', 'This concern is not assigned to the MIS department.');
+            return back()->with('error', 'This MIS task is not assigned to you.');
         }
 
         // Archive for the current MIS user only (not affecting personal concerns)
@@ -2001,13 +2105,12 @@ class AdminController extends Controller
 
         $concern = Concern::findOrFail($id);
 
-        // Verify this concern is assigned to a MIS user
-        $misUsers = User::where('role', 'mis')->pluck('id');
-        if (!$misUsers->contains($concern->assigned_to)) {
+        // MIS staff may only manage tasks that they claimed themselves.
+        if ((int) $concern->assigned_to !== (int) auth()->id()) {
             if ($request->expectsJson()) {
-                return response()->json(['error' => 'This concern is not assigned to the MIS department.'], 403);
+                return response()->json(['error' => 'This MIS task is not assigned to you.'], 403);
             }
-            return back()->with('error', 'This concern is not assigned to the MIS department.');
+            return back()->with('error', 'This MIS task is not assigned to you.');
         }
 
         // Check if concern is assigned but not resolved - assigned concerns cannot be deleted unless resolved
@@ -2050,13 +2153,12 @@ class AdminController extends Controller
 
         $concern = Concern::findOrFail($id);
 
-        // Verify this concern is assigned to a MIS user
-        $misUsers = User::where('role', 'mis')->pluck('id');
-        if (!$misUsers->contains($concern->assigned_to)) {
+        // MIS staff may only manage tasks that they claimed themselves.
+        if ((int) $concern->assigned_to !== (int) auth()->id()) {
             if ($request->expectsJson()) {
-                return response()->json(['error' => 'This concern is not assigned to the MIS department.'], 403);
+                return response()->json(['error' => 'This MIS task is not assigned to you.'], 403);
             }
-            return back()->with('error', 'This concern is not assigned to the MIS department.');
+            return back()->with('error', 'This MIS task is not assigned to you.');
         }
 
         // Remove from archive for the current MIS user
@@ -2088,8 +2190,9 @@ class AdminController extends Controller
 
         $concern = Concern::findOrFail($id);
 
-        // Verify this concern was deleted by current MIS user
-        if ($concern->deleted_by !== auth()->id()) {
+        // Only the MIS owner who deleted the task may restore it.
+        if ((int) $concern->assigned_to !== (int) auth()->id()
+            || (int) $concern->deleted_by !== (int) auth()->id()) {
             if ($request->expectsJson()) {
                 return response()->json(['error' => 'You can only restore MIS task concerns that you deleted.'], 403);
             }
@@ -2358,7 +2461,16 @@ class AdminController extends Controller
     // Show edit user form
     public function editUser($uuid)
     {
-        $user = User::hideSuperadmin()->where('uuid', $uuid)->firstOrFail();
+        // Older imported accounts may not have a UUID yet. Accept their numeric
+        // primary key as a compatibility fallback while preferring UUIDs.
+        $user = User::hideSuperadmin()
+            ->where(function ($query) use ($uuid) {
+                $query->where('uuid', $uuid);
+                if (ctype_digit((string) $uuid)) {
+                    $query->orWhere('id', (int) $uuid);
+                }
+            })
+            ->firstOrFail();
         
         // If it's an AJAX request, return JSON
         if (request()->expectsJson() || request()->ajax()) {
@@ -2371,7 +2483,9 @@ class AdminController extends Controller
                 'department' => $user->department,
                 'phone' => $user->phone,
                 'student_id' => $user->student_id,
-                'permissions' => $user->permissions ?? []
+                'permissions' => $user->permissions ?? [],
+                'created_at' => $user->created_at?->toIso8601String(),
+                'updated_at' => $user->updated_at?->toIso8601String(),
             ]);
         }
         
@@ -2701,16 +2815,20 @@ class AdminController extends Controller
         $userName = $user->name;
         $folderId = $user->archive_folder_id;
 
-        // Permanently delete the user
-        ActivityLog::log('user_permanent_delete', "Permanently deleted user: {$userName}");
-        $user->forceDelete();
+        DB::transaction(function () use ($user, $userName, $folderId): void {
+            // Detach submissions before deleting the account. This is a second
+            // line of defense in addition to the database SET NULL foreign key.
+            $this->preserveUserSubmissions($user);
 
-        // Update folder user count
-        $folder = UserArchiveFolder::find($folderId);
-        if ($folder) {
-            $folder->user_count = $folder->archivedUsers()->count();
-            $folder->save();
-        }
+            ActivityLog::log('user_permanent_delete', "Permanently deleted user: {$userName}");
+            $user->forceDelete();
+
+            $folder = UserArchiveFolder::find($folderId);
+            if ($folder) {
+                $folder->user_count = $folder->archivedUsers()->count();
+                $folder->save();
+            }
+        });
 
         return redirect()->route('admin.users', ['view' => 'deleted'])->with('success', "User '{$userName}' has been permanently deleted!");
     }
@@ -2731,16 +2849,49 @@ class AdminController extends Controller
 
         $count = $users->count();
 
-        foreach ($users as $user) {
-            ActivityLog::log('user_permanent_delete', "Permanently deleted user: {$user->name}");
-            $user->forceDelete();
-        }
+        DB::transaction(function () use ($users, $deletedFolder): void {
+            foreach ($users as $user) {
+                $this->preserveUserSubmissions($user);
+                ActivityLog::log('user_permanent_delete', "Permanently deleted user: {$user->name}");
+                $user->forceDelete();
+            }
 
-        // Reset folder count
-        $deletedFolder->user_count = 0;
-        $deletedFolder->save();
+            $deletedFolder->user_count = 0;
+            $deletedFolder->save();
+        });
 
         return redirect()->route('admin.users', ['view' => 'deleted'])->with('success', "{$count} user(s) have been permanently deleted!");
+    }
+
+    /**
+     * Freeze the account data on every submitted concern/report, then detach
+     * the live account reference so deleting the user cannot delete history.
+     */
+    private function preserveUserSubmissions(User $user): void
+    {
+        Concern::where('user_id', $user->id)->chunkById(100, function ($concerns) use ($user): void {
+            foreach ($concerns as $concern) {
+                $snapshot = array_filter(
+                    Concern::reporterSnapshotFor($user),
+                    fn ($value, $column) => $concern->getAttribute($column) === null,
+                    ARRAY_FILTER_USE_BOTH
+                );
+
+                $concern->forceFill($snapshot + ['user_id' => null])->save();
+            }
+        });
+
+        Report::withTrashed()->where('user_id', $user->id)->chunkById(100, function ($reports) use ($user): void {
+            foreach ($reports as $report) {
+                $snapshot = array_filter(
+                    Report::reporterSnapshotFor($user, true),
+                    fn ($value, $column) => $report->getAttribute($column) === null,
+                    ARRAY_FILTER_USE_BOTH
+                );
+
+                $report->forceFill($snapshot + ['user_id' => null])->save();
+            }
+        });
     }
 
     // =====================================================
@@ -3264,27 +3415,75 @@ class AdminController extends Controller
     // Restore all users in a folder
     public function restoreAllFolderUsers($folder_id)
     {
-        $folder = UserArchiveFolder::findOrFail($folder_id);
+        $folder = UserArchiveFolder::where('name', '!=', 'Deleted Users')->findOrFail($folder_id);
         $folderName = $folder->name;
 
         // Restore in one database statement. Loading and saving thousands of
         // users one-by-one can exceed serverless request limits on Vercel.
         $count = User::withoutGlobalScopes()
             ->where('archive_folder_id', $folder_id)
+            ->where('is_archived', true)
+            ->where('is_deleted', false)
             ->update([
                 'is_archived' => false,
                 'archive_folder_id' => null,
                 'updated_at' => now(),
             ]);
 
-        // Delete the folder if all users were restored
-        if ($count > 0) {
+        $remainingUsers = $folder->archivedUsers()->count();
+        if ($remainingUsers === 0) {
             $folder->delete();
             ActivityLog::log('archive_folder_deleted', "Deleted empty archive folder: {$folderName}");
-            ActivityLog::log('users_restored', "Restored {$count} users from archive folder: {$folderName}");
+        } else {
+            $folder->update(['user_count' => $remainingUsers]);
         }
 
-        return redirect()->route('admin.users', ['view' => 'archives'])->with('success', "Successfully restored {$count} users from folder '{$folderName}'! The empty folder has been deleted.");
+        ActivityLog::log('users_restored', "Restored {$count} users from archive folder: {$folderName}");
+
+        $message = "Successfully restored {$count} user(s) from folder '{$folderName}'.";
+        if ($remainingUsers === 0) {
+            $message .= ' The empty folder was removed.';
+        }
+
+        return redirect()->route('admin.users', ['view' => 'archives'])->with('success', $message);
+    }
+
+    // Restore every non-deleted user from all user archive folders.
+    public function restoreAllArchivedUsers(Request $request)
+    {
+        $count = \Illuminate\Support\Facades\DB::transaction(function () {
+            $restored = User::withoutGlobalScopes()
+                ->where('is_archived', true)
+                ->where('is_deleted', false)
+                ->update([
+                    'is_archived' => false,
+                    'archive_folder_id' => null,
+                    'updated_at' => now(),
+                ]);
+
+            UserArchiveFolder::where('name', '!=', 'Deleted Users')->get()->each(function ($folder) {
+                $remainingUsers = $folder->archivedUsers()->count();
+                if ($remainingUsers === 0) {
+                    $folder->delete();
+                } else {
+                    $folder->update(['user_count' => $remainingUsers]);
+                }
+            });
+
+            return $restored;
+        });
+
+        ActivityLog::log('users_restored', "Restored {$count} users from all archive folders");
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Successfully restored {$count} archived user(s).",
+            ]);
+        }
+
+        return redirect()->route('admin.users', ['view' => 'archives'])
+            ->with('success', "Successfully restored {$count} archived user(s)!");
     }
 
     // Archive all users
@@ -4105,20 +4304,7 @@ class AdminController extends Controller
 
         $query = ActivityLog::with('user', 'concern')
             ->where('is_archived', $isArchived)
-            ->where(function ($query) {
-                $query->whereNotNull('item_user_id')
-                    ->orWhere('action', 'like', 'user_%')
-                    ->orWhere('action', 'like', 'users_%')
-                    ->orWhere('action', 'like', 'account_%')
-                    ->orWhere('action', 'like', 'login%')
-                    ->orWhere('action', 'like', 'logout%')
-                    ->orWhere('action', 'like', 'microsoft_login%')
-                    ->orWhere('action', 'like', 'password_%')
-                    ->orWhere('action', 'like', 'permission_%')
-                    ->orWhere('action', 'like', 'role_%')
-                    ->orWhere('action', 'like', 'security_%')
-                    ->orWhere('action', 'like', 'session_%');
-            })
+            ->forensic()
             // Never expose superadmin actions to regular admins
             ->whereDoesntHave('user', fn($q) => $q->withoutGlobalScopes()
                 ->where(function ($q) {
@@ -4202,7 +4388,7 @@ class AdminController extends Controller
             ['description' => 'Archived on ' . now()->format('M d, Y'), 'log_count' => 0]
         );
 
-        $count = ActivityLog::where('is_archived', false)->update([
+        $count = ActivityLog::forensic()->where('is_archived', false)->update([
             'is_archived'           => true,
             'archived_at'           => now(),
             'archived_by'           => auth()->id(),

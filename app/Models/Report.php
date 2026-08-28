@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasImmutableReporterSnapshot;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Schema;
 
 class Report extends Model
 {
-    use SoftDeletes;
+    use HasImmutableReporterSnapshot, SoftDeletes;
 
     protected $fillable = [
         'user_id',

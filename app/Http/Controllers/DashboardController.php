@@ -24,31 +24,9 @@ class DashboardController extends Controller
 
         // Building Administrator - original dashboard with all cards
         if ($user->role === 'building_admin') {
-            $hasProgramHead  = \App\Models\User::where('role', 'program_head')->exists();
-            $hasAcademicHead = \App\Models\User::where('role', 'academic_head')->exists();
-
-            // Determine which approval levels building admin can act on
-            if (!$hasProgramHead && !$hasAcademicHead) {
-                $buildingAdminLevels = [EventRequest::LEVEL_NONE];
-            } elseif ($hasProgramHead && !$hasAcademicHead) {
-                $buildingAdminLevels = [EventRequest::LEVEL_1_PROGRAM_HEAD];
-            } elseif (!$hasProgramHead && $hasAcademicHead) {
-                $buildingAdminLevels = [EventRequest::LEVEL_2_ACADEMIC_HEAD];
-            } else {
-                $buildingAdminLevels = [EventRequest::LEVEL_2_ACADEMIC_HEAD];
-            }
-
-            $pendingEvents = EventRequest::where('status', 'Pending')
-                ->whereIn('approval_level', $buildingAdminLevels)
-                ->count();
-
-            $pendingEventsList = EventRequest::with('user')
-                ->where('status', 'Pending')
-                ->whereIn('approval_level', $buildingAdminLevels)
-                ->orderBy('event_date', 'asc')
-                ->orderBy('created_at', 'asc')
-                ->limit(10)
-                ->get();
+            $pendingApprovalEvents = $this->pendingApprovalEventsFor($user);
+            $pendingEvents = $pendingApprovalEvents->count();
+            $pendingEventsList = $pendingApprovalEvents->take(10)->values();
 
             $approvedEvents = EventRequest::where('status', 'Approved')
                 ->where('event_date', '>=', now()->toDateString())
@@ -159,9 +137,9 @@ class DashboardController extends Controller
 
         // School Administrator, Academic Head, Program Head, Principal Assistant - modern Asana-style dashboard
         if (in_array($user->role, ['school_admin', 'academic_head', 'program_head', 'principal_assistant'])) {
-            $pendingApprovalQuery = $this->pendingApprovalEventsFor($user);
-            $pendingEvents = (clone $pendingApprovalQuery)->count();
-            $pendingEventsList = $pendingApprovalQuery->limit(10)->get();
+            $pendingApprovalEvents = $this->pendingApprovalEventsFor($user);
+            $pendingEvents = $pendingApprovalEvents->count();
+            $pendingEventsList = $pendingApprovalEvents->take(10)->values();
 
             $eventQuery2 = EventRequest::where('status', 'Approved')
                 ->where('event_date', '>=', now()->toDateString());
@@ -233,7 +211,7 @@ class DashboardController extends Controller
 
     private function pendingApprovalEventsFor($user)
     {
-        $query = EventRequest::with('user')
+        return EventRequest::with('user')
             ->where('status', EventRequest::STATUS_PENDING)
             ->where('is_deleted', false)
             ->where('student_archived', false)
@@ -243,30 +221,49 @@ class DashboardController extends Controller
             ->where('academic_head_archived', false)
             ->where('program_head_archived', false)
             ->where('mis_archived', false)
-            ->where('maintenance_archived', false);
+            ->where('maintenance_archived', false)
+            ->orderBy('event_date', 'asc')
+            ->orderBy('created_at', 'asc')
+            ->get()
+            ->filter(function (EventRequest $eventRequest) use ($user) {
+                if ($eventRequest->hasConfiguredApprovalRoute()) {
+                    $requiredRole = $eventRequest->requiredApprovalRole();
+                    $matchesRole = $user->role === $requiredRole
+                        || ($requiredRole === 'school_admin' && $user->role === 'admin');
 
-        if ($user->isProgramHead()) {
-            $query->where('approval_level', EventRequest::LEVEL_1_PROGRAM_HEAD)
-                ->where(function ($levelQuery) {
-                    $levelQuery->whereNull('education_level')
-                        ->orWhere('education_level', '!=', 'shs');
-                });
+                    if (! $matchesRole) {
+                        return false;
+                    }
 
-            if ($user->department) {
-                $query->where('department', $user->department);
-            }
-        } elseif ($user->isPrincipalAssistant()) {
-            $query->where('approval_level', EventRequest::LEVEL_1_PROGRAM_HEAD)
-                ->where('education_level', 'shs');
-        } elseif ($user->isAcademicHead()) {
-            $query->where('approval_level', EventRequest::LEVEL_2_ACADEMIC_HEAD);
-        } elseif ($user->isSchoolAdmin() || $user->isAdmin()) {
-            $query->where('approval_level', EventRequest::LEVEL_4_SCHOOL_ADMIN);
-        } else {
-            $query->whereRaw('1 = 0');
-        }
+                    return $requiredRole !== 'program_head'
+                        || ! $user->department
+                        || $eventRequest->department === $user->department;
+                }
 
-        return $query->orderBy('event_date', 'asc')
-            ->orderBy('created_at', 'asc');
+                $isShs = ($eventRequest->education_level ?? 'tertiary') === 'shs';
+                $level = (int) $eventRequest->approval_level;
+
+                if ($user->isProgramHead()) {
+                    return ! $isShs
+                        && $level === EventRequest::LEVEL_1_PROGRAM_HEAD
+                        && (! $user->department || $eventRequest->department === $user->department);
+                }
+
+                if ($user->isPrincipalAssistant()) {
+                    return $isShs && $level === EventRequest::LEVEL_1_PROGRAM_HEAD;
+                }
+
+                if ($user->isAcademicHead()) {
+                    return $level === EventRequest::LEVEL_2_ACADEMIC_HEAD;
+                }
+
+                if ($user->isBuildingAdmin()) {
+                    return ! $isShs && $level === EventRequest::LEVEL_3_BUILDING_ADMIN;
+                }
+
+                return ($user->isSchoolAdmin() || $user->isAdmin())
+                    && $level === EventRequest::LEVEL_4_SCHOOL_ADMIN;
+            })
+            ->values();
     }
 }

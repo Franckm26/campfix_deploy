@@ -71,7 +71,7 @@
                                         {{ $concern->status }}
                                     </span>
                                 </td>
-                                <td>{{ $concern->is_anonymous ? 'Anonymous' : ($concern->user->name ?? 'Unknown') }}</td>
+                                <td>{{ $concern->is_anonymous ? 'Anonymous' : $concern->reporter_display_name }}</td>
                                 <td>{{ $concern->updated_at->format('m/d/Y') }}</td>
                                 <td>
                                     <form method="POST" action="{{ route('admin.archive.restore') }}" class="d-inline">
@@ -289,7 +289,6 @@
     @endif
 </div>
 @endsection
-
 
 
 

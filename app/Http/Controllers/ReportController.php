@@ -69,7 +69,6 @@ class ReportController extends Controller
 
         Report::create([
             'user_id' => Auth::id(),
-            'reported_by_name' => Auth::user()->name,
             'title' => $request->title,
             'category_id' => $request->category_id,
             'description' => $request->description,
@@ -77,7 +76,7 @@ class ReportController extends Controller
             'severity' => $request->severity,
             'photo_path' => $photoPath,
             'status' => 'Pending',
-        ]);
+        ] + Report::reporterSnapshotFor(Auth::user(), true));
 
         return redirect()->route('reports.index')->with('success', 'Report submitted successfully.');
     }
@@ -386,7 +385,7 @@ class ReportController extends Controller
         $canSeeSensitiveFields = in_array($user->role, ['building_admin', 'mis', 'school_admin', 'admin']) || $report->assigned_to === $user->id;
 
         $reportData = $report->toArray();
-        $reportData['reported_by_name'] = $report->user ? $report->user->name : 'Unknown';
+        $reportData['reported_by_name'] = $report->reporter_display_name;
         $reportData['assigned_user_name'] = $report->assignedTo ? $report->assignedTo->name : null;
         
         // Format dates properly

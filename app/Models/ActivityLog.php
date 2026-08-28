@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class ActivityLog extends Model
 {
+    private const FORENSIC_ACTION_PATTERN = '/^(user_|users_|account_|login|logout|microsoft_login|password_|permission_|role_|security_|session_)/';
+
     protected $fillable = [
         'user_id',
         'action',
@@ -49,15 +52,36 @@ class ActivityLog extends Model
         return $this->belongsTo(LogArchiveFolder::class, 'log_archive_folder_id');
     }
 
+    /**
+     * Restrict a query to the user/account/security records shown in MIS Audit Logs.
+     */
+    public function scopeForensic(Builder $query): Builder
+    {
+        return $query->where(function (Builder $query) {
+            $query->whereNotNull('item_user_id')
+                ->orWhere('action', 'like', 'user_%')
+                ->orWhere('action', 'like', 'users_%')
+                ->orWhere('action', 'like', 'account_%')
+                ->orWhere('action', 'like', 'login%')
+                ->orWhere('action', 'like', 'logout%')
+                ->orWhere('action', 'like', 'microsoft_login%')
+                ->orWhere('action', 'like', 'password_%')
+                ->orWhere('action', 'like', 'permission_%')
+                ->orWhere('action', 'like', 'role_%')
+                ->orWhere('action', 'like', 'security_%')
+                ->orWhere('action', 'like', 'session_%');
+        });
+    }
+
     // Enhanced log activity helper with detailed change tracking
     public static function log($action, $description, $itemId = null, $itemType = 'concern', $oldValues = null, $newValues = null, $metadata = [])
     {
-        // This log is an investigation record for user-account and security events.
-        // Workflow activity for concerns, reports, requests, and facilities is not retained here.
-        $forensicAction = preg_match('/^(user_|users_|account_|login|logout|microsoft_login|password_|permission_|role_|security_|session_)/', (string) $action);
-        if (! $forensicAction) {
+        // Notification delivery is system noise rather than an action the user performed.
+        if (str_starts_with((string) $action, 'notification_')) {
             return null;
         }
+
+        $forensicAction = (bool) preg_match(self::FORENSIC_ACTION_PATTERN, (string) $action);
 
         // Superadmin actions are logged exclusively in superadmin_activity_logs — skip here
         if (auth()->check()) {
@@ -78,6 +102,7 @@ class ActivityLog extends Model
             'old_values' => $oldValues,
             'new_values' => $newValues,
             'metadata' => array_merge($metadata, [
+                'record_scope' => $forensicAction ? 'forensic' : 'personal_history',
                 'url' => $request->fullUrl(),
                 'method' => $request->method(),
             ]),

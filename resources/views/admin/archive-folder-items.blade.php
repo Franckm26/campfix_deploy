@@ -246,7 +246,7 @@
                                         {{ $concern->status }}
                                     </span>
                                 </td>
-                                <td>{{ $concern->user->name ?? 'N/A' }}</td>
+                                <td>{{ $concern->reporter_display_name }}</td>
                                 <td>{{ $concern->updated_at->format('m/d/Y') }}</td>
                                 <td>
                                     <button type="button" class="btn btn-sm btn-success" title="Restore" onclick="showRestoreItemModal('concern', {{ $concern->id }}, '{{ $concern->title }}')">
@@ -305,7 +305,7 @@
                             </div>
                             <div class="archive-item-card-field">
                                 <span class="archive-item-card-label">Reported By:</span>
-                                <span class="archive-item-card-value">{{ $concern->user->name ?? 'N/A' }}</span>
+                                <span class="archive-item-card-value">{{ $concern->reporter_display_name }}</span>
                             </div>
                             <div class="archive-item-card-field">
                                 <span class="archive-item-card-label">Archived:</span>
@@ -379,7 +379,7 @@
                                         {{ $report->status }}
                                     </span>
                                 </td>
-                                <td>{{ $report->user->name ?? 'N/A' }}</td>
+                                <td>{{ $report->reporter_display_name }}</td>
                                 <td>{{ $report->updated_at->format('m/d/Y') }}</td>
                                 <td>
                                     <button type="button" class="btn btn-sm btn-success" title="Restore" onclick="showRestoreItemModal('report', {{ $report->id }}, '{{ $report->title }}')">
@@ -438,7 +438,7 @@
                             </div>
                             <div class="archive-item-card-field">
                                 <span class="archive-item-card-label">Reported By:</span>
-                                <span class="archive-item-card-value">{{ $report->user->name ?? 'N/A' }}</span>
+                                <span class="archive-item-card-value">{{ $report->reporter_display_name }}</span>
                             </div>
                             <div class="archive-item-card-field">
                                 <span class="archive-item-card-label">Archived:</span>

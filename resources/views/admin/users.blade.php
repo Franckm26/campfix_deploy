@@ -323,7 +323,7 @@
                     </thead>
                     <tbody>
                         @forelse($users as $user)
-                            <tr data-id="{{ $user->id }}" data-role="{{ $user->role }}" data-archived="{{ $user->is_archived ? '1' : '0' }}">
+                            <tr data-id="{{ $user->uuid ?? $user->id }}" data-role="{{ $user->role }}" data-archived="{{ $user->is_archived ? '1' : '0' }}">
                                 <td style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" class="user-checkbox active-user-checkbox" value="{{ $user->id }}" onchange="updateSelectedCount(); updateActiveBulkActions()"></td>
                                 <td>{{ $user->student_id ?? 'N/A' }}</td>
                                 <td>{{ $user->name }}</td>
@@ -341,7 +341,7 @@
                                 <td>{{ $user->phone ?? 'N/A' }}</td>
                                 <td>
                                     <div class="btn-group" role="group">
-                                        <button type="button" class="btn btn-sm btn-info" onclick="viewUser({{ $user->id }})" title="View">
+                                        <button type="button" class="btn btn-sm btn-info" onclick="viewUser('{{ $user->uuid ?? $user->id }}')" title="View">
                                             <i class="fas fa-eye"></i>
                                         </button>
                                         @if(auth()->user()->canAccess('users_edit') && !$user->isProtectedFrom(auth()->user()))
@@ -426,7 +426,7 @@
                             </div>
                         </div>
                         <div class="user-card-actions">
-                            <button type="button" class="btn btn-sm btn-info" onclick="viewUser({{ $user->id }})">
+                            <button type="button" class="btn btn-sm btn-info" onclick="viewUser('{{ $user->uuid ?? $user->id }}')">
                                 <i class="fas fa-eye"></i> View
                             </button>
                             @if(auth()->user()->canAccess('users_edit') && !$user->isProtectedFrom(auth()->user()))
@@ -492,7 +492,10 @@
                         </select>
                     </form>
                 </div>
-                <div>
+                <div class="d-flex gap-2 flex-wrap justify-content-end">
+                    <button type="button" class="btn btn-success" onclick="confirmRestoreAllArchived()">
+                        <i class="fas fa-trash-restore"></i> Restore All Archived
+                    </button>
                     <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteAllArchivedModal">
                         <i class="fas fa-trash"></i> Delete All Archived
                     </button>
@@ -528,6 +531,13 @@
                                         <a href="{{ route('admin.archiveFolderUsers', $folder->id) }}" class="btn btn-sm btn-outline-primary" title="View Users">
                                             <i class="fas fa-folder-open"></i>
                                         </a>
+                                        <button type="button" class="btn btn-sm btn-success" title="Restore All Users"
+                                                data-restore-url="{{ route('admin.users.restoreAllFolder', $folder->id) }}"
+                                                data-folder-name="{{ $folder->name }}"
+                                                data-user-count="{{ (int) $folder->user_count }}"
+                                                onclick="confirmRestoreArchivedFolder(this)">
+                                            <i class="fas fa-trash-restore"></i>
+                                        </button>
                                         <button type="button" class="btn btn-sm btn-danger" title="Delete Folder" data-bs-toggle="modal" data-bs-target="#deleteFolderModal{{ $folder->id }}">
                                             <i class="fas fa-trash"></i>
                                         </button>
@@ -595,6 +605,13 @@
                             <a href="{{ route('admin.archiveFolderUsers', $folder->id) }}" class="btn btn-sm btn-primary">
                                 <i class="fas fa-folder-open"></i> View Users
                             </a>
+                            <button type="button" class="btn btn-sm btn-success"
+                                    data-restore-url="{{ route('admin.users.restoreAllFolder', $folder->id) }}"
+                                    data-folder-name="{{ $folder->name }}"
+                                    data-user-count="{{ (int) $folder->user_count }}"
+                                    onclick="confirmRestoreArchivedFolder(this)">
+                                <i class="fas fa-trash-restore"></i> Restore All
+                            </button>
                             <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteFolderModal{{ $folder->id }}">
                                 <i class="fas fa-trash"></i> Delete
                             </button>
@@ -1571,6 +1588,74 @@ document.getElementById('deleteAllModal')?.addEventListener('hidden.bs.modal', f
         </div>
     </div>
 </div>
+
+<script>
+function submitArchivedUsersRestore(url) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = url;
+
+    const csrf = document.createElement('input');
+    csrf.type = 'hidden';
+    csrf.name = '_token';
+    csrf.value = @json(csrf_token());
+    form.appendChild(csrf);
+
+    document.body.appendChild(form);
+    form.submit();
+}
+
+function escapeArchivedRestoreText(value) {
+    const element = document.createElement('div');
+    element.textContent = String(value ?? '');
+    return element.innerHTML;
+}
+
+function confirmRestoreAllArchived() {
+    Swal.fire({
+        icon: 'question',
+        title: 'Restore all archived users?',
+        text: 'Every archived user in every archive folder will be returned to Active Users. Deleted users will not be affected.',
+        showCancelButton: true,
+        confirmButtonText: '<i class="fas fa-trash-restore me-1"></i> Restore All',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#198754'
+    }).then(function (result) {
+        if (!result.isConfirmed) return;
+        Swal.fire({
+            title: 'Restoring archived users...',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            didOpen: function () { Swal.showLoading(); }
+        });
+        submitArchivedUsersRestore(@json(route('admin.users.restoreAllArchived')));
+    });
+}
+
+function confirmRestoreArchivedFolder(button) {
+    const folderName = button.dataset.folderName || 'this folder';
+    const userCount = Number(button.dataset.userCount || 0);
+
+    Swal.fire({
+        icon: 'question',
+        title: 'Restore all users in this folder?',
+        html: '<strong>' + escapeArchivedRestoreText(folderName) + '</strong><br>' + userCount + ' archived user(s) will be returned to Active Users.',
+        showCancelButton: true,
+        confirmButtonText: '<i class="fas fa-trash-restore me-1"></i> Restore All',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#198754'
+    }).then(function (result) {
+        if (!result.isConfirmed) return;
+        Swal.fire({
+            title: 'Restoring users...',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            didOpen: function () { Swal.showLoading(); }
+        });
+        submitArchivedUsersRestore(button.dataset.restoreUrl);
+    });
+}
+</script>
 
 <style>
 /* Dropdown fix for table */

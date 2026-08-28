@@ -7,6 +7,7 @@ use App\Http\Controllers\ConcernController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EventDiscussionController;
 use App\Http\Controllers\EventRequestController;
+use App\Http\Controllers\HistoryController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
@@ -95,6 +96,11 @@ Route::put('/profile', [ProfileController::class, 'update'])->middleware(['auth'
 Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->middleware(['auth', 'throttle:password'])->name('profile.password');
 Route::post('/profile/upload-picture', [ProfileController::class, 'uploadProfilePicture'])->middleware(['auth', 'throttle:uploads'])->name('profile.uploadPicture');
 Route::delete('/profile/remove-picture', [ProfileController::class, 'removeProfilePicture'])->middleware(['auth', 'throttle:deletes'])->name('profile.removePicture');
+
+/* PERSONAL HISTORY - ALL SIGNED-IN NON-MIS ACCOUNTS */
+Route::get('/history', [HistoryController::class, 'index'])
+    ->middleware(['auth', 'throttle:web'])
+    ->name('history.index');
 
 /* SETTINGS */
 Route::get('/settings', [SettingsController::class, 'index'])->middleware('auth')->name('settings.index');
@@ -293,6 +299,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/admin/management/event-setup/intended-users', [\App\Http\Controllers\ManagementController::class, 'storeEventIntendedUser'])->name('admin.management.event-intended-users.store');
     Route::put('/admin/management/event-setup/intended-users/{eventIntendedUser}', [\App\Http\Controllers\ManagementController::class, 'updateEventIntendedUser'])->name('admin.management.event-intended-users.update');
     Route::post('/admin/management/event-setup/departments', [\App\Http\Controllers\ManagementController::class, 'storeEventDepartment'])->name('admin.management.event-departments.store');
+    Route::post('/admin/management/event-setup/approval-chains', [\App\Http\Controllers\ManagementController::class, 'storeEventApprovalChain'])->name('admin.management.event-approval-chains.store');
     Route::patch('/admin/management/event-setup/{type}/{id}/toggle', [\App\Http\Controllers\ManagementController::class, 'toggleEventSetup'])->name('admin.management.event-setup.toggle');
     Route::patch('/admin/management/event-setup/{type}/{id}', [\App\Http\Controllers\ManagementController::class, 'renameEventSetup'])->name('admin.management.event-setup.rename');
     Route::delete('/admin/management/event-setup/{type}/{id}', [\App\Http\Controllers\ManagementController::class, 'destroyEventSetup'])->name('admin.management.event-setup.destroy');
@@ -310,6 +317,7 @@ Route::middleware(['auth', 'admin', 'throttle:admin'])->group(function () {
 
     // MIS Task Module
     Route::get('/admin/mis-tasks', [AdminController::class, 'misTasks'])->name('admin.mis-tasks');
+    Route::post('/admin/mis-tasks/{id}/claim', [AdminController::class, 'claimMisTask'])->name('admin.mis-tasks.claim');
 
     // Archive management
     Route::get('/admin/archive', [AdminController::class, 'archive'])->name('admin.archive');
@@ -346,6 +354,7 @@ Route::middleware(['auth', 'admin', 'throttle:admin'])->group(function () {
     Route::post('/admin/users/unlock/{uuid}', [AdminController::class, 'unlockUser'])->name('admin.users.unlock');
     Route::post('/admin/users/archive-selected', [AdminController::class, 'archiveSelectedUsers'])->name('admin.users.archiveSelected');
     Route::post('/admin/users/delete-all-archived', [AdminController::class, 'deleteAllArchived'])->name('admin.users.deleteAllArchived');
+    Route::post('/admin/users/restore-all-archived', [AdminController::class, 'restoreAllArchivedUsers'])->name('admin.users.restoreAllArchived');
     Route::post('/admin/users/restore-selected', [AdminController::class, 'restoreSelectedUsers'])->name('admin.users.restoreSelected');
     Route::post('/admin/users/restore-all-folder/{folder_id}', [AdminController::class, 'restoreAllFolderUsers'])->name('admin.users.restoreAllFolder');
     Route::post('/admin/users/import', [AdminController::class, 'importUsers'])->name('admin.users.import');
@@ -396,14 +405,16 @@ Route::middleware(['auth', 'admin', 'throttle:admin'])->group(function () {
     Route::delete('/admin/deleted-events/{id}', [AdminController::class, 'permanentDeleteEvent'])->name('admin.deletedEvents.permanentDelete');
     Route::delete('/admin/deleted-events', [AdminController::class, 'permanentDeleteAllEvents'])->name('admin.deletedEvents.permanentDeleteAll');
 
-    // Activity logs
-    Route::get('/admin/logs', [AdminController::class, 'logs'])->name('admin.logs');
-    Route::post('/admin/logs/archive-all', [AdminController::class, 'archiveLogsBulk'])->name('admin.logs.archive.bulk');
-    Route::post('/admin/logs/{log}/restore', [AdminController::class, 'restoreLog'])->name('admin.logs.restore');
-    Route::delete('/admin/logs/{log}', [AdminController::class, 'deleteLog'])->name('admin.logs.delete');
-    Route::get('/admin/logs/folders/{id}', [AdminController::class, 'logArchiveFolder'])->name('admin.logs.folder');
-    Route::post('/admin/logs/folders/{id}/restore', [AdminController::class, 'restoreLogArchiveFolder'])->name('admin.logs.folder.restore');
-    Route::delete('/admin/logs/folders/{id}', [AdminController::class, 'deleteLogArchiveFolder'])->name('admin.logs.folder.delete');
+    // Forensic audit logs - MIS only, including every archive/delete mutation.
+    Route::middleware('role:mis')->group(function () {
+        Route::get('/admin/logs', [AdminController::class, 'logs'])->name('admin.logs');
+        Route::post('/admin/logs/archive-all', [AdminController::class, 'archiveLogsBulk'])->name('admin.logs.archive.bulk');
+        Route::post('/admin/logs/{log}/restore', [AdminController::class, 'restoreLog'])->name('admin.logs.restore');
+        Route::delete('/admin/logs/{log}', [AdminController::class, 'deleteLog'])->name('admin.logs.delete');
+        Route::get('/admin/logs/folders/{id}', [AdminController::class, 'logArchiveFolder'])->name('admin.logs.folder');
+        Route::post('/admin/logs/folders/{id}/restore', [AdminController::class, 'restoreLogArchiveFolder'])->name('admin.logs.folder.restore');
+        Route::delete('/admin/logs/folders/{id}', [AdminController::class, 'deleteLogArchiveFolder'])->name('admin.logs.folder.delete');
+    });
 
     // Archive Folders for Items (concerns, reports, facilities)
     Route::get('/admin/archive-folders', [AdminController::class, 'archiveFolders'])->name('admin.archiveFolders');

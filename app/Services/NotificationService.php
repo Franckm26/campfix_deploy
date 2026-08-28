@@ -25,14 +25,35 @@ class NotificationService
      * @param  int  $approvalLevel  The current approval level (1, 2, or 3)
      * @param  string  $status  The current status (Approved, Rejected)
      */
-    public function notifyEventRequestStatus(User $user, string $eventTitle, int $approvalLevel, string $status): bool
+    public function notifyEventRequestStatus(User $user, string $eventTitle, int $approvalLevel, string $status, ?EventRequest $eventRequest = null): bool
     {
+        $roleLabels = [
+            'principal_assistant' => 'Principal Assistant',
+            'program_head' => 'Program Head',
+            'academic_head' => 'Academic Head',
+            'building_admin' => 'Building Admin',
+            'school_admin' => 'School Administrator',
+        ];
+        $route = $eventRequest?->hasConfiguredApprovalRoute() ? $eventRequest->approval_route : [];
+        $approverName = isset($route[$approvalLevel - 1]) ? ($roleLabels[$route[$approvalLevel - 1]] ?? null) : null;
+        $nextApproverName = isset($route[$approvalLevel]) ? ($roleLabels[$route[$approvalLevel]] ?? null) : null;
+        $totalLevels = $route ? count($route) : 4;
+        $fullyApproved = $eventRequest?->status === EventRequest::STATUS_APPROVED;
+
         try {
             // Send notification via Laravel's notification system (both email and database)
-            $user->notify(new EventRequestApprovalNotification($eventTitle, $approvalLevel, $status));
+            $user->notify(new EventRequestApprovalNotification(
+                $eventTitle,
+                $approvalLevel,
+                $status,
+                $approverName,
+                $nextApproverName,
+                $totalLevels,
+                $fullyApproved
+            ));
 
             // Also log in activity log for reference
-            $this->logNotification($user, $eventTitle, $approvalLevel, $status);
+            $this->logNotification($user, $eventTitle, $approvalLevel, $status, $approverName, $nextApproverName, $totalLevels, $fullyApproved);
 
             return true;
 
@@ -40,7 +61,7 @@ class NotificationService
             Log::error('Notification failed: '.$e->getMessage());
 
             // Fallback: just log the notification attempt
-            $this->logNotification($user, $eventTitle, $approvalLevel, $status);
+            $this->logNotification($user, $eventTitle, $approvalLevel, $status, $approverName, $nextApproverName, $totalLevels, $fullyApproved);
 
             return false;
         }
@@ -49,7 +70,16 @@ class NotificationService
     /**
      * Log notification in activity log as fallback
      */
-    private function logNotification(User $user, string $eventTitle, int $approvalLevel, string $status): void
+    private function logNotification(
+        User $user,
+        string $eventTitle,
+        int $approvalLevel,
+        string $status,
+        ?string $configuredApprover = null,
+        ?string $configuredNextApprover = null,
+        int $totalLevels = 4,
+        bool $fullyApproved = false
+    ): void
     {
         $approverNames = [
             1 => 'Program Head',
@@ -58,16 +88,16 @@ class NotificationService
             4 => 'School Admin',
         ];
 
-        $approverName = $approverNames[$approvalLevel] ?? 'Approver';
+        $approverName = $configuredApprover ?: ($approverNames[$approvalLevel] ?? 'Approver');
 
         if ($status === 'Expired') {
             $message = "Event request '{$eventTitle}' automatically rejected because the event date has already passed - Notification sent to {$user->email}";
         } elseif ($status === 'Rejected') {
             $message = "Event request '{$eventTitle}' rejected by {$approverName} - Notification sent to {$user->email}";
-        } elseif (in_array($status, ['Fully Approved', 'Approved']) && $approvalLevel >= 4) {
+        } elseif (in_array($status, ['Fully Approved', 'Approved']) && ($fullyApproved || $approvalLevel >= $totalLevels)) {
             $message = "Event request '{$eventTitle}' FULLY APPROVED - Notification sent to {$user->email}";
         } else {
-            $nextApproverName = $approverNames[$approvalLevel + 1] ?? 'Next Approver';
+            $nextApproverName = $configuredNextApprover ?: ($approverNames[$approvalLevel + 1] ?? 'Next Approver');
             $message = "Event request '{$eventTitle}' approved by {$approverName} - Waiting for {$nextApproverName} - Notification sent to {$user->email}";
         }
 
@@ -131,7 +161,11 @@ class NotificationService
             }
 
             if ($roleToNotify) {
-                $approvers = User::where('role', $roleToNotify)->get();
+                $approverQuery = User::where('role', $roleToNotify);
+                if ($roleToNotify === User::ROLE_PROGRAM_HEAD && $eventRequest->department) {
+                    $approverQuery->where('department', $eventRequest->department);
+                }
+                $approvers = $approverQuery->get();
 
                 // Fallback: if no one at this role exists, escalate to school admin
                 if ($approvers->isEmpty()) {

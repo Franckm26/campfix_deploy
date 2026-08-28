@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ActivityLog;
 use App\Models\Category;
 use App\Models\EventRequest;
+use App\Models\EventApprovalChain;
 use App\Models\EventRequestType;
 use App\Models\EventIntendedUser;
 use App\Models\EventDepartment;
@@ -13,9 +14,12 @@ use App\Models\MaintenanceStaff;
 use App\Models\User;
 use App\Services\DefaultCategoryService;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Throwable;
 
 class ManagementController extends Controller
 {
@@ -60,24 +64,87 @@ class ManagementController extends Controller
         // Categories
         $categories = Category::orderBy('name')->paginate(10, ['*'], 'category_page')->withQueryString();
 
-        $eventSetupReady = Schema::hasTable('event_request_types')
-            && Schema::hasTable('event_intended_users')
-            && Schema::hasTable('event_departments');
-        $eventRequestTypes = $eventSetupReady ? EventRequestType::orderBy('name')->get() : collect();
-        $eventIntendedUsers = $eventSetupReady ? EventIntendedUser::orderBy('name')->get() : collect();
-        $eventDepartments = $eventSetupReady ? EventDepartment::orderBy('name')->get() : collect();
-        $events = (Schema::hasTable('event_requests')) ? EventRequest::with('user')->where('is_deleted', false)->latest()->paginate(10, ['*'], 'event_page')->withQueryString() : collect();
+        $eventSetupReady = false;
+        $approvalConfigurationReady = false;
+        $eventRequestTypes = collect();
+        $eventIntendedUsers = collect();
+        $eventDepartments = collect();
+        $eventApprovalChains = collect();
+
+        try {
+            $eventSetupReady = Schema::hasColumns('event_request_types', ['id', 'name', 'requires_department', 'approval_roles', 'is_active'])
+                && Schema::hasColumns('event_intended_users', ['id', 'name', 'code', 'approval_roles', 'is_active'])
+                && Schema::hasColumns('event_departments', ['id', 'name', 'is_active']);
+
+            if ($eventSetupReady) {
+                $eventRequestTypes = EventRequestType::orderBy('name')->get();
+                $eventIntendedUsers = EventIntendedUser::orderBy('name')->get();
+                $eventDepartments = EventDepartment::orderBy('name')->get();
+            }
+
+            $approvalConfigurationReady = $eventSetupReady
+                && Schema::hasColumns('event_approval_chains', ['id', 'event_intended_user_id', 'event_request_type_id', 'approval_roles']);
+
+            if ($approvalConfigurationReady) {
+                $eventApprovalChains = EventApprovalChain::with(['intendedUser', 'requestType'])->get();
+            }
+        } catch (Throwable $exception) {
+            // A partially applied production migration must not take down the entire
+            // management page. The UI will show its migration-required message.
+            Log::warning('Event approval configuration could not be loaded.', [
+                'exception' => $exception->getMessage(),
+            ]);
+            $eventSetupReady = false;
+            $approvalConfigurationReady = false;
+            $eventRequestTypes = collect();
+            $eventIntendedUsers = collect();
+            $eventDepartments = collect();
+            $eventApprovalChains = collect();
+        }
+        try {
+            $events = Schema::hasColumns('event_requests', ['id', 'user_id', 'is_deleted'])
+                ? EventRequest::with('user')->where('is_deleted', false)->latest()->paginate(10, ['*'], 'event_page')->withQueryString()
+                : new LengthAwarePaginator([], 0, 10, 1, ['path' => $request->url(), 'pageName' => 'event_page']);
+        } catch (Throwable $exception) {
+            Log::warning('Event requests could not be loaded on the management page.', [
+                'exception' => $exception->getMessage(),
+            ]);
+            $events = new LengthAwarePaginator([], 0, 10, 1, ['path' => $request->url(), 'pageName' => 'event_page']);
+        }
         $approvalRoles = [
-            'program_head' => 'Program Head', 'academic_head' => 'Academic Head',
+            'principal_assistant' => 'Principal Assistant', 'program_head' => 'Program Head', 'academic_head' => 'Academic Head',
             'building_admin' => 'Building Admin', 'school_admin' => 'School Administrator',
         ];
-        return view('admin.management', compact('tab', 'staff', 'facilities', 'categories', 'eventSetupReady', 'eventRequestTypes', 'eventIntendedUsers', 'eventDepartments', 'events', 'approvalRoles'));
+        $eventRequestTypeOptions = $eventRequestTypes->map(fn ($item) => ['id' => $item->id, 'name' => $item->name, 'roles' => $item->approval_roles])->values()->all();
+        $eventIntendedUserOptions = $eventIntendedUsers->map(fn ($item) => ['id' => $item->id, 'name' => $item->name, 'code' => $item->code, 'roles' => $item->approval_roles])->values()->all();
+        $eventApprovalChainOptions = $eventApprovalChains->map(fn ($chain) => ['intended_user_id' => $chain->event_intended_user_id, 'request_type_id' => $chain->event_request_type_id, 'roles' => $chain->approval_roles])->values()->all();
+        $eventRequestTypeDefaults = $eventRequestTypes->mapWithKeys(fn ($type) => [(string) $type->id => $type->approval_roles])->all();
+
+        return view('admin.management', compact('tab', 'staff', 'facilities', 'categories', 'eventSetupReady', 'approvalConfigurationReady', 'eventRequestTypes', 'eventIntendedUsers', 'eventDepartments', 'eventApprovalChains', 'events', 'approvalRoles', 'eventRequestTypeOptions', 'eventIntendedUserOptions', 'eventApprovalChainOptions', 'eventRequestTypeDefaults'));
+    }
+
+    public function storeEventApprovalChain(Request $request)
+    {
+        $this->guardBuildingAdmin();
+        $allowedRoles = ['principal_assistant', 'program_head', 'academic_head', 'building_admin', 'school_admin'];
+        $data = $request->validate([
+            'event_intended_user_id' => 'required|exists:event_intended_users,id',
+            'event_request_type_id' => 'required|exists:event_request_types,id',
+            'approval_roles' => 'required|array|min:1',
+            'approval_roles.*' => 'required|string|in:'.implode(',', $allowedRoles),
+        ]);
+        EventApprovalChain::updateOrCreate(
+            ['event_intended_user_id' => $data['event_intended_user_id'], 'event_request_type_id' => $data['event_request_type_id']],
+            ['approval_roles' => array_values($data['approval_roles'])]
+        );
+        return back()->with('success', 'Approval chain saved. New event requests will use this route.');
     }
 
     public function storeEventRequestType(Request $request)
     {
         $this->guardBuildingAdmin();
-        $data = $request->validate(['name' => 'required|string|max:100|unique:event_request_types,name', 'approval_roles' => 'required|array|min:1', 'approval_roles.*' => 'required|string']);
+        $allowedRoles = 'principal_assistant,program_head,academic_head,building_admin,school_admin';
+        $data = $request->validate(['name' => 'required|string|max:100|unique:event_request_types,name', 'approval_roles' => 'required|array|min:1', 'approval_roles.*' => 'required|string|in:'.$allowedRoles]);
         $roles = array_values($data['approval_roles']);
         EventRequestType::create(['name' => trim($data['name']), 'requires_department' => in_array('program_head', $roles, true), 'approval_roles' => $roles, 'is_active' => true]);
         return back()->with('success', 'Event request type added.');
@@ -86,7 +153,8 @@ class ManagementController extends Controller
     public function updateEventRequestType(Request $request, EventRequestType $eventRequestType)
     {
         $this->guardBuildingAdmin();
-        $data = $request->validate(['name' => 'required|string|max:100|unique:event_request_types,name,'.$eventRequestType->id, 'approval_roles' => 'required|array|min:1', 'approval_roles.*' => 'required|string', 'is_active' => 'nullable|boolean']);
+        $allowedRoles = 'principal_assistant,program_head,academic_head,building_admin,school_admin';
+        $data = $request->validate(['name' => 'required|string|max:100|unique:event_request_types,name,'.$eventRequestType->id, 'approval_roles' => 'required|array|min:1', 'approval_roles.*' => 'required|string|in:'.$allowedRoles, 'is_active' => 'nullable|boolean']);
         $roles = array_values($data['approval_roles']);
         $eventRequestType->update(['name' => trim($data['name']), 'approval_roles' => $roles, 'requires_department' => in_array('program_head', $roles, true), 'is_active' => $request->boolean('is_active')]);
         return back()->with('success', 'Event request type updated.');
@@ -95,7 +163,8 @@ class ManagementController extends Controller
     public function storeEventIntendedUser(Request $request)
     {
         $this->guardBuildingAdmin();
-        $data = $request->validate(['name' => 'required|string|max:100|unique:event_intended_users,name', 'approval_roles' => 'nullable|array', 'approval_roles.*' => 'required|string']);
+        $allowedRoles = 'principal_assistant,program_head,academic_head,building_admin,school_admin';
+        $data = $request->validate(['name' => 'required|string|max:100|unique:event_intended_users,name', 'approval_roles' => 'nullable|array', 'approval_roles.*' => 'required|string|in:'.$allowedRoles]);
         $baseCode = Str::slug($data['name'], '_');
         $code = $baseCode;
         $suffix = 2;
@@ -107,7 +176,8 @@ class ManagementController extends Controller
     public function updateEventIntendedUser(Request $request, EventIntendedUser $eventIntendedUser)
     {
         $this->guardBuildingAdmin();
-        $data = $request->validate(['name' => 'required|string|max:100|unique:event_intended_users,name,'.$eventIntendedUser->id, 'approval_roles' => 'nullable|array', 'approval_roles.*' => 'required|string']);
+        $allowedRoles = 'principal_assistant,program_head,academic_head,building_admin,school_admin';
+        $data = $request->validate(['name' => 'required|string|max:100|unique:event_intended_users,name,'.$eventIntendedUser->id, 'approval_roles' => 'nullable|array', 'approval_roles.*' => 'required|string|in:'.$allowedRoles]);
         $eventIntendedUser->update(['name' => trim($data['name']), 'approval_roles' => !empty($data['approval_roles']) ? array_values($data['approval_roles']) : null]);
         return back()->with('success', 'Intended user updated.');
     }

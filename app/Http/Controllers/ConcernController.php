@@ -325,7 +325,7 @@ class ConcernController extends Controller
             'priority' => $priority,
             'image_path' => $imagePath,
             'is_anonymous' => false,
-        ];
+        ] + Concern::reporterSnapshotFor(auth()->user());
 
         // Keep optional details compatible with deployed databases that have not
         // yet run the details-column migration.
@@ -375,7 +375,7 @@ class ConcernController extends Controller
             'severity' => $severity,
             'status' => 'Pending',
             'photo_path' => $imagePath,
-        ];
+        ] + Report::reporterSnapshotFor(auth()->user(), true);
 
         if (Schema::hasColumn('reports', 'details')) {
             $reportData['details'] = $request->input('details');
@@ -625,7 +625,7 @@ class ConcernController extends Controller
                             'status' => $concern->status,
                             'created_at' => $concern->created_at->format('M d, Y'),
                             'resolved_at' => $concern->resolved_at ? $concern->resolved_at->format('M d, Y') : null,
-                            'user' => $concern->user ? $concern->user->name : 'Anonymous',
+                            'user' => $concern->is_anonymous ? 'Anonymous' : $concern->reporter_display_name,
                         ];
                     }),
                     'days' => $days,
@@ -1878,8 +1878,6 @@ class ConcernController extends Controller
 
             // Determine if user can see sensitive fields (OWASP API3: Object Property Level Authorization)
             $canSeeSensitiveFields = in_array($user->role, ['building_admin', 'mis', 'school_admin', 'admin']) || $concern->assigned_to === $user->id;
-            $displayUser = ($isLinkedReporter && ! $isOwner) ? $user : $concern->user;
-
             // Format the concern data for the view modal (matching viewConcern expectations)
             $formattedConcern = [
                 'id' => $concern->id,
@@ -1888,11 +1886,11 @@ class ConcernController extends Controller
                 'location' => $concern->location,
                 'issue' => $concern->issue ?: $concern->title,
                 'categoryRelation' => $concern->categoryRelation,
-                'user' => $displayUser ? [
-                    'id' => $displayUser->id,
-                    'name' => $displayUser->name,
-                    'role' => $displayUser->role,
-                ] : null,
+                'user' => [
+                    'id' => $concern->user_id,
+                    'name' => $concern->is_anonymous ? 'Anonymous' : $concern->reporter_display_name,
+                    'role' => $concern->reporter_role,
+                ],
                 'assignedTo' => $concern->assignedTo,
                 'assigned_to' => $concern->assigned_to,
                 'report_id' => Report::where('concern_id', $concern->id)->latest('id')->value('id'),

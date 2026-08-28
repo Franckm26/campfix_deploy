@@ -269,8 +269,8 @@
                         <a href="{{ route('admin.management') }}" class="btn btn-outline-secondary btn-sm text-start">
                             <i class="fas fa-tools me-2"></i> Management
                         </a>
-                        <a href="/admin/logs" class="btn btn-outline-dark btn-sm text-start">
-                            <i class="fas fa-history me-2"></i> Audit Logs
+                        <a href="{{ route('history.index') }}" class="btn btn-outline-dark btn-sm text-start">
+                            <i class="fas fa-history me-2"></i> My History
                         </a>
                     </div>
                 </div>

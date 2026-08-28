@@ -5,6 +5,7 @@ use App\Http\Middleware\SuperadminMiddleware;
 use App\Http\Middleware\ApiRequestContext;
 use App\Http\Middleware\ApiSecurityHeaders;
 use App\Http\Middleware\BlockSuspiciousQuery;
+use App\Http\Middleware\DatabaseTransaction;
 use App\Http\Middleware\EnforceApiResourceLimits;
 use App\Http\Middleware\EnforceSingleSession;
 use App\Http\Middleware\EnsurePasswordChanged;
@@ -61,6 +62,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // Register user locale middleware
         $middleware->appendToGroup('web', SetUserLocale::class);
 
+        // Wrap every POST/PUT/PATCH/DELETE request in one database transaction.
+        // This gives multi-table workflows an all-or-nothing commit boundary.
+        $middleware->appendToGroup('web', DatabaseTransaction::class);
+
         // Enforce single active session per user
         $middleware->appendToGroup('web', EnforceSingleSession::class);
 
@@ -68,6 +73,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToGroup('web', EnsurePasswordChanged::class);
 
         $middleware->prependToGroup('api', ApiRequestContext::class);
+        $middleware->appendToGroup('api', DatabaseTransaction::class);
         $middleware->appendToGroup('api', BlockSuspiciousQuery::class);
         $middleware->appendToGroup('api', EnforceApiResourceLimits::class);
         $middleware->appendToGroup('api', ApiSecurityHeaders::class);

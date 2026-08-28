@@ -416,7 +416,7 @@
                                             </span>
                                         </td>
                                         <td>
-                                            {{ $report->reported_by_name ?? ($report->user ? $report->user->name : 'Unknown') }}
+                                            {{ $report->reporter_display_name }}
                                         </td>
                                         <td>{{ $report->created_at->format('m/d/Y') }}</td>
                                         <td>{{ $report->resolved_at ? $report->resolved_at->format('M d, Y g:i A') : '-' }}</td>
@@ -425,9 +425,15 @@
                                                 <button type="button" class="btn btn-sm btn-info" onclick="viewReport({{ $report->id }})" title="View">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
+                                                @if(strtolower(trim((string) optional($report->category)->name)) === 'technology/internet')
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="MIS staff claim Technology/Internet tasks from the MIS Task page">
+                                                    <i class="fas fa-user-check"></i>
+                                                </button>
+                                                @else
                                                 <button type="button" class="btn btn-sm btn-primary" onclick="assignReport({{ $report->id }})" title="{{ $report->assigned_to ? 'Reassign' : 'Assign' }}">
                                                     <i class="fas fa-user-plus"></i>
                                                 </button>
+                                                @endif
                                                 <button type="button" class="btn btn-sm btn-info bg-transparent border-0" onclick="viewReportProgress({{ $report->id }})" title="View Progress">
                                                     <i class="fas fa-tasks"></i>
                                                 </button>
@@ -514,7 +520,7 @@
                             </div>
                             <div class="report-card-field">
                                 <span class="report-card-label">Reported By:</span>
-                                <span class="report-card-value">{{ $report->reported_by_name ?? ($report->user ? $report->user->name : 'Unknown') }}</span>
+                                <span class="report-card-value">{{ $report->reporter_display_name }}</span>
                             </div>
                             <div class="report-card-field">
                                 <span class="report-card-label">Created:</span>
@@ -525,9 +531,15 @@
                             <button type="button" class="btn btn-sm btn-info" onclick="viewReport({{ $report->id }})">
                                 <i class="fas fa-eye"></i> View
                             </button>
+                            @if(strtolower(trim((string) optional($report->category)->name)) === 'technology/internet')
+                            <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="MIS staff assign this from their MIS Task page">
+                                <i class="fas fa-user-check"></i> MIS Self-Assign
+                            </button>
+                            @else
                             <button type="button" class="btn btn-sm btn-primary" onclick="assignReport({{ $report->id }})">
                                 <i class="fas fa-user-plus"></i> {{ $report->assigned_to ? 'Reassign' : 'Assign' }}
                             </button>
+                            @endif
                             @if(!$report->isArchivedByUser(auth()->id()))
                                 <button type="button" class="btn btn-sm btn-secondary" onclick="showReportArchiveModal({{ $report->id }})">
                                     <i class="fas fa-archive"></i> Archive
@@ -627,7 +639,7 @@
                                             </span>
                                         @endif
                                     </td>
-                                    <td>{{ $report->reported_by_name ?? ($report->user ? $report->user->name : 'Unknown') }}</td>
+                                    <td>{{ $report->reporter_display_name }}</td>
                                     <td>{{ $report->created_at->format('m/d/Y') }}</td>
                                     <td>{{ $report->resolved_at ? $report->resolved_at->format('M d, Y g:i A') : '-' }}</td>
                                     <td>PHP{{ number_format($report->cost ?? 0, 2) }}</td>
@@ -700,7 +712,7 @@
                                 </div>
                                 <div class="report-card-field">
                                     <span class="report-card-label">Reported By:</span>
-                                    <span class="report-card-value">{{ $report->reported_by_name ?? ($report->user ? $report->user->name : 'Unknown') }}</span>
+                                    <span class="report-card-value">{{ $report->reporter_display_name }}</span>
                                 </div>
                                 <div class="report-card-field">
                                     <span class="report-card-label">Resolved:</span>
@@ -806,7 +818,7 @@
                                                 </span>
                                             </td>
                                             <td>
-                                                {{ $concern->is_anonymous ? 'Anonymous' : ($concern->user->name ?? 'Unknown') }}
+                                                {{ $concern->is_anonymous ? 'Anonymous' : $concern->reporter_display_name }}
                                             </td>
                                             <td>{{ $concern->created_at->format('m/d/Y') }}</td>
                                             <td>{{ $concern->resolved_at ? $concern->resolved_at->format('m/d/Y') : '-' }}</td>
@@ -883,7 +895,7 @@
                                         </div>
                                         <div class="report-card-field">
                                             <span class="report-card-label">Reported By:</span>
-                                            <span class="report-card-value">{{ $concern->is_anonymous ? 'Anonymous' : ($concern->user->name ?? 'Unknown') }}</span>
+                                            <span class="report-card-value">{{ $concern->is_anonymous ? 'Anonymous' : $concern->reporter_display_name }}</span>
                                         </div>
                                         <div class="report-card-field">
                                             <span class="report-card-label">Created:</span>
@@ -1062,7 +1074,7 @@
                                             {{ ucfirst($report->status) }}
                                         </span>
                                     </td>
-                                    <td>{{ $report->reported_by_name ?? ($report->user ? $report->user->name : 'Unknown') }}</td>
+                                    <td>{{ $report->reporter_display_name }}</td>
                                     <td>{{ $report->updated_at->format('M d, Y h:i A') }}</td>
                                     <td>{{ $report->deletedBy ? $report->deletedBy->name : 'System' }}</td>
                                     <td>
@@ -1175,7 +1187,7 @@
                                 </div>
                                 <div class="report-card-field">
                                     <span class="report-card-label">Reported By:</span>
-                                    <span class="report-card-value">{{ $report->reported_by_name ?? ($report->user ? $report->user->name : 'Unknown') }}</span>
+                                    <span class="report-card-value">{{ $report->reporter_display_name }}</span>
                                 </div>
                                 <div class="report-card-field">
                                     <span class="report-card-label">Deleted Date:</span>
