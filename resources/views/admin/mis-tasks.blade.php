@@ -211,16 +211,16 @@
                                                 <i class="fas fa-user-check"></i>
                                             </button>
                                             @else
-                                            <button type="button" class="btn btn-sm btn-secondary bg-transparent border-0" onclick="showArchiveModal({{ $concern->id }})" title="Archive">
-                                                <i class="fas fa-archive"></i>
+                                            <button type="button" class="btn btn-sm btn-warning bg-transparent border-0" onclick="setMisTaskPriority({{ $concern->id }}, '{{ $concern->is_safety_hazard ? 'safety_hazard' : $concern->priority }}')" title="Set priority">
+                                                <i class="fas fa-flag"></i>
                                             </button>
-                                            @if(!$concern->assigned_to || $concern->status === 'Resolved')
-                                            <button type="button" class="btn btn-sm btn-danger bg-transparent border-0" onclick="softDeleteConcern({{ $concern->id }})" title="Delete">
-                                                <i class="fas fa-trash"></i>
+                                            @if(in_array($concern->status, ['Pending', 'Assigned']))
+                                            <button type="button" class="btn btn-sm btn-primary bg-transparent border-0" onclick="startMisTask({{ $concern->id }})" title="Start work">
+                                                <i class="fas fa-play-circle"></i>
                                             </button>
-                                            @else
-                                            <button type="button" class="btn btn-sm btn-secondary bg-transparent border-0" disabled title="Cannot delete assigned concerns until resolved">
-                                                <i class="fas fa-trash"></i>
+                                            @elseif($concern->status === 'In Progress')
+                                            <button type="button" class="btn btn-sm btn-success bg-transparent border-0" onclick="resolveMisTask({{ $concern->id }})" title="Resolve task">
+                                                <i class="fas fa-check-circle"></i>
                                             </button>
                                             @endif
                                             @endif
@@ -471,9 +471,20 @@ function viewConcern(id) {
 
 function claimMisTask(id) {
     Swal.fire({
-        icon: 'question',
-        title: 'Assign this task to you?',
-        text: 'Once assigned, you can start work and continue the task until it is resolved.',
+        title: 'Claim MIS Task',
+        text: 'Choose the priority before assigning this task to yourself.',
+        input: 'select',
+        inputOptions: {
+            low: 'Low',
+            medium: 'Medium',
+            high: 'High',
+            urgent: 'Urgent',
+            safety_hazard: 'Safety Hazard'
+        },
+        inputPlaceholder: 'Select priority',
+        inputValidator: function (value) {
+            return value ? null : 'Please select a priority.';
+        },
         showCancelButton: true,
         confirmButtonText: '<i class="fas fa-user-check me-1"></i> Assign to me',
         confirmButtonColor: '#0d6efd'
@@ -486,8 +497,10 @@ function claimMisTask(id) {
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
                 'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ priority: result.value })
         })
         .then(async function (response) {
             var data = await response.json().catch(function () { return {}; });
@@ -501,6 +514,123 @@ function claimMisTask(id) {
         .catch(function (error) {
             Swal.fire({ icon: 'error', title: 'Unable to Assign Task', text: error.message });
         });
+    });
+}
+
+function misTaskRequest(url, payload) {
+    return fetch(url, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+    }).then(async function (response) {
+        var data = await response.json().catch(function () { return {}; });
+        if (!response.ok) throw new Error(data.error || data.message || 'Unable to update this MIS task.');
+        return data;
+    });
+}
+
+function setMisTaskPriority(id, currentPriority) {
+    Swal.fire({
+        title: 'Set Task Priority',
+        input: 'select',
+        inputOptions: {
+            low: 'Low',
+            medium: 'Medium',
+            high: 'High',
+            urgent: 'Urgent',
+            safety_hazard: 'Safety Hazard'
+        },
+        inputValue: currentPriority || 'low',
+        showCancelButton: true,
+        confirmButtonText: '<i class="fas fa-save me-1"></i> Save priority',
+        inputValidator: function (value) {
+            return value ? null : 'Please select a priority.';
+        },
+        showLoaderOnConfirm: true,
+        preConfirm: function (priority) {
+            return misTaskRequest('/admin/concern/' + id + '/priority', { priority: priority })
+                .catch(function (error) {
+                    Swal.showValidationMessage(error.message);
+                });
+        },
+        allowOutsideClick: function () { return !Swal.isLoading(); }
+    }).then(function (result) {
+        if (!result.isConfirmed) return;
+        Swal.fire({ icon: 'success', title: 'Priority Updated', timer: 1300, showConfirmButton: false })
+            .then(function () { window.location.reload(); });
+    });
+}
+
+function startMisTask(id) {
+    Swal.fire({
+        icon: 'question',
+        title: 'Start working on this task?',
+        text: 'The requester will be notified that the task is now in progress.',
+        showCancelButton: true,
+        confirmButtonText: '<i class="fas fa-play me-1"></i> Start work',
+        confirmButtonColor: '#0d6efd',
+        showLoaderOnConfirm: true,
+        preConfirm: function () {
+            return misTaskRequest('/update-status/' + id, { status: 'In Progress' })
+                .catch(function (error) {
+                    Swal.showValidationMessage(error.message);
+                });
+        },
+        allowOutsideClick: function () { return !Swal.isLoading(); }
+    }).then(function (result) {
+        if (!result.isConfirmed) return;
+        Swal.fire({ icon: 'success', title: 'Work Started', text: result.value.message, timer: 1400, showConfirmButton: false })
+            .then(function () { window.location.reload(); });
+    });
+}
+
+function resolveMisTask(id) {
+    Swal.fire({
+        title: 'Resolve MIS Task',
+        html: `
+            <div class="text-start">
+                <label for="misResolutionNotes" class="form-label fw-semibold">Resolution notes <span class="text-danger">*</span></label>
+                <textarea id="misResolutionNotes" class="form-control mb-3" rows="4" maxlength="1000" placeholder="Explain the work completed and the result"></textarea>
+                <label for="misResolutionCost" class="form-label fw-semibold">Recorded cost (optional)</label>
+                <input id="misResolutionCost" class="form-control mb-3" type="number" min="0" step="0.01" placeholder="0.00">
+                <label for="misDamagedPart" class="form-label fw-semibold">Damaged part (optional)</label>
+                <input id="misDamagedPart" class="form-control mb-3" type="text" maxlength="255">
+                <label for="misReplacedPart" class="form-label fw-semibold">Replaced part (optional)</label>
+                <input id="misReplacedPart" class="form-control" type="text" maxlength="255">
+            </div>
+        `,
+        width: '620px',
+        showCancelButton: true,
+        confirmButtonText: '<i class="fas fa-check-circle me-1"></i> Mark resolved',
+        confirmButtonColor: '#198754',
+        showLoaderOnConfirm: true,
+        preConfirm: function () {
+            var notes = document.getElementById('misResolutionNotes').value.trim();
+            if (!notes) {
+                Swal.showValidationMessage('Resolution notes are required.');
+                return false;
+            }
+            return misTaskRequest('/update-status/' + id, {
+                status: 'Resolved',
+                resolution_notes: notes,
+                cost: document.getElementById('misResolutionCost').value || null,
+                damaged_part: document.getElementById('misDamagedPart').value.trim() || null,
+                replaced_part: document.getElementById('misReplacedPart').value.trim() || null
+            }).catch(function (error) {
+                Swal.showValidationMessage(error.message);
+            });
+        },
+        allowOutsideClick: function () { return !Swal.isLoading(); }
+    }).then(function (result) {
+        if (!result.isConfirmed) return;
+        Swal.fire({ icon: 'success', title: 'Task Resolved', text: result.value.message, timer: 1500, showConfirmButton: false })
+            .then(function () { window.location.reload(); });
     });
 }
 

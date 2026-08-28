@@ -370,8 +370,12 @@ class AdminController extends Controller
     {
         abort_unless(auth()->user()?->role === 'mis', 403);
 
+        $validated = $request->validate([
+            'priority' => 'required|in:low,medium,high,urgent,safety_hazard',
+        ]);
+
         try {
-            $concern = \Illuminate\Support\Facades\DB::transaction(function () use ($id) {
+            $concern = \Illuminate\Support\Facades\DB::transaction(function () use ($id, $validated) {
                 $concern = Concern::with('categoryRelation')->lockForUpdate()->findOrFail($id);
                 $categoryName = strtolower(trim((string) $concern->categoryRelation?->name));
 
@@ -383,24 +387,34 @@ class AdminController extends Controller
                     $concern->assigned_to = auth()->id();
                     $concern->assigned_at = now();
                     $concern->status = 'Assigned';
-                    $concern->save();
-
-                    Report::where('concern_id', $concern->id)
-                        ->where('status', '!=', 'Resolved')
-                        ->update([
-                            'assigned_to' => auth()->id(),
-                            'assigned_at' => now(),
-                            'status' => 'Assigned',
-                        ]);
                 }
+
+                $isSafetyHazard = $validated['priority'] === 'safety_hazard';
+                $concern->priority = $isSafetyHazard ? 'urgent' : $validated['priority'];
+                $concern->is_safety_hazard = $isSafetyHazard;
+                $concern->save();
+
+                Report::where('concern_id', $concern->id)
+                    ->where('status', '!=', 'Resolved')
+                    ->update([
+                        'assigned_to' => auth()->id(),
+                        'assigned_at' => $concern->assigned_at,
+                        'status' => 'Assigned',
+                        'severity' => $concern->priority,
+                        'is_safety_hazard' => $isSafetyHazard,
+                    ]);
 
                 return $concern;
             });
 
+            $priorityLabel = $validated['priority'] === 'safety_hazard'
+                ? 'Safety Hazard'
+                : ucfirst($validated['priority']);
+
             $this->sendConcernUpdateNotification(
                 $concern,
                 'MIS Task Assigned',
-                'Your Technology/Internet concern was accepted by '.auth()->user()->name.'.',
+                'Your Technology/Internet concern was accepted by '.auth()->user()->name.' with '.$priorityLabel.' priority.',
                 auth()->user()
             );
             ActivityLog::log('mis_task_claimed', 'MIS task assigned to self by '.auth()->user()->name, $concern->id, 'concern');
@@ -463,6 +477,16 @@ class AdminController extends Controller
         $oldStatus = $concern->status;
         $newStatus = $request->input('status');
 
+        if ($user->role === 'mis'
+            && in_array($newStatus, ['In Progress', 'Resolved'], true)
+            && ! in_array($concern->priority, ['low', 'medium', 'high', 'urgent'], true)) {
+            return response()->json(['error' => 'Set the task priority before starting work.'], 422);
+        }
+
+        if ($user->role === 'mis' && $newStatus === 'Resolved' && blank($request->input('resolution_notes'))) {
+            return response()->json(['error' => 'Resolution notes are required before resolving an MIS task.'], 422);
+        }
+
         // OWASP API6: Validate business logic - status transitions
         if (! $this->isValidStatusTransition($oldStatus, $newStatus)) {
             if ($request->expectsJson()) {
@@ -472,6 +496,10 @@ class AdminController extends Controller
         }
 
         $concern->status = $newStatus;
+
+        if ($newStatus === 'In Progress' && $oldStatus !== 'In Progress' && Schema::hasColumn('concerns', 'in_progress_at')) {
+            $concern->in_progress_at = now();
+        }
 
         // Update additional fields when resolving (for maintenance)
         if ($newStatus === 'Resolved') {
@@ -497,6 +525,23 @@ class AdminController extends Controller
         }
 
         $concern->save();
+
+        $reportUpdates = ['status' => $newStatus];
+        if ($newStatus === 'In Progress' && $oldStatus !== 'In Progress' && Schema::hasColumn('reports', 'in_progress_at')) {
+            $reportUpdates['in_progress_at'] = now();
+        }
+        if ($newStatus === 'Resolved') {
+            $reportUpdates += [
+                'resolution_notes' => $concern->resolution_notes,
+                'cost' => $concern->cost,
+                'damaged_part' => $concern->damaged_part,
+                'replaced_part' => $concern->replaced_part,
+                'resolved_at' => $concern->resolved_at,
+            ];
+        }
+        Report::where('concern_id', $concern->id)
+            ->where('status', '!=', 'Resolved')
+            ->update($reportUpdates);
 
         if ($newStatus !== 'Resolved') {
             $this->sendConcernUpdateNotification(
@@ -914,9 +959,16 @@ class AdminController extends Controller
     {
         $request->validate(['priority' => 'required|in:low,medium,high,urgent,safety_hazard']);
 
-        $concern = Concern::findOrFail($id);
+        $concern = Concern::with('categoryRelation')->findOrFail($id);
+        $user = auth()->user();
 
-        if (auth()->user()->role !== 'building_admin') {
+        $isBuildingAdmin = $user->role === 'building_admin';
+        $isClaimedMisTask = $user->role === 'mis'
+            && (int) $concern->assigned_to === (int) $user->id
+            && strtolower(trim((string) $concern->categoryRelation?->name)) === 'technology/internet'
+            && $concern->status !== 'Resolved';
+
+        if (! $isBuildingAdmin && ! $isClaimedMisTask) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
@@ -931,11 +983,22 @@ class AdminController extends Controller
         
         $concern->save();
 
+        Report::where('concern_id', $concern->id)
+            ->where('status', '!=', 'Resolved')
+            ->update([
+                'severity' => $concern->priority,
+                'is_safety_hazard' => $concern->is_safety_hazard,
+            ]);
+
+        $priorityLabel = $request->priority === 'safety_hazard'
+            ? 'Safety Hazard'
+            : ucfirst($request->priority);
+
         $this->sendConcernUpdateNotification(
             $concern,
             'Concern Priority Updated',
-            'Your concern priority has been updated to '.$request->priority.'.',
-            auth()->user()
+            'Your concern priority has been updated to '.$priorityLabel.'.',
+            $user
         );
 
         return response()->json(['success' => true, 'priority' => $request->priority]);
