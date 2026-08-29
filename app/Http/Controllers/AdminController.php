@@ -1128,52 +1128,6 @@ class AdminController extends Controller
     {
         $viewType = $request->input('view', 'active');
 
-        if ($viewType === 'resolved') {
-            // Show resolved reports
-            $query = Report::with('user', 'category')
-                ->where('status', 'Resolved')
-                ->where('is_deleted', false)
-                ->where(function ($q) {
-                    $q->where('building_admin_archived', false)
-                        ->where('mis_archived', false)
-                        ->where('school_admin_archived', false)
-                        ->where('admin_archived', false);
-                });
-
-            // Apply filters
-            if ($request->filled('priority')) {
-                $query->where('severity', $request->input('priority'));
-            }
-
-            if ($request->filled('category')) {
-                $query->where('category_id', $request->input('category'));
-            }
-
-            if ($request->filled('search')) {
-                $search = $request->input('search');
-                $query->where(function ($q) use ($search) {
-                    $q->where('title', 'ILIKE', "%{$search}%")
-                      ->orWhere('description', 'ILIKE', "%{$search}%")
-                      ->orWhere('location', 'ILIKE', "%{$search}%");
-                });
-            }
-
-            $resolvedReports = $query->orderBy('updated_at', 'desc')->get();
-
-            return view('admin.reports', [
-                'viewType' => $viewType,
-                'resolvedReports' => $resolvedReports,
-                'reports' => collect(),
-                'categories' => Category::all(),
-                'totalReports' => $resolvedReports->count(),
-                'totalCost' => 0,
-                'groupedReports' => collect(),
-                'locationStats' => collect(),
-                'uniqueLocations' => 0,
-                'concerns' => collect(),
-            ]);
-        }
-
         if ($viewType === 'archives') {
             // Show reports archived by the current admin user
             $archivedReports = Report::archivedByUser(auth()->id())
@@ -1521,10 +1475,9 @@ class AdminController extends Controller
             ]);
         }
 
-        // Default: Show all active reports for admin management (excluding resolved)
+        // Default: Show all reports for admin management (including resolved when filtered)
         $query = Report::with('user', 'category')
             ->where('is_deleted', false)
-            ->where('status', '!=', 'Resolved')
             ->where(function ($q) {
                 $q->where('building_admin_archived', false)
                     ->where('mis_archived', false)
@@ -1532,9 +1485,12 @@ class AdminController extends Controller
                     ->where('admin_archived', false);
             });
 
-        // Apply filters
+        // Apply status filter - include resolved if explicitly filtered, otherwise exclude
         if ($request->filled('status')) {
             $query->where('status', $request->input('status'));
+        } else {
+            // By default, exclude resolved reports unless explicitly filtered
+            $query->where('status', '!=', 'Resolved');
         }
 
         if ($request->filled('priority')) {
@@ -1555,10 +1511,53 @@ class AdminController extends Controller
         }
 
         $reportStats = [
-            'total' => (clone $query)->count(),
-            'pending' => (clone $query)->where('status', 'Pending')->count(),
-            'resolved' => (clone $query)->where('status', 'Resolved')->count(),
-            'critical' => (clone $query)->where('severity', 'critical')->count(),
+            'total' => Report::where('is_deleted', false)
+                ->where(function ($q) {
+                    $q->where('building_admin_archived', false)
+                        ->where('mis_archived', false)
+                        ->where('school_admin_archived', false)
+                        ->where('admin_archived', false);
+                })->count(),
+            'pending' => Report::where('is_deleted', false)
+                ->where('status', 'Pending')
+                ->where(function ($q) {
+                    $q->where('building_admin_archived', false)
+                        ->where('mis_archived', false)
+                        ->where('school_admin_archived', false)
+                        ->where('admin_archived', false);
+                })->count(),
+            'assigned' => Report::where('is_deleted', false)
+                ->where('status', 'Assigned')
+                ->where(function ($q) {
+                    $q->where('building_admin_archived', false)
+                        ->where('mis_archived', false)
+                        ->where('school_admin_archived', false)
+                        ->where('admin_archived', false);
+                })->count(),
+            'in_progress' => Report::where('is_deleted', false)
+                ->where('status', 'In Progress')
+                ->where(function ($q) {
+                    $q->where('building_admin_archived', false)
+                        ->where('mis_archived', false)
+                        ->where('school_admin_archived', false)
+                        ->where('admin_archived', false);
+                })->count(),
+            'resolved' => Report::where('is_deleted', false)
+                ->where('status', 'Resolved')
+                ->where(function ($q) {
+                    $q->where('building_admin_archived', false)
+                        ->where('mis_archived', false)
+                        ->where('school_admin_archived', false)
+                        ->where('admin_archived', false);
+                })->count(),
+            'critical' => Report::where('is_deleted', false)
+                ->where('severity', 'critical')
+                ->where(function ($q) {
+                    $q->where('building_admin_archived', false)
+                        ->where('mis_archived', false)
+                        ->where('school_admin_archived', false)
+                        ->where('admin_archived', false);
+                })->count(),
         ];
 
         $reports = $query

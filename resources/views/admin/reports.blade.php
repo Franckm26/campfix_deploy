@@ -242,11 +242,6 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ ($viewType ?? '') == 'resolved' ? 'active' : '' }}" href="{{ route('admin.reports', ['view' => 'resolved']) }}" style="color: #28a745;">
-                            <i class="fas fa-check-circle"></i> Resolved Reports
-                        </a>
-                    </li>
-                    <li class="nav-item">
                         <a class="nav-link {{ ($viewType ?? '') == 'archives' ? 'active' : '' }}" href="{{ route('admin.reports', ['view' => 'archives']) }}">
                             <i class="fas fa-archive"></i> Archived Reports
                         </a>
@@ -277,6 +272,7 @@
                             <option value="Pending" {{ request('status') == 'Pending' ? 'selected' : '' }}>Pending</option>
                             <option value="Assigned" {{ request('status') == 'Assigned' ? 'selected' : '' }}>Assigned</option>
                             <option value="In Progress" {{ request('status') == 'In Progress' ? 'selected' : '' }}>In Progress</option>
+                            <option value="Resolved" {{ request('status') == 'Resolved' ? 'selected' : '' }}>Resolved</option>
                         </select>
                     </div>
                     <div class="col-6 col-md">
@@ -570,183 +566,6 @@
                 </div>
             @endif
 
-        </div>
-    </div>
-    @endif
-
-    @if(($viewType ?? '') == 'resolved')
-    <!-- Resolved Reports Section -->
-    <div class="card" style="display: block !important;">
-        <div class="card-body" style="display: block !important;">
-            <h5 class="card-title mb-3">
-                <i class="fas fa-check-circle text-success"></i> Resolved Reports
-                @if(isset($resolvedReports))
-                    <span class="badge bg-success ms-2">{{ $resolvedReports->count() }}</span>
-                @endif
-            </h5>
-            
-            <!-- Bulk Actions for Resolved Reports -->
-            <div class="bulk-actions mb-3" id="resolvedBulkActions" style="display: none;">
-                <div class="btn-group">
-                    <button type="button" class="btn btn-warning btn-sm" onclick="batchArchiveResolved()">
-                        <i class="fas fa-archive"></i> Archive Selected
-                    </button>
-                    <button type="button" class="btn btn-danger btn-sm" onclick="batchSoftDeleteResolved()">
-                        <i class="fas fa-trash"></i> Delete Selected
-                    </button>
-                </div>
-                <span class="ms-2 text-muted" id="resolvedSelectedCount">0 selected</span>
-            </div>
-            
-            @if(isset($resolvedReports) && $resolvedReports->count() > 0)
-                <div class="table-responsive" style="display: block !important; visibility: visible !important; opacity: 1 !important;">
-                    <table class="table table-hover" style="display: table !important;">
-                        <thead>
-                            <tr>
-                                <th class="checkbox-col"><input type="checkbox" id="selectAllResolvedReports" onclick="toggleAllResolvedReports(this)"></th>
-                                <th class="ticket-col" style="width: 60px; max-width: 60px; min-width: 60px; white-space: nowrap; text-align: center;">Ticket</th>
-                                <th>Issue</th>
-                                <th>Category</th>
-                                <th>Location</th>
-                                <th>Priority</th>
-                                <th>Reported By</th>
-                                <th>Created</th>
-                                <th>Resolved</th>
-                                <th>Cost</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($resolvedReports as $report)
-                                <tr data-id="{{ $report->id }}">
-                                    <td class="checkbox-col"><input type="checkbox" class="resolved-report-checkbox resolved-checkbox" value="{{ $report->id }}" onchange="updateResolvedBulkActions()"></td>
-                                    <td class="ticket-col" style="width: 60px; max-width: 60px; min-width: 60px; white-space: nowrap; text-align: center; padding: 4px;">#{{ str_pad($report->id, 4, '0', STR_PAD_LEFT) }}</td>
-                                    <td>{{ $report->title ?? \Illuminate\Support\Str::limit($report->description, 40) }}</td>
-                                    <td>{{ $report->category->name ?? 'N/A' }}</td>
-                                    <td>{{ $report->location }}</td>
-                                    <td>
-                                        @if($report->is_safety_hazard)
-                                            <span class="badge" style="background: linear-gradient(135deg, #dc3545 0%, #8b0000 100%); color: white; border: 1px solid #8b0000; font-weight: bold;">
-                                                <i class="fas fa-exclamation-triangle"></i> Safety Hazard
-                                            </span>
-                                        @else
-                                            <span class="badge bg-{{
-                                                $report->severity == 'critical' || $report->severity == 'urgent' ? 'danger' :
-                                                ($report->severity == 'high' ? 'warning' :
-                                                ($report->severity == 'medium' ? 'info' : 'secondary'))
-                                            }}">
-                                                {{ ($report->severity ? ucfirst($report->severity) : 'Not Set') }}
-                                            </span>
-                                        @endif
-                                    </td>
-                                    <td>{{ $report->reporter_display_name }}</td>
-                                    <td>{{ $report->created_at->format('m/d/Y') }}</td>
-                                    <td>{{ $report->resolved_at ? $report->resolved_at->format('M d, Y g:i A') : '-' }}</td>
-                                    <td>PHP{{ number_format($report->cost ?? 0, 2) }}</td>
-                                    <td>
-                                        <div class="btn-group" role="group">
-                                            <button type="button" class="btn btn-sm btn-info" onclick="viewReport({{ $report->id }})" title="View">
-                                                <i class="fas fa-eye"></i>
-                                            </button>
-                                            <button type="button" class="btn btn-sm btn-secondary" onclick="showReportArchiveModal({{ $report->id }})" title="Archive">
-                                                <i class="fas fa-archive"></i>
-                                            </button>
-                                            @if(!$report->assigned_to || $report->status === 'Resolved')
-                                            <button type="button" class="btn btn-sm btn-danger" onclick="showReportDeleteModal({{ $report->id }})" title="Delete">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                            @else
-                                            <button type="button" class="btn btn-sm btn-secondary" disabled title="Cannot delete assigned reports until resolved">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                            @endif
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Mobile Card Layout for Resolved Reports -->
-                <div class="mobile-report-cards">
-                    @foreach($resolvedReports as $report)
-                        <div class="report-card">
-                            <div class="report-card-header">
-                                <div>
-                                    <input type="checkbox" class="report-card-checkbox resolved-report-checkbox resolved-checkbox" value="{{ $report->id }}" onchange="updateResolvedBulkActions()">
-                                    <span class="report-card-ticket">#{{ str_pad($report->id, 4, '0', STR_PAD_LEFT) }}</span>
-                                </div>
-                                <span class="badge bg-success">Resolved</span>
-                            </div>
-                            <div class="report-card-body">
-                                <div class="report-card-field">
-                                    <span class="report-card-label">Issue:</span>
-                                    <span class="report-card-value">{{ $report->title ?? \Illuminate\Support\Str::limit($report->description, 40) }}</span>
-                                </div>
-                                <div class="report-card-field">
-                                    <span class="report-card-label">Category:</span>
-                                    <span class="report-card-value">{{ $report->category->name ?? 'N/A' }}</span>
-                                </div>
-                                <div class="report-card-field">
-                                    <span class="report-card-label">Location:</span>
-                                    <span class="report-card-value">{{ $report->location }}</span>
-                                </div>
-                                <div class="report-card-field">
-                                    <span class="report-card-label">Priority:</span>
-                                    <span class="report-card-value">
-                                        @if($report->is_safety_hazard)
-                                            <span class="badge" style="background: linear-gradient(135deg, #dc3545 0%, #8b0000 100%); color: white;">
-                                                <i class="fas fa-exclamation-triangle"></i> Safety Hazard
-                                            </span>
-                                        @else
-                                            <span class="badge bg-{{
-                                                $report->severity == 'critical' || $report->severity == 'urgent' ? 'danger' :
-                                                ($report->severity == 'high' ? 'warning' :
-                                                ($report->severity == 'medium' ? 'info' : 'secondary'))
-                                            }}">
-                                                {{ ($report->severity ? ucfirst($report->severity) : 'Not Set') }}
-                                            </span>
-                                        @endif
-                                    </span>
-                                </div>
-                                <div class="report-card-field">
-                                    <span class="report-card-label">Reported By:</span>
-                                    <span class="report-card-value">{{ $report->reporter_display_name }}</span>
-                                </div>
-                                <div class="report-card-field">
-                                    <span class="report-card-label">Resolved:</span>
-                                    <span class="report-card-value">{{ $report->resolved_at ? $report->resolved_at->format('M d, Y g:i A') : '-' }}</span>
-                                </div>
-                                <div class="report-card-field">
-                                    <span class="report-card-label">Cost:</span>
-                                    <span class="report-card-value">PHP{{ number_format($report->cost ?? 0, 2) }}</span>
-                                </div>
-                            </div>
-                            <div class="report-card-actions">
-                                <button type="button" class="btn btn-sm btn-info" onclick="viewReport({{ $report->id }})">
-                                    <i class="fas fa-eye"></i> View
-                                </button>
-                                <button type="button" class="btn btn-sm btn-secondary" onclick="showReportArchiveModal({{ $report->id }})">
-                                    <i class="fas fa-archive"></i> Archive
-                                </button>
-                                @if(!$report->assigned_to || $report->status === 'Resolved')
-                                <button type="button" class="btn btn-sm btn-danger" onclick="showReportDeleteModal({{ $report->id }})">
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
-                                @endif
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-
-            @else
-                <div class="text-center py-5">
-                    <i class="fas fa-check-circle fa-3x text-muted mb-3"></i>
-                    <h4 class="text-muted">No resolved reports found</h4>
-                    <p class="text-muted">Resolved reports will appear here once maintenance staff completes their work.</p>
-                </div>
-            @endif
         </div>
     </div>
     @endif
