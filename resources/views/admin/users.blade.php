@@ -1965,6 +1965,7 @@ function addUserPermissionItems(role = 'student') {
 }
 
 function applyAddUserRoleDefaults(role) {
+    console.log('=== Applying role defaults for:', role, '===');
     const defaults = roleDefaults[role] || ['settings'];
     const departmentWrap = document.getElementById('swal-add-department-wrap');
     const department = document.getElementById('swal-add-department');
@@ -1973,6 +1974,7 @@ function applyAddUserRoleDefaults(role) {
     
     // Rebuild permission HTML with role-specific visibility
     const permissionsContainer = document.querySelector('.swal-add-permissions');
+    console.log('Permissions container found:', !!permissionsContainer);
     if (permissionsContainer) {
         const permissionHtml = addUserPermissionItems(role).map(({ key, label }) => `
             <label class="swal-add-permission-item">
@@ -1980,11 +1982,13 @@ function applyAddUserRoleDefaults(role) {
                 <span>${escapeAddUserHtml(label)}</span>
             </label>
         `).join('');
+        console.log('Setting innerHTML with', permissionHtml.length, 'characters');
         permissionsContainer.innerHTML = permissionHtml;
     }
 }
 
 async function openAddUserModal() {
+    console.log('=== Opening Add User Modal ===');
     const permissionHtml = addUserPermissionItems('student').map(({ key, label }) => `
         <label class="swal-add-permission-item">
             <input type="checkbox" id="swal-add-permission-${key}" value="${key}">
