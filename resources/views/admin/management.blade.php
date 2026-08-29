@@ -783,17 +783,58 @@
 
                     function roleChecklist(selectedRoles, checkboxClass) {
                         var selected = selectedRoles || [];
-                        return '<div class="event-swal-role-grid">' + Object.keys(roleLabels).map(function (role, index) {
-                            return '<label class="event-swal-role"><input type="checkbox" class="form-check-input me-2 ' + checkboxClass + '" value="' + escapeHtml(role) + '" data-label="' + escapeHtml(roleLabels[role]) + '" ' + (selected.includes(role) ? 'checked' : '') + '><span><strong>' + (index + 1) + '.</strong> ' + escapeHtml(roleLabels[role]) + '</span></label>';
+                        return '<div class="event-swal-role-grid">' + Object.keys(roleLabels).map(function (role) {
+                            var selectedIndex = selected.indexOf(role);
+                            return '<label class="event-swal-role"><input type="checkbox" class="form-check-input me-2 ' + checkboxClass + '" value="' + escapeHtml(role) + '" data-label="' + escapeHtml(roleLabels[role]) + '" ' + (selectedIndex !== -1 ? 'checked data-approval-order="' + (selectedIndex + 1) + '"' : '') + '><span><strong class="event-swal-role-position">' + (selectedIndex !== -1 ? (selectedIndex + 1) + '. ' : '') + '</strong>' + escapeHtml(roleLabels[role]) + '</span></label>';
                         }).join('') + '</div>';
                     }
 
+                    function orderedRoleCheckboxes(popup, checkboxClass) {
+                        return Array.from(popup.querySelectorAll('.' + checkboxClass + ':checked')).sort(function (left, right) {
+                            return Number(left.dataset.approvalOrder || Number.MAX_SAFE_INTEGER) - Number(right.dataset.approvalOrder || Number.MAX_SAFE_INTEGER);
+                        });
+                    }
+
+                    function normalizeRoleOrder(popup, checkboxClass) {
+                        var ordered = orderedRoleCheckboxes(popup, checkboxClass);
+                        ordered.forEach(function (checkbox, index) { checkbox.dataset.approvalOrder = String(index + 1); });
+                        popup.querySelectorAll('.' + checkboxClass).forEach(function (checkbox) {
+                            if (!checkbox.checked) delete checkbox.dataset.approvalOrder;
+                            var position = checkbox.closest('.event-swal-role').querySelector('.event-swal-role-position');
+                            position.textContent = checkbox.checked ? checkbox.dataset.approvalOrder + '. ' : '';
+                        });
+                        return ordered;
+                    }
+
+                    function applyRoleOrder(popup, checkboxClass, roles) {
+                        var order = roles || [];
+                        popup.querySelectorAll('.' + checkboxClass).forEach(function (checkbox) {
+                            var index = order.indexOf(checkbox.value);
+                            checkbox.checked = index !== -1;
+                            if (index !== -1) checkbox.dataset.approvalOrder = String(index + 1);
+                            else delete checkbox.dataset.approvalOrder;
+                        });
+                        normalizeRoleOrder(popup, checkboxClass);
+                    }
+
+                    function updateRoleOrder(popup, checkboxClass, changedCheckbox) {
+                        if (changedCheckbox.checked) {
+                            var highestOrder = orderedRoleCheckboxes(popup, checkboxClass).reduce(function (highest, checkbox) {
+                                return checkbox === changedCheckbox ? highest : Math.max(highest, Number(checkbox.dataset.approvalOrder || 0));
+                            }, 0);
+                            changedCheckbox.dataset.approvalOrder = String(highestOrder + 1);
+                        } else {
+                            delete changedCheckbox.dataset.approvalOrder;
+                        }
+                        normalizeRoleOrder(popup, checkboxClass);
+                    }
+
                     function selectedRoles(popup, checkboxClass) {
-                        return Array.from(popup.querySelectorAll('.' + checkboxClass + ':checked')).map(function (checkbox) { return checkbox.value; });
+                        return orderedRoleCheckboxes(popup, checkboxClass).map(function (checkbox) { return checkbox.value; });
                     }
 
                     function renderSwalFlow(popup, checkboxClass, targetId) {
-                        var roles = Array.from(popup.querySelectorAll('.' + checkboxClass + ':checked'));
+                        var roles = orderedRoleCheckboxes(popup, checkboxClass);
                         var target = popup.querySelector('#' + targetId);
                         if (!target) return;
                         target.innerHTML = roles.length
@@ -805,18 +846,19 @@
                         var editing = Boolean(item);
                         Swal.fire({
                             title: editing ? 'Edit Request Type' : 'Add Request Type',
-                            html: '<div class="text-start"><label class="form-label fw-semibold">Request type</label><input id="eventSwalTypeName" class="swal2-input event-swal-input" placeholder="e.g. Academic" value="' + escapeHtml(editing ? item.name : '') + '"><div class="mt-3"><label class="form-label fw-semibold mb-1">Who should approve this request?</label><p class="small text-muted mb-2">Select the approvers. They will act in the order shown.</p>' + roleChecklist(editing ? item.roles : [], 'event-swal-type-role') + '<div id="eventSwalTypeFlow" class="event-swal-flow mt-3"></div><div id="eventSwalDepartmentNotice" class="alert alert-info small mt-3 mb-0 d-none"><i class="fas fa-building me-1"></i>A department will be required because Program Head is included.</div></div></div>',
+                            html: '<div class="text-start"><label class="form-label fw-semibold">Request type</label><input id="eventSwalTypeName" class="swal2-input event-swal-input" placeholder="e.g. Academic" value="' + escapeHtml(editing ? item.name : '') + '"><div class="mt-3"><label class="form-label fw-semibold mb-1">Who should approve this request?</label><p class="small text-muted mb-2">Click the approvers in exact first-to-last order. Uncheck and select a role again to move it to the end.</p>' + roleChecklist(editing ? item.roles : [], 'event-swal-type-role') + '<div id="eventSwalTypeFlow" class="event-swal-flow mt-3"></div><div id="eventSwalDepartmentNotice" class="alert alert-info small mt-3 mb-0 d-none"><i class="fas fa-building me-1"></i>A department will be required because Program Head is included.</div></div></div>',
                             width: 820,
                             showCancelButton: true,
                             confirmButtonText: editing ? 'Save Changes' : 'Add Request Type',
                             confirmButtonColor: '#0d6efd',
                             focusConfirm: false,
                             didOpen: function (popup) {
+                                applyRoleOrder(popup, 'event-swal-type-role', editing ? (item.roles || []) : []);
                                 function refresh() {
                                     renderSwalFlow(popup, 'event-swal-type-role', 'eventSwalTypeFlow');
                                     popup.querySelector('#eventSwalDepartmentNotice').classList.toggle('d-none', !selectedRoles(popup, 'event-swal-type-role').includes('program_head'));
                                 }
-                                popup.querySelectorAll('.event-swal-type-role').forEach(function (checkbox) { checkbox.addEventListener('change', refresh); });
+                                popup.querySelectorAll('.event-swal-type-role').forEach(function (checkbox) { checkbox.addEventListener('change', function () { updateRoleOrder(popup, 'event-swal-type-role', checkbox); refresh(); }); });
                                 refresh();
                             },
                             preConfirm: function () {
@@ -876,7 +918,7 @@
                         var typeOptions = requestTypes.map(function (item) { return '<option value="' + item.id + '" ' + (String(item.id) === typeId ? 'selected' : '') + '>' + escapeHtml(item.name) + '</option>'; }).join('');
                         Swal.fire({
                             title: 'Configure Approval Chain',
-                            html: '<div class="text-start"><p class="text-muted">Choose a combination, then select the approvers in first-to-last order.</p><div class="row g-3"><div class="col-md-6"><label class="form-label fw-semibold">Intended user</label><select id="eventSwalChainUser" class="form-select">' + intendedOptions + '</select></div><div class="col-md-6"><label class="form-label fw-semibold">Request type</label><select id="eventSwalChainType" class="form-select">' + typeOptions + '</select></div></div><div id="eventSwalChainStatus" class="alert alert-light border small mt-3 mb-3"></div><label class="form-label fw-semibold">Approvers, in order</label>' + roleChecklist([], 'event-swal-chain-role') + '<div id="eventSwalChainFlow" class="event-swal-flow mt-3"></div><p class="small text-muted mt-3 mb-0"><i class="fas fa-info-circle me-1"></i>Including Program Head automatically requires a department.</p></div>',
+                            html: '<div class="text-start"><p class="text-muted">Choose a combination, then click approvers in exact first-to-last order. Uncheck and select a role again to move it to the end.</p><div class="row g-3"><div class="col-md-6"><label class="form-label fw-semibold">Intended user</label><select id="eventSwalChainUser" class="form-select">' + intendedOptions + '</select></div><div class="col-md-6"><label class="form-label fw-semibold">Request type</label><select id="eventSwalChainType" class="form-select">' + typeOptions + '</select></div></div><div id="eventSwalChainStatus" class="alert alert-light border small mt-3 mb-3"></div><label class="form-label fw-semibold">Approvers, in order</label>' + roleChecklist([], 'event-swal-chain-role') + '<div id="eventSwalChainFlow" class="event-swal-flow mt-3"></div><p class="small text-muted mt-3 mb-0"><i class="fas fa-info-circle me-1"></i>Including Program Head automatically requires a department.</p></div>',
                             width: 920,
                             showCancelButton: true,
                             confirmButtonText: 'Save Approval Chain',
@@ -888,7 +930,7 @@
                                 function loadCombination() {
                                     var chain = approvalChains.find(function (entry) { return String(entry.intended_user_id) === userSelect.value && String(entry.request_type_id) === typeSelect.value; });
                                     var roles = chain ? (chain.roles || []) : (requestTypeDefaults[typeSelect.value] || []);
-                                    popup.querySelectorAll('.event-swal-chain-role').forEach(function (checkbox) { checkbox.checked = roles.includes(checkbox.value); });
+                                    applyRoleOrder(popup, 'event-swal-chain-role', roles);
                                     popup.querySelector('#eventSwalChainStatus').innerHTML = chain
                                         ? '<i class="fas fa-circle-check text-success me-1"></i><strong>Saved chain.</strong> Change the approvers below to update it.'
                                         : '<i class="fas fa-circle-info text-primary me-1"></i><strong>Using request-type default.</strong> Save to create a custom chain.';
@@ -896,7 +938,7 @@
                                 }
                                 userSelect.addEventListener('change', loadCombination);
                                 typeSelect.addEventListener('change', loadCombination);
-                                popup.querySelectorAll('.event-swal-chain-role').forEach(function (checkbox) { checkbox.addEventListener('change', function () { renderSwalFlow(popup, 'event-swal-chain-role', 'eventSwalChainFlow'); }); });
+                                popup.querySelectorAll('.event-swal-chain-role').forEach(function (checkbox) { checkbox.addEventListener('change', function () { updateRoleOrder(popup, 'event-swal-chain-role', checkbox); renderSwalFlow(popup, 'event-swal-chain-role', 'eventSwalChainFlow'); }); });
                                 loadCombination();
                             },
                             preConfirm: function () {
