@@ -28,9 +28,18 @@ class HistoryController extends Controller
             'per_page' => ['nullable', 'integer', 'in:10,20,50,100'],
         ]);
 
+        // Only show actions where the user is the actor (not the subject)
+        // Exclude system-generated activities and actions performed by others
         $query = ActivityLog::query()
             ->where('user_id', $user->id)
-            ->where('action', '!=', 'event_auto_rejected_expired');
+            ->where('action', '!=', 'event_auto_rejected_expired')
+            ->where('action', 'not like', 'notification_%')
+            ->whereJsonDoesntContain('metadata->record_scope', 'forensic')
+            ->whereNot(function ($q) use ($user) {
+                // Exclude records where the user is only the subject, not the actor
+                $q->where('item_user_id', $user->id)
+                  ->where('user_id', '!=', $user->id);
+            });
 
         if (! empty($validated['search'])) {
             $search = trim($validated['search']);
