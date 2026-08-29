@@ -2390,10 +2390,19 @@ class AdminController extends Controller
             $validated = $request->validate([
                 'first_name' => 'required|string|max:255',
                 'last_name'  => 'required|string|max:255',
-                'email'    => 'required|string|email|max:255|unique:users',
+                'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email'), Rule::unique('users', 'backup_email')],
+                'backup_email' => ['nullable', 'string', 'email', 'max:255', Rule::unique('users', 'email'), Rule::unique('users', 'backup_email')],
                 'phone'    => 'nullable|regex:/^09[0-9]{9}$/',
+                'student_id' => ['nullable', 'string', 'max:255', Rule::unique('users', 'student_id')],
+                'department' => 'nullable|string|max:255',
                 'role'     => 'required|in:student,faculty,maintenance,mis,school_admin,building_admin,academic_head,program_head,principal_assistant',
+                'permissions' => 'nullable|array',
+                'permissions.*' => 'string|max:100',
             ]);
+
+            if ($request->filled('backup_email') && strtolower(trim($request->input('backup_email'))) === strtolower(trim($request->input('email')))) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['backup_email' => 'Backup email must be different from the primary email.']);
+            }
 
             \Log::info('[storeUser] Validation passed');
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -2405,27 +2414,36 @@ class AdminController extends Controller
         $generatedPassword = \App\Helpers\PasswordGenerator::generate(12);
 
         try {
-            $userData = [
-                'name'                  => trim($request->input('first_name') . ' ' . $request->input('last_name')),
-                'email'                 => $request->input('email'),
-                'password'              => Hash::make($generatedPassword),
-                'role'                  => $request->input('role'),
-                'phone'                 => $request->input('phone'),
-                'department'            => $request->input('department'),
-                'student_id'            => $request->input('student_id'),
-                'force_password_change' => true, // Force password change when using auto-generated password
-                'permissions'           => $request->input('permissions', []),
-                'created_by'            => auth()->id(),
-            ];
+            $user = DB::transaction(function () use ($request, $generatedPassword) {
+                $userData = [
+                    'name'                  => trim($request->input('first_name').' '.$request->input('last_name')),
+                    'email'                 => trim($request->input('email')),
+                    'backup_email'          => $request->filled('backup_email') ? trim($request->input('backup_email')) : null,
+                    'password'              => Hash::make($generatedPassword),
+                    'role'                  => $request->input('role'),
+                    'phone'                 => $request->input('phone'),
+                    'department'            => $request->input('department'),
+                    'student_id'            => $request->filled('student_id') ? trim($request->input('student_id')) : null,
+                    'force_password_change' => true,
+                    'permissions'           => $request->input('permissions', []),
+                    'created_by'            => auth()->id(),
+                ];
 
-            // Only add password_reset_at if column exists
-            if (\Schema::hasColumn('users', 'password_reset_at')) {
-                $userData['password_reset_at'] = now(); // Mark as password was just generated
-            }
+                if (Schema::hasColumn('users', 'password_reset_at')) {
+                    $userData['password_reset_at'] = now();
+                }
 
-            $user = User::create($userData);
+                $user = User::create($userData);
 
-            \Log::info('[storeUser] User created successfully', ['user_id' => $user->id, 'email' => $user->email]);
+                \Log::info('[storeUser] User created successfully', ['user_id' => $user->id, 'email' => $user->email]);
+
+                ActivityLog::log('user_created', "Created user: {$user->name}", $user->id, 'user', null, [
+                    'name' => $user->name, 'email' => $user->email, 'backup_email' => $user->backup_email,
+                    'role' => $user->role, 'phone' => $user->phone, 'department' => $user->department, 'student_id' => $user->student_id,
+                ], ['target_user_id' => $user->id, 'target_user_name' => $user->name]);
+
+                return $user;
+            });
 
             // Send separate email notifications
             try {
@@ -2449,14 +2467,13 @@ class AdminController extends Controller
             throw $e;
         }
 
-        ActivityLog::log('user_created', "Created user: {$user->name}", $user->id, 'user', null, [
-            'name'       => $user->name,
-            'email'      => $user->email,
-            'role'       => $user->role,
-            'phone'      => $user->phone,
-            'department' => $user->department,
-            'student_id' => $user->student_id,
-        ], ['target_user_id' => $user->id, 'target_user_name' => $user->name]);
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => "{$user->name} was created successfully. Login credentials were sent to {$user->email}.",
+                'user' => ['uuid' => $user->uuid, 'name' => $user->name, 'email' => $user->email, 'backup_email' => $user->backup_email, 'student_id' => $user->student_id],
+            ], 201);
+        }
 
         return redirect()->route('admin.users')->with('success', 'User created successfully! A welcome email with login credentials has been sent to ' . $user->email);
     }

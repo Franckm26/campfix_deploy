@@ -169,7 +169,7 @@
     <div class="row mb-4">
         <div class="col-12 text-end">
             @if(auth()->user()->canAccess('users_create'))
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+            <button type="button" class="btn btn-primary" onclick="openAddUserModal()">
                 <i class="fas fa-plus"></i> Add User
             </button>
             <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#importModal">
@@ -1080,6 +1080,7 @@
 </div>
 
 <!-- Add User Modal -->
+@if(false)
 <div class="modal fade" id="addUserModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -1223,6 +1224,7 @@
         </div>
     </div>
 </div>
+@endif
 
 <!-- Import Modal -->
 <div class="modal fade" id="importModal" tabindex="-1">
@@ -1903,6 +1905,142 @@ const roleDefaults = {
     faculty:              ['events','concerns','settings'],
     student:              ['concerns','settings'],
 };
+
+const addUserModules = @json(\App\Models\User::allModules());
+const addUserSubPermissions = @json(\App\Models\User::subPermissions());
+
+function escapeAddUserHtml(value) {
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+}
+
+function addUserPermissionItems() {
+    const items = [];
+    Object.entries(addUserModules).forEach(([key, module]) => {
+        items.push({ key, label: module.label });
+        Object.entries(addUserSubPermissions[key] || {}).forEach(([subKey, subLabel]) => {
+            items.push({ key: subKey, label: `${module.label}: ${subLabel}` });
+        });
+    });
+    return items;
+}
+
+function applyAddUserRoleDefaults(role) {
+    const defaults = roleDefaults[role] || ['settings'];
+    const departmentWrap = document.getElementById('swal-add-department-wrap');
+    const department = document.getElementById('swal-add-department');
+    if (departmentWrap) departmentWrap.hidden = role !== 'program_head';
+    if (department && role !== 'program_head') department.value = '';
+    addUserPermissionItems().forEach(({ key }) => {
+        const checkbox = document.getElementById(`swal-add-permission-${key}`);
+        if (checkbox) checkbox.checked = defaults.includes(key);
+    });
+}
+
+async function openAddUserModal() {
+    const permissionHtml = addUserPermissionItems().map(({ key, label }) => `
+        <label class="swal-add-permission-item">
+            <input type="checkbox" id="swal-add-permission-${key}" value="${key}">
+            <span>${escapeAddUserHtml(label)}</span>
+        </label>
+    `).join('');
+
+    const result = await Swal.fire({
+        title: '<i class="fas fa-user-plus me-2"></i>Add New User',
+        html: `
+            <style>
+                .swal-add-user-form{text-align:left;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 16px}
+                .swal-add-user-field label{display:block;font-weight:600;margin-bottom:6px;color:#1f2937}
+                .swal-add-user-field input,.swal-add-user-field select{width:100%;height:46px;border:1px solid #ced4da;border-radius:7px;padding:9px 12px;background:#fff;color:#212529}
+                .swal-add-user-wide{grid-column:1/-1}
+                .swal-add-permissions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px;max-height:220px;overflow:auto;padding:2px}
+                .swal-add-permission-item{display:flex!important;align-items:flex-start;gap:8px;padding:9px;border:1px solid #dbe3ee;border-radius:7px;font-weight:400!important;background:#fff;cursor:pointer}
+                .swal-add-permission-item input{width:17px!important;height:17px!important;margin-top:2px}
+                .swal-add-user-note{padding:11px 13px;border-radius:7px;background:#dff6fc;color:#075985}
+                @media(max-width:700px){.swal-add-user-form{grid-template-columns:1fr}.swal-add-user-wide{grid-column:1}.swal-add-permissions{grid-template-columns:1fr 1fr}}
+            </style>
+            <div class="swal-add-user-form">
+                <div class="swal-add-user-field"><label for="swal-add-first-name">First Name <span class="text-danger">*</span></label><input id="swal-add-first-name" autocomplete="given-name"></div>
+                <div class="swal-add-user-field"><label for="swal-add-last-name">Last Name <span class="text-danger">*</span></label><input id="swal-add-last-name" autocomplete="family-name"></div>
+                <div class="swal-add-user-field"><label for="swal-add-email">Primary Email <span class="text-danger">*</span></label><input id="swal-add-email" type="email" autocomplete="email"></div>
+                <div class="swal-add-user-field"><label for="swal-add-backup-email">Backup Email <span class="text-muted fw-normal">(optional)</span></label><input id="swal-add-backup-email" type="email" autocomplete="off" placeholder="backup@example.com"></div>
+                <div class="swal-add-user-field">
+                    <label for="swal-add-role">Role <span class="text-danger">*</span></label>
+                    <select id="swal-add-role">
+                        <option value="student">Student</option><option value="faculty">Faculty</option><option value="maintenance">Maintenance</option><option value="mis">MIS</option>
+                        <option value="school_admin">School Administrator</option><option value="building_admin">Building Administrator</option><option value="academic_head">Academic Head</option>
+                        <option value="program_head">Program Head</option><option value="principal_assistant">Principal Assistant</option>
+                    </select>
+                </div>
+                <div class="swal-add-user-field" id="swal-add-department-wrap" hidden>
+                    <label for="swal-add-department">Department</label>
+                    <select id="swal-add-department"><option value="">Select Department</option><option value="GE">GE</option><option value="ICT">ICT</option><option value="Business Management">Business Management</option><option value="THM">THM</option></select>
+                </div>
+                <div class="swal-add-user-field"><label for="swal-add-phone">Mobile Number <span class="text-muted fw-normal">(optional)</span></label><input id="swal-add-phone" inputmode="numeric" maxlength="11" placeholder="09XXXXXXXXX"></div>
+                <div class="swal-add-user-field"><label for="swal-add-student-id">Student ID <span class="text-muted fw-normal">(optional)</span></label><input id="swal-add-student-id" autocomplete="off"></div>
+                <div class="swal-add-user-wide swal-add-user-note"><i class="fas fa-info-circle me-1"></i><strong>Auto-generated password:</strong> Login credentials will be sent to the primary email.</div>
+                <div class="swal-add-user-field swal-add-user-wide"><label>Module Access</label><small class="text-muted">Defaults update automatically when the role changes.</small><div class="swal-add-permissions">${permissionHtml}</div></div>
+            </div>
+        `,
+        width: '900px',
+        showCancelButton: true,
+        confirmButtonText: '<i class="fas fa-user-plus me-1"></i>Create User',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#0d6efd',
+        showLoaderOnConfirm: true,
+        allowOutsideClick: () => !Swal.isLoading(),
+        didOpen: () => {
+            const role = document.getElementById('swal-add-role');
+            role.addEventListener('change', () => applyAddUserRoleDefaults(role.value));
+            applyAddUserRoleDefaults(role.value);
+            document.getElementById('swal-add-first-name').focus();
+        },
+        preConfirm: async () => {
+            const firstName = document.getElementById('swal-add-first-name').value.trim();
+            const lastName = document.getElementById('swal-add-last-name').value.trim();
+            const email = document.getElementById('swal-add-email').value.trim();
+            const backupEmail = document.getElementById('swal-add-backup-email').value.trim();
+            const role = document.getElementById('swal-add-role').value;
+            const phone = document.getElementById('swal-add-phone').value.trim();
+            const studentId = document.getElementById('swal-add-student-id').value.trim();
+            const department = document.getElementById('swal-add-department').value;
+            const permissions = addUserPermissionItems().filter(({ key }) => document.getElementById(`swal-add-permission-${key}`)?.checked).map(({ key }) => key);
+
+            if (!firstName || !lastName || !email || !role) { Swal.showValidationMessage('First name, last name, primary email, and role are required.'); return false; }
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { Swal.showValidationMessage('Enter a valid primary email address.'); return false; }
+            if (backupEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(backupEmail)) { Swal.showValidationMessage('Enter a valid backup email address.'); return false; }
+            if (backupEmail && backupEmail.toLowerCase() === email.toLowerCase()) { Swal.showValidationMessage('Backup email must be different from the primary email.'); return false; }
+            if (phone && !/^09[0-9]{9}$/.test(phone)) { Swal.showValidationMessage('Mobile number must use the 09XXXXXXXXX format.'); return false; }
+
+            const formData = new FormData();
+            formData.append('_token', '{{ csrf_token() }}');
+            Object.entries({ first_name: firstName, last_name: lastName, email, backup_email: backupEmail, role, phone, student_id: studentId, department, use_custom_permissions: '1' }).forEach(([key, value]) => formData.append(key, value));
+            permissions.forEach(permission => formData.append('permissions[]', permission));
+
+            try {
+                const response = await fetch('{{ route('admin.users.store') }}', { method: 'POST', headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, body: formData });
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    const messages = Object.values(payload.errors || {}).flat();
+                    throw new Error(messages[0] || payload.message || payload.error || 'Unable to create the user.');
+                }
+                return payload;
+            } catch (error) {
+                Swal.showValidationMessage(error.message);
+                return false;
+            }
+        },
+    });
+
+    if (result.isConfirmed) {
+        await Swal.fire({ icon: 'success', title: 'User created', text: result.value?.message || 'The account was created and its credentials were sent by email.', confirmButtonColor: '#0d6efd' });
+        window.location.reload();
+    }
+}
 
 function onRoleChange(role) {
     // Show/hide department field
