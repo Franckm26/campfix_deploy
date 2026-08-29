@@ -1185,7 +1185,7 @@
                         <div class="row g-2">
                             @foreach($modules as $key => $mod)
                                 @if(!in_array($key, $hiddenMods))
-                            <div class="col-6 col-md-4">
+                            <div class="col-6 col-md-4 permission-module" data-module="{{ $key }}">
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox"
                                            name="permissions[]" value="{{ $key }}"
@@ -1944,11 +1944,15 @@ console.log('=== END TEST ===');
 
 // Get hidden modules for a specific role
 function getHiddenModulesForRole(role) {
+    // Start with base hidden modules (settings, categories)
     const hidden = [...hiddenModulesBase];
+    
+    // MIS role automatically gets mis_tasks and module_access, so hide them from UI
     if (role === 'mis') {
         hidden.push('mis_tasks');
         hidden.push('module_access');
     }
+    
     console.log('Hidden modules for role', role, ':', hidden);
     return hidden;
 }
@@ -2119,21 +2123,38 @@ function onRoleChange(role) {
     document.getElementById('departmentField').style.display =
         role === 'program_head' ? 'block' : 'none';
 
-    // Hide/show MIS-only modules based on role
-    const misOnlyModules = ['module_access', 'mis_tasks'];
+    // Hide modules that should be auto-granted (settings, categories always hidden for all roles)
+    const autoGrantedModules = ['settings', 'categories'];
     const isMis = role === 'mis';
     
-    misOnlyModules.forEach(moduleKey => {
+    // For MIS role, also hide mis_tasks and module_access (automatically granted)
+    if (isMis) {
+        autoGrantedModules.push('module_access', 'mis_tasks');
+    }
+    
+    // Hide/show modules based on role
+    autoGrantedModules.forEach(moduleKey => {
         const moduleDiv = document.querySelector(`#addUserModal .permission-module[data-module="${moduleKey}"]`);
         if (moduleDiv) {
-            moduleDiv.style.display = isMis ? '' : 'none';
-            if (!isMis) {
-                // Uncheck MIS-only modules for non-MIS roles
+            // Hide these modules (they're automatically granted)
+            moduleDiv.style.display = 'none';
+            // Ensure checkbox exists and is checked (auto-granted)
+            const checkbox = moduleDiv.querySelector('input[type="checkbox"]');
+            if (checkbox) checkbox.checked = true;
+        }
+    });
+    
+    // For non-MIS roles, show module_access and mis_tasks but uncheck them
+    if (!isMis) {
+        ['module_access', 'mis_tasks'].forEach(moduleKey => {
+            const moduleDiv = document.querySelector(`#addUserModal .permission-module[data-module="${moduleKey}"]`);
+            if (moduleDiv) {
+                moduleDiv.style.display = '';
                 const checkbox = moduleDiv.querySelector('input[type="checkbox"]');
                 if (checkbox) checkbox.checked = false;
             }
-        }
-    });
+        });
+    }
 
     // Auto-apply role defaults to the checkboxes
     applyRoleDefaults(role);
@@ -2141,17 +2162,31 @@ function onRoleChange(role) {
 
 function applyRoleDefaults(role) {
     const defaults = roleDefaults[role] || ['settings'];
-    const misOnlyModules = ['module_access', 'mis_tasks'];
+    
+    // Determine which modules should be hidden for this role
+    const hiddenModules = ['settings', 'categories'];  // Always hidden for all roles
     const isMis = role === 'mis';
     
+    if (isMis) {
+        hiddenModules.push('module_access', 'mis_tasks');  // Also hidden for MIS role
+    }
+    
     document.querySelectorAll('#addUserModal input[name="permissions[]"]').forEach(cb => {
-        // Don't check MIS-only modules for non-MIS roles
-        if (misOnlyModules.includes(cb.value) && !isMis) {
-            cb.checked = false;
+        const module = cb.value;
+        const moduleDiv = cb.closest('.permission-module');
+        
+        // Hide modules that should be hidden
+        if (hiddenModules.includes(module)) {
+            if (moduleDiv) moduleDiv.style.display = 'none';
+            cb.checked = true;  // Auto-grant hidden modules
         } else {
-            cb.checked = defaults.includes(cb.value);
+            // Show other modules
+            if (moduleDiv) moduleDiv.style.display = '';
+            // Check based on role defaults
+            cb.checked = defaults.includes(module);
         }
     });
+    
     // Show/hide sub-permission sections based on defaults
     const subParents = ['users'];
     subParents.forEach(parent => {
@@ -2189,61 +2224,45 @@ function selectAllEditPerms(uid, checked) {
     if (sub) sub.classList.toggle('d-none', !checked);
 }
 
-// Wire up edit-modal role selects for department field and MIS-only modules
+// Wire up edit-modal role selects for department field and auto-granted modules
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.edit-role-select').forEach(function (sel) {
         sel.addEventListener('change', function () {
             const uid = this.dataset.userid;
             const role = this.value;
             const isMis = role === 'mis';
-            const misOnlyModules = ['module_access', 'mis_tasks'];
             
             // Show/hide department field
             const deptField = document.getElementById('editDeptField' + uid);
             if (deptField) deptField.style.display = role === 'program_head' ? 'block' : 'none';
             
-            // Show/hide MIS-only modules
+            // Hide modules that should be auto-granted
             const modal = document.getElementById('editUserModal' + uid);
             if (modal) {
-                misOnlyModules.forEach(moduleKey => {
+                // Always hide settings and categories (auto-granted for all roles)
+                const alwaysHidden = ['settings', 'categories'];
+                alwaysHidden.forEach(moduleKey => {
                     const moduleDiv = modal.querySelector(`.permission-module[data-module="${moduleKey}"]`);
                     if (moduleDiv) {
-                        moduleDiv.style.display = isMis ? '' : 'none';
-                        if (!isMis) {
-                            // Uncheck MIS-only modules for non-MIS roles
-                            const checkbox = moduleDiv.querySelector('input[type="checkbox"]');
-                            if (checkbox) checkbox.checked = false;
-                        }
+                        moduleDiv.style.display = 'none';
+                        const checkbox = moduleDiv.querySelector('input[type="checkbox"]');
+                        if (checkbox) checkbox.checked = true;
                     }
                 });
-            }
-        });
-    });
-});
-
-
-// Wire up edit-modal role selects for department field and MIS-only modules
-document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('.edit-role-select').forEach(function (sel) {
-        sel.addEventListener('change', function () {
-            const uid = this.dataset.userid;
-            const role = this.value;
-            const isMis = role === 'mis';
-            const misOnlyModules = ['module_access', 'mis_tasks'];
-            
-            // Show/hide department field
-            const deptField = document.getElementById('editDeptField' + uid);
-            if (deptField) deptField.style.display = role === 'program_head' ? 'block' : 'none';
-            
-            // Show/hide MIS-only modules
-            const modal = document.getElementById('editUserModal' + uid);
-            if (modal) {
-                misOnlyModules.forEach(moduleKey => {
+                
+                // For MIS role, also hide mis_tasks and module_access (auto-granted)
+                const misModules = ['module_access', 'mis_tasks'];
+                misModules.forEach(moduleKey => {
                     const moduleDiv = modal.querySelector(`.permission-module[data-module="${moduleKey}"]`);
                     if (moduleDiv) {
-                        moduleDiv.style.display = isMis ? '' : 'none';
-                        if (!isMis) {
-                            // Uncheck MIS-only modules for non-MIS roles
+                        if (isMis) {
+                            // Hide and auto-grant for MIS role
+                            moduleDiv.style.display = 'none';
+                            const checkbox = moduleDiv.querySelector('input[type="checkbox"]');
+                            if (checkbox) checkbox.checked = true;
+                        } else {
+                            // Show for non-MIS roles
+                            moduleDiv.style.display = '';
                             const checkbox = moduleDiv.querySelector('input[type="checkbox"]');
                             if (checkbox) checkbox.checked = false;
                         }
@@ -2653,12 +2672,22 @@ async function editUser(userUuid) {
         function buildModuleHtml(role) {
             const allowedModules = rolePermissionsMap[role] || ['settings'];
             
+            // Get hidden modules for this role
+            const hiddenModules = @json(\App\Models\User::hiddenModules());  // Base hidden: settings, categories
+            const roleHidden = @json(\App\Models\User::roleSpecificHiddenModules('mis'));  // MIS specific
+            const isMis = role === 'mis';
+            const hidden = isMis ? roleHidden : hiddenModules;  // Use role-specific hidden if MIS
+            
             let moduleHtml = '<div style="max-height:400px;overflow-y:auto;padding:10px;background:#f8f9fa;border-radius:8px">';
-            moduleHtml += '<div style="margin-bottom:15px"><strong style="color:#0d6efd"><i class="fas fa-shield-halved me-2"></i>Module Access</strong><br><small class="text-muted">Select which modules this user can access</small></div>';
+            moduleHtml += '<div style="margin-bottom:15px"><strong style="color:#0d6efd"><i class="fas fa-shield-halved me-2"></i>Module Access</strong><br><small class="text-muted">Select which modules this user can access. Some modules are automatically granted and hidden.</small></div>';
             moduleHtml += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">';
             
             Object.keys(allModules).forEach(key => {
                 const mod = allModules[key];
+                
+                // Skip hidden modules (automatically granted)
+                if (hidden.includes(key)) return;
+                
                 const isChecked = userData.permissions && userData.permissions.includes(key);
                 const hasSubPerms = subPerms[key] !== undefined;
                 
@@ -2682,6 +2711,10 @@ async function editUser(userUuid) {
                     moduleHtml += `<div id="swal_sub_${key}" style="margin-left:26px;margin-top:8px;${isChecked ? '' : 'display:none'}">`;
                     Object.keys(subPerms[key]).forEach(subKey => {
                         const subLabel = subPerms[key][subKey];
+                        
+                        // Skip hidden sub-permissions
+                        if (hidden.includes(subKey)) return;
+                        
                         const isSubChecked = userData.permissions && userData.permissions.includes(subKey);
                         const shouldShowSub = allowedModules.includes(subKey);
                         
@@ -2927,6 +2960,12 @@ function onSwalRoleChange(role) {
     const subPerms = @json(\App\Models\User::subPermissions());
     const allowedModules = rolePermissionsMap[role] || ['settings'];
     
+    // Get hidden modules for this role
+    const hiddenModules = @json(\App\Models\User::hiddenModules());  // Base hidden: settings, categories
+    const roleHidden = @json(\App\Models\User::roleSpecificHiddenModules('mis'));  // MIS specific
+    const isMis = role === 'mis';
+    const hidden = isMis ? roleHidden : hiddenModules;  // Use role-specific hidden if MIS
+    
     // Get currently checked permissions before rebuild
     const currentChecked = Array.from(document.querySelectorAll('.perm-checkbox:checked')).map(cb => cb.value);
     
@@ -2938,6 +2977,10 @@ function onSwalRoleChange(role) {
     
     Object.keys(allModules).forEach(key => {
         const mod = allModules[key];
+        
+        // Skip hidden modules (automatically granted)
+        if (hidden.includes(key)) return;
+        
         const hasSubPerms = subPerms[key] !== undefined;
         
         // Only show modules that are in the role's default permissions
@@ -2962,6 +3005,10 @@ function onSwalRoleChange(role) {
             moduleHtml += `<div id="swal_sub_${key}" style="margin-left:26px;margin-top:8px;${isChecked ? '' : 'display:none'}">`;
             Object.keys(subPerms[key]).forEach(subKey => {
                 const subLabel = subPerms[key][subKey];
+                
+                // Skip hidden sub-permissions
+                if (hidden.includes(subKey)) return;
+                
                 const shouldShowSub = allowedModules.includes(subKey);
                 
                 if (!shouldShowSub) return; // Skip sub-permissions not allowed for this role
