@@ -3073,11 +3073,6 @@ function onSwalRoleChange(role) {
             });
         }
     });
-        }
-        
-        moduleHtml += `</div>`;
-        modulesGrid.innerHTML += moduleHtml;
-    });
 }
 
 // Context menu actions
