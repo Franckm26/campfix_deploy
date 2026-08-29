@@ -1923,6 +1923,9 @@ const addUserModules = @json(\App\Models\User::allModules());
 const addUserSubPermissions = @json(\App\Models\User::subPermissions());
 const hiddenModulesBase = @json(\App\Models\User::hiddenModules());
 
+console.log('Initial hiddenModulesBase:', hiddenModulesBase);
+console.log('All modules:', addUserModules);
+
 // Get hidden modules for a specific role
 function getHiddenModulesForRole(role) {
     const hidden = [...hiddenModulesBase];
@@ -1946,14 +1949,18 @@ function escapeAddUserHtml(value) {
 function addUserPermissionItems(role = 'student') {
     const items = [];
     const hidden = getHiddenModulesForRole(role);
+    console.log('Building permission items for role:', role, 'Hidden modules:', hidden);
     Object.entries(addUserModules).forEach(([key, module]) => {
-        if (!hidden.includes(key)) {
+        const isHidden = hidden.includes(key);
+        console.log('Module:', key, 'Hidden:', isHidden);
+        if (!isHidden) {
             items.push({ key, label: module.label });
             Object.entries(addUserSubPermissions[key] || {}).forEach(([subKey, subLabel]) => {
-                items.push({ key, subKey: subKey, label: `${module.label}: ${subLabel}` });
+                items.push({ key: subKey, label: `${module.label}: ${subLabel}` });
             });
         }
     });
+    console.log('Final items count:', items.length);
     return items;
 }
 
