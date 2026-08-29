@@ -1969,17 +1969,32 @@ function escapeAddUserHtml(value) {
 function addUserPermissionItems(role = 'student') {
     const items = [];
     const hidden = getHiddenModulesForRole(role);
-    console.log('Building permission items for role:', role, 'Hidden modules:', hidden);
+    const allowed = roleDefaults[role] || ['settings'];
+    
+    console.log('Building permission items for role:', role, 'Hidden modules:', hidden, 'Allowed modules:', allowed);
+    
     Object.entries(addUserModules).forEach(([key, module]) => {
         const isHidden = hidden.includes(key);
-        console.log('Module:', key, 'Hidden:', isHidden);
-        if (!isHidden) {
+        
+        // Extract parent module for sub-permissions
+        const parentModule = key.split('_')[0];
+        const isAllowed = allowed.includes(key) || allowed.includes(parentModule);
+        
+        console.log('Module:', key, 'Hidden:', isHidden, 'Allowed:', isAllowed);
+        
+        // Only show if not hidden AND allowed for this role
+        if (!isHidden && isAllowed) {
             items.push({ key, label: module.label });
             Object.entries(addUserSubPermissions[key] || {}).forEach(([subKey, subLabel]) => {
-                items.push({ key: subKey, label: `${module.label}: ${subLabel}` });
+                // Check if sub-permission is allowed
+                const isSubAllowed = allowed.includes(subKey);
+                if (!hidden.includes(subKey) && isSubAllowed) {
+                    items.push({ key: subKey, label: `${module.label}: ${subLabel}` });
+                }
             });
         }
     });
+    
     console.log('Final items count:', items.length);
     return items;
 }
@@ -2123,38 +2138,43 @@ function onRoleChange(role) {
     document.getElementById('departmentField').style.display =
         role === 'program_head' ? 'block' : 'none';
 
-    // Hide modules that should be auto-granted (settings, categories always hidden for all roles)
-    const autoGrantedModules = ['settings', 'categories'];
-    const isMis = role === 'mis';
+    // Get role-specific allowed modules
+    const allowedModules = roleDefaults[role] || ['settings'];
     
-    // For MIS role, also hide mis_tasks and module_access (automatically granted)
+    // Get hidden modules for this role
+    const hiddenModules = ['settings', 'categories'];  // Always hidden for all roles
+    const isMis = role === 'mis';
     if (isMis) {
-        autoGrantedModules.push('module_access', 'mis_tasks');
+        hiddenModules.push('module_access', 'mis_tasks');  // Also hidden for MIS
     }
     
-    // Hide/show modules based on role
-    autoGrantedModules.forEach(moduleKey => {
-        const moduleDiv = document.querySelector(`#addUserModal .permission-module[data-module="${moduleKey}"]`);
-        if (moduleDiv) {
-            // Hide these modules (they're automatically granted)
+    // Show/hide all modules based on role
+    document.querySelectorAll('#addUserModal .permission-module').forEach(moduleDiv => {
+        const moduleKey = moduleDiv.dataset.module;
+        const checkbox = moduleDiv.querySelector('input[type="checkbox"]');
+        
+        if (!moduleKey) return;
+        
+        // Extract parent module for sub-permissions (e.g., 'users_create' -> 'users')
+        const parentModule = moduleKey.split('_')[0];
+        const isAllowed = allowedModules.includes(moduleKey) || allowedModules.includes(parentModule);
+        const isHidden = hiddenModules.includes(moduleKey);
+        
+        if (isHidden) {
+            // Hide auto-granted modules
             moduleDiv.style.display = 'none';
-            // Ensure checkbox exists and is checked (auto-granted)
-            const checkbox = moduleDiv.querySelector('input[type="checkbox"]');
             if (checkbox) checkbox.checked = true;
+        } else if (isAllowed) {
+            // Show allowed modules
+            moduleDiv.style.display = '';
+            // Check based on role defaults
+            if (checkbox) checkbox.checked = allowedModules.includes(moduleKey);
+        } else {
+            // Hide modules not allowed for this role
+            moduleDiv.style.display = 'none';
+            if (checkbox) checkbox.checked = false;
         }
     });
-    
-    // For non-MIS roles, show module_access and mis_tasks but uncheck them
-    if (!isMis) {
-        ['module_access', 'mis_tasks'].forEach(moduleKey => {
-            const moduleDiv = document.querySelector(`#addUserModal .permission-module[data-module="${moduleKey}"]`);
-            if (moduleDiv) {
-                moduleDiv.style.display = '';
-                const checkbox = moduleDiv.querySelector('input[type="checkbox"]');
-                if (checkbox) checkbox.checked = false;
-            }
-        });
-    }
 
     // Auto-apply role defaults to the checkboxes
     applyRoleDefaults(role);
@@ -2175,15 +2195,25 @@ function applyRoleDefaults(role) {
         const module = cb.value;
         const moduleDiv = cb.closest('.permission-module');
         
-        // Hide modules that should be hidden
-        if (hiddenModules.includes(module)) {
-            if (moduleDiv) moduleDiv.style.display = 'none';
-            cb.checked = true;  // Auto-grant hidden modules
-        } else {
-            // Show other modules
-            if (moduleDiv) moduleDiv.style.display = '';
-            // Check based on role defaults
+        if (!moduleDiv) return;
+        
+        // Extract parent module for sub-permissions
+        const parentModule = module.split('_')[0];
+        const isAllowed = defaults.includes(module) || defaults.includes(parentModule);
+        const isHidden = hiddenModules.includes(module);
+        
+        if (isHidden) {
+            // Hide auto-granted modules
+            moduleDiv.style.display = 'none';
+            cb.checked = true;
+        } else if (isAllowed) {
+            // Show and check allowed modules
+            moduleDiv.style.display = '';
             cb.checked = defaults.includes(module);
+        } else {
+            // Hide modules not allowed for this role
+            moduleDiv.style.display = 'none';
+            cb.checked = false;
         }
     });
     
@@ -2226,6 +2256,18 @@ function selectAllEditPerms(uid, checked) {
 
 // Wire up edit-modal role selects for department field and auto-granted modules
 document.addEventListener('DOMContentLoaded', function () {
+    // Initialize Add User modal on first open
+    const addUserModal = document.getElementById('addUserModal');
+    if (addUserModal) {
+        addUserModal.addEventListener('shown.bs.modal', function () {
+            const roleSelect = document.getElementById('addUserRole');
+            if (roleSelect) {
+                // Trigger role change to filter modules on initial open
+                onRoleChange(roleSelect.value);
+            }
+        });
+    }
+    
     document.querySelectorAll('.edit-role-select').forEach(function (sel) {
         sel.addEventListener('change', function () {
             const uid = this.dataset.userid;
