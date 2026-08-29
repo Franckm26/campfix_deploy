@@ -190,6 +190,24 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 @endif
                 
+                <!-- Error Messages -->
+                @if(session('error'))
+                    <div class="alert alert-danger">
+                        {{ session('error') }}
+                    </div>
+                @endif
+                
+                @if($errors->any())
+                    <div class="alert alert-danger">
+                        <strong>Please correct the following errors:</strong>
+                        <ul class="mb-0 mt-2">
+                            @foreach($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+                
                 <!-- Profile Update Form -->
                 <form action="{{ route('profile.update') }}" method="POST" class="mb-4">
                     @csrf
@@ -199,7 +217,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     <div class="mb-3">
                         <label class="form-label">Name</label>
-                        <input type="text" name="name" class="form-control" value="{{ $user->name }}" required>
+                        <input type="text" name="name" class="form-control {{ $errors->has('name') ? 'is-invalid' : '' }}" value="{{ old('name', $user->name) }}" required>
+                        @if($errors->has('name'))
+                            <div class="invalid-feedback">{{ $errors->first('name') }}</div>
+                        @endif
                     </div>
                     
                     <div class="mb-3">
@@ -209,8 +230,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     
                     <div class="mb-3">
+                        <label class="form-label">Backup Email</label>
+                        <input type="email" name="backup_email" class="form-control {{ $errors->has('backup_email') ? 'is-invalid' : '' }}" value="{{ old('backup_email', $user->backup_email) }}" placeholder="backup@example.com">
+                        @if($errors->has('backup_email'))
+                            <div class="invalid-feedback">{{ $errors->first('backup_email') }}</div>
+                        @endif
+                        <small class="text-muted">Optional backup email for account recovery and notifications</small>
+                    </div>
+                    
+                    <div class="mb-3">
                         <label class="form-label">Phone Number</label>
-                        <input type="text" name="phone" class="form-control" value="{{ $user->phone }}" placeholder="09XXXXXXXXX" maxlength="11" pattern="09[0-9]{9}">
+                        <input type="text" name="phone" class="form-control {{ $errors->has('phone') ? 'is-invalid' : '' }}" value="{{ old('phone', $user->phone) }}" placeholder="09XXXXXXXXX" maxlength="11" pattern="09[0-9]{9}">
+                        @if($errors->has('phone'))
+                            <div class="invalid-feedback">{{ $errors->first('phone') }}</div>
+                        @endif
                         <small class="text-muted">11-digit PH number (e.g., 09123456789). Used for SMS OTP verification</small>
                     </div>
                     

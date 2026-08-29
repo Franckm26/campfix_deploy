@@ -2673,7 +2673,26 @@ class AdminController extends Controller
 
         try {
             if ($emailChanges !== []) {
+                // Send to primary email
                 $user->notify(new UserAccountUpdatedNotification($emailChanges, auth()->user()->name));
+                
+                // Also send to backup email if it exists and is different
+                if ($user->backup_email && $user->backup_email !== $user->email) {
+                    try {
+                        \Mail::to($user->backup_email)->send(new \App\Mail\ProfileUpdatedNotification($user, $emailChanges, auth()->user()->name));
+                        \Log::info('Account update notification sent to backup email', [
+                            'user_id' => $user->id,
+                            'backup_email' => $user->backup_email,
+                            'updated_by' => auth()->user()->name
+                        ]);
+                    } catch (\Exception $backupException) {
+                        \Log::error('Failed to send account update notification to backup email', [
+                            'user_id' => $user->id,
+                            'backup_email' => $user->backup_email,
+                            'error' => $backupException->getMessage(),
+                        ]);
+                    }
+                }
             }
         } catch (\Exception $exception) {
             \Log::error('Failed to send user account update email.', [

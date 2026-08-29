@@ -26,11 +26,64 @@ class ProfileController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'phone' => 'nullable|regex:/^09[0-9]{9}$/',
+            'backup_email' => 'nullable|email|max:255|different:email',
         ]);
 
+        // Track changes for email notification
+        $changes = [];
+        
+        if ($user->name !== $request->name) {
+            $changes['name'] = [
+                'from' => $user->name,
+                'to' => $request->name
+            ];
+        }
+        
+        if ($user->phone !== $request->phone) {
+            $changes['phone'] = [
+                'from' => $user->phone,
+                'to' => $request->phone
+            ];
+        }
+        
+        if ($user->backup_email !== $request->backup_email) {
+            $changes['backup_email'] = [
+                'from' => $user->backup_email,
+                'to' => $request->backup_email
+            ];
+        }
+
+        // Update user data
         $user->name = $request->name;
         $user->phone = $request->phone;
+        $user->backup_email = $request->backup_email;
         $user->save();
+
+        // Send email notification if there are changes
+        if (!empty($changes)) {
+            try {
+                // Send to primary email
+                \Mail::to($user->email)->send(new \App\Mail\ProfileUpdatedNotification($user, $changes, 'self'));
+                
+                // Also send to backup email if it exists and is different
+                if ($user->backup_email && $user->backup_email !== $user->email) {
+                    \Mail::to($user->backup_email)->send(new \App\Mail\ProfileUpdatedNotification($user, $changes, 'self'));
+                }
+                
+                \Log::info('Profile update notification sent', [
+                    'user_id' => $user->id,
+                    'changes' => array_keys($changes),
+                    'primary_email' => $user->email,
+                    'backup_email' => $user->backup_email
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('Failed to send profile update notification', [
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage()
+                ]);
+                // Don't fail the update if email fails
+            }
+        }
 
         return redirect()->route('profile.index')->with('success', 'Profile updated successfully!');
     }
