@@ -163,6 +163,30 @@ class User extends Authenticatable implements JWTSubject
     }
 
     /**
+     * Modules that should be hidden from the UI (always granted automatically).
+     */
+    public static function hiddenModules(): array
+    {
+        return ['settings', 'categories'];
+    }
+
+    /**
+     * Modules that should be hidden for specific roles.
+     */
+    public static function roleSpecificHiddenModules(string $role): array
+    {
+        $hidden = self::hiddenModules();
+        
+        // MIS role automatically gets mis_tasks and module_access, so hide them from UI
+        if ($role === 'mis') {
+            $hidden[] = 'mis_tasks';
+            $hidden[] = 'module_access';
+        }
+        
+        return $hidden;
+    }
+
+    /**
      * Sub-permissions that belong to a parent module.
      */
     public static function subPermissions(): array

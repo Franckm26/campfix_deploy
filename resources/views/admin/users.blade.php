@@ -1170,9 +1170,21 @@
                             $modules    = \App\Models\User::allModules();
                             $subPerms   = \App\Models\User::subPermissions();
                             $oldPerms   = old('permissions', \App\Models\User::defaultPermissions(old('role', 'student')));
+                            $hiddenMods = \App\Models\User::roleSpecificHiddenModules(old('role', 'student'));
+                            // Auto-add hidden modules to permissions
+                            foreach($hiddenMods as $hidden) {
+                                if(!in_array($hidden, $oldPerms)) {
+                                    $oldPerms[] = $hidden;
+                                }
+                            }
                         @endphp
+                        {{-- Hidden inputs for auto-granted modules --}}
+                        @foreach($hiddenMods as $hidden)
+                            <input type="hidden" name="permissions[]" value="{{ $hidden }}">
+                        @endforeach
                         <div class="row g-2">
                             @foreach($modules as $key => $mod)
+                                @if(!in_array($key, $hiddenMods))
                             <div class="col-6 col-md-4">
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox"
@@ -1201,6 +1213,7 @@
                                 </div>
                                 @endif
                             </div>
+                                @endif
                             @endforeach
                         </div>
                         <div class="d-flex gap-2 mt-3">
@@ -1908,6 +1921,17 @@ const roleDefaults = {
 
 const addUserModules = @json(\App\Models\User::allModules());
 const addUserSubPermissions = @json(\App\Models\User::subPermissions());
+const hiddenModulesBase = @json(\App\Models\User::hiddenModules());
+
+// Get hidden modules for a specific role
+function getHiddenModulesForRole(role) {
+    const hidden = [...hiddenModulesBase];
+    if (role === 'mis') {
+        hidden.push('mis_tasks');
+        hidden.push('module_access');
+    }
+    return hidden;
+}
 
 function escapeAddUserHtml(value) {
     return String(value ?? '')
@@ -1918,13 +1942,16 @@ function escapeAddUserHtml(value) {
         .replaceAll("'", '&#039;');
 }
 
-function addUserPermissionItems() {
+function addUserPermissionItems(role = 'student') {
     const items = [];
+    const hidden = getHiddenModulesForRole(role);
     Object.entries(addUserModules).forEach(([key, module]) => {
-        items.push({ key, label: module.label });
-        Object.entries(addUserSubPermissions[key] || {}).forEach(([subKey, subLabel]) => {
-            items.push({ key: subKey, label: `${module.label}: ${subLabel}` });
-        });
+        if (!hidden.includes(key)) {
+            items.push({ key, label: module.label });
+            Object.entries(addUserSubPermissions[key] || {}).forEach(([subKey, subLabel]) => {
+                items.push({ key, subKey: subKey, label: `${module.label}: ${subLabel}` });
+            });
+        }
     });
     return items;
 }
@@ -1935,14 +1962,22 @@ function applyAddUserRoleDefaults(role) {
     const department = document.getElementById('swal-add-department');
     if (departmentWrap) departmentWrap.hidden = role !== 'program_head';
     if (department && role !== 'program_head') department.value = '';
-    addUserPermissionItems().forEach(({ key }) => {
-        const checkbox = document.getElementById(`swal-add-permission-${key}`);
-        if (checkbox) checkbox.checked = defaults.includes(key);
-    });
+    
+    // Rebuild permission HTML with role-specific visibility
+    const permissionsContainer = document.querySelector('.swal-add-permissions');
+    if (permissionsContainer) {
+        const permissionHtml = addUserPermissionItems(role).map(({ key, label }) => `
+            <label class="swal-add-permission-item">
+                <input type="checkbox" id="swal-add-permission-${key}" value="${key}" ${defaults.includes(key) ? 'checked' : ''}>
+                <span>${escapeAddUserHtml(label)}</span>
+            </label>
+        `).join('');
+        permissionsContainer.innerHTML = permissionHtml;
+    }
 }
 
 async function openAddUserModal() {
-    const permissionHtml = addUserPermissionItems().map(({ key, label }) => `
+    const permissionHtml = addUserPermissionItems('student').map(({ key, label }) => `
         <label class="swal-add-permission-item">
             <input type="checkbox" id="swal-add-permission-${key}" value="${key}">
             <span>${escapeAddUserHtml(label)}</span>
@@ -2008,7 +2043,15 @@ async function openAddUserModal() {
             const phone = document.getElementById('swal-add-phone').value.trim();
             const studentId = document.getElementById('swal-add-student-id').value.trim();
             const department = document.getElementById('swal-add-department').value;
-            const permissions = addUserPermissionItems().filter(({ key }) => document.getElementById(`swal-add-permission-${key}`)?.checked).map(({ key }) => key);
+            const permissions = addUserPermissionItems(role).filter(({ key }) => document.getElementById(`swal-add-permission-${key}`)?.checked).map(({ key }) => key);
+            
+            // Auto-add hidden modules based on role
+            const hiddenMods = getHiddenModulesForRole(role);
+            hiddenMods.forEach(mod => {
+                if (!permissions.includes(mod)) {
+                    permissions.push(mod);
+                }
+            });
 
             if (!firstName || !lastName || !email || !role) { Swal.showValidationMessage('First name, last name, primary email, and role are required.'); return false; }
             if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { Swal.showValidationMessage('Enter a valid primary email address.'); return false; }
