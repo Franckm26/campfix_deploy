@@ -411,9 +411,9 @@ class ConcernController extends Controller
         );
 
         try {
-            (new NotificationService)->notifyBuildingAdminsOfNewConcern($concern);
+            (new NotificationService)->notifyReviewersOfNewConcern($concern);
         } catch (\Exception $e) {
-            Log::error('Building admin new concern notification failed: '.$e->getMessage());
+            Log::error('New concern reviewer notification failed: '.$e->getMessage());
         }
 
         // Return JSON for AJAX requests

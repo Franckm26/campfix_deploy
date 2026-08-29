@@ -355,23 +355,30 @@ class NotificationService
     }
 
     /**
-     * Notify building admins when a new concern is submitted.
+     * Notify the role responsible for reviewing a newly submitted concern.
+     * Technology/Internet concerns belong to MIS; all other categories retain
+     * the existing Building Admin review flow.
      */
-    public function notifyBuildingAdminsOfNewConcern(Concern $concern): bool
+    public function notifyReviewersOfNewConcern(Concern $concern): bool
     {
-        $buildingAdmins = User::where('role', User::ROLE_BUILDING_ADMIN)
+        $categoryName = strtolower(trim((string) $concern->categoryRelation?->name));
+        $isTechnologyConcern = $categoryName === 'technology/internet';
+        $recipientRole = $isTechnologyConcern ? User::ROLE_ADMIN : User::ROLE_BUILDING_ADMIN;
+        $recipientLabel = $isTechnologyConcern ? 'MIS user' : 'building admin';
+
+        $recipients = User::where('role', $recipientRole)
             ->where('is_archived', false)
             ->get();
 
         $notified = 0;
 
-        foreach ($buildingAdmins as $admin) {
+        foreach ($recipients as $recipient) {
             try {
-                $admin->notify(new NewConcernSubmittedNotification($concern));
+                $recipient->notify(new NewConcernSubmittedNotification($concern));
 
                 ActivityLog::log(
                     'notification_sent',
-                    "New concern notification sent to building admin {$admin->email} for concern: ".($concern->title ?? $concern->id),
+                    "New concern notification sent to {$recipientLabel} {$recipient->email} for concern: ".($concern->title ?? $concern->id),
                     $concern->id
                 );
 
@@ -379,13 +386,13 @@ class NotificationService
             } catch (\Exception $e) {
                 $this->logNotificationFailure(
                     $concern,
-                    "New concern notification failed for building admin {$admin->email}: ".$e->getMessage()
+                    "New concern notification failed for {$recipientLabel} {$recipient->email}: ".$e->getMessage()
                 );
             }
         }
 
-        if ($buildingAdmins->isEmpty()) {
-            Log::warning('No building admins found to notify for new concern: '.$concern->id);
+        if ($recipients->isEmpty()) {
+            Log::warning("No {$recipientLabel} recipients found to notify for new concern: {$concern->id}");
         }
 
         return $notified > 0;

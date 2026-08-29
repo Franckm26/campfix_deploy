@@ -10,6 +10,18 @@ class NotificationController extends Controller
 
     private function concernUrlForUser($user, ?int $concernId): string
     {
+        if ($user->role === 'mis' && $concernId) {
+            $isTechnologyConcern = \App\Models\Concern::whereKey($concernId)
+                ->whereHas('categoryRelation', function ($query) {
+                    $query->whereRaw('LOWER(TRIM(name)) = ?', ['technology/internet']);
+                })
+                ->exists();
+
+            if ($isTechnologyConcern) {
+                return '/admin/mis-tasks';
+            }
+        }
+
         $canManageReports = in_array($user->role, ['admin', 'building_admin', 'school_admin', 'academic_head', 'mis']);
 
         if ($canManageReports) {
