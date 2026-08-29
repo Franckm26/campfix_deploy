@@ -85,14 +85,17 @@
         </div>
         <div class="table-responsive">
             <table class="table table-bordered align-middle">
-                <thead><tr><th>Intended User</th><th>Request Type</th><th>Approval Flow</th><th class="text-center" style="width:120px">Actions</th></tr></thead>
+                <thead><tr><th>Intended User</th><th>Request Type</th><th>Approval Flow</th><th class="text-center" style="width:170px">Actions</th></tr></thead>
                 <tbody>
                     @forelse($eventApprovalChains as $chain)
                         <tr>
                             <td class="fw-bold">{{ $chain->intendedUser?->name ?? 'Unavailable' }}</td>
                             <td>{{ $chain->requestType?->name ?? 'Unavailable' }}</td>
                             <td>{{ collect($chain->approval_roles)->map(fn($role) => $approvalRoles[$role] ?? $role)->implode(' → ') }}</td>
-                            <td class="text-center"><button type="button" class="event-config-action text-primary configure-approval-chain" data-intended-user-id="{{ $chain->event_intended_user_id }}" data-request-type-id="{{ $chain->event_request_type_id }}" title="Edit approval chain"><i class="fas fa-edit"></i></button></td>
+                            <td><div class="event-config-actions">
+                                <button type="button" class="event-config-action text-primary configure-approval-chain" data-intended-user-id="{{ $chain->event_intended_user_id }}" data-request-type-id="{{ $chain->event_request_type_id }}" title="Edit approval chain" aria-label="Edit approval chain"><i class="fas fa-edit"></i></button>
+                                <form class="event-config-delete-form" method="POST" action="{{ route('admin.management.event-approval-chains.destroy', $chain) }}" data-item-name="{{ ($chain->intendedUser?->name ?? 'Unavailable').' / '.($chain->requestType?->name ?? 'Unavailable') }}" data-item-type="approval chain">@csrf @method('DELETE')<button class="event-config-action text-danger" type="submit" title="Delete approval chain" aria-label="Delete approval chain"><i class="fas fa-trash"></i></button></form>
+                            </div></td>
                         </tr>
                     @empty
                         <tr><td colspan="4" class="text-center text-muted py-4">No approval chains saved yet.</td></tr>

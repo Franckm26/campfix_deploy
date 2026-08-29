@@ -923,7 +923,9 @@
                             Swal.fire({
                                 icon: 'warning',
                                 title: 'Delete ' + form.dataset.itemType + '?',
-                                text: form.dataset.itemName + ' will be removed. Existing event requests keep their saved information.',
+                                text: form.dataset.itemType === 'approval chain'
+                                    ? form.dataset.itemName + ' will be removed. Existing event requests keep their saved route; new requests will use the request type default.'
+                                    : form.dataset.itemName + ' will be removed. Existing event requests keep their saved information.',
                                 showCancelButton: true,
                                 confirmButtonText: 'Delete',
                                 confirmButtonColor: '#dc3545'

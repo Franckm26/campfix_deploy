@@ -300,6 +300,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/admin/management/event-setup/intended-users/{eventIntendedUser}', [\App\Http\Controllers\ManagementController::class, 'updateEventIntendedUser'])->name('admin.management.event-intended-users.update');
     Route::post('/admin/management/event-setup/departments', [\App\Http\Controllers\ManagementController::class, 'storeEventDepartment'])->name('admin.management.event-departments.store');
     Route::post('/admin/management/event-setup/approval-chains', [\App\Http\Controllers\ManagementController::class, 'storeEventApprovalChain'])->name('admin.management.event-approval-chains.store');
+    Route::delete('/admin/management/event-setup/approval-chains/{eventApprovalChain}', [\App\Http\Controllers\ManagementController::class, 'destroyEventApprovalChain'])->name('admin.management.event-approval-chains.destroy');
     Route::patch('/admin/management/event-setup/{type}/{id}/toggle', [\App\Http\Controllers\ManagementController::class, 'toggleEventSetup'])->name('admin.management.event-setup.toggle');
     Route::patch('/admin/management/event-setup/{type}/{id}', [\App\Http\Controllers\ManagementController::class, 'renameEventSetup'])->name('admin.management.event-setup.rename');
     Route::delete('/admin/management/event-setup/{type}/{id}', [\App\Http\Controllers\ManagementController::class, 'destroyEventSetup'])->name('admin.management.event-setup.destroy');

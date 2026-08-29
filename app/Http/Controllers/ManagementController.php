@@ -140,6 +140,14 @@ class ManagementController extends Controller
         return back()->with('success', 'Approval chain saved. New event requests will use this route.');
     }
 
+    public function destroyEventApprovalChain(EventApprovalChain $eventApprovalChain)
+    {
+        $this->guardBuildingAdmin();
+        $eventApprovalChain->delete();
+
+        return back()->with('success', 'Approval chain deleted. New event requests will use the request type default until another chain is configured.');
+    }
+
     public function storeEventRequestType(Request $request)
     {
         $this->guardBuildingAdmin();
