@@ -2715,14 +2715,15 @@ async function editUser(userUuid) {
             const allowedModules = rolePermissionsMap[role] || ['settings'];
             
             // Get hidden modules for this role
-            const hiddenModules = @json(\App\Models\User::hiddenModules());  // Base hidden: settings, categories
-            const roleHidden = @json(\App\Models\User::roleSpecificHiddenModules('mis'));  // MIS specific
+            const hiddenModules = ['settings', 'categories'];  // Base hidden: settings, categories
             const isMis = role === 'mis';
-            const hidden = isMis ? roleHidden : hiddenModules;  // Use role-specific hidden if MIS
+            const hidden = isMis ? [...hiddenModules, 'mis_tasks', 'module_access'] : hiddenModules;
             
-            let moduleHtml = '<div style="max-height:400px;overflow-y:auto;padding:10px;background:#f8f9fa;border-radius:8px">';
-            moduleHtml += '<div style="margin-bottom:15px"><strong style="color:#0d6efd"><i class="fas fa-shield-halved me-2"></i>Module Access</strong><br><small class="text-muted">Select which modules this user can access. Some modules are automatically granted and hidden.</small></div>';
-            moduleHtml += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">';
+            let moduleHtml = '<div style="max-height:400px;overflow-y:auto">';
+            moduleHtml += '<div style="margin-bottom:12px"><strong style="color:#0d6efd"><i class="fas fa-shield-halved me-2"></i>Module Access</strong><br><small class="text-muted">Defaults update automatically when the role changes.</small></div>';
+            
+            // Use same grid layout as Add User modal
+            moduleHtml += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:15px">';
             
             Object.keys(allModules).forEach(key => {
                 const mod = allModules[key];
@@ -2733,24 +2734,25 @@ async function editUser(userUuid) {
                 const isChecked = userData.permissions && userData.permissions.includes(key);
                 const hasSubPerms = subPerms[key] !== undefined;
                 
-                // Only show modules that are in the role's default permissions
                 // Extract parent module from sub-permissions (e.g., 'users_create' -> 'users')
                 const parentModule = key.split('_')[0];
                 const shouldShow = allowedModules.includes(key) || allowedModules.includes(parentModule);
                 
-                if (!shouldShow) return; // Skip modules not relevant to this role
+                // Only show modules that are allowed for this role
+                if (!shouldShow) return;
                 
-                moduleHtml += `<div class="perm-module-item" data-module="${key}" style="background:white;padding:10px;border-radius:6px;border:1px solid #dee2e6">`;
-                moduleHtml += `<label style="display:flex;align-items:center;cursor:pointer;margin:0">`;
+                // Use same styling as Add User modal
+                moduleHtml += `<div class="perm-module-item" data-module="${key}" style="background:white;padding:10px;border:1px solid #dee2e6;border-radius:6px">`;
+                moduleHtml += `<label style="display:flex;align-items:center;cursor:pointer;margin:0;font-size:14px">`;
                 moduleHtml += `<input type="checkbox" class="perm-checkbox" value="${key}" ${isChecked ? 'checked' : ''} 
                                ${hasSubPerms ? `onchange="toggleSwalSubPerms('${key}',this.checked)"` : ''}
                                style="margin-right:8px;width:18px;height:18px">`;
-                moduleHtml += `<span style="font-size:14px;font-weight:500">${mod.label}</span>`;
+                moduleHtml += `<span>${mod.label}</span>`;
                 moduleHtml += `</label>`;
                 
-                // Add sub-permissions if they exist
+                // Add sub-permissions if they exist (show in same cell, below parent)
                 if (hasSubPerms) {
-                    moduleHtml += `<div id="swal_sub_${key}" style="margin-left:26px;margin-top:8px;${isChecked ? '' : 'display:none'}">`;
+                    moduleHtml += `<div id="swal_sub_${key}" style="margin-left:26px;margin-top:6px;${isChecked ? '' : 'display:none'}">`;
                     Object.keys(subPerms[key]).forEach(subKey => {
                         const subLabel = subPerms[key][subKey];
                         
@@ -2760,9 +2762,10 @@ async function editUser(userUuid) {
                         const isSubChecked = userData.permissions && userData.permissions.includes(subKey);
                         const shouldShowSub = allowedModules.includes(subKey);
                         
-                        if (!shouldShowSub) return; // Skip sub-permissions not allowed for this role
+                        // Only show sub-permissions that are allowed for this role
+                        if (!shouldShowSub) return;
                         
-                        moduleHtml += `<label style="display:flex;align-items:center;cursor:pointer;margin:4px 0;font-size:13px;color:#666">`;
+                        moduleHtml += `<label style="display:flex;align-items:center;cursor:pointer;margin:3px 0;font-size:13px;color:#666">`;
                         moduleHtml += `<input type="checkbox" class="perm-checkbox" value="${subKey}" ${isSubChecked ? 'checked' : ''} style="margin-right:6px;width:16px;height:16px">`;
                         moduleHtml += `<span>${subLabel}</span>`;
                         moduleHtml += `</label>`;
@@ -2774,10 +2777,13 @@ async function editUser(userUuid) {
             });
             
             moduleHtml += '</div>';
-            moduleHtml += '<div style="margin-top:15px;display:flex;gap:10px">';
-            moduleHtml += '<button type="button" class="swal2-confirm swal2-styled" onclick="selectAllSwalPerms(true)" style="padding:8px 16px;font-size:13px"><i class="fas fa-check-double me-1"></i>Select All</button>';
-            moduleHtml += '<button type="button" class="swal2-cancel swal2-styled" onclick="selectAllSwalPerms(false)" style="padding:8px 16px;font-size:13px"><i class="fas fa-xmark me-1"></i>Clear All</button>';
+            
+            // Select All / Clear All buttons - match Add User modal style
+            moduleHtml += '<div style="display:flex;gap:10px">';
+            moduleHtml += '<button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllSwalPerms(true)"><i class="fas fa-check-double me-1"></i>Select All</button>';
+            moduleHtml += '<button type="button" class="btn btn-sm btn-outline-secondary" onclick="selectAllSwalPerms(false)"><i class="fas fa-xmark me-1"></i>Clear All</button>';
             moduleHtml += '</div>';
+            
             moduleHtml += '</div>';
             
             return moduleHtml;
@@ -3003,10 +3009,9 @@ function onSwalRoleChange(role) {
     const allowedModules = rolePermissionsMap[role] || ['settings'];
     
     // Get hidden modules for this role
-    const hiddenModules = @json(\App\Models\User::hiddenModules());  // Base hidden: settings, categories
-    const roleHidden = @json(\App\Models\User::roleSpecificHiddenModules('mis'));  // MIS specific
+    const hiddenModules = ['settings', 'categories'];
     const isMis = role === 'mis';
-    const hidden = isMis ? roleHidden : hiddenModules;  // Use role-specific hidden if MIS
+    const hidden = isMis ? [...hiddenModules, 'mis_tasks', 'module_access'] : hiddenModules;
     
     // Get currently checked permissions before rebuild
     const currentChecked = Array.from(document.querySelectorAll('.perm-checkbox:checked')).map(cb => cb.value);
@@ -3025,26 +3030,27 @@ function onSwalRoleChange(role) {
         
         const hasSubPerms = subPerms[key] !== undefined;
         
-        // Only show modules that are in the role's default permissions
+        // Only show modules allowed for this role
         const parentModule = key.split('_')[0];
         const shouldShow = allowedModules.includes(key) || allowedModules.includes(parentModule);
         
         if (!shouldShow) return; // Skip modules not relevant to this role
         
-        // Check if this was previously checked (for sub-permissions that are still relevant)
+        // Check if this was previously checked
         const isChecked = currentChecked.includes(key) && shouldShow;
         
-        let moduleHtml = `<div class="perm-module-item" data-module="${key}" style="background:white;padding:10px;border-radius:6px;border:1px solid #dee2e6">`;
-        moduleHtml += `<label style="display:flex;align-items:center;cursor:pointer;margin:0">`;
+        // Match Add User modal styling
+        let moduleHtml = `<div class="perm-module-item" data-module="${key}" style="background:white;padding:10px;border:1px solid #dee2e6;border-radius:6px">`;
+        moduleHtml += `<label style="display:flex;align-items:center;cursor:pointer;margin:0;font-size:14px">`;
         moduleHtml += `<input type="checkbox" class="perm-checkbox" value="${key}" ${isChecked ? 'checked' : ''} 
                        ${hasSubPerms ? `onchange="toggleSwalSubPerms('${key}',this.checked)"` : ''}
                        style="margin-right:8px;width:18px;height:18px">`;
-        moduleHtml += `<span style="font-size:14px;font-weight:500">${mod.label}</span>`;
+        moduleHtml += `<span>${mod.label}</span>`;
         moduleHtml += `</label>`;
         
         // Add sub-permissions if they exist
         if (hasSubPerms) {
-            moduleHtml += `<div id="swal_sub_${key}" style="margin-left:26px;margin-top:8px;${isChecked ? '' : 'display:none'}">`;
+            moduleHtml += `<div id="swal_sub_${key}" style="margin-left:26px;margin-top:6px;${isChecked ? '' : 'display:none'}">`;
             Object.keys(subPerms[key]).forEach(subKey => {
                 const subLabel = subPerms[key][subKey];
                 
@@ -3056,7 +3062,7 @@ function onSwalRoleChange(role) {
                 if (!shouldShowSub) return; // Skip sub-permissions not allowed for this role
                 
                 const isSubChecked = currentChecked.includes(subKey) && shouldShowSub;
-                moduleHtml += `<label style="display:flex;align-items:center;cursor:pointer;margin:4px 0;font-size:13px;color:#666">`;
+                moduleHtml += `<label style="display:flex;align-items:center;cursor:pointer;margin:3px 0;font-size:13px;color:#666">`;
                 moduleHtml += `<input type="checkbox" class="perm-checkbox" value="${subKey}" ${isSubChecked ? 'checked' : ''} style="margin-right:6px;width:16px;height:16px">`;
                 moduleHtml += `<span>${subLabel}</span>`;
                 moduleHtml += `</label>`;
