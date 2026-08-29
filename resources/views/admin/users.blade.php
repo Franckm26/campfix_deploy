@@ -1925,6 +1925,22 @@ const hiddenModulesBase = @json(\App\Models\User::hiddenModules());
 
 console.log('Initial hiddenModulesBase:', hiddenModulesBase);
 console.log('All modules:', addUserModules);
+console.log('openAddUserModal function defined:', typeof openAddUserModal);
+
+// Test: What items are generated for student role?
+console.log('=== TEST: Generating items for student role ===');
+const testItems = [];
+const testHidden = [...hiddenModulesBase];
+console.log('Test hidden modules:', testHidden);
+Object.entries(addUserModules).forEach(([key, module]) => {
+    const isHidden = testHidden.includes(key);
+    console.log(`Module ${key}: hidden=${isHidden}`);
+    if (!isHidden) {
+        testItems.push(key);
+    }
+});
+console.log('Test result - visible modules:', testItems);
+console.log('=== END TEST ===');
 
 // Get hidden modules for a specific role
 function getHiddenModulesForRole(role) {
