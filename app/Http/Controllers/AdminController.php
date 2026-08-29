@@ -19,7 +19,9 @@ use App\Notifications\ReportAssignedNotification;
 use App\Notifications\ReportResolvedNotification;
 use App\Notifications\NewUserCreatedNotification;
 use App\Notifications\PasswordNotification;
+use App\Notifications\PasswordResetNotification;
 use App\Notifications\EmailAddressNotification;
+use App\Notifications\UserAccountUpdatedNotification;
 use App\Helpers\PasswordGenerator;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
@@ -27,6 +29,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class AdminController extends Controller
 {
@@ -2479,6 +2482,7 @@ class AdminController extends Controller
                 'uuid' => $user->uuid,
                 'name' => $user->name,
                 'email' => $user->email,
+                'backup_email' => $user->backup_email,
                 'role' => $user->role,
                 'department' => $user->department,
                 'phone' => $user->phone,
@@ -2515,15 +2519,29 @@ class AdminController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users,email,'.$user->id,
+            'backup_email' => [
+                'nullable',
+                'email',
+                'max:255',
+                function (string $attribute, mixed $value, \Closure $fail) use ($user) {
+                    if (strcasecmp(trim((string) $value), trim((string) $user->email)) === 0) {
+                        $fail('The backup email must be different from the primary email.');
+                    }
+                },
+                Rule::unique('users', 'email'),
+                Rule::unique('users', 'backup_email')->ignore($user->id),
+            ],
             'phone' => 'nullable|regex:/^09[0-9]{9}$/',
             'role' => 'required|in:student,faculty,maintenance,mis,school_admin,building_admin,academic_head,program_head,principal_assistant',
+        ], [
+            'backup_email.unique' => 'That email address is already used by another account.',
         ]);
 
         // Capture old values before changes
         $oldValues = [
             'name'        => $user->name,
             'email'       => $user->email,
+            'backup_email' => $user->backup_email,
             'role'        => ucfirst(str_replace('_', ' ', $user->role)),
             'phone'       => $user->phone,
             'department'  => $user->department,
@@ -2532,12 +2550,13 @@ class AdminController extends Controller
         ];
 
         $user->name = $request->input('name');
-        $user->email = $request->input('email');
+        // Primary email is an immutable account identifier in this workflow.
+        // Ignore any forged `email` value submitted outside the locked UI.
+        $user->backup_email = $request->filled('backup_email') ? trim($request->input('backup_email')) : null;
         $user->role = $request->input('role');
         $user->phone = $request->input('phone');
         $user->department = $request->input('department');
         $user->student_id = $request->input('student_id');
-        $user->is_admin = $request->has('is_admin');
         $user->permissions = $request->input('permissions', []);
 
         $passwordChanged = false;
@@ -2554,31 +2573,11 @@ class AdminController extends Controller
             // Logout user from all devices by regenerating remember token
             $user->setRememberToken(\Illuminate\Support\Str::random(60));
             
-            // Invalidate all existing sessions for this user
-            \DB::table('sessions')->where('user_id', $user->id)->delete();
-            
-            // Send password reset notification (NOT email address notification - this is a reset, not a new account)
-            try {
-                $user->notify(new \App\Notifications\PasswordResetNotification($newPassword));
-            } catch (\Exception $e) {
-                \Log::error('Failed to send password reset email: ' . $e->getMessage());
-            }
-            
             // Add password_reset_at timestamp if column exists
             if (\Schema::hasColumn('users', 'password_reset_at')) {
                 $user->password_reset_at = now();
             }
             
-            // Log the session invalidation for security audit
-            ActivityLog::log(
-                'password_reset_sessions_invalidated',
-                "Password reset by admin. All sessions invalidated for user: {$user->name}",
-                $user->id,
-                'user',
-                null,
-                null,
-                ['reset_by' => auth()->id(), 'reset_by_name' => auth()->user()->name]
-            );
         }
         // Keep original password field logic for backward compatibility
         elseif ($request->filled('password')) {
@@ -2587,11 +2586,10 @@ class AdminController extends Controller
             $passwordChanged = true;
         }
 
-        $user->save();
-
         $newValues = [
             'name'        => $user->name,
             'email'       => $user->email,
+            'backup_email' => $user->backup_email,
             'role'        => ucfirst(str_replace('_', ' ', $user->role)),
             'phone'       => $user->phone,
             'department'  => $user->department,
@@ -2604,10 +2602,69 @@ class AdminController extends Controller
             $newValues['password'] = '(changed)';
         }
 
-        ActivityLog::log('user_updated', "Updated user: {$user->name}", $user->id, 'user', $oldValues, $newValues, [
-            'target_user_id' => $user->id,
-            'target_user_name' => $user->name,
-        ]);
+        DB::transaction(function () use ($user, $passwordChanged, $oldValues, $newValues) {
+            $user->save();
+
+            if ($passwordChanged) {
+                DB::table('sessions')->where('user_id', $user->id)->delete();
+                ActivityLog::log(
+                    'password_reset_sessions_invalidated',
+                    "Password reset by admin. All sessions invalidated for user: {$user->name}",
+                    $user->id,
+                    'user',
+                    null,
+                    null,
+                    ['reset_by' => auth()->id(), 'reset_by_name' => auth()->user()->name]
+                );
+            }
+
+            ActivityLog::log('user_updated', "Updated user: {$user->name}", $user->id, 'user', $oldValues, $newValues, [
+                'target_user_id' => $user->id,
+                'target_user_name' => $user->name,
+            ]);
+        });
+
+        $fieldLabels = [
+            'name' => 'Name',
+            'backup_email' => 'Backup email',
+            'role' => 'Role',
+            'phone' => 'Mobile number',
+            'department' => 'Department',
+            'student_id' => 'Student ID',
+            'permissions' => 'Module access',
+            'password' => 'Password',
+        ];
+        $emailChanges = [];
+        foreach ($fieldLabels as $field => $label) {
+            if (($oldValues[$field] ?? null) !== ($newValues[$field] ?? null)) {
+                $emailChanges[$label] = [
+                    'old' => filled($oldValues[$field] ?? null) ? (string) $oldValues[$field] : '(empty)',
+                    'new' => filled($newValues[$field] ?? null) ? (string) $newValues[$field] : '(empty)',
+                ];
+            }
+        }
+
+        if ($passwordChanged && $newPassword !== null) {
+            try {
+                $user->notify(new PasswordResetNotification($newPassword));
+            } catch (\Exception $exception) {
+                \Log::error('Failed to send password reset email.', [
+                    'user_id' => $user->id,
+                    'error' => $exception->getMessage(),
+                ]);
+            }
+        }
+
+        try {
+            if ($emailChanges !== []) {
+                $user->notify(new UserAccountUpdatedNotification($emailChanges, auth()->user()->name));
+            }
+        } catch (\Exception $exception) {
+            \Log::error('Failed to send user account update email.', [
+                'user_id' => $user->id,
+                'error' => $exception->getMessage(),
+            ]);
+        }
 
         return redirect()->route('admin.users')->with('success', 'User updated successfully!');
     }

@@ -2509,8 +2509,13 @@ async function editUser(userUuid) {
                         <input id="swal-name" class="swal2-input" value="${userData.name || ''}" style="width:100%;margin:0" required>
                     </div>
                     <div style="margin-bottom:15px">
-                        <label style="display:block;font-weight:600;margin-bottom:5px">Email *</label>
-                        <input id="swal-email" type="email" class="swal2-input" value="${userData.email || ''}" style="width:100%;margin:0" required>
+                        <label style="display:block;font-weight:600;margin-bottom:5px">Primary Email <i class="fas fa-lock text-muted ms-1" title="Primary email cannot be changed"></i></label>
+                        <input id="swal-email" type="email" class="swal2-input" value="${userData.email || ''}" style="width:100%;margin:0;background:#e9ecef;cursor:not-allowed" readonly aria-readonly="true">
+                        <small class="text-muted"><i class="fas fa-circle-info me-1"></i>The primary email is locked and cannot be edited.</small>
+                    </div>
+                    <div style="margin-bottom:15px">
+                        <label style="display:block;font-weight:600;margin-bottom:5px">Backup Email</label>
+                        <input id="swal-backup-email" type="email" class="swal2-input" value="${userData.backup_email || ''}" placeholder="backup@example.com" style="width:100%;margin:0">
                     </div>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:15px">
                         <div>
@@ -2569,6 +2574,7 @@ async function editUser(userUuid) {
             preConfirm: () => {
                 const name = document.getElementById('swal-name').value;
                 const email = document.getElementById('swal-email').value;
+                const backupEmail = document.getElementById('swal-backup-email').value.trim();
                 const role = document.getElementById('swal-role').value;
                 const dept = document.getElementById('swal-dept')?.value || '';
                 const phone = document.getElementById('swal-phone').value;
@@ -2580,8 +2586,13 @@ async function editUser(userUuid) {
                     Swal.showValidationMessage('Please fill in all required fields');
                     return false;
                 }
+
+                if (backupEmail && backupEmail.toLowerCase() === email.toLowerCase()) {
+                    Swal.showValidationMessage('Backup email must be different from the primary email');
+                    return false;
+                }
                 
-                return { name, email, role, dept, phone, studentId, resetPassword, permissions };
+                return { name, email, backupEmail, role, dept, phone, studentId, resetPassword, permissions };
             }
         });
         
@@ -2592,6 +2603,7 @@ async function editUser(userUuid) {
             formData.append('_method', 'PUT');
             formData.append('name', formValues.name);
             formData.append('email', formValues.email);
+            formData.append('backup_email', formValues.backupEmail);
             formData.append('role', formValues.role);
             formData.append('department', formValues.dept);
             formData.append('phone', formValues.phone);
