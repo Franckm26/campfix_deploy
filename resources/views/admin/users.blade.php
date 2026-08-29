@@ -2722,7 +2722,7 @@ async function editUser(userUuid) {
             let moduleHtml = '<div style="max-height:400px;overflow-y:auto">';
             moduleHtml += '<div style="margin-bottom:12px"><strong style="color:#0d6efd"><i class="fas fa-shield-halved me-2"></i>Module Access</strong><br><small class="text-muted">Defaults update automatically when the role changes.</small></div>';
             
-            // Use same grid layout as Add User modal
+            // Use same grid layout as Add User modal - flat grid, no nesting
             moduleHtml += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:15px">';
             
             Object.keys(allModules).forEach(key => {
@@ -2732,7 +2732,6 @@ async function editUser(userUuid) {
                 if (hidden.includes(key)) return;
                 
                 const isChecked = userData.permissions && userData.permissions.includes(key);
-                const hasSubPerms = subPerms[key] !== undefined;
                 
                 // Extract parent module from sub-permissions (e.g., 'users_create' -> 'users')
                 const parentModule = key.split('_')[0];
@@ -2741,18 +2740,18 @@ async function editUser(userUuid) {
                 // Only show modules that are allowed for this role
                 if (!shouldShow) return;
                 
-                // Use same styling as Add User modal
+                // Use same styling as Add User modal - each permission is its own card
                 moduleHtml += `<div class="perm-module-item" data-module="${key}" style="background:white;padding:10px;border:1px solid #dee2e6;border-radius:6px">`;
                 moduleHtml += `<label style="display:flex;align-items:center;cursor:pointer;margin:0;font-size:14px">`;
-                moduleHtml += `<input type="checkbox" class="perm-checkbox" value="${key}" ${isChecked ? 'checked' : ''} 
-                               ${hasSubPerms ? `onchange="toggleSwalSubPerms('${key}',this.checked)"` : ''}
-                               style="margin-right:8px;width:18px;height:18px">`;
+                moduleHtml += `<input type="checkbox" class="perm-checkbox" value="${key}" ${isChecked ? 'checked' : ''} style="margin-right:8px;width:18px;height:18px">`;
                 moduleHtml += `<span>${mod.label}</span>`;
                 moduleHtml += `</label>`;
-                
-                // Add sub-permissions if they exist (show in same cell, below parent)
-                if (hasSubPerms) {
-                    moduleHtml += `<div id="swal_sub_${key}" style="margin-left:26px;margin-top:6px;${isChecked ? '' : 'display:none'}">`;
+                moduleHtml += `</div>`;
+            });
+            
+            // Now add sub-permissions as separate cards (not nested)
+            Object.keys(allModules).forEach(key => {
+                if (subPerms[key]) {
                     Object.keys(subPerms[key]).forEach(subKey => {
                         const subLabel = subPerms[key][subKey];
                         
@@ -2765,15 +2764,14 @@ async function editUser(userUuid) {
                         // Only show sub-permissions that are allowed for this role
                         if (!shouldShowSub) return;
                         
-                        moduleHtml += `<label style="display:flex;align-items:center;cursor:pointer;margin:3px 0;font-size:13px;color:#666">`;
-                        moduleHtml += `<input type="checkbox" class="perm-checkbox" value="${subKey}" ${isSubChecked ? 'checked' : ''} style="margin-right:6px;width:16px;height:16px">`;
-                        moduleHtml += `<span>${subLabel}</span>`;
+                        moduleHtml += `<div class="perm-module-item" data-module="${subKey}" style="background:white;padding:10px;border:1px solid #dee2e6;border-radius:6px">`;
+                        moduleHtml += `<label style="display:flex;align-items:center;cursor:pointer;margin:0;font-size:14px">`;
+                        moduleHtml += `<input type="checkbox" class="perm-checkbox" value="${subKey}" ${isSubChecked ? 'checked' : ''} style="margin-right:8px;width:18px;height:18px">`;
+                        moduleHtml += `<span>${allModules[key].label}: ${subLabel}</span>`;
                         moduleHtml += `</label>`;
+                        moduleHtml += `</div>`;
                     });
-                    moduleHtml += `</div>`;
                 }
-                
-                moduleHtml += `</div>`;
             });
             
             moduleHtml += '</div>';
@@ -3022,13 +3020,12 @@ function onSwalRoleChange(role) {
     
     modulesGrid.innerHTML = '';
     
+    // First add main modules
     Object.keys(allModules).forEach(key => {
         const mod = allModules[key];
         
         // Skip hidden modules (automatically granted)
         if (hidden.includes(key)) return;
-        
-        const hasSubPerms = subPerms[key] !== undefined;
         
         // Only show modules allowed for this role
         const parentModule = key.split('_')[0];
@@ -3039,18 +3036,20 @@ function onSwalRoleChange(role) {
         // Check if this was previously checked
         const isChecked = currentChecked.includes(key) && shouldShow;
         
-        // Match Add User modal styling
+        // Match Add User modal styling - flat grid, no nesting
         let moduleHtml = `<div class="perm-module-item" data-module="${key}" style="background:white;padding:10px;border:1px solid #dee2e6;border-radius:6px">`;
         moduleHtml += `<label style="display:flex;align-items:center;cursor:pointer;margin:0;font-size:14px">`;
-        moduleHtml += `<input type="checkbox" class="perm-checkbox" value="${key}" ${isChecked ? 'checked' : ''} 
-                       ${hasSubPerms ? `onchange="toggleSwalSubPerms('${key}',this.checked)"` : ''}
-                       style="margin-right:8px;width:18px;height:18px">`;
+        moduleHtml += `<input type="checkbox" class="perm-checkbox" value="${key}" ${isChecked ? 'checked' : ''} style="margin-right:8px;width:18px;height:18px">`;
         moduleHtml += `<span>${mod.label}</span>`;
         moduleHtml += `</label>`;
+        moduleHtml += `</div>`;
         
-        // Add sub-permissions if they exist
-        if (hasSubPerms) {
-            moduleHtml += `<div id="swal_sub_${key}" style="margin-left:26px;margin-top:6px;${isChecked ? '' : 'display:none'}">`;
+        modulesGrid.insertAdjacentHTML('beforeend', moduleHtml);
+    });
+    
+    // Then add sub-permissions as separate cards (not nested)
+    Object.keys(allModules).forEach(key => {
+        if (subPerms[key]) {
             Object.keys(subPerms[key]).forEach(subKey => {
                 const subLabel = subPerms[key][subKey];
                 
@@ -3062,12 +3061,18 @@ function onSwalRoleChange(role) {
                 if (!shouldShowSub) return; // Skip sub-permissions not allowed for this role
                 
                 const isSubChecked = currentChecked.includes(subKey) && shouldShowSub;
-                moduleHtml += `<label style="display:flex;align-items:center;cursor:pointer;margin:3px 0;font-size:13px;color:#666">`;
-                moduleHtml += `<input type="checkbox" class="perm-checkbox" value="${subKey}" ${isSubChecked ? 'checked' : ''} style="margin-right:6px;width:16px;height:16px">`;
-                moduleHtml += `<span>${subLabel}</span>`;
+                
+                let moduleHtml = `<div class="perm-module-item" data-module="${subKey}" style="background:white;padding:10px;border:1px solid #dee2e6;border-radius:6px">`;
+                moduleHtml += `<label style="display:flex;align-items:center;cursor:pointer;margin:0;font-size:14px">`;
+                moduleHtml += `<input type="checkbox" class="perm-checkbox" value="${subKey}" ${isSubChecked ? 'checked' : ''} style="margin-right:8px;width:18px;height:18px">`;
+                moduleHtml += `<span>${allModules[key].label}: ${subLabel}</span>`;
                 moduleHtml += `</label>`;
+                moduleHtml += `</div>`;
+                
+                modulesGrid.insertAdjacentHTML('beforeend', moduleHtml);
             });
-            moduleHtml += `</div>`;
+        }
+    });
         }
         
         moduleHtml += `</div>`;
