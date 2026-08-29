@@ -1930,6 +1930,7 @@ function getHiddenModulesForRole(role) {
         hidden.push('mis_tasks');
         hidden.push('module_access');
     }
+    console.log('Hidden modules for role', role, ':', hidden);
     return hidden;
 }
 
@@ -2029,9 +2030,10 @@ async function openAddUserModal() {
         showLoaderOnConfirm: true,
         allowOutsideClick: () => !Swal.isLoading(),
         didOpen: () => {
-            const role = document.getElementById('swal-add-role');
-            role.addEventListener('change', () => applyAddUserRoleDefaults(role.value));
-            applyAddUserRoleDefaults(role.value);
+            const roleSelect = document.getElementById('swal-add-role');
+            roleSelect.addEventListener('change', () => applyAddUserRoleDefaults(roleSelect.value));
+            // Apply defaults for initial role (student) - this will filter hidden modules
+            applyAddUserRoleDefaults('student');
             document.getElementById('swal-add-first-name').focus();
         },
         preConfirm: async () => {
