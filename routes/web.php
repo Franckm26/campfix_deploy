@@ -309,6 +309,7 @@ Route::middleware('auth')->group(function () {
 /* EVENT APPROVAL PAGE - APPROVER ROLES */
 Route::middleware(['auth', 'throttle:admin'])->group(function () {
     Route::get('/admin/events', [EventRequestController::class, 'adminIndex'])->name('admin.events');
+    Route::get('/role-analytics', [\App\Http\Controllers\RoleAnalyticsController::class, 'index'])->name('role.analytics');
 });
 
 /* ADMIN PANEL - ADMIN ONLY */

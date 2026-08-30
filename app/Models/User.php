@@ -212,7 +212,7 @@ class User extends Authenticatable implements JWTSubject
             'mis' => [
                 'concerns', 'events', 'users',
                 'users_create', 'users_archive', 'users_lock', 'users_unlock', 'users_edit', 'users_delete',
-                'module_access', 'categories', 'logs', 'mis_tasks', 'settings',
+                'module_access', 'categories', 'logs', 'analytics', 'mis_tasks', 'settings',
             ],
             'school_admin' => [
                 'concerns', 'reports', 'events', 'analytics', 'settings',
@@ -221,13 +221,13 @@ class User extends Authenticatable implements JWTSubject
                 'concerns', 'reports', 'events', 'analytics', 'settings',
             ],
             'academic_head' => [
-                'events', 'settings',
+                'events', 'analytics', 'settings',
             ],
             'program_head' => [
-                'events', 'settings',
+                'events', 'analytics', 'settings',
             ],
             'principal_assistant' => [
-                'events', 'settings',
+                'events', 'analytics', 'settings',
             ],
             'maintenance' => [
                 'reports', 'concerns', 'settings',

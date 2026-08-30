@@ -382,6 +382,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 <i class="fas fa-users"></i> {{ app()->getLocale() === 'tl' ? 'Mga Gumagamit' : 'Users' }}
             </a>
 
+            <a href="{{ route('role.analytics') }}" class="{{ Request::is('role-analytics') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
+                <i class="fas fa-chart-line"></i> Analytics
+            </a>
+
             <a href="{{ route('admin.logs') }}" class="{{ Request::is('admin/logs*') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-history"></i> {{ app()->getLocale() === 'tl' ? 'Audit Logs' : 'Audit Logs' }}
             </a>
@@ -461,6 +465,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     @endif
                 </div>
             </div>
+
+            <a href="{{ route('role.analytics') }}" class="{{ Request::is('role-analytics') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
+                <i class="fas fa-chart-line"></i> Analytics
+            </a>
         @endif
 
         {{-- Settings — visible to all roles --}}

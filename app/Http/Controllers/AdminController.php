@@ -1127,10 +1127,21 @@ class AdminController extends Controller
     public function reports(Request $request)
     {
         $viewType = $request->input('view', 'active');
+        $operationalUser = $request->user();
+        $categories = Category::query()
+            ->when($operationalUser->role === 'mis', function ($query) {
+                $query->whereRaw('LOWER(TRIM(name)) = ?', ['technology/internet']);
+            })
+            ->when($operationalUser->role === 'building_admin', function ($query) {
+                $query->whereRaw('LOWER(TRIM(name)) <> ?', ['technology/internet']);
+            })
+            ->orderBy('name')
+            ->get();
 
         if ($viewType === 'archives') {
             // Show reports archived by the current admin user
             $archivedReports = Report::archivedByUser(auth()->id())
+                ->forOperationalRole($operationalUser)
                 ->with('category', 'user', 'archivedByUsers')
                 ->orderBy('updated_at', 'desc')
                 ->get();
@@ -1139,7 +1150,7 @@ class AdminController extends Controller
                 'viewType' => $viewType,
                 'archivedConcerns' => $archivedReports,
                 'concerns' => collect(),
-                'categories' => Category::all(),
+                'categories' => $categories,
                 'totalConcerns' => $archivedReports->count(),
                 'totalCost' => 0,
                 'groupedReports' => collect(),
@@ -1155,6 +1166,7 @@ class AdminController extends Controller
             $days = $request->get('days', $user->reports_auto_delete_days ?? 15);
 
             $deletedReports = Report::where('is_deleted', true)
+                ->forOperationalRole($operationalUser)
                 ->where('updated_at', '>=', now()->subDays($days))
                 ->with(['user', 'category', 'deletedBy'])
                 ->orderBy('updated_at', 'desc')
@@ -1183,7 +1195,7 @@ class AdminController extends Controller
                 'viewType' => $viewType,
                 'deletedReports' => $deletedReports,
                 'concerns' => collect(),
-                'categories' => Category::all(),
+                'categories' => $categories,
                 'totalConcerns' => $deletedReports->count(),
                 'totalCost' => 0,
                 'groupedReports' => collect(),
@@ -1197,6 +1209,7 @@ class AdminController extends Controller
         if ($viewType === 'analytics') {
             // Analytics for reports - individual repairs
             $analyticsQuery = Report::whereNotNull('location')
+                ->forOperationalRole($operationalUser)
                 ->where('location', '!=', '')
                 ->where('is_deleted', false)
                 ->whereNotNull('resolved_at');
@@ -1451,7 +1464,7 @@ class AdminController extends Controller
             return view('admin.reports', [
                 'viewType' => $viewType,
                 'concerns' => collect(),
-                'categories' => Category::all(),
+                'categories' => $categories,
                 'totalConcerns' => $totalConcerns,
                 'totalCost' => $totalCost,
                 'uniqueLocations' => $uniqueLocations,
@@ -1477,6 +1490,7 @@ class AdminController extends Controller
 
         // Default: Show all reports for admin management (including resolved when filtered)
         $query = Report::with('user', 'category')
+            ->forOperationalRole($operationalUser)
             ->where('is_deleted', false)
             ->where(function ($q) {
                 $q->where('building_admin_archived', false)
@@ -1510,15 +1524,16 @@ class AdminController extends Controller
             });
         }
 
+        $reportStatsBase = Report::query()->forOperationalRole($operationalUser);
         $reportStats = [
-            'total' => Report::where('is_deleted', false)
+            'total' => (clone $reportStatsBase)->where('is_deleted', false)
                 ->where(function ($q) {
                     $q->where('building_admin_archived', false)
                         ->where('mis_archived', false)
                         ->where('school_admin_archived', false)
                         ->where('admin_archived', false);
                 })->count(),
-            'pending' => Report::where('is_deleted', false)
+            'pending' => (clone $reportStatsBase)->where('is_deleted', false)
                 ->where('status', 'Pending')
                 ->where(function ($q) {
                     $q->where('building_admin_archived', false)
@@ -1526,7 +1541,7 @@ class AdminController extends Controller
                         ->where('school_admin_archived', false)
                         ->where('admin_archived', false);
                 })->count(),
-            'assigned' => Report::where('is_deleted', false)
+            'assigned' => (clone $reportStatsBase)->where('is_deleted', false)
                 ->where('status', 'Assigned')
                 ->where(function ($q) {
                     $q->where('building_admin_archived', false)
@@ -1534,7 +1549,7 @@ class AdminController extends Controller
                         ->where('school_admin_archived', false)
                         ->where('admin_archived', false);
                 })->count(),
-            'in_progress' => Report::where('is_deleted', false)
+            'in_progress' => (clone $reportStatsBase)->where('is_deleted', false)
                 ->where('status', 'In Progress')
                 ->where(function ($q) {
                     $q->where('building_admin_archived', false)
@@ -1542,7 +1557,7 @@ class AdminController extends Controller
                         ->where('school_admin_archived', false)
                         ->where('admin_archived', false);
                 })->count(),
-            'resolved' => Report::where('is_deleted', false)
+            'resolved' => (clone $reportStatsBase)->where('is_deleted', false)
                 ->where('status', 'Resolved')
                 ->where(function ($q) {
                     $q->where('building_admin_archived', false)
@@ -1550,7 +1565,7 @@ class AdminController extends Controller
                         ->where('school_admin_archived', false)
                         ->where('admin_archived', false);
                 })->count(),
-            'critical' => Report::where('is_deleted', false)
+            'critical' => (clone $reportStatsBase)->where('is_deleted', false)
                 ->where('severity', 'critical')
                 ->where(function ($q) {
                     $q->where('building_admin_archived', false)
@@ -1569,7 +1584,7 @@ class AdminController extends Controller
         return view('admin.reports', [
             'viewType' => $viewType,
             'reports' => $reports,
-            'categories' => Category::all(),
+            'categories' => $categories,
             'totalReports' => $reportStats['total'],
             'reportStats' => $reportStats,
             'totalCost' => 0,
@@ -4922,13 +4937,18 @@ class AdminController extends Controller
     // Analytics - Location-based repair/damage analytics
     public function analytics(Request $request)
     {
+        if (in_array($request->user()->role, ['mis', 'school_admin'], true)) {
+            return redirect()->route('role.analytics', $request->only(['date_from', 'date_to']));
+        }
+
         $filters = $request->validate([
             'location' => ['nullable', 'string', 'max:255'],
             'date_from' => ['nullable', 'date_format:Y-m-d'],
             'date_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:date_from'],
         ]);
 
-        $reportsQuery = Report::with(['category', 'assignedTo']);
+        $reportsQuery = Report::with(['category', 'assignedTo'])
+            ->forOperationalRole($request->user());
 
         if (\Illuminate\Support\Facades\Schema::hasColumn('reports', 'is_deleted')) {
             $reportsQuery->where('is_deleted', false);
@@ -4976,6 +4996,7 @@ class AdminController extends Controller
         $remainingRecordedCost = max(0, $totalCost - $completedCost);
 
         $locations = Report::whereNotNull('location')
+            ->forOperationalRole($request->user())
             ->where('location', '!=', '')
             ->when(\Illuminate\Support\Facades\Schema::hasColumn('reports', 'is_deleted'), fn ($query) => $query->where('is_deleted', false))
             ->distinct()
@@ -6338,7 +6359,7 @@ class AdminController extends Controller
             $category = $request->input('category');
             
             // Base query for all reports (not just resolved with cost)
-            $query = Report::query();
+            $query = Report::query()->forOperationalRole($request->user());
             
             // Apply period filter
             if (strlen($period) === 4) {
@@ -6396,7 +6417,7 @@ class AdminController extends Controller
             $dateTo = $request->input('date_to');
             
             // Base query for all reports
-            $query = Report::query();
+            $query = Report::query()->forOperationalRole($request->user());
             
             // Apply date range filters
             if ($dateFrom) {
@@ -6459,7 +6480,7 @@ class AdminController extends Controller
             $preview = $request->input('preview', false);
             
             // Base query for all reports
-            $query = Report::query();
+            $query = Report::query()->forOperationalRole($request->user());
             
             // Apply period filter
             if (strlen($period) === 4) {
@@ -6525,7 +6546,7 @@ class AdminController extends Controller
             $preview = $request->input('preview', false);
             
             // Base query for all reports
-            $query = Report::query();
+            $query = Report::query()->forOperationalRole($request->user());
             
             // Apply date range filters
             if ($dateFrom) {
@@ -6599,7 +6620,9 @@ class AdminController extends Controller
     {
         try {
             // Base query: resolved reports with location
-            $baseQuery = Report::whereNotNull('location')
+            $baseQuery = Report::query()
+                ->forOperationalRole($request->user())
+                ->whereNotNull('location')
                 ->where('location', '!=', '')
                 ->where('status', 'Resolved');
 
@@ -7741,7 +7764,9 @@ class AdminController extends Controller
     {
         try {
             // Base query for reports
-            $baseQuery = Report::whereNotNull('location')
+            $baseQuery = Report::query()
+                ->forOperationalRole($request->user())
+                ->whereNotNull('location')
                 ->where('location', '!=', '');
 
             // Apply room filter if provided
@@ -7809,6 +7834,7 @@ class AdminController extends Controller
 
             // 2. Cost by Category Analysis
             $costByCategory = Report::with('category')
+                ->forOperationalRole($request->user())
                 ->whereNotNull('category_id')
                 ->where('is_deleted', false)
                 ->when($request->filled('room_filter'), fn($q) => $q->where('location', $request->input('room_filter')))
@@ -7842,6 +7868,7 @@ class AdminController extends Controller
 
             // 4. Response Time Analysis
             $responseTimeQuery = Report::whereNotNull('assigned_at')
+                ->forOperationalRole($request->user())
                 ->whereNotNull('resolved_at')
                 ->where('is_deleted', false)
                 ->when($request->filled('room_filter'), fn($q) => $q->where('location', $request->input('room_filter')))
@@ -7899,7 +7926,9 @@ class AdminController extends Controller
             $avgTotalTime = $responseTimeDetails->avg('total_time') / 3600 ?? 0;
 
             // 5. Period Comparison (Yearly Breakdown)
-            $yearlyStats = Report::selectRaw('
+            $yearlyStats = Report::query()
+                ->forOperationalRole($request->user())
+                ->selectRaw('
                     EXTRACT(YEAR FROM created_at)::integer as year,
                     COUNT(*) as count,
                     COUNT(CASE WHEN cost > 0 THEN 1 END) as fixed_count,
@@ -7929,7 +7958,9 @@ class AdminController extends Controller
                 }
                 
                 // Get repair breakdown for this year
-                $repairs = Report::whereRaw('EXTRACT(YEAR FROM created_at)::integer = ?', [$stat->year])
+                $repairs = Report::query()
+                    ->forOperationalRole($request->user())
+                    ->whereRaw('EXTRACT(YEAR FROM created_at)::integer = ?', [$stat->year])
                     ->whereNotNull('location')
                     ->where('location', '!=', '')
                     ->when($request->filled('room_filter'), fn($q) => $q->where('location', $request->input('room_filter')))
@@ -7980,6 +8011,7 @@ class AdminController extends Controller
             // 6. Trend Alerts with Damaged Parts Breakdown
             $trendAlertsData = collect();
             $locationIssues = Report::whereNotNull('location')
+                ->forOperationalRole($request->user())
                 ->where('location', '!=', '')
                 ->whereNotNull('title')
                 ->where('title', '!=', '')
@@ -7996,6 +8028,7 @@ class AdminController extends Controller
                 
                 // Get recent count for severity
                 $recent = Report::where('location', $loc)
+                    ->forOperationalRole($request->user())
                     ->where('title', $issue)
                     ->where('created_at', '>=', now()->subMonths(3))
                     ->count();
@@ -8008,6 +8041,7 @@ class AdminController extends Controller
                 
                 // Get all resolved reports for this location and issue
                 $reports = Report::where('location', $loc)
+                    ->forOperationalRole($request->user())
                     ->where('title', $issue)
                     ->where('status', 'Resolved')
                     ->whereNotNull('resolved_at')
@@ -8107,6 +8141,7 @@ class AdminController extends Controller
             
             // Get all resolved reports for this location and issue
             $reports = Report::where('location', $location)
+                ->forOperationalRole($request->user())
                 ->where('title', $issue)
                 ->where('status', 'Resolved')
                 ->whereNotNull('resolved_at')
@@ -8144,6 +8179,7 @@ class AdminController extends Controller
             
             // Get monthly breakdown
             $monthlyCosts = Report::where('location', $location)
+                ->forOperationalRole($request->user())
                 ->where('title', $issue)
                 ->where('status', 'Resolved')
                 ->where('created_at', '>=', now()->subMonths(12))
@@ -8167,6 +8203,7 @@ class AdminController extends Controller
             
             // Determine severity
             $recentCount = Report::where('location', $location)
+                ->forOperationalRole($request->user())
                 ->where('title', $issue)
                 ->where('created_at', '>=', now()->subMonths(3))
                 ->count();
@@ -8404,6 +8441,7 @@ class AdminController extends Controller
     private function buildEmployeePerformanceStats(Request $request)
     {
         $employeeReportQuery = Report::with('category')
+            ->forOperationalRole($request->user())
             ->whereNotNull('assigned_to')
             ->where('is_deleted', false);
 

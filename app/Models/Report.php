@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasImmutableReporterSnapshot;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Schema;
@@ -106,6 +107,36 @@ class Report extends Model
     public function category()
     {
         return $this->belongsTo(Category::class);
+    }
+
+    /**
+     * Keep Technology/Internet work inside MIS and out of Building Admin views.
+     * Applying this as a query scope prevents UI-only filtering from leaking data
+     * into totals, charts, exports, or pagination counts.
+     */
+    public function scopeForOperationalRole(Builder $query, ?User $user): Builder
+    {
+        if (! $user) {
+            return $query;
+        }
+
+        if ($user->role === 'mis') {
+            return $query->whereHas('category', function (Builder $category) {
+                $category->whereRaw('LOWER(TRIM(name)) = ?', ['technology/internet']);
+            });
+        }
+
+        if ($user->role === 'building_admin') {
+            return $query->where(function (Builder $reports) {
+                $reports->whereNull('category_id')
+                    ->orWhereDoesntHave('category')
+                    ->orWhereHas('category', function (Builder $category) {
+                        $category->whereRaw('LOWER(TRIM(name)) <> ?', ['technology/internet']);
+                    });
+            });
+        }
+
+        return $query;
     }
 
     public function concern()
