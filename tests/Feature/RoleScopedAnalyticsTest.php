@@ -111,7 +111,7 @@ class RoleScopedAnalyticsTest extends TestCase
         $this->assertSame('mis', $view->getData()['mode']);
         $this->assertSame(['No internet'], $view->getData()['recentItems']->pluck('title')->all());
         $this->assertSame(1, $view->getData()['metrics'][2]['value']);
-        $this->assertSame('No internet', $view->getData()['operations']->first()['name']);
+        $this->assertSame('Technology/Internet', $view->getData()['operations']->first()['name']);
         $this->assertSame(1, $view->getData()['operations']->first()['stats']['urgent']);
         $this->assertSame(
             ['Unassigned MIS work', 'High-priority tasks'],

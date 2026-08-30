@@ -225,46 +225,45 @@ class RoleAnalyticsController extends Controller
 
     private function misOperations(Collection $reports, Collection $misAssignees, User $user): Collection
     {
-        return $reports
-            ->groupBy(fn (Concern $concern) => trim((string) $concern->title) ?: 'General Technology/Internet')
-            ->map(function (Collection $items, string $name) use ($misAssignees, $user) {
-                $open = $items->reject(fn (Concern $concern) => strtolower((string) $concern->status) === 'resolved');
+        if ($reports->isEmpty()) {
+            return collect();
+        }
+
+        $open = $reports->reject(fn (Concern $concern) => strtolower((string) $concern->status) === 'resolved');
+
+        return collect([[
+            'key' => 'mis-technology-internet',
+            'name' => 'Technology/Internet',
+            'description' => 'MIS reports and resolution workflow',
+            'stats' => [
+                'total' => $reports->count(),
+                'open' => $open->count(),
+                'completed' => $reports->count() - $open->count(),
+                'urgent' => $open->filter(fn (Concern $concern) => in_array(strtolower((string) $concern->priority), ['high', 'urgent', 'safety_hazard'], true))->count(),
+            ],
+            'trend' => $this->monthlyTrend($reports, 'created_at', fn ($item) => strtolower((string) $item->status) === 'resolved')->values(),
+            'tickets' => $reports->map(function (Concern $concern) use ($misAssignees, $user) {
+                $assignee = $concern->assigned_to
+                    ? ((int) $concern->assigned_to === (int) $user->id ? 'You' : ($misAssignees->get($concern->assigned_to) ?: 'Assigned MIS user'))
+                    : 'Unassigned';
 
                 return [
-                    'key' => 'mis-'.substr(sha1($name), 0, 12),
-                    'name' => $name,
-                    'description' => 'Technology/Internet reports grouped by issue',
-                    'stats' => [
-                        'total' => $items->count(),
-                        'open' => $open->count(),
-                        'completed' => $items->count() - $open->count(),
-                        'urgent' => $open->filter(fn (Concern $concern) => in_array(strtolower((string) $concern->priority), ['high', 'urgent', 'safety_hazard'], true))->count(),
-                    ],
-                    'trend' => $this->monthlyTrend($items, 'created_at', fn ($item) => strtolower((string) $item->status) === 'resolved')->values(),
-                    'tickets' => $items->map(function (Concern $concern) use ($misAssignees, $user) {
-                        $assignee = $concern->assigned_to
-                            ? ((int) $concern->assigned_to === (int) $user->id ? 'You' : ($misAssignees->get($concern->assigned_to) ?: 'Assigned MIS user'))
-                            : 'Unassigned';
-
-                        return [
-                            'id' => $concern->id,
-                            'reference' => 'RPT-'.str_pad((string) $concern->id, 5, '0', STR_PAD_LEFT),
-                            'title' => $concern->title ?: 'Untitled report',
-                            'description' => $concern->description ?: $concern->details ?: 'No description provided.',
-                            'location' => $concern->location ?: 'Not specified',
-                            'status' => $concern->status ?: 'Pending',
-                            'priority' => $concern->priority ?: 'Not set',
-                            'assignee' => $assignee,
-                            'requester' => $concern->reporter_name ?: $concern->user?->name ?: 'Deleted user',
-                            'created_at' => optional($concern->created_at)->format('m/d/Y g:i A'),
-                            'age_days' => $concern->created_at ? $concern->created_at->startOfDay()->diffInDays(now()->startOfDay()) : 0,
-                            'url' => route('admin.mis-tasks', ['view' => strtolower((string) $concern->status) === 'resolved' ? 'resolved' : 'active', 'task' => $concern->id]),
-                        ];
-                    })->sortByDesc('id')->values(),
+                    'id' => $concern->id,
+                    'reference' => 'RPT-'.str_pad((string) $concern->id, 5, '0', STR_PAD_LEFT),
+                    'title' => $concern->title ?: 'Untitled report',
+                    'description' => $concern->description ?: $concern->details ?: 'No description provided.',
+                    'location' => $concern->location ?: 'Not specified',
+                    'status' => $concern->status ?: 'Pending',
+                    'priority' => $concern->priority ?: 'Not set',
+                    'assignee' => $assignee,
+                    'requester' => $concern->reporter_name ?: $concern->user?->name ?: 'Deleted user',
+                    'report_count' => max(1, (int) ($concern->report_count ?? 1)),
+                    'created_at' => optional($concern->created_at)->format('m/d/Y g:i A'),
+                    'age_days' => $concern->created_at ? $concern->created_at->startOfDay()->diffInDays(now()->startOfDay()) : 0,
+                    'url' => route('admin.mis-tasks', ['view' => strtolower((string) $concern->status) === 'resolved' ? 'resolved' : 'active', 'task' => $concern->id]),
                 ];
-            })
-            ->sortByDesc(fn (array $operation) => ($operation['stats']['open'] * 1000) + $operation['stats']['total'])
-            ->values();
+            })->sortByDesc('id')->values(),
+        ]]);
     }
 
     private function approvalOperations(Collection $events): Collection
@@ -287,13 +286,14 @@ class RoleAnalyticsController extends Controller
                         return [
                             'id' => $event->id,
                             'reference' => 'EVT-'.str_pad((string) $event->id, 5, '0', STR_PAD_LEFT),
-                            'title' => ($event->location ?: 'Event request').' · '.optional($event->event_date)->format('m/d/Y'),
+                            'title' => ($event->location ?: 'Event request').' - '.optional($event->event_date)->format('m/d/Y'),
                             'description' => $event->description ?: 'No description provided.',
                             'location' => $event->location ?: 'Not specified',
                             'status' => $event->status ?: 'Pending',
                             'priority' => $event->priority ?: 'Not set',
                             'assignee' => $event->requiredApprovalRole() ? $this->roleLabel($event->requiredApprovalRole()) : 'Approval complete',
                             'requester' => $event->user?->name ?: 'Deleted user',
+                            'report_count' => 1,
                             'created_at' => optional($event->created_at)->format('m/d/Y g:i A'),
                             'age_days' => $event->created_at ? $event->created_at->startOfDay()->diffInDays(now()->startOfDay()) : 0,
                             'url' => route('admin.events', ['request' => $event->id]),
@@ -388,7 +388,7 @@ class RoleAnalyticsController extends Controller
             'body' => $body, 'why' => $why, 'impact' => $impact,
             'tickets' => $items->take(8)->map(fn (EventRequest $event) => [
                 'reference' => 'EVT-'.str_pad((string) $event->id, 5, '0', STR_PAD_LEFT),
-                'title' => ($event->location ?: 'Event request').' · '.optional($event->event_date)->format('m/d/Y'),
+                'title' => ($event->location ?: 'Event request').' - '.optional($event->event_date)->format('m/d/Y'),
                 'status' => $event->status ?: 'Pending',
                 'owner' => $event->requiredApprovalRole() ? $this->roleLabel($event->requiredApprovalRole()) : 'Approval complete',
                 'url' => route('admin.events', ['request' => $event->id]),
