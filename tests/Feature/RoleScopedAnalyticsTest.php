@@ -54,8 +54,10 @@ class RoleScopedAnalyticsTest extends TestCase
             $table->foreignId('user_id')->nullable();
             $table->foreignId('category_id')->nullable();
             $table->string('title')->nullable();
+            $table->text('description')->nullable();
             $table->string('location')->nullable();
             $table->string('status')->default('Pending');
+            $table->string('priority')->nullable();
             $table->unsignedBigInteger('assigned_to')->nullable();
             $table->boolean('is_deleted')->default(false);
             $table->timestamps();
@@ -75,10 +77,13 @@ class RoleScopedAnalyticsTest extends TestCase
             $table->id();
             $table->foreignId('user_id')->nullable();
             $table->string('request_type')->nullable();
+            $table->text('description')->nullable();
+            $table->string('location')->nullable();
             $table->string('intended_user')->nullable();
             $table->string('education_level')->nullable();
             $table->string('department')->nullable();
             $table->string('status')->default('Pending');
+            $table->string('priority')->nullable();
             $table->unsignedInteger('approval_level')->default(1);
             $table->json('approval_route')->nullable();
             $table->json('approval_history')->nullable();
@@ -98,7 +103,7 @@ class RoleScopedAnalyticsTest extends TestCase
         $technology = Category::create(['name' => 'Technology/Internet']);
         $facilities = Category::create(['name' => 'Facilities']);
 
-        Concern::create(['user_id' => $mis->id, 'category_id' => $technology->id, 'title' => 'No internet', 'status' => 'Pending']);
+        Concern::create(['user_id' => $mis->id, 'category_id' => $technology->id, 'title' => 'No internet', 'status' => 'Pending', 'priority' => 'urgent']);
         Concern::create(['user_id' => $mis->id, 'category_id' => $facilities->id, 'title' => 'Broken chair', 'status' => 'Pending']);
 
         $view = app(RoleAnalyticsController::class)->index($this->requestFor($mis));
@@ -106,6 +111,12 @@ class RoleScopedAnalyticsTest extends TestCase
         $this->assertSame('mis', $view->getData()['mode']);
         $this->assertSame(['No internet'], $view->getData()['recentItems']->pluck('title')->all());
         $this->assertSame(1, $view->getData()['metrics'][2]['value']);
+        $this->assertSame('No internet', $view->getData()['operations']->first()['name']);
+        $this->assertSame(1, $view->getData()['operations']->first()['stats']['urgent']);
+        $this->assertSame(
+            ['Unassigned MIS work', 'High-priority tasks'],
+            $view->getData()['decisionAlerts']->pluck('title')->all()
+        );
     }
 
     public function test_building_admin_report_scope_excludes_technology_internet(): void
@@ -142,6 +153,9 @@ class RoleScopedAnalyticsTest extends TestCase
         $this->assertCount(1, $view->getData()['recentItems']);
         $this->assertSame('ICT', $view->getData()['recentItems']->first()->department);
         $this->assertSame(1, $view->getData()['metrics'][1]['value']);
+        $this->assertSame('Academic', $view->getData()['operations']->first()['name']);
+        $this->assertSame(1, $view->getData()['operations']->first()['stats']['open']);
+        $this->assertSame('Requests awaiting your decision', $view->getData()['decisionAlerts']->first()['title']);
     }
 
     private function user(string $name, string $role, ?string $department = null): User
@@ -152,6 +166,8 @@ class RoleScopedAnalyticsTest extends TestCase
             'password' => bcrypt('password'),
             'role' => $role,
             'department' => $department,
+            'description' => 'Department event request',
+            'location' => 'Open Lobby',
         ]);
     }
 
