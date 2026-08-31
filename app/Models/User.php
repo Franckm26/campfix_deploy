@@ -264,28 +264,14 @@ class User extends Authenticatable implements JWTSubject
     }
 
     /**
-     * Returns true if $actor should NOT be allowed to edit/delete/archive this user.
-     * Rule: you can only modify a user that YOU created. If created_by is null or
-     * Rule: MIS users can edit anyone EXCEPT the account that created them.
-     * Other roles and superadmins are exempt from this restriction.
+     * Creator ownership no longer restricts MIS user management.
+     *
+     * Keep this compatibility method because the user-management controllers and
+     * views use it in several places. Permission checks and the separate safeguards
+     * against deleting or archiving your own account still apply.
      */
     public function isProtectedFrom(User $actor): bool
     {
-        // Superadmin can always act
-        if ($actor->isSuperAdmin()) {
-            return false;
-        }
-
-        // Only enforce this restriction for MIS role
-        if ($actor->role !== 'mis') {
-            return false;
-        }
-
-        // Block editing the account that created the actor (e.g. Xeena cannot edit Franck)
-        if ($actor->created_by !== null && $this->id === $actor->created_by) {
-            return true;
-        }
-
         return false;
     }
 
