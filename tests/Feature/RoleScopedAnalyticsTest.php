@@ -117,6 +117,12 @@ class RoleScopedAnalyticsTest extends TestCase
             ['Unassigned MIS work', 'High-priority tasks'],
             $view->getData()['decisionAlerts']->pluck('title')->all()
         );
+
+        $this->actingAs($mis);
+        $rendered = view('admin.partials.role-executive-report', $view->getData())->render();
+        $this->assertStringContainsString('Executive Management Summary', $rendered);
+        $this->assertStringContainsString('CampFix Decision Support System', $rendered);
+        $this->assertStringContainsString('Recommended management decision', $rendered);
     }
 
     public function test_building_admin_report_scope_excludes_technology_internet(): void
