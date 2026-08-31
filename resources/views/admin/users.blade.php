@@ -2719,11 +2719,11 @@ async function editUser(userUuid) {
             const isMis = role === 'mis';
             const hidden = isMis ? [...hiddenModules, 'mis_tasks', 'module_access'] : hiddenModules;
             
-            let moduleHtml = '<div style="max-height:400px;overflow-y:auto">';
+            let moduleHtml = '<div id="swal-module-access" style="max-height:400px;overflow-y:auto">';
             moduleHtml += '<div style="margin-bottom:12px"><strong style="color:#0d6efd"><i class="fas fa-shield-halved me-2"></i>Module Access</strong><br><small class="text-muted">Defaults update automatically when the role changes.</small></div>';
             
             // Use same grid layout as Add User modal - flat grid, no nesting
-            moduleHtml += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:15px">';
+            moduleHtml += '<div data-permission-grid style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:15px">';
             
             Object.keys(allModules).forEach(key => {
                 const mod = allModules[key];
@@ -2812,6 +2812,7 @@ async function editUser(userUuid) {
                             <select id="swal-role" class="swal2-select" style="width:100%;margin:0" onchange="onSwalRoleChange(this.value)">
                                 <option value="student" ${userData.role === 'student' ? 'selected' : ''}>Student</option>
                                 <option value="faculty" ${userData.role === 'faculty' ? 'selected' : ''}>Faculty</option>
+                                <option value="maintenance" ${userData.role === 'maintenance' ? 'selected' : ''}>Maintenance</option>
                                 <option value="mis" ${userData.role === 'mis' ? 'selected' : ''}>MIS</option>
                                 <option value="school_admin" ${userData.role === 'school_admin' ? 'selected' : ''}>School Administrator</option>
                                 <option value="building_admin" ${userData.role === 'building_admin' ? 'selected' : ''}>Building Administrator</option>
@@ -2869,7 +2870,7 @@ async function editUser(userUuid) {
                 const phone = document.getElementById('swal-phone').value;
                 const studentId = document.getElementById('swal-studentid').value;
                 const resetPassword = document.getElementById('swal-reset-password').checked;
-                const permissions = Array.from(document.querySelectorAll('.perm-checkbox:checked')).map(cb => cb.value);
+                const permissions = Array.from(Swal.getHtmlContainer().querySelectorAll('.perm-checkbox:checked')).map(cb => cb.value);
                 
                 if (!name || !email || !role) {
                     Swal.showValidationMessage('Please fill in all required fields');
@@ -2916,32 +2917,44 @@ async function editUser(userUuid) {
             try {
                 const updateResponse = await fetch(`/admin/users/${userUuid}`, {
                     method: 'POST',
-                    body: formData
+                    body: formData,
+                    credentials: 'same-origin',
+                    redirect: 'error',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
                 });
-                
-                if (updateResponse.ok) {
+
+                const data = await updateResponse.json().catch(() => ({}));
+                if (updateResponse.ok && data.success) {
+                    const savedPermissions = data.user?.permissions || [];
+                    const missingPermissions = formValues.permissions.filter(permission => !savedPermissions.includes(permission));
+                    if (data.user?.role !== formValues.role || missingPermissions.length) {
+                        throw new Error('The saved user does not match the selected role and module access. Please try again.');
+                    }
                     Swal.fire({
                         icon: 'success',
                         title: 'Success!',
-                        text: 'User updated successfully',
+                        text: data.message || 'User updated successfully',
                         timer: 2000,
                         showConfirmButton: false
                     }).then(() => {
                         window.location.reload();
                     });
                 } else {
-                    const data = await updateResponse.json();
+                    const validationErrors = data.errors ? Object.values(data.errors).flat().join(' ') : '';
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
-                        text: data.message || 'Failed to update user'
+                        text: validationErrors || data.message || data.error || 'Failed to update user'
                     });
                 }
             } catch (error) {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: 'An error occurred while updating the user'
+                    text: error.message || 'An error occurred while updating the user'
                 });
             }
         }
@@ -2963,7 +2976,7 @@ function toggleSwalSubPerms(key, checked) {
 }
 
 function selectAllSwalPerms(checked) {
-    document.querySelectorAll('.perm-checkbox').forEach(cb => {
+    (Swal.getHtmlContainer()?.querySelectorAll('.perm-checkbox') || []).forEach(cb => {
         cb.checked = checked;
         // Trigger change event for parent checkboxes
         if (cb.hasAttribute('onchange')) {
@@ -2986,7 +2999,7 @@ function onSwalRoleChange(role) {
     toggleSwalDept();
     
     // Get the module container
-    const moduleContainer = document.querySelector('.swal2-html-container > div > div:last-child');
+    const moduleContainer = document.getElementById('swal-module-access');
     if (!moduleContainer) return;
     
     // Get role permissions map (needs to be defined in the same scope as editUser)
@@ -3011,11 +3024,8 @@ function onSwalRoleChange(role) {
     const isMis = role === 'mis';
     const hidden = isMis ? [...hiddenModules, 'mis_tasks', 'module_access'] : hiddenModules;
     
-    // Get currently checked permissions before rebuild
-    const currentChecked = Array.from(document.querySelectorAll('.perm-checkbox:checked')).map(cb => cb.value);
-    
     // Rebuild the module access HTML
-    const modulesGrid = moduleContainer.querySelector('div[style*="grid-template-columns"]');
+    const modulesGrid = moduleContainer.querySelector('[data-permission-grid]');
     if (!modulesGrid) return;
     
     modulesGrid.innerHTML = '';
@@ -3033,8 +3043,8 @@ function onSwalRoleChange(role) {
         
         if (!shouldShow) return; // Skip modules not relevant to this role
         
-        // Check if this was previously checked
-        const isChecked = currentChecked.includes(key) && shouldShow;
+        // Apply the selected role's defaults, then allow manual customization.
+        const isChecked = allowedModules.includes(key);
         
         // Match Add User modal styling - flat grid, no nesting
         let moduleHtml = `<div class="perm-module-item" data-module="${key}" style="background:white;padding:10px;border:1px solid #dee2e6;border-radius:6px">`;
@@ -3060,7 +3070,7 @@ function onSwalRoleChange(role) {
                 
                 if (!shouldShowSub) return; // Skip sub-permissions not allowed for this role
                 
-                const isSubChecked = currentChecked.includes(subKey) && shouldShowSub;
+                const isSubChecked = shouldShowSub;
                 
                 let moduleHtml = `<div class="perm-module-item" data-module="${subKey}" style="background:white;padding:10px;border:1px solid #dee2e6;border-radius:6px">`;
                 moduleHtml += `<label style="display:flex;align-items:center;cursor:pointer;margin:0;font-size:14px">`;

@@ -2538,7 +2538,14 @@ class AdminController extends Controller
             return redirect()->route('admin.users')->with('error', 'You do not have permission to perform this action.');
         }
 
-        $user = User::hideSuperadmin()->where('uuid', $uuid)->firstOrFail();
+        $user = User::hideSuperadmin()
+            ->where(function ($query) use ($uuid) {
+                $query->where('uuid', $uuid);
+                if (ctype_digit((string) $uuid)) {
+                    $query->orWhere('id', (int) $uuid);
+                }
+            })
+            ->firstOrFail();
 
         // Prevent editing a user that was created by someone else
         if ($user->isProtectedFrom(auth()->user())) {
@@ -2564,9 +2571,19 @@ class AdminController extends Controller
             ],
             'phone' => 'nullable|regex:/^09[0-9]{9}$/',
             'role' => 'required|in:student,faculty,maintenance,mis,school_admin,building_admin,academic_head,program_head,principal_assistant',
+            'permissions' => 'sometimes|array',
+            'permissions.*' => [
+                'string',
+                Rule::in(array_values(array_unique(array_merge(
+                    array_keys(User::allModules()),
+                    ...array_map('array_keys', array_values(User::subPermissions()))
+                )))),
+            ],
         ], [
             'backup_email.unique' => 'That email address is already used by another account.',
         ]);
+
+        $originalRole = $user->role;
 
         // Capture old values before changes
         $oldValues = [
@@ -2588,7 +2605,15 @@ class AdminController extends Controller
         $user->phone = $request->input('phone');
         $user->department = $request->input('department');
         $user->student_id = $request->input('student_id');
-        $user->permissions = $request->input('permissions', []);
+        if ($request->boolean('use_custom_permissions') || $request->has('permissions')) {
+            $submittedPermissions = array_values(array_unique($request->input('permissions', [])));
+            $user->permissions = array_values(array_unique(array_merge(
+                $submittedPermissions,
+                User::roleSpecificHiddenModules($user->role)
+            )));
+        } elseif ($originalRole !== $user->role) {
+            $user->permissions = User::defaultPermissions($user->role);
+        }
 
         $passwordChanged = false;
         $newPassword = null;
@@ -2713,6 +2738,26 @@ class AdminController extends Controller
             \Log::error('Failed to send user account update email.', [
                 'user_id' => $user->id,
                 'error' => $exception->getMessage(),
+            ]);
+        }
+
+        $user->refresh();
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'User updated successfully!',
+                'user' => [
+                    'uuid' => $user->uuid,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'backup_email' => $user->backup_email,
+                    'role' => $user->role,
+                    'department' => $user->department,
+                    'phone' => $user->phone,
+                    'student_id' => $user->student_id,
+                    'permissions' => $user->permissions ?? [],
+                ],
             ]);
         }
 
