@@ -559,7 +559,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <!-- User Dropdown -->
             @auth
             <div class="user-dropdown-top" onclick="toggleDropdown(event)" style="display:flex;align-items:center;gap:10px;cursor:pointer;">
-                <span style="font-weight:700;font-size:14px;color:var(--header-text,#1e293b);white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis;">{{ auth()->user()->name }}</span>
+                <span title="{{ auth()->user()->name }} ({{ auth()->user()->role_display_name }})" style="font-weight:700;font-size:14px;color:var(--header-text,#1e293b);white-space:nowrap;max-width:210px;overflow:hidden;text-overflow:ellipsis;">{{ auth()->user()->name }} ({{ auth()->user()->role_display_name }})</span>
                 <div class="user-icon" style="pointer-events:none;">
                     @if(auth()->user()->profile_picture_url)
                         <img src="{{ auth()->user()->profile_picture_url }}" alt="Profile" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
@@ -569,7 +569,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 <div class="user-dropdown-menu" id="userDropdownMenu">
                     <div class="dropdown-header">
-                        <div class="dropdown-user-name">{{ auth()->user()->name }}</div>
+                        <div class="dropdown-user-name">{{ auth()->user()->name }} ({{ auth()->user()->role_display_name }})</div>
                         <div class="dropdown-user-email">{{ auth()->user()->email }}</div>
                     </div>
                     <hr class="dropdown-divider">

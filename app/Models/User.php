@@ -280,6 +280,23 @@ class User extends Authenticatable implements JWTSubject
         return $this->role === 'mis';
     }
 
+    public function getRoleDisplayNameAttribute(): string
+    {
+        return match ($this->role) {
+            'mis' => 'MIS',
+            'school_admin' => 'School Administrator',
+            'building_admin' => 'Building Administrator',
+            'academic_head' => 'Academic Head',
+            'program_head' => 'Program Head',
+            'principal_assistant' => 'SHS Principal',
+            'maintenance' => 'Maintenance',
+            'faculty' => 'Faculty',
+            'student' => 'Student',
+            'superadmin' => 'Superadmin',
+            default => str((string) $this->role)->replace('_', ' ')->title()->toString(),
+        };
+    }
+
     public function isSchoolAdmin()
     {
         return $this->role === 'school_admin';
