@@ -54,6 +54,10 @@
       "dest": "/api/cron/storage-report.php"
     },
     {
+      "src": "/api/cron/send-welcome-emails",
+      "dest": "/api/cron/send-welcome-emails.php"
+    },
+    {
       "src": "/sitemap.xml",
       "dest": "/api/index.php"
     },

@@ -90,4 +90,30 @@ class WelcomeEmailBatchTest extends TestCase
         $this->assertSame(0, WelcomeEmailDelivery::where('status', 'pending')->count());
         Notification::assertCount(3);
     }
+
+    public function test_invocation_batch_size_does_not_change_the_daily_ceiling(): void
+    {
+        Notification::fake();
+        Carbon::setTestNow('2026-09-05 00:10:00');
+
+        foreach (range(1, 3) as $number) {
+            $user = User::create([
+                'name' => "Batch Student {$number}",
+                'email' => "batch{$number}@example.com",
+                'password' => bcrypt("Password{$number}"),
+                'role' => 'student',
+            ]);
+            WelcomeEmailDelivery::create([
+                'user_id' => $user->id,
+                'encrypted_password' => Crypt::encryptString("Password{$number}"),
+            ]);
+        }
+
+        $this->artisan('users:send-welcome-emails', ['--limit' => 3, '--batch' => 1])->assertSuccessful();
+        $this->assertSame(1, WelcomeEmailDelivery::where('status', 'sent')->count());
+
+        $this->artisan('users:send-welcome-emails', ['--limit' => 3, '--batch' => 2])->assertSuccessful();
+        $this->assertSame(3, WelcomeEmailDelivery::where('status', 'sent')->count());
+        Notification::assertCount(3);
+    }
 }

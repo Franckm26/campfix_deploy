@@ -12,7 +12,9 @@ use Throwable;
 
 class SendWelcomeEmails extends Command
 {
-    protected $signature = 'users:send-welcome-emails {--limit= : Maximum number of Brevo delivery attempts for this UTC day}';
+    protected $signature = 'users:send-welcome-emails
+        {--limit= : Maximum number of Brevo delivery attempts for this UTC day}
+        {--batch= : Maximum number to process in this command invocation}';
 
     protected $description = 'Send the next deduplicated daily batch of imported-user welcome emails';
 
@@ -27,6 +29,9 @@ class SendWelcomeEmails extends Command
             ->whereBetween('last_attempted_at', [$dayStart, $dayEnd])
             ->count();
         $available = max(0, $dailyLimit - $attemptedToday);
+        if ($this->option('batch') !== null) {
+            $available = min($available, max(1, (int) $this->option('batch')));
+        }
 
         if ($available === 0) {
             $this->info("The daily welcome-email allowance of {$dailyLimit} has already been used.");
