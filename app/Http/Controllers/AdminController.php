@@ -14,6 +14,7 @@ use App\Models\Report;
 use App\Models\ReportStatusLog;
 use App\Models\User;
 use App\Models\UserArchiveFolder;
+use App\Models\WelcomeEmailDelivery;
 use App\Notifications\ConcernResolvedNotification;
 use App\Notifications\ReportAssignedNotification;
 use App\Notifications\ReportResolvedNotification;
@@ -26,6 +27,7 @@ use App\Helpers\PasswordGenerator;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
@@ -4237,6 +4239,7 @@ class AdminController extends Controller
         }
 
         $usersToCreate = [];
+        $welcomeCredentials = [];
 
         foreach ($allRows as $rowIndex => $row) {
             $row = array_map(fn($v) => trim((string) $v), $row);
@@ -4416,13 +4419,37 @@ class AdminController extends Controller
 
             $existingEmails[]     = $emailLower;
             $existingStudentIds[] = $studentIdLower;
+            $welcomeCredentials[$emailLower] = $password;
             $rowCount++;
         }
 
+        $queuedEmailCount = 0;
         if (! empty($usersToCreate)) {
             foreach (array_chunk($usersToCreate, 500) as $chunk) {
                 User::insertOrIgnore($chunk);
             }
+
+            foreach (array_chunk(array_column($usersToCreate, 'email'), 500) as $emailChunk) {
+                $deliveries = User::query()
+                    ->whereIn('email', $emailChunk)
+                    ->get(['id', 'email'])
+                    ->map(function (User $user) use ($welcomeCredentials): array {
+                        return [
+                            'user_id' => $user->id,
+                            'encrypted_password' => Crypt::encryptString($welcomeCredentials[strtolower($user->email)]),
+                            'status' => 'pending',
+                            'attempts' => 0,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                    })
+                    ->all();
+
+                if ($deliveries !== []) {
+                    $queuedEmailCount += WelcomeEmailDelivery::query()->insertOrIgnore($deliveries);
+                }
+            }
+
             $archiveFolder->user_count = User::where('archive_folder_id', $archiveFolder->id)->count();
             $archiveFolder->save();
         }
@@ -4443,7 +4470,7 @@ class AdminController extends Controller
             ? ' (Skipped '.count($skippedRows).' rows. First reason: '.($skippedRows[0] ?? 'none').')'
             : '';
 
-        return redirect()->route('admin.users')->with('success', "Successfully imported {$rowCount} users!{$debugMsg}");
+        return redirect()->route('admin.users')->with('success', "Successfully imported {$rowCount} users and queued {$queuedEmailCount} welcome email(s) for automatic daily Brevo delivery!{$debugMsg}");
     }
 
     // Activity logs

@@ -38,6 +38,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->command('concerns:auto-resolve-rooms')->everyMinute();
         $schedule->command('concerns:send-follow-ups')->daily();
+        $schedule->command('users:send-welcome-emails')
+            ->dailyAt(config('welcome-emails.send_at', '00:10'))
+            ->timezone(config('welcome-emails.timezone', 'UTC'))
+            ->withoutOverlapping();
         
         // Database backup every 15 minutes (free-tier friendly)
         // Change to ->everyFiveMinutes() if you need more frequent backups
