@@ -16,6 +16,8 @@ class WelcomeEmailDelivery extends Model
         'last_attempted_at',
         'claimed_at',
         'sent_at',
+        'email_address_sent_at',
+        'password_sent_at',
         'last_error',
     ];
 
@@ -26,6 +28,8 @@ class WelcomeEmailDelivery extends Model
         'last_attempted_at' => 'datetime',
         'claimed_at' => 'datetime',
         'sent_at' => 'datetime',
+        'email_address_sent_at' => 'datetime',
+        'password_sent_at' => 'datetime',
     ];
 
     public function user(): BelongsTo

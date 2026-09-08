@@ -4,11 +4,13 @@ namespace App\Console\Commands;
 
 use App\Models\User;
 use App\Models\WelcomeEmailDelivery;
-use App\Notifications\NewUserCreatedNotification;
+use App\Notifications\EmailAddressNotification;
+use App\Notifications\PasswordNotification;
 use App\Notifications\ExistingUserWelcomeNotification;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Throwable;
 
 class SendWelcomeEmails extends Command
@@ -21,6 +23,11 @@ class SendWelcomeEmails extends Command
 
     public function handle(): int
     {
+        if (! Schema::hasColumns('welcome_email_deliveries', ['email_address_sent_at', 'password_sent_at'])) {
+            $this->error('Run the 2026_09_09_split_welcome_emails.sql setup before sending. No deliveries were attempted.');
+
+            return self::FAILURE;
+        }
         $dailyLimit = $this->option('limit') === null ? null : max(1, (int) $this->option('limit'));
         $dayStart = now()->startOfDay();
         $dayEnd = now()->endOfDay();
@@ -75,10 +82,19 @@ class SendWelcomeEmails extends Command
                     continue;
                 }
 
-                $notification = $delivery->encrypted_password === null
-                    ? new ExistingUserWelcomeNotification
-                    : new NewUserCreatedNotification(Crypt::decryptString($delivery->encrypted_password));
-                $user->notify($notification);
+                if ($delivery->encrypted_password === null) {
+                    $user->notify(new ExistingUserWelcomeNotification);
+                } else {
+                    $password = Crypt::decryptString($delivery->encrypted_password);
+                    if ($delivery->email_address_sent_at === null) {
+                        $user->notify(new EmailAddressNotification);
+                        $delivery->update(['email_address_sent_at' => now()]);
+                    }
+                    if ($delivery->password_sent_at === null) {
+                        $user->notify(new PasswordNotification($password));
+                        $delivery->update(['password_sent_at' => now()]);
+                    }
+                }
 
                 $delivery->update([
                     'status' => 'sent',

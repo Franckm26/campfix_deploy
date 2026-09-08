@@ -43,6 +43,8 @@ class WelcomeEmailBatchTest extends TestCase
             $table->timestamp('last_attempted_at')->nullable();
             $table->timestamp('claimed_at')->nullable();
             $table->timestamp('sent_at')->nullable();
+            $table->timestamp('email_address_sent_at')->nullable();
+            $table->timestamp('password_sent_at')->nullable();
             $table->text('last_error')->nullable();
             $table->timestamps();
         });
@@ -78,18 +80,18 @@ class WelcomeEmailBatchTest extends TestCase
         $this->assertSame(2, WelcomeEmailDelivery::where('status', 'sent')->count());
         $this->assertSame(1, WelcomeEmailDelivery::where('status', 'pending')->count());
         $this->assertSame(0, WelcomeEmailDelivery::where('status', 'sent')->whereNotNull('encrypted_password')->count());
-        Notification::assertCount(2);
+        Notification::assertCount(4);
 
         // A second scheduler invocation on the same day cannot exceed the limit.
         $this->artisan('users:send-welcome-emails', ['--limit' => 2])->assertSuccessful();
-        Notification::assertCount(2);
+        Notification::assertCount(4);
 
         Carbon::setTestNow('2026-09-06 00:10:00');
         $this->artisan('users:send-welcome-emails', ['--limit' => 2])->assertSuccessful();
 
         $this->assertSame(3, WelcomeEmailDelivery::where('status', 'sent')->count());
         $this->assertSame(0, WelcomeEmailDelivery::where('status', 'pending')->count());
-        Notification::assertCount(3);
+        Notification::assertCount(6);
     }
 
     public function test_invocation_batch_size_does_not_change_the_daily_ceiling(): void
@@ -115,7 +117,7 @@ class WelcomeEmailBatchTest extends TestCase
 
         $this->artisan('users:send-welcome-emails', ['--limit' => 3, '--batch' => 2])->assertSuccessful();
         $this->assertSame(3, WelcomeEmailDelivery::where('status', 'sent')->count());
-        Notification::assertCount(3);
+        Notification::assertCount(6);
     }
 
     public function test_existing_account_receives_welcome_without_password_reset_or_repeat(): void
@@ -196,5 +198,48 @@ class WelcomeEmailBatchTest extends TestCase
         $this->assertSame('uncertain', $delivery->fresh()->status);
         $this->assertNull($delivery->fresh()->sent_at);
         $this->artisan('users:send-welcome-emails')->assertSuccessful();
+    }
+
+    public function test_partial_send_tracks_address_and_holds_password_for_review(): void
+    {
+        $user = User::create([
+            'name' => 'Student', 'email' => 'partial@example.com',
+            'password' => 'unused-hash', 'role' => 'student',
+        ]);
+        $delivery = WelcomeEmailDelivery::create([
+            'user_id' => $user->id, 'encrypted_password' => Crypt::encryptString('TestPassword'),
+        ]);
+        Notification::shouldReceive('send')->twice()->andReturnUsing(function ($recipient, $notification) {
+            if ($notification instanceof \App\Notifications\PasswordNotification) {
+                throw new \RuntimeException('SMTP timeout');
+            }
+        });
+        $this->artisan('users:send-welcome-emails')->assertFailed();
+        $delivery->refresh();
+        $this->assertNotNull($delivery->email_address_sent_at);
+        $this->assertNull($delivery->password_sent_at);
+        $this->assertNull($delivery->sent_at);
+        $this->assertNotNull($delivery->encrypted_password);
+        $this->assertSame('uncertain', $delivery->status);
+        $this->artisan('users:send-welcome-emails')->assertSuccessful();
+    }
+
+    public function test_reviewed_partial_delivery_does_not_resend_address(): void
+    {
+        Notification::fake();
+        $user = User::create([
+            'name' => 'Student', 'email' => 'reviewed@example.com',
+            'password' => 'unused-hash', 'role' => 'student',
+        ]);
+        $delivery = WelcomeEmailDelivery::create([
+            'user_id' => $user->id, 'encrypted_password' => Crypt::encryptString('TestPassword'),
+            'email_address_sent_at' => now()->subDay(),
+        ]);
+        $this->artisan('users:send-welcome-emails')->assertSuccessful();
+        Notification::assertSentTo($user, \App\Notifications\PasswordNotification::class);
+        Notification::assertNotSentTo($user, \App\Notifications\EmailAddressNotification::class);
+        Notification::assertCount(1);
+        $this->assertNotNull($delivery->fresh()->password_sent_at);
+        $this->assertSame('sent', $delivery->fresh()->status);
     }
 }
