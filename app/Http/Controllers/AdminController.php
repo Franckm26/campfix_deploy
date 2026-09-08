@@ -4147,6 +4147,11 @@ class AdminController extends Controller
     // Import users from CSV / XLSX
     public function importUsers(Request $request)
     {
+        return DB::transaction(fn () => $this->performUserImport($request));
+    }
+
+    private function performUserImport(Request $request)
+    {
         if (! auth()->user()->canAccess('users_create')) {
             if (request()->expectsJson()) {
                 return response()->json(['error' => 'You do not have permission to perform this action.'], 403);
@@ -4160,11 +4165,12 @@ class AdminController extends Controller
             'file'         => 'required',
             'default_role' => 'required|in:student,faculty,staff',
             'file_format'  => 'required|in:masterlist,standard',
+            'archive_folder_name' => 'nullable|string|max:255',
         ]);
 
         $isMasterlist = $request->input('file_format') === 'masterlist';
         $defaultRole  = $request->input('default_role', 'student');
-        $folderName   = $request->input('archive_folder_name', '2025-2026');
+        $folderName   = trim($request->input('archive_folder_name') ?: now()->year.'-'.(now()->year + 1));
         $extension    = strtolower($request->file('file')->getClientOriginalExtension());
         $filePath     = $request->file('file')->getRealPath();
 
@@ -4187,8 +4193,11 @@ class AdminController extends Controller
         $rowCount = 0;
         $skippedRows = [];
 
-        $existingEmails     = User::selectRaw('LOWER(email) as email')->pluck('email')->toArray();
-        $existingStudentIds = User::selectRaw('LOWER(student_id) as student_id')->whereNotNull('student_id')->pluck('student_id')->toArray();
+        $existingEmails = User::withoutGlobalScopes()->selectRaw('LOWER(email) as email')->pluck('email')->toArray();
+        $existingStudents = User::withoutGlobalScopes()->whereNotNull('student_id')
+            ->get(['id', 'student_id', 'role', 'is_archived', 'is_deleted', 'is_superadmin', 'archive_folder_id'])
+            ->groupBy(fn ($user) => strtolower(trim((string) $user->student_id)));
+        $existingStudentIds = $existingStudents->keys()->all();
 
         $archiveFolder = UserArchiveFolder::where('name', $folderName)->first();
         if (! $archiveFolder) {
@@ -4202,6 +4211,8 @@ class AdminController extends Controller
 
         $usersToCreate = [];
         $welcomeCredentials = [];
+        $returningStudentIds = [];
+        $previousFolderIds = [];
 
         foreach ($allRows as $rowIndex => $row) {
             $row = array_map(fn($v) => trim((string) $v), $row);
@@ -4346,7 +4357,23 @@ class AdminController extends Controller
             }
 
             $emailLower     = strtolower($email);
-            $studentIdLower = strtolower($studentId);
+            $studentIdLower = strtolower(trim((string) $studentId));
+
+            // Match by student ID before email: returning students retain their
+            // existing identity, password, permissions, and submission history.
+            $matches = $existingStudents->get($studentIdLower);
+            if ($role === 'student' && $matches && $matches->count() === 1) {
+                $returning = $matches->first();
+                if ($returning->role === 'student' && $returning->is_archived
+                    && ! $returning->is_deleted && ! $returning->is_superadmin
+                    && auth()->user()->canAccess('users_archive')) {
+                    $returningStudentIds[$returning->id] = $returning->id;
+                    if ($returning->archive_folder_id) {
+                        $previousFolderIds[] = $returning->archive_folder_id;
+                    }
+                    continue;
+                }
+            }
 
             if (in_array($emailLower, $existingEmails)) {
                 $skippedRows[] = "Row {$rowIndex}: email '{$email}' already exists";
@@ -4391,9 +4418,9 @@ class AdminController extends Controller
                 User::insertOrIgnore($chunk);
             }
 
-            foreach (array_chunk(array_column($usersToCreate, 'email'), 500) as $emailChunk) {
+            foreach (array_chunk(array_column($usersToCreate, 'uuid'), 500) as $uuidChunk) {
                 $deliveries = User::query()
-                    ->whereIn('email', $emailChunk)
+                    ->whereIn('uuid', $uuidChunk)
                     ->get(['id', 'email'])
                     ->map(function (User $user) use ($welcomeCredentials): array {
                         return [
@@ -4416,7 +4443,17 @@ class AdminController extends Controller
             $archiveFolder->save();
         }
 
-        ActivityLog::log('users_imported', "Imported {$rowCount} users to folder '{$folderName}'");
+        $restoredCount = 0;
+        foreach (array_chunk(array_values($returningStudentIds), 500) as $studentIds) {
+            $restoredCount += User::hideSuperadmin()->whereIn('id', $studentIds)
+                ->where('role', 'student')->where('is_archived', true)
+                ->update(['is_archived' => false, 'archive_folder_id' => $archiveFolder->id]);
+        }
+        foreach (UserArchiveFolder::whereIn('id', array_unique([...$previousFolderIds, $archiveFolder->id]))->get() as $folder) {
+            $folder->update(['user_count' => $folder->archivedUsers()->count()]);
+        }
+
+        ActivityLog::log('users_imported', "Imported {$rowCount} new users and restored {$restoredCount} returning students to folder '{$folderName}'");
 
         \Log::info('Import debug', [
             'total_rows' => count($allRows),
@@ -4432,7 +4469,7 @@ class AdminController extends Controller
             ? ' (Skipped '.count($skippedRows).' rows. First reason: '.($skippedRows[0] ?? 'none').')'
             : '';
 
-        return redirect()->route('admin.users')->with('success', "Successfully imported {$rowCount} users and queued {$queuedEmailCount} welcome email(s) for automatic daily Brevo delivery!{$debugMsg}");
+        return redirect()->route('admin.users')->with('success', "Imported {$rowCount} new users, restored {$restoredCount} returning students, and queued {$queuedEmailCount} welcome email(s) for automatic daily Brevo delivery!{$debugMsg}");
     }
 
     // Activity logs

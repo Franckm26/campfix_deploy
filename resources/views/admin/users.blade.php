@@ -1300,8 +1300,9 @@
                         <input type="hidden" name="file_format" value="masterlist">
 
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Archive Folder Name</label>
-                            <input type="text" name="archive_folder_name" class="form-control" value="2025-2026" placeholder="e.g., 2025-2026">
+                            <label class="form-label fw-semibold">School Year Folder</label>
+                            <input type="text" name="archive_folder_name" class="form-control" value="{{ now()->year }}-{{ now()->year + 1 }}" placeholder="e.g., 2026-2027" required>
+                            <small class="text-muted">Archived returning students are restored by student ID into this folder, keeping their existing passwords and history. Welcome emails are queued only for new accounts.</small>
                             <small class="text-muted">The folder will be created automatically if it doesn't exist.</small>
                         </div>
                         <div class="mb-3">
