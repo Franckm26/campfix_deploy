@@ -78,6 +78,7 @@ class ReturningStudentImportTest extends TestCase
         $this->assertTrue((bool) $absent->fresh()->is_archived);
         $this->assertSame(1, $folder->fresh()->user_count);
         $this->assertSame(3, User::count());
+        $this->assertFalse(UserArchiveFolder::where('name', 'New Year')->exists());
     }
 
     public function test_masterlist_updates_active_student_profile_without_changing_credentials(): void
@@ -108,6 +109,7 @@ class ReturningStudentImportTest extends TestCase
         $this->assertSame('original@example.com', $student->email);
         $this->assertSame('original-hash', $student->password);
         $this->assertFalse((bool) $student->is_archived);
+        $this->assertFalse(UserArchiveFolder::where('name', 'New Year')->exists());
     }
 
     public function test_shs_header_layout_maps_name_program_and_level(): void

@@ -2300,6 +2300,7 @@ class AdminController extends Controller
             // Get archive folders (exclude Deleted Users system folder) with pagination
             $perPage = $request->get('per_page', 20);
             $archiveFolders = UserArchiveFolder::where('name', '!=', 'Deleted Users')
+                ->whereHas('archivedUsers', fn ($query) => $query->where('is_archived', true))
                 ->withCount(['archivedUsers as user_count' => fn ($query) => $query->where('is_archived', true)])
                 ->orderBy('created_at', 'desc')
                 ->paginate($perPage);
@@ -4229,16 +4230,6 @@ class AdminController extends Controller
             ->get(['id', 'email', 'student_id', 'role', 'is_archived', 'is_deleted', 'is_superadmin', 'archive_folder_id'])
             ->groupBy(fn ($user) => strtolower(trim($user->email)));
 
-        $archiveFolder = UserArchiveFolder::where('name', $folderName)->first();
-        if (! $archiveFolder) {
-            $archiveFolder = UserArchiveFolder::create([
-                'name'        => $folderName,
-                'description' => 'Users imported for school year '.$folderName,
-                'user_count'  => 0,
-                'is_system'   => false,
-            ]);
-        }
-
         $usersToCreate = [];
         $welcomeCredentials = [];
         $returningStudentIds = [];
@@ -4488,8 +4479,6 @@ class AdminController extends Controller
                 }
             }
 
-            $archiveFolder->user_count = User::where('archive_folder_id', $archiveFolder->id)->count();
-            $archiveFolder->save();
         }
 
         $restoredCount = 0;
@@ -4501,11 +4490,11 @@ class AdminController extends Controller
                 ->where('role', 'student')->where('is_archived', true)
                 ->update(['is_archived' => false, 'archive_folder_id' => null]);
         }
-        foreach (UserArchiveFolder::whereIn('id', array_unique([...$previousFolderIds, $archiveFolder->id]))->get() as $folder) {
+        foreach (UserArchiveFolder::whereIn('id', array_unique($previousFolderIds))->get() as $folder) {
             $folder->update(['user_count' => $folder->archivedUsers()->where('is_archived', true)->count()]);
         }
 
-        ActivityLog::log('users_imported', "Imported {$rowCount} new users and restored {$restoredCount} returning students to folder '{$folderName}'");
+        ActivityLog::log('users_imported', "Imported {$rowCount} new users and restored {$restoredCount} returning students for school year '{$folderName}'");
 
         \Log::info('Import debug', [
             'total_rows' => count($allRows),
