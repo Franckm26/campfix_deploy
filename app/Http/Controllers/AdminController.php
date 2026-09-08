@@ -2300,6 +2300,7 @@ class AdminController extends Controller
             // Get archive folders (exclude Deleted Users system folder) with pagination
             $perPage = $request->get('per_page', 20);
             $archiveFolders = UserArchiveFolder::where('name', '!=', 'Deleted Users')
+                ->withCount(['archivedUsers as user_count' => fn ($query) => $query->where('is_archived', true)])
                 ->orderBy('created_at', 'desc')
                 ->paginate($perPage);
 
@@ -3569,6 +3570,13 @@ class AdminController extends Controller
     // Restore all users in a folder
     public function restoreAllFolderUsers($folder_id)
     {
+        abort_unless(auth()->user()?->canAccess('users_archive'), 403);
+
+        return DB::transaction(fn () => $this->performRestoreAllFolderUsers($folder_id));
+    }
+
+    private function performRestoreAllFolderUsers($folder_id)
+    {
         $folder = UserArchiveFolder::where('name', '!=', 'Deleted Users')->findOrFail($folder_id);
         $folderName = $folder->name;
 
@@ -3584,8 +3592,8 @@ class AdminController extends Controller
                 'updated_at' => now(),
             ]);
 
-        $remainingUsers = $folder->archivedUsers()->count();
-        if ($remainingUsers === 0) {
+        $remainingUsers = $folder->archivedUsers()->where('is_archived', true)->count();
+        if ($remainingUsers === 0 && ! $folder->archivedUsers()->withoutGlobalScopes()->exists()) {
             $folder->delete();
             ActivityLog::log('archive_folder_deleted', "Deleted empty archive folder: {$folderName}");
         } else {
@@ -3595,7 +3603,10 @@ class AdminController extends Controller
         ActivityLog::log('users_restored', "Restored {$count} users from archive folder: {$folderName}");
 
         $message = "Successfully restored {$count} user(s) from folder '{$folderName}'.";
-        if ($remainingUsers === 0) {
+        if ($count === 0) {
+            $message = "No archived users remain in folder '{$folderName}'. Active users do not need restoring.";
+        }
+        if (! $folder->exists) {
             $message .= ' The empty folder was removed.';
         }
 
@@ -3605,6 +3616,7 @@ class AdminController extends Controller
     // Restore every non-deleted user from all user archive folders.
     public function restoreAllArchivedUsers(Request $request)
     {
+        abort_unless($request->user()?->canAccess('users_archive'), 403);
         $count = \Illuminate\Support\Facades\DB::transaction(function () {
             $restored = User::withoutGlobalScopes()
                 ->where('is_archived', true)
@@ -3616,8 +3628,8 @@ class AdminController extends Controller
                 ]);
 
             UserArchiveFolder::where('name', '!=', 'Deleted Users')->get()->each(function ($folder) {
-                $remainingUsers = $folder->archivedUsers()->count();
-                if ($remainingUsers === 0) {
+                $remainingUsers = $folder->archivedUsers()->where('is_archived', true)->count();
+                if ($remainingUsers === 0 && ! $folder->archivedUsers()->withoutGlobalScopes()->exists()) {
                     $folder->delete();
                 } else {
                     $folder->update(['user_count' => $remainingUsers]);
@@ -4000,8 +4012,10 @@ class AdminController extends Controller
     public function archiveFolderUsers(Request $request, $id)
     {
         $folder = UserArchiveFolder::findOrFail($id);
+        $folder->user_count = $folder->archivedUsers()->where('is_archived', true)->count();
         $perPage = $request->get('per_page', 20);
         $users = User::where('archive_folder_id', $id)
+            ->where('is_archived', true)
             ->orderBy('name', 'asc')
             ->paginate($perPage);
 
@@ -4179,7 +4193,17 @@ class AdminController extends Controller
         if (in_array($extension, ['xlsx', 'xls'])) {
             $xlsx = \Shuchkin\SimpleXLSX::parse($filePath);
             if ($xlsx) {
-                $allRows = $xlsx->rows();
+                if ($isMasterlist && $defaultRole === 'student') {
+                    foreach ($xlsx->sheetNames() as $sheetIndex => $sheetName) {
+                        $sheetRows = \App\Services\StudentMasterlistRows::normalize($xlsx->rows($sheetIndex));
+                        if ($allRows !== []) {
+                            array_shift($sheetRows);
+                        }
+                        $allRows = array_merge($allRows, $sheetRows);
+                    }
+                } else {
+                    $allRows = $xlsx->rows();
+                }
             }
         } else {
             $delimiter = $isMasterlist ? "\t" : ',';
@@ -4188,6 +4212,9 @@ class AdminController extends Controller
                 $allRows[] = $row;
             }
             fclose($handle);
+            if ($isMasterlist && $defaultRole === 'student') {
+                $allRows = \App\Services\StudentMasterlistRows::normalize($allRows);
+            }
         }
 
         $rowCount = 0;
@@ -4198,6 +4225,9 @@ class AdminController extends Controller
             ->get(['id', 'student_id', 'role', 'is_archived', 'is_deleted', 'is_superadmin', 'archive_folder_id'])
             ->groupBy(fn ($user) => strtolower(trim((string) $user->student_id)));
         $existingStudentIds = $existingStudents->keys()->all();
+        $existingUsersByEmail = User::withoutGlobalScopes()
+            ->get(['id', 'email', 'student_id', 'role', 'is_archived', 'is_deleted', 'is_superadmin', 'archive_folder_id'])
+            ->groupBy(fn ($user) => strtolower(trim($user->email)));
 
         $archiveFolder = UserArchiveFolder::where('name', $folderName)->first();
         if (! $archiveFolder) {
@@ -4212,6 +4242,7 @@ class AdminController extends Controller
         $usersToCreate = [];
         $welcomeCredentials = [];
         $returningStudentIds = [];
+        $studentProfileUpdates = [];
         $previousFolderIds = [];
 
         foreach ($allRows as $rowIndex => $row) {
@@ -4356,14 +4387,32 @@ class AdminController extends Controller
                 }
             }
 
-            $emailLower     = strtolower($email);
+            $emailLower     = strtolower(trim($email));
             $studentIdLower = strtolower(trim((string) $studentId));
 
             // Match by student ID before email: returning students retain their
             // existing identity, password, permissions, and submission history.
             $matches = $existingStudents->get($studentIdLower);
+            if ((! $matches || $matches->isEmpty()) && $existingUsersByEmail->has($emailLower)) {
+                $emailMatches = $existingUsersByEmail->get($emailLower);
+                // Never match a different populated student ID by email alone.
+                if ($emailMatches->count() === 1 && trim((string) $emailMatches->first()->student_id) === '') {
+                    $matches = $emailMatches;
+                }
+            }
             if ($role === 'student' && $matches && $matches->count() === 1) {
                 $returning = $matches->first();
+                if ($isMasterlist && $returning->role === 'student'
+                    && ! $returning->is_deleted && ! $returning->is_superadmin
+                    && (! $returning->is_archived || auth()->user()->canAccess('users_archive'))) {
+                    // First occurrence wins when the workbook repeats students.
+                    $studentProfileUpdates[$returning->id] ??= [
+                        'name' => $name, 'department' => $department, 'level' => $level,
+                    ];
+                    if (! $returning->is_archived) {
+                        continue;
+                    }
+                }
                 if ($returning->role === 'student' && $returning->is_archived
                     && ! $returning->is_deleted && ! $returning->is_superadmin
                     && auth()->user()->canAccess('users_archive')) {
@@ -4394,7 +4443,7 @@ class AdminController extends Controller
                 'department'            => $department,
                 'level'                 => $level,
                 'force_password_change' => true,
-                'archive_folder_id'     => $archiveFolder->id,
+                'archive_folder_id'     => null,
                 'is_archived'           => false, // Changed to false so users appear in Active Users
                 'is_deleted'            => false,
                 'failed_login_attempts' => 0,
@@ -4444,13 +4493,16 @@ class AdminController extends Controller
         }
 
         $restoredCount = 0;
+        foreach ($studentProfileUpdates as $studentUserId => $profile) {
+            User::hideSuperadmin()->whereKey($studentUserId)->update($profile);
+        }
         foreach (array_chunk(array_values($returningStudentIds), 500) as $studentIds) {
             $restoredCount += User::hideSuperadmin()->whereIn('id', $studentIds)
                 ->where('role', 'student')->where('is_archived', true)
-                ->update(['is_archived' => false, 'archive_folder_id' => $archiveFolder->id]);
+                ->update(['is_archived' => false, 'archive_folder_id' => null]);
         }
         foreach (UserArchiveFolder::whereIn('id', array_unique([...$previousFolderIds, $archiveFolder->id]))->get() as $folder) {
-            $folder->update(['user_count' => $folder->archivedUsers()->count()]);
+            $folder->update(['user_count' => $folder->archivedUsers()->where('is_archived', true)->count()]);
         }
 
         ActivityLog::log('users_imported', "Imported {$rowCount} new users and restored {$restoredCount} returning students to folder '{$folderName}'");
@@ -4469,7 +4521,8 @@ class AdminController extends Controller
             ? ' (Skipped '.count($skippedRows).' rows. First reason: '.($skippedRows[0] ?? 'none').')'
             : '';
 
-        return redirect()->route('admin.users')->with('success', "Imported {$rowCount} new users, restored {$restoredCount} returning students, and queued {$queuedEmailCount} welcome email(s) for automatic daily Brevo delivery!{$debugMsg}");
+        $updatedProfiles = count($studentProfileUpdates);
+        return redirect()->route('admin.users')->with('success', "Imported {$rowCount} new users, restored {$restoredCount} returning students, updated {$updatedProfiles} student profiles, and queued {$queuedEmailCount} welcome email(s) for automatic daily Brevo delivery!{$debugMsg}");
     }
 
     // Activity logs

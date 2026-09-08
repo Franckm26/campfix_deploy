@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\User;
 use App\Models\WelcomeEmailDelivery;
 use App\Notifications\NewUserCreatedNotification;
+use App\Notifications\ExistingUserWelcomeNotification;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
@@ -43,10 +44,10 @@ class SendWelcomeEmails extends Command
             ->where('status', 'processing')
             ->where('claimed_at', '<', now()->subHours(6))
             ->update([
-                'status' => 'failed',
+                'status' => 'uncertain',
                 'claimed_at' => null,
-                'next_attempt_at' => now()->addDay()->startOfDay(),
-                'last_error' => 'Recovered after an interrupted delivery process.',
+                'next_attempt_at' => null,
+                'last_error' => 'Interrupted delivery: check provider logs before any manual retry.',
                 'updated_at' => now(),
             ]);
 
@@ -55,7 +56,7 @@ class SendWelcomeEmails extends Command
         $attempted = 0;
 
         while ($attempted < $available) {
-            $delivery = $this->claimNext($dayStart);
+            $delivery = $this->claimNext($dayStart, $dailyLimit);
             if (! $delivery) {
                 break;
             }
@@ -64,20 +65,22 @@ class SendWelcomeEmails extends Command
 
             try {
                 $user = User::withoutGlobalScopes()->find($delivery->user_id);
-                if (! $user || $user->is_deleted) {
+                if (! $user || $user->is_deleted || $user->is_archived) {
                     $delivery->update([
                         'status' => 'cancelled',
                         'encrypted_password' => null,
                         'claimed_at' => null,
-                        'last_error' => 'The user account no longer exists.',
+                        'last_error' => 'The user account is missing, deleted, or archived.',
                     ]);
                     $failed++;
 
                     continue;
                 }
 
-                $password = Crypt::decryptString($delivery->encrypted_password);
-                $user->notify(new NewUserCreatedNotification($password));
+                $notification = $delivery->encrypted_password === null
+                    ? new ExistingUserWelcomeNotification
+                    : new NewUserCreatedNotification(Crypt::decryptString($delivery->encrypted_password));
+                $user->notify($notification);
 
                 $delivery->update([
                     'status' => 'sent',
@@ -91,9 +94,11 @@ class SendWelcomeEmails extends Command
             } catch (Throwable $exception) {
                 report($exception);
                 $delivery->update([
-                    'status' => 'failed',
+                    // SMTP may have accepted the message before a timeout or a
+                    // database error. Never automatically resend an ambiguous send.
+                    'status' => 'uncertain',
                     'claimed_at' => null,
-                    'next_attempt_at' => now()->addDay()->startOfDay(),
+                    'next_attempt_at' => null,
                     'last_error' => mb_substr($exception->getMessage(), 0, 2000),
                 ]);
                 $failed++;
@@ -109,10 +114,20 @@ class SendWelcomeEmails extends Command
         return $failed > 0 ? self::FAILURE : self::SUCCESS;
     }
 
-    private function claimNext($dayStart): ?WelcomeEmailDelivery
+    private function claimNext($dayStart, int $dailyLimit): ?WelcomeEmailDelivery
     {
-        return DB::transaction(function () use ($dayStart): ?WelcomeEmailDelivery {
+        return DB::transaction(function () use ($dayStart, $dailyLimit): ?WelcomeEmailDelivery {
+            // Vercel invocations share PostgreSQL, not an in-memory cache.
+            // Serialize quota reservations across all scheduler invocations.
+            if (DB::getDriverName() === 'pgsql') {
+                DB::select('SELECT pg_advisory_xact_lock(20260908, 1)');
+            }
+            if (WelcomeEmailDelivery::whereBetween('last_attempted_at', [$dayStart, $dayStart->copy()->endOfDay()])->count() >= $dailyLimit) {
+                return null;
+            }
+
             $delivery = WelcomeEmailDelivery::query()
+                ->whereNull('sent_at')
                 ->whereIn('status', ['pending', 'failed'])
                 ->where('attempts', '<', (int) config('welcome-emails.max_attempts', 5))
                 ->where(function ($query): void {

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Models\WelcomeEmailDelivery;
+use App\Notifications\ExistingUserWelcomeNotification;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Crypt;
@@ -115,5 +116,58 @@ class WelcomeEmailBatchTest extends TestCase
         $this->artisan('users:send-welcome-emails', ['--limit' => 3, '--batch' => 2])->assertSuccessful();
         $this->assertSame(3, WelcomeEmailDelivery::where('status', 'sent')->count());
         Notification::assertCount(3);
+    }
+
+    public function test_existing_account_receives_welcome_without_password_reset_or_repeat(): void
+    {
+        Notification::fake();
+        $user = User::create([
+            'name' => 'Returning Student', 'email' => 'returning@example.com',
+            'password' => bcrypt('ExistingPassword'), 'role' => 'student',
+        ]);
+        $originalPassword = $user->password;
+        WelcomeEmailDelivery::create(['user_id' => $user->id]);
+
+        $this->artisan('users:send-welcome-emails')->assertSuccessful();
+        $this->artisan('users:send-welcome-emails')->assertSuccessful();
+
+        Notification::assertSentTo($user, ExistingUserWelcomeNotification::class);
+        Notification::assertCount(1);
+        $this->assertSame($originalPassword, $user->fresh()->password);
+        $this->assertSame('sent', WelcomeEmailDelivery::first()->status);
+        $mail = (new ExistingUserWelcomeNotification)->toMail($user);
+        $this->assertStringContainsString('Forgot Password', implode(' ', $mail->introLines));
+    }
+
+    public function test_interrupted_deliveries_are_not_automatically_resent(): void
+    {
+        Notification::fake();
+        $user = User::create([
+            'name' => 'Student', 'email' => 'interrupted@example.com',
+            'password' => bcrypt('ExistingPassword'), 'role' => 'student',
+        ]);
+        $delivery = WelcomeEmailDelivery::create([
+            'user_id' => $user->id, 'status' => 'processing',
+            'claimed_at' => now()->subDay(), 'last_attempted_at' => now()->subDay(),
+        ]);
+
+        $this->artisan('users:send-welcome-emails')->assertSuccessful();
+        $this->assertSame('uncertain', $delivery->fresh()->status);
+        Notification::assertNothingSent();
+    }
+
+    public function test_transport_error_is_held_for_review_instead_of_retried(): void
+    {
+        $user = User::create([
+            'name' => 'Student', 'email' => 'timeout@example.com',
+            'password' => bcrypt('ExistingPassword'), 'role' => 'student',
+        ]);
+        $delivery = WelcomeEmailDelivery::create(['user_id' => $user->id]);
+        Notification::shouldReceive('send')->once()->andThrow(new \RuntimeException('SMTP timeout'));
+
+        $this->artisan('users:send-welcome-emails')->assertFailed();
+        $this->assertSame('uncertain', $delivery->fresh()->status);
+        $this->assertNull($delivery->fresh()->sent_at);
+        $this->artisan('users:send-welcome-emails')->assertSuccessful();
     }
 }
