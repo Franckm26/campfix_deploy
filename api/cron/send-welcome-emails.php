@@ -3,7 +3,7 @@
 /**
  * Short-running Vercel endpoint used by cron-job.org.
  *
- * Each invocation processes only five recipients. The Artisan command keeps
+ * Each invocation processes up to 50 recipients. The Artisan command keeps
  * the authoritative daily limit and deduplication state in Supabase.
  */
 
@@ -23,7 +23,7 @@ $app = require_once __DIR__.'/../../bootstrap/app.php';
 $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 
 try {
-    $exitCode = $kernel->call('users:send-welcome-emails', ['--batch' => 5]);
+    $exitCode = $kernel->call('users:send-welcome-emails', ['--batch' => 50]);
     $output = trim($kernel->output());
 
     http_response_code($exitCode === 0 ? 200 : 500);
