@@ -14,24 +14,22 @@ use Throwable;
 class SendWelcomeEmails extends Command
 {
     protected $signature = 'users:send-welcome-emails
-        {--limit= : Maximum number of Brevo delivery attempts for this UTC day}
+        {--limit= : Optional manual daily attempt cap; no daily cap by default}
         {--batch= : Maximum number to process in this command invocation}';
 
     protected $description = 'Send the next deduplicated daily batch of imported-user welcome emails';
 
     public function handle(): int
     {
-        $configuredLimit = (int) ($this->option('limit') ?: config('welcome-emails.daily_limit', 300));
-        $dailyLimit = min(300, max(1, $configuredLimit));
+        $dailyLimit = $this->option('limit') === null ? null : max(1, (int) $this->option('limit'));
         $dayStart = now()->startOfDay();
         $dayEnd = now()->endOfDay();
 
-        $attemptedToday = WelcomeEmailDelivery::query()
-            ->whereBetween('last_attempted_at', [$dayStart, $dayEnd])
-            ->count();
-        $available = max(0, $dailyLimit - $attemptedToday);
-        if ($this->option('batch') !== null) {
-            $available = min($available, max(1, (int) $this->option('batch')));
+        $available = max(1, (int) ($this->option('batch') ?? 50));
+        if ($dailyLimit !== null) {
+            $attemptedToday = WelcomeEmailDelivery::query()
+                ->whereBetween('last_attempted_at', [$dayStart, $dayEnd])->count();
+            $available = min($available, max(0, $dailyLimit - $attemptedToday));
         }
 
         if ($available === 0) {
@@ -114,7 +112,7 @@ class SendWelcomeEmails extends Command
         return $failed > 0 ? self::FAILURE : self::SUCCESS;
     }
 
-    private function claimNext($dayStart, int $dailyLimit): ?WelcomeEmailDelivery
+    private function claimNext($dayStart, ?int $dailyLimit): ?WelcomeEmailDelivery
     {
         return DB::transaction(function () use ($dayStart, $dailyLimit): ?WelcomeEmailDelivery {
             // Vercel invocations share PostgreSQL, not an in-memory cache.
@@ -122,7 +120,7 @@ class SendWelcomeEmails extends Command
             if (DB::getDriverName() === 'pgsql') {
                 DB::select('SELECT pg_advisory_xact_lock(20260908, 1)');
             }
-            if (WelcomeEmailDelivery::whereBetween('last_attempted_at', [$dayStart, $dayStart->copy()->endOfDay()])->count() >= $dailyLimit) {
+            if ($dailyLimit !== null && WelcomeEmailDelivery::whereBetween('last_attempted_at', [$dayStart, $dayStart->copy()->endOfDay()])->count() >= $dailyLimit) {
                 return null;
             }
 

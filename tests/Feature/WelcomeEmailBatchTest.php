@@ -139,6 +139,33 @@ class WelcomeEmailBatchTest extends TestCase
         $this->assertStringContainsString('Forgot Password', implode(' ', $mail->introLines));
     }
 
+    public function test_default_sender_continues_after_300_attempts_and_keeps_batch_size(): void
+    {
+        Notification::fake();
+        // Even a stale legacy config must not block the cron after deployment.
+        config(['welcome-emails.daily_limit' => 300]);
+        foreach (range(1, 351) as $number) {
+            $user = User::forceCreate([
+                'name' => 'Student', 'email' => "uncapped{$number}@example.com",
+                'password' => 'unused-test-hash', 'role' => 'student',
+            ]);
+            WelcomeEmailDelivery::create([
+                'user_id' => $user->id,
+                'status' => $number <= 300 ? 'sent' : 'pending',
+                'last_attempted_at' => $number <= 300 ? now() : null,
+                'sent_at' => $number <= 300 ? now() : null,
+            ]);
+        }
+        $this->artisan('users:send-welcome-emails', ['--batch' => 50])->assertSuccessful();
+        Notification::assertCount(50);
+        $this->assertSame(350, WelcomeEmailDelivery::where('status', 'sent')->count());
+        $this->artisan('users:send-welcome-emails', ['--batch' => 50])->assertSuccessful();
+        Notification::assertCount(51);
+        $this->assertSame(351, WelcomeEmailDelivery::where('status', 'sent')->count());
+        $this->artisan('users:send-welcome-emails', ['--batch' => 50])->assertSuccessful();
+        Notification::assertCount(51);
+    }
+
     public function test_interrupted_deliveries_are_not_automatically_resent(): void
     {
         Notification::fake();

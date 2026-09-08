@@ -4,7 +4,8 @@
  * Short-running Vercel endpoint used by cron-job.org.
  *
  * Each invocation processes up to 50 recipients. The Artisan command keeps
- * the authoritative daily limit and deduplication state in Supabase.
+ * deduplication state in Supabase. There is no application daily cap;
+ * the mail provider's own quotas still apply.
  */
 
 header('Content-Type: application/json');
