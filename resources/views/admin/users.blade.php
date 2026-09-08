@@ -264,6 +264,11 @@
         <div class="card-body" style="display: block !important;">
 
             <!-- Bulk Actions for Active Users -->
+            @if(auth()->user()->canAccess('users_archive'))
+            <button type="button" class="btn btn-warning btn-sm mb-3" onclick="archiveAllActiveUsers()">
+                <i class="fas fa-archive"></i> Archive All
+            </button>
+            @endif
             <div class="bulk-actions mb-3" id="activeBulkActions" style="display: none;">
                 <div class="btn-group">
                     @if(auth()->user()->canAccess('users_archive'))
@@ -1477,34 +1482,6 @@ document.getElementById('importModal')?.addEventListener('hidden.bs.modal', func
 });
 </script>
 
-<!-- Archive All Modal -->
-<div class="modal fade" id="archiveAllModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Archive All Users</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form action="{{ route('admin.users.archiveAll') }}" method="POST" id="archiveAllForm">
-                @csrf
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Archive Folder Name</label>
-                        <input type="text" name="folder_name" class="form-control" value="2025-2026" placeholder="Enter folder name for this archive" required>
-                        <small class="text-muted">All users will be archived into this folder. The folder will be created automatically if it doesn't exist.</small>
-                    </div>
-                    <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle"></i> This will archive all non-archived users. Users already archived will not be affected.
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-warning"><i class="fas fa-archive"></i> Archive All</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
 
 <!-- Delete All Modal -->
 <div class="modal fade" id="deleteAllModal" tabindex="-1">
@@ -3206,6 +3183,53 @@ function updateActiveBulkActions() {
 }
 
 // Batch archive selected users
+async function archiveAllActiveUsers() {
+    const result = await Swal.fire({
+        title: 'Archive all active users?',
+        text: 'This includes every page and role, regardless of search filters or selection. Your account and superadmin accounts are excluded. Users can be restored from Archive Folders.',
+        icon: 'warning',
+        input: 'text',
+        inputLabel: 'Archive folder name',
+        inputValue: @json(now()->year . '-' . (now()->year + 1)),
+        inputAttributes: { maxlength: 255 },
+        showCancelButton: true,
+        confirmButtonText: 'Archive All',
+        confirmButtonColor: '#b77900',
+        showLoaderOnConfirm: true,
+        allowOutsideClick: () => !Swal.isLoading(),
+        preConfirm: async value => {
+            const folder = value.trim();
+            if (!folder) {
+                Swal.showValidationMessage('Enter an archive folder name.');
+                return false;
+            }
+            try {
+                const response = await fetch(@json(route('admin.users.archiveAll')), {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': @json(csrf_token()),
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ folder_name: folder })
+                });
+                const data = await response.json();
+                if (!response.ok || !data.success) {
+                    throw new Error(data.errors?.folder_name?.[0] || data.message || 'Unable to archive users.');
+                }
+                return data;
+            } catch (error) {
+                Swal.showValidationMessage(error.message || 'Unable to archive users. Please try again.');
+                return false;
+            }
+        }
+    });
+    if (result.isConfirmed) {
+        await Swal.fire({ icon: 'success', title: 'Users archived', text: result.value.message });
+        location.reload();
+    }
+}
+
 function batchArchiveSelected() {
     const selected = document.querySelectorAll('.active-user-checkbox:checked');
     const ids = Array.from(selected).map(cb => cb.value);

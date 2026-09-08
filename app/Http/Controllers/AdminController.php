@@ -3640,87 +3640,49 @@ class AdminController extends Controller
             ->with('success', "Successfully restored {$count} archived user(s)!");
     }
 
-    // Archive all users
+    // Archive every eligible active user across all pages.
     public function archiveAllUsers(Request $request)
     {
-        $request->validate([
+        abort_unless($request->user()?->canAccess('users_archive'), 403);
+        $validated = $request->validate([
             'folder_name' => 'required|string|max:255',
         ]);
-
-        $folderName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $request->input('folder_name'));
-        $folderName = trim($folderName, '_');
-
-        // Sanitize folder name to prevent path traversal
-        $folderName = str_replace(['..', '/', '\\'], '', $folderName);
-
-        // Check if folder already exists, if not create it
-        $archiveFolder = UserArchiveFolder::where('name', $folderName)->first();
-        if (! $archiveFolder) {
-            $archiveFolder = UserArchiveFolder::create([
-                'name' => $folderName,
-                'description' => 'Archived on '.now()->format('M d, Y'),
-                'user_count' => 0,
+        $folderName = trim($validated['folder_name']);
+        if ($folderName === '' || strcasecmp($folderName, 'Deleted Users') === 0) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'folder_name' => 'Choose a valid archive folder name other than Deleted Users.',
             ]);
         }
 
-        // Use the public disk to store archive files
-        $archivePath = 'archive/'.$folderName;
+        $count = DB::transaction(function () use ($request, $folderName) {
+            $archiveFolder = UserArchiveFolder::firstOrCreate(
+                ['name' => $folderName],
+                ['description' => 'Archived on '.now()->format('M d, Y'), 'user_count' => 0]
+            );
+            $archiveFolder = UserArchiveFolder::whereKey($archiveFolder->id)->lockForUpdate()->firstOrFail();
 
-        // Create the directory if it doesn't exist
-        if (! Storage::disk('public')->exists($archivePath)) {
-            Storage::disk('public')->makeDirectory($archivePath);
-        }
+            $eligible = User::hideSuperadmin()
+                ->where('is_archived', false)
+                ->where('id', '!=', $request->user()->id);
+            $folderIds = (clone $eligible)->pluck('archive_folder_id')->filter()
+                ->push($archiveFolder->id)->unique();
+            $count = $eligible->update(['is_archived' => true, 'archive_folder_id' => $archiveFolder->id]);
 
-        // Get all non-archived users (except the current logged in user)
-        $usersToArchive = User::where('is_archived', false)
-            ->where('id', '!=', auth()->id())
-            ->get();
-
-        $count = 0;
-        $userData = [];
-
-        foreach ($usersToArchive as $user) {
-            $user->is_archived = true;
-            $user->archive_folder_id = $archiveFolder->id;
-            $user->save();
-
-            // Collect user data for the archive file
-            $userData[] = [
-                'id' => $user->id,
-                'student_id' => $user->student_id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'role' => $user->role,
-                'department' => $user->department,
-                'phone' => $user->phone,
-                'created_at' => $user->created_at->format('Y-m-d H:i:s'),
-                'archived_at' => now()->format('Y-m-d H:i:s'),
-            ];
-
-            $count++;
-        }
-
-        // Update folder user count
-        $archiveFolder->user_count = $archiveFolder->archivedUsers()->count();
-        $archiveFolder->save();
-
-        // Save user data to a JSON file in the archive folder
-        if (! empty($userData)) {
-            $jsonFile = $archivePath.'/users.json';
-            Storage::disk('public')->put($jsonFile, json_encode($userData, JSON_PRETTY_PRINT));
-
-            // Also create a CSV file
-            $csvFile = $archivePath.'/users.csv';
-            $csvContent = "ID,Student ID,Name,Email,Role,Department,Phone,Created At,Archived At\n";
-            foreach ($userData as $row) {
-                $csvContent .= implode(',', $row)."\n";
+            // Import folders may contain active accounts; counts represent archived users.
+            foreach (UserArchiveFolder::whereIn('id', $folderIds)->orderBy('id')->lockForUpdate()->get() as $folder) {
+                $folder->update(['user_count' => $folder->archivedUsers()->where('is_archived', true)->count()]);
             }
-            Storage::disk('public')->put($csvFile, $csvContent);
+            ActivityLog::log('users_archived_all', "Archived {$count} users to folder: {$folderName}");
+
+            return $count;
+        });
+
+        $message = "Successfully archived {$count} users to folder '{$folderName}'!";
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => $message, 'count' => $count]);
         }
 
-        ActivityLog::log('users_archived_all', "Archived {$count} users to folder: {$folderName}");
-
-        return redirect()->route('admin.users')->with('success', "Successfully archived {$count} users to folder '{$folderName}'!");
+        return redirect()->route('admin.users')->with('success', $message);
     }
 
     // Delete all users (soft delete - move to Deleted Users folder)
