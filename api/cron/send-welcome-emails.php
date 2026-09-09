@@ -27,8 +27,8 @@ $app = require_once __DIR__.'/../../bootstrap/app.php';
 $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 
 try {
-    // Reduce batch size to 10 for faster processing and avoid timeouts
-    $batchSize = $testMode ? 1 : 10;
+    // Reduce batch size to 50 for faster processing and avoid timeouts
+    $batchSize = $testMode ? 1 : 50;
     
     $exitCode = $kernel->call('users:send-welcome-emails', ['--batch' => $batchSize]);
     $output = trim($kernel->output());
