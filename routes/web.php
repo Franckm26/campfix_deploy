@@ -54,6 +54,29 @@ if (app()->environment('local')) {
     })->middleware('auth');
 }
 
+// Temporary route to clear cache - remove after using
+Route::get('/clear-cache-temp-7458', function () {
+    try {
+        \Artisan::call('config:clear');
+        \Artisan::call('cache:clear');
+        return response()->json([
+            'success' => true,
+            'message' => 'Cache cleared successfully',
+            'mail_config' => [
+                'host' => config('mail.mailers.smtp.host'),
+                'port' => config('mail.mailers.smtp.port'),
+                'username' => config('mail.mailers.smtp.username'),
+                'from' => config('mail.from.address'),
+            ]
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ]);
+    }
+});
+
 /* REQUIRED LOGIN ROUTE FOR AUTH MIDDLEWARE */
 Route::get('/login', function () {
     return redirect('/');
