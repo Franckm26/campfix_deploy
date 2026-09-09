@@ -19,22 +19,12 @@ if (! $cronSecret || ! hash_equals('Bearer '.$cronSecret, $authorization)) {
     exit;
 }
 
-// Test mode never falls through to the production welcome queue.
-$mode = $_GET['mode'] ?? 'batch';
-if (! in_array($mode, ['batch', 'test'], true)) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Invalid mode. Use batch or test.']);
-    exit;
-}
-
 require __DIR__.'/../../vendor/autoload.php';
 $app = require_once __DIR__.'/../../bootstrap/app.php';
 $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 
 try {
-    $exitCode = $mode === 'test'
-        ? $kernel->call('users:test-welcome-email')
-        : $kernel->call('users:send-welcome-emails', ['--batch' => 50]);
+    $exitCode = $kernel->call('users:send-welcome-emails', ['--batch' => 50]);
     $output = trim($kernel->output());
 
     http_response_code($exitCode === 0 ? 200 : 500);
