@@ -599,3 +599,35 @@ Route::post('/emergency/unlock-reset', [\App\Http\Controllers\EmergencyRecoveryC
 
 // Simple Emergency Unlock (No authentication required)  
 Route::any('/emergency-unlock', [AdminController::class, 'emergencyUnlock'])->name('emergency.simple.unlock');
+
+
+// Test welcome email to specific address - REMOVE AFTER TESTING
+Route::get('/test-welcome-email-9632', function () {
+    try {
+        $testEmail = request()->get('email', 'mercurio.372282@novaliches.sti.edu.ph');
+        $testPassword = 'TestPassword123!';
+        
+        // Create a temporary test user (not saved to database)
+        $testUser = new \App\Models\User();
+        $testUser->email = $testEmail;
+        $testUser->name = 'Franck Mercurio';
+        $testUser->role = 'student';
+        
+        // Send welcome email with password
+        $testUser->notify(new \App\Notifications\PasswordNotification($testPassword));
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Welcome email with password sent successfully',
+            'sent_to' => $testEmail,
+            'test_password' => $testPassword,
+            'note' => 'This is a test email. The password is: ' . $testPassword
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'trace' => explode("\n", $e->getTraceAsString())
+        ], 500);
+    }
+});
