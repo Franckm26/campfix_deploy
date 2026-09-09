@@ -261,4 +261,26 @@ class WelcomeEmailBatchTest extends TestCase
         Notification::assertCount(1);
         $this->assertSame($before, $delivery->fresh()->getRawOriginal());
     }
+
+    public function test_diagnostic_reports_auth_failure_without_exposing_credentials(): void
+    {
+        Notification::shouldReceive('send')->once()->andThrow(new \RuntimeException(
+            'Failed to authenticate on SMTP server with password secret-that-must-not-leak'
+        ));
+        $this->artisan('users:test-welcome-email')
+            ->expectsOutputToContain('SMTP_AUTH: Mail server authentication failed.')
+            ->assertFailed();
+        $diagnostic = \App\Services\MailFailureDiagnostic::describe(new \RuntimeException(
+            'Failed to authenticate password secret-that-must-not-leak'
+        ));
+        $this->assertStringNotContainsString('secret-that-must-not-leak', $diagnostic);
+        $this->assertSame(0, WelcomeEmailDelivery::count());
+    }
+
+    public function test_welcome_test_template_renders(): void
+    {
+        $notification = new \App\Notifications\WelcomeDeliveryTestNotification('render-test');
+        $html = (string) $notification->toMail(new \Illuminate\Notifications\AnonymousNotifiable)->render();
+        $this->assertStringContainsString('render-test', $html);
+    }
 }
