@@ -242,4 +242,23 @@ class WelcomeEmailBatchTest extends TestCase
         $this->assertNotNull($delivery->fresh()->password_sent_at);
         $this->assertSame('sent', $delivery->fresh()->status);
     }
+
+    public function test_diagnostic_email_only_targets_requested_account_and_does_not_process_queue(): void
+    {
+        Notification::fake();
+        $user = User::create([
+            'name' => 'Other Student', 'email' => 'do-not-send@example.com',
+            'password' => 'unused-hash', 'role' => 'student',
+        ]);
+        $delivery = WelcomeEmailDelivery::create(['user_id' => $user->id]);
+        $before = $delivery->fresh()->getRawOriginal();
+
+        $this->artisan('users:test-welcome-email')->assertSuccessful();
+
+        Notification::assertSentOnDemand(\App\Notifications\WelcomeDeliveryTestNotification::class,
+            fn ($notification, $channels, $notifiable) => $notifiable->routes['mail'] === 'mercurio.372282@novaliches.sti.edu.ph');
+        Notification::assertNotSentTo($user, \App\Notifications\ExistingUserWelcomeNotification::class);
+        Notification::assertCount(1);
+        $this->assertSame($before, $delivery->fresh()->getRawOriginal());
+    }
 }
