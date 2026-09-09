@@ -141,17 +141,21 @@ class SendWelcomeEmails extends Command
             }
 
             $delivery = WelcomeEmailDelivery::query()
-                ->whereNull('sent_at')
-                ->whereIn('status', ['pending', 'failed'])
-                ->where('attempts', '<', (int) config('welcome-emails.max_attempts', 5))
+                ->join('users', 'welcome_email_deliveries.user_id', '=', 'users.id')
+                ->select('welcome_email_deliveries.*')
+                ->whereNull('welcome_email_deliveries.sent_at')
+                ->whereIn('welcome_email_deliveries.status', ['pending', 'failed'])
+                ->where('welcome_email_deliveries.attempts', '<', (int) config('welcome-emails.max_attempts', 5))
                 ->where(function ($query): void {
-                    $query->whereNull('next_attempt_at')->orWhere('next_attempt_at', '<=', now());
+                    $query->whereNull('welcome_email_deliveries.next_attempt_at')
+                        ->orWhere('welcome_email_deliveries.next_attempt_at', '<=', now());
                 })
                 ->where(function ($query) use ($dayStart): void {
-                    $query->whereNull('last_attempted_at')->orWhere('last_attempted_at', '<', $dayStart);
+                    $query->whereNull('welcome_email_deliveries.last_attempted_at')
+                        ->orWhere('welcome_email_deliveries.last_attempted_at', '<', $dayStart);
                 })
-                ->orderByRaw("CASE WHEN status = 'pending' THEN 0 ELSE 1 END")
-                ->orderBy('id')
+                ->orderByRaw("CASE WHEN welcome_email_deliveries.status = 'pending' THEN 0 ELSE 1 END")
+                ->orderBy('users.email', 'ASC')
                 ->lockForUpdate()
                 ->first();
 
