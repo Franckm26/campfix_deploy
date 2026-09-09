@@ -283,4 +283,17 @@ class WelcomeEmailBatchTest extends TestCase
         $html = (string) $notification->toMail(new \Illuminate\Notifications\AnonymousNotifiable)->render();
         $this->assertStringContainsString('render-test', $html);
     }
+
+    public function test_smtp_rejection_includes_server_reason_without_credentials(): void
+    {
+        config(['mail.mailers.smtp.username' => 'sender@example.com', 'mail.mailers.smtp.password' => 'secret-test-key']);
+        $diagnostic = \App\Services\MailFailureDiagnostic::describe(new \RuntimeException(
+            'Expected response code "250" but got code "550", with message "550 Sender not verified sender@example.com secret-test-key '.base64_encode('secret-test-key').'".'
+        ));
+        $this->assertStringContainsString('code "550"', $diagnostic);
+        $this->assertStringContainsString('Sender not verified', $diagnostic);
+        $this->assertStringNotContainsString('sender@example.com', $diagnostic);
+        $this->assertStringNotContainsString('secret-test-key', $diagnostic);
+        $this->assertStringNotContainsString(base64_encode('secret-test-key'), $diagnostic);
+    }
 }

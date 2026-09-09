@@ -30,9 +30,38 @@ class MailFailureDiagnostic
             return 'SMTP_CONNECTION: Mail server connection or TLS failed. Check SMTP host, port, and encryption.';
         }
         if (str_contains($messages, 'expected response code')) {
-            return 'SMTP_REJECTED: The mail server returned an unexpected SMTP response. Check sender verification and provider logs.';
+            for ($cause = $exception; $cause !== null; $cause = $cause->getPrevious()) {
+                if (str_contains(strtolower($cause->getMessage()), 'expected response code')) {
+                    return 'SMTP_REJECTED: '.self::redactSmtpResponse($cause->getMessage());
+                }
+            }
         }
 
         return 'MAIL_ERROR: The test failed for an unclassified reason. Exception type: '.get_class($exception);
+    }
+
+    private static function redactSmtpResponse(string $message): string
+    {
+        $secrets = [];
+        foreach ((array) config('mail.mailers', []) as $mailer) {
+            foreach (['username', 'password', 'url'] as $key) {
+                if (! empty($mailer[$key]) && is_string($mailer[$key])) {
+                    $value = $mailer[$key];
+                    array_push($secrets, $value, base64_encode($value), rawurlencode($value));
+                }
+            }
+            if (! empty($mailer['username']) && ! empty($mailer['password'])) {
+                $secrets[] = base64_encode("\0".$mailer['username']."\0".$mailer['password']);
+            }
+        }
+        usort($secrets, fn ($a, $b) => strlen($b) <=> strlen($a));
+        $message = str_replace($secrets, '[redacted]', $message);
+        $message = preg_replace('/https?:\/\/\S+/i', '[url redacted]', $message);
+        $message = preg_replace('/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/i', '[email redacted]', $message);
+        $message = preg_replace('/(?:password|secret|token|api[_ -]?key|authorization)\s*[:=]\s*\S+/i', '[credential redacted]', $message);
+        $message = preg_replace('/[A-Za-z0-9_+\/=-]{24,}/', '[token redacted]', $message);
+        $message = preg_replace('/\s+/', ' ', $message);
+
+        return mb_substr($message, 0, 500);
     }
 }
