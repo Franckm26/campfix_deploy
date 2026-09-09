@@ -54,47 +54,51 @@ if (app()->environment('local')) {
     })->middleware('auth');
 }
 
-// Temporary route to clear cache - remove after using
-Route::get('/clear-cache-temp-7458', function () {
+// Temporary route to test email sending - remove after using
+Route::get('/test-email-debug-8521', function () {
     try {
-        \Artisan::call('config:clear');
-        \Artisan::call('cache:clear');
+        $testEmail = 'franckmercurio25@gmail.com';
         
-        // Test SMTP connection
-        $transport = new \Swift_SmtpTransport(
-            config('mail.mailers.smtp.host'),
-            config('mail.mailers.smtp.port'),
-            config('mail.mailers.smtp.encryption')
-        );
-        $transport->setUsername(config('mail.mailers.smtp.username'));
-        $transport->setPassword(config('mail.mailers.smtp.password'));
+        // Get current config
+        $config = [
+            'mailer' => config('mail.default'),
+            'host' => config('mail.mailers.smtp.host'),
+            'port' => config('mail.mailers.smtp.port'),
+            'username' => config('mail.mailers.smtp.username'),
+            'encryption' => config('mail.mailers.smtp.encryption'),
+            'from' => config('mail.from.address'),
+            'password_set' => !empty(config('mail.mailers.smtp.password')),
+            'password_length' => strlen(config('mail.mailers.smtp.password') ?? ''),
+        ];
         
+        // Try to send a test email
         try {
-            $transport->start();
-            $smtpStatus = 'Connected successfully';
+            \Mail::raw('This is a test email from Campfix to verify SMTP configuration.', function ($message) use ($testEmail) {
+                $message->to($testEmail)
+                        ->subject('Campfix SMTP Test - ' . now()->format('Y-m-d H:i:s'));
+            });
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Test email sent successfully to ' . $testEmail,
+                'config' => $config
+            ]);
         } catch (\Exception $e) {
-            $smtpStatus = 'Connection failed: ' . $e->getMessage();
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to send email',
+                'error_message' => $e->getMessage(),
+                'error_code' => $e->getCode(),
+                'config' => $config,
+                'trace' => explode("\n", $e->getTraceAsString())
+            ], 500);
         }
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'Cache cleared successfully',
-            'mail_config' => [
-                'host' => config('mail.mailers.smtp.host'),
-                'port' => config('mail.mailers.smtp.port'),
-                'username' => config('mail.mailers.smtp.username'),
-                'encryption' => config('mail.mailers.smtp.encryption'),
-                'from' => config('mail.from.address'),
-                'password_set' => !empty(config('mail.mailers.smtp.password')),
-            ],
-            'smtp_test' => $smtpStatus
-        ]);
     } catch (\Exception $e) {
         return response()->json([
             'success' => false,
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ]);
+            'error' => 'Configuration error',
+            'message' => $e->getMessage()
+        ], 500);
     }
 });
 
