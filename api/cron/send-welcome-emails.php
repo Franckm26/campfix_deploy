@@ -27,8 +27,9 @@ $app = require_once __DIR__.'/../../bootstrap/app.php';
 $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 
 try {
-    // Send as many as possible - no batch limit, will send until credits run out
-    $batchSize = $testMode ? 1 : 999999; // Essentially unlimited for production
+    // Optimized batch size - large enough to be efficient, small enough to avoid timeout
+    // Vercel free tier has 10s timeout, hobby has 60s
+    $batchSize = $testMode ? 1 : 100; // 100 emails per run should complete within timeout
     
     $exitCode = $kernel->call('users:send-welcome-emails', ['--batch' => $batchSize]);
     $output = trim($kernel->output());
