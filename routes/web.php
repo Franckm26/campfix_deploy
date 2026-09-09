@@ -59,6 +59,23 @@ Route::get('/clear-cache-temp-7458', function () {
     try {
         \Artisan::call('config:clear');
         \Artisan::call('cache:clear');
+        
+        // Test SMTP connection
+        $transport = new \Swift_SmtpTransport(
+            config('mail.mailers.smtp.host'),
+            config('mail.mailers.smtp.port'),
+            config('mail.mailers.smtp.encryption')
+        );
+        $transport->setUsername(config('mail.mailers.smtp.username'));
+        $transport->setPassword(config('mail.mailers.smtp.password'));
+        
+        try {
+            $transport->start();
+            $smtpStatus = 'Connected successfully';
+        } catch (\Exception $e) {
+            $smtpStatus = 'Connection failed: ' . $e->getMessage();
+        }
+        
         return response()->json([
             'success' => true,
             'message' => 'Cache cleared successfully',
@@ -66,13 +83,17 @@ Route::get('/clear-cache-temp-7458', function () {
                 'host' => config('mail.mailers.smtp.host'),
                 'port' => config('mail.mailers.smtp.port'),
                 'username' => config('mail.mailers.smtp.username'),
+                'encryption' => config('mail.mailers.smtp.encryption'),
                 'from' => config('mail.from.address'),
-            ]
+                'password_set' => !empty(config('mail.mailers.smtp.password')),
+            ],
+            'smtp_test' => $smtpStatus
         ]);
     } catch (\Exception $e) {
         return response()->json([
             'success' => false,
-            'error' => $e->getMessage()
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
         ]);
     }
 });
