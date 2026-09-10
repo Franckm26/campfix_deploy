@@ -183,6 +183,8 @@ class ConcernController extends Controller
         $categoryName = strtolower(trim($category?->name ?? ''));
         $isRoomsCategory = $categoryName === 'rooms';
         $isTechnologyCategory = $categoryName === 'technology/internet';
+        $isCleaningCategory = $categoryName === 'cleaning';
+        
         if ($isRoomsCategory) {
             $request->validate([
                 'location_type' => 'required|in:Room,AVR,Computer Laboratory',
@@ -192,6 +194,11 @@ class ConcernController extends Controller
             $request->validate([
                 'location' => 'required|string|max:255',
             ]);
+        }
+
+        // Set default title for Cleaning category if not provided
+        if ($isCleaningCategory && !$request->filled('title')) {
+            $request->merge(['title' => 'Cleaning']);
         }
 
         // Normalize room number: strip any leading location-type prefix (e.g. "Room 211" → "211")

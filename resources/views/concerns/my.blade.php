@@ -1960,7 +1960,12 @@ function handleNewCategoryChange() {
             const categoryName = selectedOption ? selectedOption.text : '';
             titleInput.value = categoryName;
         }
-        populateProblemTypeSelect(problemTypeSelect, '');
+        // For categories without issues (like Cleaning), set a default problem type
+        if (problemTypeSelect) {
+            problemTypeSelect.removeAttribute('required');
+            problemTypeSelect.disabled = false;
+            problemTypeSelect.innerHTML = '<option value="General" selected>General</option>';
+        }
     } else {
         // Has issues — show the dropdown and populate it
         if (issueContainer) issueContainer.style.display = 'block';
