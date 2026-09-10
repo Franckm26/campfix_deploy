@@ -12,6 +12,7 @@ class MaintenanceStaff extends Model
     protected $table = 'maintenance_staff';
 
     protected $fillable = [
+        'user_id',
         'name',
         'contact_number',
         'email',
@@ -23,6 +24,14 @@ class MaintenanceStaff extends Model
     protected $casts = [
         'is_active' => 'boolean',
     ];
+
+    /**
+     * Get the user account associated with this maintenance staff
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
 
     /**
      * Get the user who created this staff member

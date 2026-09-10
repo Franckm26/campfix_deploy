@@ -758,8 +758,16 @@ class AdminController extends Controller
         // Get the maintenance staff member
         $maintenanceStaff = \App\Models\MaintenanceStaff::findOrFail($request->input('assigned_to'));
 
-        // Update the concern
-        $concern->assigned_to = $request->input('assigned_to');
+        // Check if maintenance staff has a linked user account
+        if (!$maintenanceStaff->user_id) {
+            if ($request->expectsJson()) {
+                return response()->json(['error' => 'This maintenance staff member does not have a linked user account.'], 400);
+            }
+            return back()->with('error', 'This maintenance staff member does not have a linked user account.');
+        }
+
+        // Update the concern - use user_id for foreign key
+        $concern->assigned_to = $maintenanceStaff->user_id;
         $concern->assigned_at = now();
         $concern->status      = 'Assigned';
         if ($request->filled('notes')) {
@@ -834,14 +842,26 @@ class AdminController extends Controller
                 ]);
                 
                 // Get the maintenance staff member
-                $assignedUser = \App\Models\MaintenanceStaff::findOrFail($request->input('assigned_to'));
-                $assignedName = $assignedUser->name;
+                $maintenanceStaff = \App\Models\MaintenanceStaff::findOrFail($request->input('assigned_to'));
+                
+                // Check if maintenance staff has a linked user account
+                if (!$maintenanceStaff->user_id) {
+                    if ($request->expectsJson()) {
+                        return response()->json(['error' => 'This maintenance staff member does not have a linked user account.'], 400);
+                    }
+                    return back()->with('error', 'This maintenance staff member does not have a linked user account.');
+                }
+                
+                $assignedUser = $maintenanceStaff->user;
+                $assignedName = $maintenanceStaff->name;
+                $assignedUserId = $maintenanceStaff->user_id; // Use user_id for foreign key
             }
 
             $oldAssignedTo = $report->assigned_to;
 
-            // Update the report - store id in assigned_to
-            $report->assigned_to = $request->input('assigned_to');
+            // Update the report - use user_id for the foreign key
+            $finalAssignedUserId = $isTechnologyCategory ? $user->id : $assignedUserId;
+            $report->assigned_to = $finalAssignedUserId;
             $report->assigned_at = now();
             $report->status      = 'Assigned';
             if ($request->filled('priority')) {
@@ -858,7 +878,7 @@ class AdminController extends Controller
             if ($concern) {
                 $oldConcernStatus = $concern->status;
                 $oldConcernAssignee = $concern->assigned_to;
-                $concern->assigned_to = $request->input('assigned_to');
+                $concern->assigned_to = $finalAssignedUserId; // Use user_id for foreign key
                 $concern->assigned_at = now();
                 $concern->status      = 'Assigned';
                 if ($request->filled('priority')) {
