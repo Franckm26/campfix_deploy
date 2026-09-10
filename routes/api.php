@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ConcernController;
 use App\Http\Controllers\EventRequestController;
+use App\Http\Controllers\PushNotificationController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -38,6 +39,11 @@ Route::middleware(['api.context', 'api.query.guard', 'api.resource', 'api.securi
 
     // Protected routes - JWT authentication with rate limiting
     Route::middleware(['jwt.auth', 'throttle:api'])->group(function () {
+
+    // Push Notifications
+    Route::post('/push/subscribe', [PushNotificationController::class, 'subscribe']);
+    Route::post('/push/unsubscribe', [PushNotificationController::class, 'unsubscribe']);
+    Route::get('/push/status', [PushNotificationController::class, 'status']);
 
     // Concerns - User can only access their own
     Route::get('/concerns', [ConcernController::class, 'apiIndex']);

@@ -2872,6 +2872,38 @@ style.textContent = `
 document.head.appendChild(style);
 </script>
 
+<!-- Push Notifications -->
+<script src="{{ asset('js/push-notifications.js') }}"></script>
+<script>
+// Initialize push notifications when user is logged in
+@auth
+document.addEventListener('DOMContentLoaded', async function() {
+    const vapidPublicKey = '{{ env('VAPID_PUBLIC_KEY') }}';
+    
+    if (vapidPublicKey && vapidPublicKey !== '') {
+        // Initialize push notifications
+        const initialized = await PushNotifications.init(vapidPublicKey);
+        
+        if (initialized) {
+            // Check if already subscribed
+            const isSubscribed = await PushNotifications.isSubscribed();
+            
+            // Auto-subscribe if not subscribed and permission granted
+            if (!isSubscribed && Notification.permission === 'granted') {
+                await PushNotifications.subscribe();
+            }
+            
+            // Show subscribe button/prompt if not subscribed
+            if (!isSubscribed && Notification.permission === 'default') {
+                // You can show a prompt here to ask user to enable notifications
+                console.log('Push notifications available - user can subscribe');
+            }
+        }
+    }
+});
+@endauth
+</script>
+
 @yield('scripts')
 
 </body>
