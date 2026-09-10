@@ -13,11 +13,40 @@ use Illuminate\Support\Facades\Log;
 class WelcomeCredentialsController extends Controller
 {
     /**
-     * Show the welcome credentials page
+     * Show the welcome credentials page with all students
      */
     public function index()
     {
-        return view('auth.welcome-credentials');
+        // Get all users with their welcome email delivery status
+        $students = User::leftJoin('welcome_email_deliveries', 'users.id', '=', 'welcome_email_deliveries.user_id')
+            ->whereNotNull('users.student_id')
+            ->select(
+                'users.id',
+                'users.name',
+                'users.email',
+                'users.student_id',
+                'users.role',
+                'welcome_email_deliveries.status',
+                'welcome_email_deliveries.sent_at',
+                'welcome_email_deliveries.created_at as queued_at',
+                'welcome_email_deliveries.encrypted_password'
+            )
+            ->orderBy('users.name', 'asc')
+            ->get()
+            ->map(function($student) {
+                return [
+                    'id' => $student->id,
+                    'name' => $student->name,
+                    'email' => $student->email,
+                    'student_id' => $student->student_id,
+                    'role' => $student->role,
+                    'status' => $student->status ?? 'pending',
+                    'sent_at' => $student->sent_at,
+                    'has_credentials' => !empty($student->encrypted_password)
+                ];
+            });
+
+        return view('auth.welcome-credentials', compact('students'));
     }
 
     /**
