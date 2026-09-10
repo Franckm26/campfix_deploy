@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Welcome to CampFix - Get Your Credentials</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -64,14 +65,15 @@
             color: #999;
             font-size: 18px;
         }
-        .credential-box {
+        .user-box {
             background: #f8f9fa;
             border-radius: 10px;
-            padding: 20px;
+            padding: 25px;
             margin-bottom: 20px;
             display: none;
+            text-align: center;
         }
-        .credential-box.show {
+        .user-box.show {
             display: block;
             animation: fadeIn 0.3s;
         }
@@ -79,42 +81,38 @@
             from { opacity: 0; transform: translateY(-10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .credential-item {
-            margin-bottom: 15px;
+        .user-info {
+            margin-bottom: 20px;
         }
-        .credential-label {
-            font-weight: 600;
-            color: #555;
-            font-size: 14px;
-            margin-bottom: 5px;
+        .user-name {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 10px;
         }
-        .credential-value {
-            background: white;
-            padding: 12px 15px;
-            border-radius: 8px;
-            border: 1px solid #e0e0e0;
-            font-family: 'Courier New', monospace;
+        .user-email {
+            color: #666;
             font-size: 16px;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
         }
-        .copy-btn {
-            background: #667eea;
+        .send-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            padding: 5px 12px;
-            border-radius: 5px;
+            padding: 15px 40px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
             cursor: pointer;
-            font-size: 12px;
-            transition: all 0.2s;
+            transition: all 0.3s;
+            width: 100%;
         }
-        .copy-btn:hover {
-            background: #5568d3;
+        .send-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
         }
-        .copy-btn.copied {
-            background: #28a745;
+        .send-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
         .alert-info {
             background: #e7f3ff;
@@ -131,22 +129,22 @@
         .not-found.show {
             display: block;
         }
-        .instructions {
-            background: #fff3cd;
-            border: 1px solid #ffc107;
+        .success-message {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
             border-radius: 10px;
-            padding: 15px;
-            margin-top: 20px;
+            padding: 20px;
+            text-align: center;
+            display: none;
         }
-        .instructions h6 {
-            color: #856404;
-            font-weight: 600;
+        .success-message.show {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+        .success-message i {
+            font-size: 48px;
             margin-bottom: 10px;
-        }
-        .instructions ol {
-            margin: 0;
-            padding-left: 20px;
-            color: #856404;
         }
     </style>
 </head>
@@ -155,15 +153,15 @@
         <img src="{{ asset('Campfix/Images/logo.png') }}" alt="CampFix Logo" class="logo">
         
         <h2 class="welcome-title">Welcome to CampFix!</h2>
-        <p class="welcome-subtitle">Enter your Student ID to get your login credentials</p>
+        <p class="welcome-subtitle">Enter your Student ID to receive your login credentials</p>
         
         <div class="alert alert-info">
             <i class="fas fa-info-circle me-2"></i>
-            <strong>Note:</strong> This is a temporary page to help you access your account while we process welcome emails.
+            <strong>How it works:</strong> Enter your Student ID and we'll send your login credentials to your email.
         </div>
 
         <div class="search-box mt-4">
-            <i class="fas fa-search"></i>
+            <i class="fas fa-id-card"></i>
             <input type="text" 
                    id="studentIdInput" 
                    class="form-control" 
@@ -171,48 +169,25 @@
                    autocomplete="off">
         </div>
 
-        <div class="credential-box" id="credentialBox">
-            <div class="credential-item">
-                <div class="credential-label">
-                    <i class="fas fa-user me-1"></i> Full Name
-                </div>
-                <div class="credential-value">
-                    <span id="userName"></span>
-                </div>
+        <div class="user-box" id="userBox">
+            <div class="user-info">
+                <div class="user-name" id="userName"></div>
+                <div class="user-email" id="userEmail"></div>
             </div>
 
-            <div class="credential-item">
-                <div class="credential-label">
-                    <i class="fas fa-envelope me-1"></i> Email Address
-                </div>
-                <div class="credential-value">
-                    <span id="userEmail"></span>
-                    <button class="copy-btn" onclick="copyToClipboard('userEmail', this)">
-                        <i class="fas fa-copy"></i> Copy
-                    </button>
-                </div>
-            </div>
+            <button class="send-btn" id="sendBtn" onclick="sendCredentials()">
+                <i class="fas fa-paper-plane me-2"></i> Send Credentials to My Email
+            </button>
 
-            <div class="credential-item">
-                <div class="credential-label">
-                    <i class="fas fa-key me-1"></i> Temporary Password
-                </div>
-                <div class="credential-value">
-                    <span id="userPassword"></span>
-                    <button class="copy-btn" onclick="copyToClipboard('userPassword', this)">
-                        <i class="fas fa-copy"></i> Copy
-                    </button>
-                </div>
-            </div>
+            <p class="text-muted mt-3 mb-0" style="font-size: 14px;">
+                Your email and temporary password will be sent to the email address above.
+            </p>
+        </div>
 
-            <div class="instructions">
-                <h6><i class="fas fa-lightbulb me-1"></i> Next Steps:</h6>
-                <ol>
-                    <li>Go to <a href="{{ url('/login') }}" target="_blank"><strong>{{ url('/login') }}</strong></a></li>
-                    <li>Use your email and temporary password to log in</li>
-                    <li>You'll be prompted to change your password on first login</li>
-                </ol>
-            </div>
+        <div class="success-message" id="successMessage">
+            <i class="fas fa-check-circle text-success"></i>
+            <h5>Credentials Sent!</h5>
+            <p class="mb-0">Please check your email for your login credentials. You can now <a href="{{ url('/login') }}"><strong>log in here</strong></a>.</p>
         </div>
 
         <div class="not-found" id="notFound">
@@ -222,10 +197,13 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         const studentIdInput = document.getElementById('studentIdInput');
-        const credentialBox = document.getElementById('credentialBox');
+        const userBox = document.getElementById('userBox');
         const notFound = document.getElementById('notFound');
+        const successMessage = document.getElementById('successMessage');
+        let currentUserId = null;
 
         // Search when user types
         let searchTimeout;
@@ -246,53 +224,97 @@
 
         async function searchStudent(studentId) {
             if (!studentId) {
-                credentialBox.classList.remove('show');
+                userBox.classList.remove('show');
                 notFound.classList.remove('show');
+                successMessage.classList.remove('show');
                 return;
             }
 
             try {
-                const response = await fetch('/api/welcome-credentials/' + encodeURIComponent(studentId), {
+                const response = await fetch('/api/welcome-credentials/search/' + encodeURIComponent(studentId), {
                     headers: {
                         'Accept': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                     }
                 });
 
                 const data = await response.json();
 
                 if (data.success && data.user) {
-                    // Show credentials
+                    // Show user info
                     document.getElementById('userName').textContent = data.user.name;
                     document.getElementById('userEmail').textContent = data.user.email;
-                    document.getElementById('userPassword').textContent = data.user.password;
+                    currentUserId = data.user.id;
 
-                    credentialBox.classList.add('show');
+                    userBox.classList.add('show');
                     notFound.classList.remove('show');
+                    successMessage.classList.remove('show');
                 } else {
                     // Not found
-                    credentialBox.classList.remove('show');
+                    userBox.classList.remove('show');
                     notFound.classList.add('show');
+                    successMessage.classList.remove('show');
+                    currentUserId = null;
                 }
             } catch (error) {
-                console.error('Error fetching credentials:', error);
-                credentialBox.classList.remove('show');
+                console.error('Error searching student:', error);
+                userBox.classList.remove('show');
                 notFound.classList.add('show');
+                successMessage.classList.remove('show');
+                currentUserId = null;
             }
         }
 
-        function copyToClipboard(elementId, button) {
-            const text = document.getElementById(elementId).textContent;
-            navigator.clipboard.writeText(text).then(() => {
-                const originalHtml = button.innerHTML;
-                button.innerHTML = '<i class="fas fa-check"></i> Copied!';
-                button.classList.add('copied');
+        async function sendCredentials() {
+            if (!currentUserId) return;
 
-                setTimeout(() => {
-                    button.innerHTML = originalHtml;
-                    button.classList.remove('copied');
-                }, 2000);
-            });
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Sending...';
+
+            try {
+                const response = await fetch('/api/welcome-credentials/send/' + currentUserId, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    userBox.classList.remove('show');
+                    successMessage.classList.add('show');
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Credentials Sent!',
+                        text: 'Your login credentials have been sent to your email.',
+                        confirmButtonColor: '#667eea',
+                        timer: 3000
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Failed to Send',
+                        text: data.message || 'Could not send credentials. Please try again.',
+                        confirmButtonColor: '#dc3545'
+                    });
+                }
+            } catch (error) {
+                console.error('Error sending credentials:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'An error occurred. Please try again.',
+                    confirmButtonColor: '#dc3545'
+                });
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = '<i class="fas fa-paper-plane me-2"></i> Send Credentials to My Email';
+            }
         }
     </script>
 </body>

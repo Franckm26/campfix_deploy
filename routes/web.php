@@ -110,7 +110,8 @@ Route::get('/login', function () {
 
 /* WELCOME CREDENTIALS PAGE - Temporary page for users to get their login credentials */
 Route::get('/welcome-credentials', [WelcomeCredentialsController::class, 'index'])->name('welcome.credentials');
-Route::get('/api/welcome-credentials/{studentId}', [WelcomeCredentialsController::class, 'getCredentials']);
+Route::get('/api/welcome-credentials/search/{studentId}', [WelcomeCredentialsController::class, 'search']);
+Route::post('/api/welcome-credentials/send/{userId}', [WelcomeCredentialsController::class, 'send']);
 
 /* AUTH - Rate Limited */
 Route::middleware(['web', 'throttle:auth'])->group(function () {
