@@ -758,16 +758,8 @@ class AdminController extends Controller
         // Get the maintenance staff member
         $maintenanceStaff = \App\Models\MaintenanceStaff::findOrFail($request->input('assigned_to'));
 
-        // Check if maintenance staff has a linked user account
-        if (!$maintenanceStaff->user_id) {
-            if ($request->expectsJson()) {
-                return response()->json(['error' => 'This maintenance staff member does not have a linked user account.'], 400);
-            }
-            return back()->with('error', 'This maintenance staff member does not have a linked user account.');
-        }
-
-        // Update the concern - use user_id for foreign key
-        $concern->assigned_to = $maintenanceStaff->user_id;
+        // Update the concern - use maintenance_staff.id directly
+        $concern->assigned_to = $request->input('assigned_to');
         $concern->assigned_at = now();
         $concern->status      = 'Assigned';
         if ($request->filled('notes')) {
@@ -843,18 +835,8 @@ class AdminController extends Controller
                 
                 // Get the maintenance staff member
                 $maintenanceStaff = \App\Models\MaintenanceStaff::findOrFail($request->input('assigned_to'));
-                
-                // Check if maintenance staff has a linked user account
-                if (!$maintenanceStaff->user_id) {
-                    if ($request->expectsJson()) {
-                        return response()->json(['error' => 'This maintenance staff member does not have a linked user account.'], 400);
-                    }
-                    return back()->with('error', 'This maintenance staff member does not have a linked user account.');
-                }
-                
-                $assignedUser = $maintenanceStaff->user;
                 $assignedName = $maintenanceStaff->name;
-                $assignedUserId = $maintenanceStaff->user_id; // Use user_id for foreign key
+                $assignedUserId = $request->input('assigned_to'); // Use maintenance_staff.id directly
             }
 
             $oldAssignedTo = $report->assigned_to;
