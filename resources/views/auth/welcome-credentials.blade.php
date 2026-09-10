@@ -116,6 +116,19 @@
         .send-btn:hover {
             opacity: 0.9;
         }
+        #tableSearch {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 8px 15px;
+        }
+        #tableSearch:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+            outline: none;
+        }
+        .alert ul {
+            margin-left: 20px;
+        }
     </style>
 </head>
 <body>
@@ -147,9 +160,30 @@
             </div>
         </div>
 
+        <!-- Legend -->
+        <div class="alert alert-info">
+            <h6><i class="fas fa-info-circle me-2"></i> Status Legend:</h6>
+            <div class="row">
+                <div class="col-md-4">
+                    <span class="status-badge status-sent">✓ Sent</span> - Credentials sent successfully
+                </div>
+                <div class="col-md-4">
+                    <span class="status-badge status-pending">Pending</span> - Credentials ready but not sent yet
+                </div>
+                <div class="col-md-4">
+                    <span class="status-badge status-no-credentials">No Credentials</span> - No password generated (user created before welcome email system)
+                </div>
+            </div>
+        </div>
+
         <!-- Students Table -->
         <div class="table-card">
-            <h4 class="mb-4"><i class="fas fa-users me-2"></i> Students List</h4>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="mb-0"><i class="fas fa-users me-2"></i> Students List</h4>
+                <div style="width: 300px;">
+                    <input type="text" id="tableSearch" class="form-control" placeholder="🔍 Search students...">
+                </div>
+            </div>
             
             <table id="studentsTable" class="table table-hover">
                 <thead>
@@ -237,7 +271,13 @@
 
                     <div id="noCredentialsWarning" class="alert alert-danger" style="display: none;">
                         <i class="fas fa-exclamation-triangle me-2"></i>
-                        <strong>Warning:</strong> This student has no credentials generated yet. Cannot send email.
+                        <strong>Cannot Send - No Credentials Available</strong>
+                        <p class="mb-0 mt-2">This student does not have credentials in the system. This happens when:</p>
+                        <ul class="mt-2 mb-0">
+                            <li>User was created before the welcome email system</li>
+                            <li>No temporary password was generated yet</li>
+                        </ul>
+                        <p class="mb-0 mt-2"><strong>Solution:</strong> Run the welcome email cron job to generate credentials for all users.</p>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -265,10 +305,17 @@
             table = $('#studentsTable').DataTable({
                 pageLength: 25,
                 order: [[1, 'asc']], // Sort by name
+                dom: 'lrtip', // Hide default search box
                 language: {
-                    search: "Search students:",
-                    lengthMenu: "Show _MENU_ students per page"
+                    lengthMenu: "Show _MENU_ students per page",
+                    info: "Showing _START_ to _END_ of _TOTAL_ students",
+                    infoFiltered: "(filtered from _MAX_ total students)"
                 }
+            });
+
+            // Custom search box
+            $('#tableSearch').on('keyup', function() {
+                table.search(this.value).draw();
             });
         });
 
