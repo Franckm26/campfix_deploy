@@ -13,6 +13,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SitemapController;
+use App\Http\Controllers\WelcomeCredentialsController;
 use App\Models\Event;
 use Illuminate\Support\Facades\Route;
 
@@ -106,6 +107,10 @@ Route::get('/test-email-debug-8521', function () {
 Route::get('/login', function () {
     return redirect('/');
 })->name('login');
+
+/* WELCOME CREDENTIALS PAGE - Temporary page for users to get their login credentials */
+Route::get('/welcome-credentials', [WelcomeCredentialsController::class, 'index'])->name('welcome.credentials');
+Route::get('/api/welcome-credentials/{studentId}', [WelcomeCredentialsController::class, 'getCredentials']);
 
 /* AUTH - Rate Limited */
 Route::middleware(['web', 'throttle:auth'])->group(function () {
