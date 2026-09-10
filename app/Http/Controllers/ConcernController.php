@@ -368,7 +368,7 @@ class ConcernController extends Controller
             'title' => $request->title,
             'concern_id' => $concern->id,
             'category_id' => $request->category_id,
-            'description' => $problemTypeForStorage,
+            'description' => $problemTypeForStorage ?? $request->title, // Use title as fallback if description is null
             'location' => $reportLocation,
             'location_type' => $request->location_type,
             'room_number' => $request->room_number,
