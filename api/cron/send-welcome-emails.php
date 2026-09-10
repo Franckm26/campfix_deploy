@@ -6,9 +6,23 @@
  * Each invocation processes up to 100 recipients. The Artisan command keeps
  * deduplication state in Supabase. There is no application daily cap;
  * the mail provider's own quotas still apply.
+ * 
+ * PAUSED: Set WELCOME_EMAIL_CRON_ENABLED=false in .env to pause
  */
 
 header('Content-Type: application/json');
+
+// Check if cron is paused
+$cronEnabled = getenv('WELCOME_EMAIL_CRON_ENABLED');
+if ($cronEnabled === 'false' || $cronEnabled === '0') {
+    http_response_code(200);
+    echo json_encode([
+        'success' => true,
+        'message' => 'Welcome email cron is currently paused. Set WELCOME_EMAIL_CRON_ENABLED=true to resume.',
+        'paused' => true
+    ]);
+    exit;
+}
 
 $cronSecret = getenv('CRON_SECRET');
 $authorization = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
