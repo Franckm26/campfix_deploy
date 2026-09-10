@@ -2189,7 +2189,7 @@ window.startAssignWizard = async function() {
                     </select>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-bold">Set Priority <span class="text-muted">(Optional)</span></label>
+                    <label class="form-label fw-bold">Set Priority <span class="text-danger">*</span></label>
                     <select id="swal-priority-select" class="form-select">
                         <option value="">-- Select priority --</option>
                         <option value="safety_hazard" style="background-color: #dc3545; color: white;">🚨 Safety Hazard</option>
@@ -2198,7 +2198,6 @@ window.startAssignWizard = async function() {
                         <option value="medium">🟡 Medium</option>
                         <option value="low">🟢 Low</option>
                     </select>
-                    <small class="text-muted d-block mt-1">You can set priority now or later</small>
                 </div>
             </div>`,
         confirmButtonText: `<i class="fas fa-user-plus me-1"></i> ${actionLabel}`,
@@ -2212,6 +2211,10 @@ window.startAssignWizard = async function() {
             const priorityVal = document.getElementById('swal-priority-select').value;
             if (!staffVal) {
                 Swal.showValidationMessage('Please select a staff member');
+                return false;
+            }
+            if (!priorityVal) {
+                Swal.showValidationMessage('Please select a priority');
                 return false;
             }
             return { staffId: staffVal, priority: priorityVal };
@@ -2240,9 +2243,7 @@ window.startAssignWizard = async function() {
     // Submit assignment
     const formData = new FormData();
     formData.append('assigned_to', selectedStaffId);
-    if (selectedPriority) {
-        formData.append('priority', selectedPriority);
-    }
+    formData.append('priority', selectedPriority); // Priority is now required
     formData.append('notes', '');
     formData.append('_token', '{{ csrf_token() }}');
 
@@ -2257,18 +2258,14 @@ window.startAssignWizard = async function() {
 
         if (data.success) {
             // Format priority display text
-            let priorityText = '';
-            if (selectedPriority) {
-                priorityText = selectedPriority === 'safety_hazard' 
-                    ? 'Safety Hazard (Urgent)' 
-                    : selectedPriority.charAt(0).toUpperCase() + selectedPriority.slice(1);
-                priorityText = ' with ' + priorityText + ' priority';
-            }
+            const priorityText = selectedPriority === 'safety_hazard' 
+                ? 'Safety Hazard (Urgent)' 
+                : selectedPriority.charAt(0).toUpperCase() + selectedPriority.slice(1);
 
             await getSwal().fire({
                 icon: 'success',
                 title: 'Done!',
-                text: (isReassignment ? 'Reassigned' : 'Assigned') + ' to ' + selectedStaffName + priorityText + '.',
+                text: (isReassignment ? 'Reassigned' : 'Assigned') + ' to ' + selectedStaffName + ' with ' + priorityText + ' priority.',
                 confirmButtonColor: '#198754',
                 timer: 2000,
                 showConfirmButton: false
