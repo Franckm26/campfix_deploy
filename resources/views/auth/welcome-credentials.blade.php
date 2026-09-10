@@ -369,7 +369,7 @@
             sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Sending...';
 
             try {
-                const response = await fetch('/api/welcome-credentials/send/' + currentStudentId, {
+                const response = await fetch('/welcome-credentials/send/' + currentStudentId, {
                     method: 'POST',
                     headers: {
                         'Accept': 'application/json',
