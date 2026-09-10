@@ -2177,35 +2177,51 @@ window.startAssignWizard = async function() {
         staffOptions = '<option value="">Error loading staff</option>';
     }
 
-    // Show single-step assign dialog
+    // Show single-step assign dialog with priority
     const result = await getSwal().fire({
         title: `${actionLabel} ${itemType.charAt(0).toUpperCase() + itemType.slice(1)}`,
         html: `
             <div class="text-start">
-                <p class="mb-3">${actionLabel} to ${staffLabel}</p>
-                <select id="swal-staff-select" class="form-select" style="width:100%;">
-                    ${staffOptions}
-                </select>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">${actionLabel} to ${staffLabel}</label>
+                    <select id="swal-staff-select" class="form-select">
+                        ${staffOptions}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Set Priority <span class="text-muted">(Optional)</span></label>
+                    <select id="swal-priority-select" class="form-select">
+                        <option value="">-- Select priority --</option>
+                        <option value="safety_hazard" style="background-color: #dc3545; color: white;">🚨 Safety Hazard</option>
+                        <option value="urgent">⚠️ Urgent</option>
+                        <option value="high">🔴 High</option>
+                        <option value="medium">🟡 Medium</option>
+                        <option value="low">🟢 Low</option>
+                    </select>
+                    <small class="text-muted d-block mt-1">You can set priority now or later</small>
+                </div>
             </div>`,
         confirmButtonText: `<i class="fas fa-user-plus me-1"></i> ${actionLabel}`,
         cancelButtonText: 'Cancel',
         showCancelButton: true,
         confirmButtonColor: '#0d6efd',
         cancelButtonColor: '#6c757d',
-        width: 500,
+        width: 600,
         preConfirm: () => {
-            const val = document.getElementById('swal-staff-select').value;
-            if (!val) {
+            const staffVal = document.getElementById('swal-staff-select').value;
+            const priorityVal = document.getElementById('swal-priority-select').value;
+            if (!staffVal) {
                 Swal.showValidationMessage('Please select a staff member');
                 return false;
             }
-            return val;
+            return { staffId: staffVal, priority: priorityVal };
         }
     });
 
     if (!result.isConfirmed) return;
     
-    const selectedStaffId = result.value;
+    const selectedStaffId = result.value.staffId;
+    const selectedPriority = result.value.priority;
     const selectedStaffName = document.getElementById('swal-staff-select').options[
         document.getElementById('swal-staff-select').selectedIndex
     ].text;
@@ -2224,6 +2240,9 @@ window.startAssignWizard = async function() {
     // Submit assignment
     const formData = new FormData();
     formData.append('assigned_to', selectedStaffId);
+    if (selectedPriority) {
+        formData.append('priority', selectedPriority);
+    }
     formData.append('notes', '');
     formData.append('_token', '{{ csrf_token() }}');
 
@@ -2237,69 +2256,19 @@ window.startAssignWizard = async function() {
         const data = await res.json();
 
         if (data.success) {
-            // Ask building admin to set priority
-            let selectedPriority = null;
-
-            await getSwal().fire({
-                title: 'Set Priority',
-                html: `
-                    <p class="mb-3">${itemType.charAt(0).toUpperCase() + itemType.slice(1)} ${actionVerb} to <strong>${selectedStaffName}</strong>.</p>
-                    <div class="d-grid gap-2">
-                        <button type="button" class="btn btn-sm swal-priority-btn" data-priority="safety_hazard" style="background: linear-gradient(135deg, #dc3545 0%, #8b0000 100%); color: white; border: 2px solid #8b0000; font-weight: bold;">
-                            <i class="fas fa-exclamation-triangle me-1"></i> Safety Hazard
-                        </button>
-                        <button type="button" class="btn btn-danger btn-sm swal-priority-btn" data-priority="urgent">
-                            <i class="fas fa-exclamation-circle me-1"></i> Urgent
-                        </button>
-                        <button type="button" class="btn btn-warning btn-sm swal-priority-btn" data-priority="high">
-                            <i class="fas fa-arrow-up me-1"></i> High
-                        </button>
-                        <button type="button" class="btn btn-info btn-sm swal-priority-btn text-white" data-priority="medium">
-                            <i class="fas fa-minus me-1"></i> Medium
-                        </button>
-                        <button type="button" class="btn btn-secondary btn-sm swal-priority-btn" data-priority="low">
-                            <i class="fas fa-arrow-down me-1"></i> Low
-                        </button>
-                    </div>`,
-                showConfirmButton: false,
-                showCancelButton: false,
-                allowOutsideClick: false,
-                didOpen: (popup) => {
-                    popup.querySelectorAll('.swal-priority-btn').forEach(btn => {
-                        btn.addEventListener('click', () => {
-                            selectedPriority = btn.getAttribute('data-priority');
-                            getSwal().close();
-                        });
-                    });
-                }
-            });
-
-            const priority = selectedPriority || 'medium';
-
-            // Save priority to backend
-            const pResponse = await fetch('/admin/' + itemType + '/' + itemId + '/priority', {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                },
-                body: JSON.stringify({ priority: priority })
-            });
-            const pData = await pResponse.json();
-            console.log('Priority save result:', pData, 'priority sent:', priority);
-
             // Format priority display text
-            let priorityText = priority;
-            if (priority === 'safety_hazard') {
-                priorityText = 'Safety Hazard (Urgent)';
+            let priorityText = '';
+            if (selectedPriority) {
+                priorityText = selectedPriority === 'safety_hazard' 
+                    ? 'Safety Hazard (Urgent)' 
+                    : selectedPriority.charAt(0).toUpperCase() + selectedPriority.slice(1);
+                priorityText = ' with ' + priorityText + ' priority';
             }
 
             await getSwal().fire({
                 icon: 'success',
                 title: 'Done!',
-                text: (isReassignment ? 'Reassigned' : 'Assigned') + ' to ' + selectedStaffName + ' with ' + priorityText + ' priority.',
+                text: (isReassignment ? 'Reassigned' : 'Assigned') + ' to ' + selectedStaffName + priorityText + '.',
                 confirmButtonColor: '#198754',
                 timer: 2000,
                 showConfirmButton: false
