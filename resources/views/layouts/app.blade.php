@@ -400,7 +400,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <a href="{{ route('superadmin.events') }}"><i class="fas fa-calendar-alt"></i> Events</a>
             <a href="{{ route('superadmin.analytics') }}"><i class="fas fa-chart-line"></i> Analytics</a>
             <a href="{{ route('superadmin.activity-logs') }}"><i class="fas fa-history"></i> Audit Logs</a>
-            <a href="{{ route('superadmin.settings') }}"><i class="fas fa-cog"></i> System Settings</a>
+            <a href="{{ route('superadmin.settings') }}"><i class="fas fa-cog"></i> Settings</a>
         @endif
         @if(auth()->user()->role === 'building_admin')
             {{-- Reports dropdown for building admin --}}
