@@ -16,7 +16,20 @@
             <select name="role" class="sa-input">
                 <option value="">All Roles</option>
                 @foreach(['student','faculty','maintenance','mis','admin','school_admin','building_admin','academic_head','program_head','principal_assistant','superadmin'] as $r)
-                    <option value="{{ $r }}" {{ $role === $r ? 'selected' : '' }}>{{ str_replace('_',' ',ucfirst($r)) }}</option>
+                    @php
+                        $roleLabel = match($r) {
+                            'admin' => 'Administrator',
+                            'mis' => 'MIS',
+                            'school_admin' => 'School Administrator',
+                            'building_admin' => 'Building Administrator',
+                            'academic_head' => 'Academic Head',
+                            'program_head' => 'Program Head',
+                            'principal_assistant' => 'Principal Assistant',
+                            'superadmin' => 'Superadmin',
+                            default => ucfirst($r)
+                        };
+                    @endphp
+                    <option value="{{ $r }}" {{ $role === $r ? 'selected' : '' }}>{{ $roleLabel }}</option>
                 @endforeach
             </select>
         </div>

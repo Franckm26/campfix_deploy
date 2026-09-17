@@ -42,7 +42,20 @@
                     <label class="sa-label">Role *</label>
                     <select name="role" id="saCreateRole" class="sa-input" required onchange="saOnRoleChange(this.value)">
                         @foreach(['student','faculty','maintenance','mis','admin','school_admin','building_admin','academic_head','program_head','principal_assistant','superadmin'] as $r)
-                            <option value="{{ $r }}" {{ old('role') === $r ? 'selected' : '' }}>{{ str_replace('_',' ',ucfirst($r)) }}</option>
+                            @php
+                                $roleLabel = match($r) {
+                                    'admin' => 'Administrator',
+                                    'mis' => 'MIS',
+                                    'school_admin' => 'School Administrator',
+                                    'building_admin' => 'Building Administrator',
+                                    'academic_head' => 'Academic Head',
+                                    'program_head' => 'Program Head',
+                                    'principal_assistant' => 'Principal Assistant',
+                                    'superadmin' => 'Superadmin',
+                                    default => ucfirst($r)
+                                };
+                            @endphp
+                            <option value="{{ $r }}" {{ old('role') === $r ? 'selected' : '' }}>{{ $roleLabel }}</option>
                         @endforeach
                     </select>
                 </div>
