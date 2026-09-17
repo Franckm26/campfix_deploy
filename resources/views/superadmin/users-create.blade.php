@@ -51,7 +51,7 @@
                                     'academic_head' => 'Academic Head',
                                     'program_head' => 'Program Head',
                                     'principal_assistant' => 'Principal Assistant',
-                                    'superadmin' => 'Superadmin',
+                                    'superadmin' => 'System Admin',
                                     default => ucfirst($r)
                                 };
                             @endphp

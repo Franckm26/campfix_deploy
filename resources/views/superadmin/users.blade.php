@@ -25,7 +25,7 @@
                             'academic_head' => 'Academic Head',
                             'program_head' => 'Program Head',
                             'principal_assistant' => 'Principal Assistant',
-                            'superadmin' => 'Superadmin',
+                            'superadmin' => 'System Admin',
                             default => ucfirst($r)
                         };
                     @endphp
@@ -86,7 +86,7 @@
                     </td>
                     <td style="color:var(--sa-muted)">{{ $user->email }}</td>
                     <td>
-                        <span class="sa-badge sa-badge-gray">{{ str_replace('_',' ',ucfirst($user->role ?? 'N/A')) }}</span>
+                        <span class="sa-badge sa-badge-gray">{{ $user->role_display_name }}</span>
                     </td>
                     <td style="color:var(--sa-muted)">{{ $user->department ?? '—' }}</td>
                     <td>

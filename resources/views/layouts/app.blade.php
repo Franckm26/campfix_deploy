@@ -477,7 +477,7 @@ document.addEventListener('DOMContentLoaded', function() {
         @endif
 
         {{-- Settings — visible to all roles --}}
-        @if(auth()->user()->role !== 'mis' && auth()->user()->role !== 'superadmin' && !auth()->user()->is_superadmin)
+        @if(auth()->user()->role !== 'mis' && !auth()->user()->isSystemAdministrator())
             <a href="{{ route('history.index') }}" class="{{ Request::is('history') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-history"></i> History
             </a>

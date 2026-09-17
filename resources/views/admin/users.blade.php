@@ -339,7 +339,7 @@
                                     @if($user->department)
                                         {{ $user->department }}{{ $user->level ? ' - ' . $user->level : '' }}
                                     @elseif(in_array($user->role, $staffRoles))
-                                        {{ ucfirst(str_replace('_', ' ', $user->role)) }}
+                                        {{ $user->role_display_name }}
                                     @else
                                         N/A
                                     @endif
@@ -402,7 +402,7 @@
                                 <input type="checkbox" class="user-card-checkbox user-checkbox active-user-checkbox" value="{{ $user->id }}" onchange="updateSelectedCount(); updateActiveBulkActions()">
                                 <span class="user-card-id">{{ $user->name }}</span>
                             </div>
-                            <span class="badge bg-primary">{{ ucfirst($user->role) }}</span>
+                            <span class="badge bg-primary">{{ $user->role_display_name }}</span>
                         </div>
                         <div class="user-card-body">
                             <div class="user-card-field">
@@ -420,7 +420,7 @@
                                     @if($user->department)
                                         {{ $user->department }}{{ $user->level ? ' - ' . $user->level : '' }}
                                     @elseif(in_array($user->role, $staffRoles))
-                                        {{ ucfirst(str_replace('_', ' ', $user->role)) }}
+                                        {{ $user->role_display_name }}
                                     @else
                                         N/A
                                     @endif
@@ -789,7 +789,7 @@
                                             };
                                         @endphp
                                         <span class="badge bg-{{ $badgeClass }}">
-                                            {{ ucfirst(str_replace('_', ' ', $user->role)) }}
+                                            {{ $user->role_display_name }}
                                         </span>
                                     </td>
                                     <td>{{ $user->department ?? 'N/A' }}</td>
@@ -874,7 +874,7 @@
                                     ($user->role == 'maintenance' ? 'warning' : 
                                     ($user->role == 'faculty' ? 'info' : 'primary'))))))
                                 }}">
-                                    {{ ucfirst(str_replace('_', ' ', $user->role)) }}
+                                    {{ $user->role_display_name }}
                                 </span>
                             </div>
                             <div class="user-card-body">
@@ -985,7 +985,7 @@
                                     <td class="ps-3 fw-semibold">{{ $lu->name }}</td>
                                     <td class="text-muted">{{ $lu->email }}</td>
                                     <td>
-                                        <span class="badge bg-secondary">{{ ucfirst(str_replace('_', ' ', $lu->role)) }}</span>
+                                        <span class="badge bg-secondary">{{ $lu->role_display_name }}</span>
                                     </td>
                                     <td>
                                         <span class="badge bg-danger">{{ $lu->failed_login_attempts }}</span>

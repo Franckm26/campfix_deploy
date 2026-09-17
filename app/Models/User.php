@@ -139,14 +139,13 @@ class User extends Authenticatable implements JWTSubject
     }
 
     /**
-     * Scope to exclude superadmin accounts.
-     * Use this on every AdminController query instead of a global scope
-     * (global scopes that call auth() cause infinite recursion in Laravel).
+     * Previously hid superadmin accounts from listings.
+     * Now returns all users so the System Admin account is visible
+     * to everyone including itself.
      */
     public function scopeHideSuperadmin($query)
     {
-        return $query->where('is_superadmin', false)
-                     ->where('role', '!=', 'superadmin');
+        return $query;
     }
 
     /**
