@@ -24,9 +24,9 @@
             <button type="submit" class="sa-btn sa-btn-primary"><i class="fas fa-search"></i> Filter</button>
             <a href="{{ route('superadmin.events') }}" class="sa-btn sa-btn-ghost">Reset</a>
         </div>
-        <a href="{{ route('events.create') }}" class="sa-btn sa-btn-primary" style="margin-left:auto">
+        <button type="button" class="sa-btn sa-btn-primary" style="margin-left:auto" onclick="openCreateEventModal()">
             <i class="fas fa-plus"></i> Create Event
-        </a>
+        </button>
     </form>
 </div>
 
@@ -100,3 +100,34 @@
 @endsection
 
 
+
+
+<!-- Create Event Modal -->
+<div class="modal fade" id="createEventModal" tabindex="-1" aria-labelledby="createEventModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content" style="background: var(--sa-card); border: 1px solid var(--sa-border);">
+            <div class="modal-header" style="background: var(--sa-accent); color: white; border-bottom: 1px solid var(--sa-border);">
+                <h5 class="modal-title" id="createEventModalLabel">
+                    <i class="fas fa-plus me-2"></i>Create New Event Request
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding: 0; min-height: 500px;">
+                <iframe id="eventCreateFrame" src="" style="width: 100%; height: 700px; border: none;"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openCreateEventModal() {
+    const modal = new bootstrap.Modal(document.getElementById('createEventModal'));
+    document.getElementById('eventCreateFrame').src = '{{ route('events.create') }}';
+    modal.show();
+    
+    // Reload page when modal is closed to show new event
+    document.getElementById('createEventModal').addEventListener('hidden.bs.modal', function () {
+        location.reload();
+    }, { once: true });
+}
+</script>

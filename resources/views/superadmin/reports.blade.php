@@ -24,9 +24,9 @@
             <button type="submit" class="sa-btn sa-btn-primary"><i class="fas fa-search"></i> Filter</button>
             <a href="{{ route('superadmin.reports') }}" class="sa-btn sa-btn-ghost">Reset</a>
         </div>
-        <a href="{{ route('reports.create') }}" class="sa-btn sa-btn-primary" style="margin-left:auto">
+        <button type="button" class="sa-btn sa-btn-primary" style="margin-left:auto" onclick="openCreateReportModal()">
             <i class="fas fa-plus"></i> Create Report
-        </a>
+        </button>
     </form>
 </div>
 
@@ -96,3 +96,34 @@
     @endif
 </div>
 @endsection
+
+
+<!-- Create Report Modal -->
+<div class="modal fade" id="createReportModal" tabindex="-1" aria-labelledby="createReportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content" style="background: var(--sa-card); border: 1px solid var(--sa-border);">
+            <div class="modal-header" style="background: var(--sa-accent); color: white; border-bottom: 1px solid var(--sa-border);">
+                <h5 class="modal-title" id="createReportModalLabel">
+                    <i class="fas fa-plus me-2"></i>Create New Report
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding: 0; min-height: 500px;">
+                <iframe id="reportCreateFrame" src="" style="width: 100%; height: 600px; border: none;"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openCreateReportModal() {
+    const modal = new bootstrap.Modal(document.getElementById('createReportModal'));
+    document.getElementById('reportCreateFrame').src = '{{ route('reports.create') }}';
+    modal.show();
+    
+    // Reload page when modal is closed to show new report
+    document.getElementById('createReportModal').addEventListener('hidden.bs.modal', function () {
+        location.reload();
+    }, { once: true });
+}
+</script>
