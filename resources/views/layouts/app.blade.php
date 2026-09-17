@@ -334,7 +334,7 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class="sidebar-content">
         @auth
 
-        <a href="/dashboard" class="{{ Request::is('dashboard') || request()->routeIs('superadmin.dashboard') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
+        <a href="/dashboard" class="{{ Request::is('dashboard') || request()->routeIs('superadmin.dashboard') || Request::is('mis') || Request::is('building-admin') || Request::is('school-admin') || Request::is('academic-head') || Request::is('program-head') || Request::is('principal-assistant') || Request::is('system-admin') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
             <i class="fas fa-home"></i> {{ app()->getLocale() === 'tl' ? 'Home' : 'Home' }}
         </a>
 
@@ -374,7 +374,7 @@ document.addEventListener('DOMContentLoaded', function() {
         {{-- MIS navigation --}}
         @if(auth()->user()->role === 'mis')
 
-            <a href="/admin/mis-tasks" class="{{ Request::is('admin/mis-tasks') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
+            <a href="/mis/mis-tasks" class="{{ Request::is('mis/mis-tasks') || Request::is('admin/mis-tasks') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-tasks"></i> {{ app()->getLocale() === 'tl' ? 'Gawain' : 'Task' }}
             </a>
 
@@ -392,43 +392,43 @@ document.addEventListener('DOMContentLoaded', function() {
 
         @endif
 
-        {{-- Building Admin navigation --}}
+        {{-- System Administrator navigation --}}
         @if(auth()->user()->isSystemAdministrator())
-            <a href="{{ route('admin.users') }}"><i class="fas fa-users"></i> User Management</a>
-            <a href="{{ route('admin.management') }}"><i class="fas fa-tools"></i> Management</a>
-            <a href="{{ route('superadmin.reports') }}"><i class="fas fa-file-alt"></i> Reports</a>
-            <a href="{{ route('superadmin.events') }}"><i class="fas fa-calendar-alt"></i> Events</a>
-            <a href="{{ route('superadmin.analytics') }}"><i class="fas fa-chart-line"></i> Analytics</a>
-            <a href="{{ route('superadmin.activity-logs') }}"><i class="fas fa-history"></i> Audit Logs</a>
-            <a href="{{ route('superadmin.settings') }}"><i class="fas fa-cog"></i> Settings</a>
+            <a href="{{ route('admin.users') }}" class="{{ Request::is('system-admin/users*') || Request::is('admin/users*') ? 'active' : '' }}"><i class="fas fa-users"></i> User Management</a>
+            <a href="{{ route('admin.management') }}" class="{{ Request::is('system-admin/management*') || Request::is('admin/management*') ? 'active' : '' }}"><i class="fas fa-tools"></i> Management</a>
+            <a href="{{ route('superadmin.reports') }}" class="{{ Request::is('system-admin/reports*') ? 'active' : '' }}"><i class="fas fa-file-alt"></i> Reports</a>
+            <a href="{{ route('superadmin.events') }}" class="{{ Request::is('system-admin/events*') ? 'active' : '' }}"><i class="fas fa-calendar-alt"></i> Events</a>
+            <a href="{{ route('superadmin.analytics') }}" class="{{ Request::is('system-admin/analytics*') ? 'active' : '' }}"><i class="fas fa-chart-line"></i> Analytics</a>
+            <a href="{{ route('superadmin.activity-logs') }}" class="{{ Request::is('system-admin/activity-logs*') ? 'active' : '' }}"><i class="fas fa-history"></i> Audit Logs</a>
+            <a href="{{ route('superadmin.settings') }}" class="{{ Request::is('system-admin/settings*') ? 'active' : '' }}"><i class="fas fa-cog"></i> Settings</a>
         @endif
         @if(auth()->user()->role === 'building_admin')
             {{-- Reports dropdown for building admin --}}
-            <div class="nav-dropdown {{ Request::is('admin/reports*') || Request::is('admin/analytics*') ? 'open' : '' }}">
-                <a href="#" class="nav-dropdown-toggle {{ Request::is('admin/reports*') || Request::is('admin/analytics*') ? 'active' : '' }}"
+            <div class="nav-dropdown {{ Request::is('building-admin/reports*') || Request::is('building-admin/analytics*') ? 'open' : '' }}">
+                <a href="#" class="nav-dropdown-toggle {{ Request::is('building-admin/reports*') || Request::is('building-admin/analytics*') ? 'active' : '' }}"
                    data-nav-toggle style="padding-top:8px;padding-bottom:8px;">
                     <i class="fas fa-chart-bar"></i> {{ app()->getLocale() === 'tl' ? 'Mga Ulat' : 'Reports' }}
                     <i class="fas fa-chevron-down nav-dropdown-arrow ms-auto"></i>
                 </a>
                 <div class="nav-dropdown-menu">
-                    <a href="/admin/reports" class="{{ Request::is('admin/reports') && !Request::is('admin/reports*view=analytics*') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
+                    <a href="/building-admin/reports" class="{{ Request::is('building-admin/reports') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
                         <i class="fas fa-file-alt me-1"></i> Reports
                     </a>
-                    <a href="{{ route('admin.analytics') }}" class="{{ Request::is('admin/analytics*') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
+                    <a href="/building-admin/analytics" class="{{ Request::is('building-admin/analytics*') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
                         <i class="fas fa-chart-line me-1"></i> Analytics
                     </a>
                 </div>
             </div>
 
             {{-- Events dropdown for building admin --}}
-            <div class="nav-dropdown {{ Request::is('my-events') || Request::is('events-calendar') || Request::is('admin/events') ? 'open' : '' }}">
-                <a href="#" class="nav-dropdown-toggle {{ Request::is('my-events') || Request::is('events-calendar') || Request::is('admin/events') ? 'active' : '' }}"
+            <div class="nav-dropdown {{ Request::is('my-events') || Request::is('events-calendar') || Request::is('building-admin/events') ? 'open' : '' }}">
+                <a href="#" class="nav-dropdown-toggle {{ Request::is('my-events') || Request::is('events-calendar') || Request::is('building-admin/events') ? 'active' : '' }}"
                    data-nav-toggle style="padding-top:8px;padding-bottom:8px;">
                     <i class="fas fa-calendar-alt"></i> {{ app()->getLocale() === 'tl' ? 'Mga Event' : 'Events' }}
                     <i class="fas fa-chevron-down nav-dropdown-arrow ms-auto"></i>
                 </a>
                 <div class="nav-dropdown-menu">
-                    <a href="/admin/events" class="{{ Request::is('admin/events') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
+                    <a href="/building-admin/events" class="{{ Request::is('building-admin/events') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
                         <i class="fas fa-calendar-alt me-1"></i> Pending Approval
                     </a>
                     @if(auth()->user()->canAccess('events'))
@@ -442,7 +442,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
 
-            <a href="{{ route('admin.management') }}" class="{{ Request::is('admin/management*') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
+            <a href="/building-admin/management" class="{{ Request::is('building-admin/management*') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-tools"></i> Management
             </a>
 
@@ -450,14 +450,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
         {{-- School Admin, Academic Head, Program Head, Principal Assistant navigation --}}
         @if(in_array(auth()->user()->role, ['school_admin', 'academic_head', 'program_head', 'principal_assistant']))
-            <div class="nav-dropdown {{ Request::is('my-events') || Request::is('events-calendar') || Request::is('admin/events') ? 'open' : '' }}">
-                <a href="#" class="nav-dropdown-toggle {{ Request::is('my-events') || Request::is('events-calendar') || Request::is('admin/events') ? 'active' : '' }}"
+        @php
+            $roleSlug = str_replace('_', '-', auth()->user()->role);
+        @endphp
+            <div class="nav-dropdown {{ Request::is('my-events') || Request::is('events-calendar') || Request::is("{$roleSlug}/events") ? 'open' : '' }}">
+                <a href="#" class="nav-dropdown-toggle {{ Request::is('my-events') || Request::is('events-calendar') || Request::is("{$roleSlug}/events") ? 'active' : '' }}"
                    data-nav-toggle style="padding-top:8px;padding-bottom:8px;">
                     <i class="fas fa-calendar-alt"></i> {{ app()->getLocale() === 'tl' ? 'Mga Event' : 'Events' }}
                     <i class="fas fa-chevron-down nav-dropdown-arrow ms-auto"></i>
                 </a>
                 <div class="nav-dropdown-menu">
-                    <a href="/admin/events" class="{{ Request::is('admin/events') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
+                    <a href="/{{ $roleSlug }}/events" class="{{ Request::is("{$roleSlug}/events") ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
                         <i class="fas fa-calendar-alt me-1"></i> Pending Approval
                     </a>
                     @if(auth()->user()->canAccess('events'))

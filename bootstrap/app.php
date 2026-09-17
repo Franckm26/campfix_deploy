@@ -83,8 +83,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToGroup('api', ApiSecurityHeaders::class);
 
         $middleware->alias([
-            'admin'      => AdminMiddleware::class,
-            'superadmin' => SuperadminMiddleware::class,
+            'admin'       => AdminMiddleware::class,
+            'superadmin'  => SuperadminMiddleware::class,
+            'role.prefix' => \App\Http\Middleware\RolePrefixMiddleware::class,
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'security' => SecurityHeaders::class,
             'sanitize' => SanitizeInput::class,

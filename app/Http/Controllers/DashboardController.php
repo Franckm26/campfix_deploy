@@ -18,8 +18,19 @@ class DashboardController extends Controller
             return redirect()->route('superadmin.dashboard');
         }
 
-        if ($user->role === 'mis') {
-            return redirect('/admin');
+        // Role-based URL prefix redirects — each role gets their own URL
+        $rolePrefixMap = [
+            'mis'                 => '/mis',
+            'building_admin'      => '/building-admin',
+            'school_admin'        => '/school-admin',
+            'academic_head'       => '/academic-head',
+            'program_head'        => '/program-head',
+            'principal_assistant' => '/principal-assistant',
+            'admin'               => '/system-admin',
+        ];
+
+        if (isset($rolePrefixMap[$user->role])) {
+            return redirect($rolePrefixMap[$user->role]);
         }
 
         // Building Administrator - original dashboard with all cards

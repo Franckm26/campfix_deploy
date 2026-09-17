@@ -331,7 +331,7 @@ Route::middleware(['auth', 'throttle:status-updates'])->group(function () {
 });
 
 /* BUILDING ADMIN - Management Module */
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth'])->group(function () {
     Route::get('/admin/management', [\App\Http\Controllers\ManagementController::class, 'index'])->name('admin.management');
 
     // Maintenance staff
@@ -536,6 +536,39 @@ Route::get('/verify-otp', function () {
 });
 
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
+
+/* ROLE-PREFIXED URL ALIASES - Map role-specific URLs to admin controllers
+   Only GET routes — form submissions continue to use /admin/* paths.
+   Role → prefix:
+     mis               → /mis
+     building_admin    → /building-admin
+     school_admin      → /school-admin
+     academic_head     → /academic-head
+     program_head      → /program-head
+     principal_assistant → /principal-assistant
+     admin             → /system-admin (handled by superadmin panel above for superadmin,
+                         but for role=admin users the middleware redirects /admin → /system-admin)
+*/
+Route::middleware(['auth', 'admin', 'throttle:admin'])->group(function () {
+    foreach ([
+        'mis'                 => 'mis',
+        'building-admin'      => 'building_admin',
+        'school-admin'        => 'school_admin',
+        'academic-head'       => 'academic_head',
+        'program-head'        => 'program_head',
+        'principal-assistant' => 'principal_assistant',
+    ] as $prefix => $role) {
+        Route::get("/{$prefix}",              [AdminController::class, 'index'])->name("{$prefix}.dashboard");
+        Route::get("/{$prefix}/reports",      [AdminController::class, 'reports'])->name("{$prefix}.reports");
+        Route::get("/{$prefix}/analytics",    [AdminController::class, 'analytics'])->name("{$prefix}.analytics");
+        Route::get("/{$prefix}/management",   [\App\Http\Controllers\ManagementController::class, 'index'])->name("{$prefix}.management");
+        Route::get("/{$prefix}/events",       [EventRequestController::class, 'adminIndex'])->name("{$prefix}.events");
+        Route::get("/{$prefix}/mis-tasks",    [AdminController::class, 'misTasks'])->name("{$prefix}.mis-tasks");
+        Route::get("/{$prefix}/users",        [AdminController::class, 'users'])->name("{$prefix}.users");
+        Route::get("/{$prefix}/users/{uuid}/edit", [AdminController::class, 'editUser'])->name("{$prefix}.users.edit");
+        Route::get("/{$prefix}/logs",         [AdminController::class, 'logs'])->name("{$prefix}.logs");
+    }
+});
 
 /* SYSTEM ADMIN PANEL - SUPERADMIN ONLY */
 Route::middleware(['auth', 'superadmin'])->prefix('system-admin')->name('superadmin.')->group(function () {
