@@ -567,8 +567,8 @@ Route::middleware(['auth', 'superadmin'])->prefix('system-admin')->name('superad
     Route::delete('/activity-logs/{id}', [\App\Http\Controllers\SuperadminController::class, 'deleteActivityLog'])->name('activity-logs.delete');
     Route::delete('/activity-logs', [\App\Http\Controllers\SuperadminController::class, 'clearAllActivityLogs'])->name('activity-logs.clear');
     
-    // Superadmin Logs (Hidden from regular admins)
-    Route::get('/superadmin-logs', [\App\Http\Controllers\SuperadminController::class, 'superadminLogs'])->name('superadmin-logs');
+    // System Admin Logs (Hidden from regular admins)
+    Route::get('/system-logs', [\App\Http\Controllers\SuperadminController::class, 'superadminLogs'])->name('superadmin-logs');
     
     // Categories
     Route::get('/categories', [\App\Http\Controllers\SuperadminController::class, 'categories'])->name('categories');

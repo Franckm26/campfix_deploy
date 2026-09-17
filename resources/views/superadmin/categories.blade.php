@@ -91,7 +91,7 @@
 @section('scripts')
 <script>
 function editCat(id, name, desc) {
-    document.getElementById('editForm').action = '/superadmin/categories/' + id;
+    document.getElementById('editForm').action = '/system-admin/categories/' + id;
     document.getElementById('editName').value = name;
     document.getElementById('editDesc').value = desc;
     document.getElementById('editModal').style.display = 'flex';
