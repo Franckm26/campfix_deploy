@@ -8,7 +8,7 @@
     <form method="GET" action="{{ route('superadmin.reports') }}" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
         <div style="flex:1;min-width:200px">
             <label class="sa-label">Search</label>
-            <input type="text" name="search" value="{{ $search }}" class="sa-input" placeholder="Title, description, location…" enterkeyhint="search" inputmode="search" onkeypress="if(event.key==='Enter'){this.form.submit();}">
+            <input type="text" name="search" value="{{ $search }}" class="sa-input" placeholder="Title, description, locationâ€¦" enterkeyhint="search" inputmode="search" onkeypress="if(event.key==='Enter'){this.form.submit();}">
         </div>
         <div style="min-width:150px">
             <label class="sa-label">Status</label>
@@ -24,6 +24,9 @@
             <button type="submit" class="sa-btn sa-btn-primary"><i class="fas fa-search"></i> Filter</button>
             <a href="{{ route('superadmin.reports') }}" class="sa-btn sa-btn-ghost">Reset</a>
         </div>
+        <a href="{{ route('reports.create') }}" class="sa-btn sa-btn-primary" style="margin-left:auto">
+            <i class="fas fa-plus"></i> Create Report
+        </a>
     </form>
 </div>
 

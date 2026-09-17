@@ -24,6 +24,9 @@
             <button type="submit" class="sa-btn sa-btn-primary"><i class="fas fa-search"></i> Filter</button>
             <a href="{{ route('superadmin.events') }}" class="sa-btn sa-btn-ghost">Reset</a>
         </div>
+        <a href="{{ route('events.create') }}" class="sa-btn sa-btn-primary" style="margin-left:auto">
+            <i class="fas fa-plus"></i> Create Event
+        </a>
     </form>
 </div>
 

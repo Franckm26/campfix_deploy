@@ -396,7 +396,6 @@ document.addEventListener('DOMContentLoaded', function() {
         @if(auth()->user()->isSystemAdministrator())
             <a href="{{ route('admin.users') }}"><i class="fas fa-users"></i> User Management</a>
             <a href="{{ route('admin.management') }}"><i class="fas fa-tools"></i> Management</a>
-            <a href="{{ route('superadmin.concerns') }}"><i class="fas fa-exclamation-circle"></i> Concerns</a>
             <a href="{{ route('superadmin.reports') }}"><i class="fas fa-file-alt"></i> Reports</a>
             <a href="{{ route('superadmin.events') }}"><i class="fas fa-calendar-alt"></i> Events</a>
             <a href="{{ route('superadmin.analytics') }}"><i class="fas fa-chart-line"></i> Analytics</a>
