@@ -537,8 +537,8 @@ Route::get('/verify-otp', function () {
 
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
 
-/* SUPERADMIN PANEL - SUPERADMIN ONLY (HIDDEN FROM ALL OTHER USERS) */
-Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {
+/* SYSTEM ADMIN PANEL - SUPERADMIN ONLY */
+Route::middleware(['auth', 'superadmin'])->prefix('system-admin')->name('superadmin.')->group(function () {
     // Dashboard
     Route::get('/', [\App\Http\Controllers\SuperadminController::class, 'dashboard'])->name('dashboard');
     
