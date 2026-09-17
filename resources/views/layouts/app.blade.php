@@ -339,7 +339,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </a>
 
         {{-- Only show My Concerns for non-admin and non-maintenance users --}}
-        @if(auth()->user()->role !== 'mis' && auth()->user()->role !== 'maintenance')
+        @if(!auth()->user()->isSystemAdministrator() && auth()->user()->role !== 'mis' && auth()->user()->role !== 'maintenance')
             <a href="{{ route('concerns.my') }}" class="{{ Request::is('my-concerns') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-clipboard-list"></i> {{ app()->getLocale() === 'tl' ? 'Aking Mga Concern' : 'My Concerns' }}
             </a>
@@ -363,7 +363,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 </div>
             @endif
-        @elseif(auth()->user()->role === 'mis')
+        @elseif(!auth()->user()->isSystemAdministrator() && auth()->user()->role === 'mis')
             <a href="{{ route('concerns.my') }}" class="{{ Request::is('my-concerns') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-clipboard-list"></i> My Concerns
             </a>
