@@ -2416,7 +2416,7 @@ class AdminController extends Controller
                 'phone'    => 'nullable|regex:/^09[0-9]{9}$/',
                 'student_id' => ['nullable', 'string', 'max:255', Rule::unique('users', 'student_id')],
                 'department' => 'nullable|string|max:255',
-                'role'     => 'required|in:student,faculty,maintenance,mis,school_admin,building_admin,academic_head,program_head,principal_assistant',
+                'role'     => 'required|in:student,faculty,maintenance,mis,school_admin,building_admin,academic_head,program_head,principal_assistant,admin',
                 'permissions' => 'nullable|array',
                 'permissions.*' => 'string|max:100',
             ]);
@@ -2577,7 +2577,7 @@ class AdminController extends Controller
                 Rule::unique('users', 'backup_email')->ignore($user->id),
             ],
             'phone' => 'nullable|regex:/^09[0-9]{9}$/',
-            'role' => 'required|in:student,faculty,maintenance,mis,school_admin,building_admin,academic_head,program_head,principal_assistant',
+            'role' => 'required|in:student,faculty,maintenance,mis,school_admin,building_admin,academic_head,program_head,principal_assistant,admin',
             'permissions' => 'sometimes|array',
             'permissions.*' => [
                 'string',
