@@ -44,7 +44,7 @@
                         @foreach(['student','faculty','maintenance','mis','admin','school_admin','building_admin','academic_head','program_head','principal_assistant','superadmin'] as $r)
                             @php
                                 $roleLabel = match($r) {
-                                    'admin' => 'Administrator',
+                                    'admin' => 'System Administrator',
                                     'mis' => 'MIS',
                                     'school_admin' => 'School Administrator',
                                     'building_admin' => 'Building Administrator',

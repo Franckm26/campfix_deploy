@@ -2033,7 +2033,7 @@ async function openAddUserModal() {
                     <label for="swal-add-role">Role <span class="text-danger">*</span></label>
                     <select id="swal-add-role">
                         <option value="student">Student</option><option value="faculty">Faculty</option><option value="maintenance">Maintenance</option><option value="mis">MIS</option>
-                        <option value="admin">Administrator</option>
+                        <option value="admin">System Administrator</option>
                         <option value="school_admin">School Administrator</option><option value="building_admin">Building Administrator</option><option value="academic_head">Academic Head</option>
                         <option value="program_head">Program Head</option><option value="principal_assistant">Principal Assistant</option>
                     </select>

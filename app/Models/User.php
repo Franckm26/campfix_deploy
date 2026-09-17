@@ -293,6 +293,7 @@ class User extends Authenticatable implements JWTSubject
             return 'System Administrator';
         }
         return match ($this->role) {
+            'admin' => 'System Administrator',
             'mis' => 'MIS',
             'school_admin' => 'School Administrator',
             'building_admin' => 'Building Administrator',
