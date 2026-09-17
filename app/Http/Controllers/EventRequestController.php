@@ -111,7 +111,7 @@ class EventRequestController extends Controller
                 ]);
             }
 
-            $allowedRoles = ['faculty', 'school_admin', 'academic_head', 'program_head', 'building_admin'];
+            $allowedRoles = ['faculty', 'school_admin', 'academic_head', 'program_head', 'building_admin', 'admin', 'superadmin'];
             if (!in_array(auth()->user()->role, $allowedRoles)) {
                 if ($request->expectsJson()) {
                     return response()->json(['success' => false, 'message' => 'You do not have permission to create event requests.'], 403);

@@ -308,8 +308,11 @@ class SuperadminController extends Controller
             ->orderBy('created_at', 'desc');
 
         $reports = $query->paginate($perPage)->withQueryString();
+        
+        // Get categories for the New Concern modal
+        $categories = \App\Models\Category::all();
 
-        return view('superadmin.reports', compact('reports', 'status', 'search'));
+        return view('superadmin.reports', compact('reports', 'status', 'search', 'categories'));
     }
 
     public function events(Request $request)
