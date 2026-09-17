@@ -235,7 +235,7 @@
                                 <option value="student" {{ request('role') == 'student' ? 'selected' : '' }}>Student</option>
                                 <option value="faculty" {{ request('role') == 'faculty' ? 'selected' : '' }}>Faculty</option>
                                 <option value="mis" {{ request('role') == 'mis' ? 'selected' : '' }}>MIS</option>
-                                <option value="admin" {{ request('role') == 'admin' ? 'selected' : '' }}>Administrator</option>
+                                <option value="admin" {{ request('role') == 'admin' ? 'selected' : '' }}>System Administrator</option>
                                 <option value="school_admin" {{ request('role') == 'school_admin' ? 'selected' : '' }}>School Administrator</option>
                                 <option value="building_admin" {{ request('role') == 'building_admin' ? 'selected' : '' }}>Building Administrator</option>
                                 <option value="academic_head" {{ request('role') == 'academic_head' ? 'selected' : '' }}>Academic Head</option>
@@ -1133,7 +1133,7 @@
                                 <option value="student"             {{ old('role') == 'student'             ? 'selected' : '' }}>Student</option>
                                 <option value="faculty"             {{ old('role') == 'faculty'             ? 'selected' : '' }}>Faculty</option>
                                 <option value="mis"                 {{ old('role') == 'mis'                 ? 'selected' : '' }}>MIS</option>
-                                <option value="admin"               {{ old('role') == 'admin'               ? 'selected' : '' }}>Administrator</option>
+                                <option value="admin"               {{ old('role') == 'admin'               ? 'selected' : '' }}>System Administrator</option>
                                 <option value="school_admin"        {{ old('role') == 'school_admin'        ? 'selected' : '' }}>School Administrator</option>
                                 <option value="building_admin"      {{ old('role') == 'building_admin'      ? 'selected' : '' }}>Building Administrator</option>
                                 <option value="academic_head"       {{ old('role') == 'academic_head'       ? 'selected' : '' }}>Academic Head</option>
@@ -2798,7 +2798,7 @@ async function editUser(userUuid) {
                                 <option value="faculty" ${userData.role === 'faculty' ? 'selected' : ''}>Faculty</option>
                                 <option value="maintenance" ${userData.role === 'maintenance' ? 'selected' : ''}>Maintenance</option>
                                 <option value="mis" ${userData.role === 'mis' ? 'selected' : ''}>MIS</option>
-                                <option value="admin" ${userData.role === 'admin' ? 'selected' : ''}>Administrator</option>
+                                <option value="admin" ${userData.role === 'admin' ? 'selected' : ''}>System Administrator</option>
                                 <option value="school_admin" ${userData.role === 'school_admin' ? 'selected' : ''}>School Administrator</option>
                                 <option value="building_admin" ${userData.role === 'building_admin' ? 'selected' : ''}>Building Administrator</option>
                                 <option value="academic_head" ${userData.role === 'academic_head' ? 'selected' : ''}>Academic Head</option>

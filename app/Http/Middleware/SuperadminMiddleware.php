@@ -21,7 +21,7 @@ class SuperadminMiddleware
 
         $user = auth()->user();
 
-        if (! ($user->is_superadmin || $user->role === 'superadmin')) {
+        if (! ($user->is_superadmin || $user->role === 'superadmin' || $user->role === 'admin')) {
             SecurityLogger::logUnauthorizedAccess([
                 'user_id' => $user->id,
                 'reason'  => 'Superadmin access attempted by non-superadmin',

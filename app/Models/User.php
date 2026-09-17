@@ -134,8 +134,8 @@ class User extends Authenticatable implements JWTSubject
 
     public function isSystemAdministrator(): bool
     {
-        // Retain the persisted role for compatibility with existing constraints.
-        return $this->isSuperAdmin();
+        // Both superadmin flag/role AND the admin role grant system administrator access.
+        return $this->isSuperAdmin() || $this->role === 'admin';
     }
 
     /**
@@ -251,7 +251,7 @@ class User extends Authenticatable implements JWTSubject
      */
     public function canAccess(string $module): bool
     {
-        if ($this->is_superadmin || $this->role === 'superadmin') {
+        if ($this->isSystemAdministrator()) {
             return true;
         }
 

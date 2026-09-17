@@ -237,8 +237,12 @@ class AuthController extends Controller
                 return redirect()->route('superadmin.dashboard');
             }
 
+            if ($user->isSystemAdministrator()) {
+                return redirect('/system-admin');
+            }
+
             if ($user->role == 'mis') {
-                return redirect('/admin');
+                return redirect('/mis');
             }
 
             return redirect('/dashboard');
@@ -1048,9 +1052,12 @@ class AuthController extends Controller
             if ($user->is_superadmin || $user->role === 'superadmin') {
                 \Log::info('Redirecting superadmin to dashboard', ['user_id' => $user->id]);
                 $redirectUrl = route('superadmin.dashboard');
+            } elseif ($user->isSystemAdministrator()) {
+                \Log::info('Redirecting System Admin to dashboard', ['user_id' => $user->id]);
+                $redirectUrl = '/system-admin';
             } elseif ($user->role == 'mis') {
-                \Log::info('Redirecting MIS to admin', ['user_id' => $user->id]);
-                $redirectUrl = '/admin';
+                \Log::info('Redirecting MIS to dashboard', ['user_id' => $user->id]);
+                $redirectUrl = '/mis';
             } else {
                 \Log::info('Redirecting to dashboard', ['user_id' => $user->id, 'role' => $user->role]);
             }
