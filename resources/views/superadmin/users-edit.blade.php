@@ -42,7 +42,7 @@
                 <div class="col-md-6">
                     <label class="sa-label">Role *</label>
                     <select name="role" class="sa-input" required>
-                        @foreach(['student','faculty','maintenance','mis','school_admin','building_admin','academic_head','program_head','principal_assistant','superadmin'] as $r)
+                        @foreach(['student','faculty','maintenance','mis','admin','school_admin','building_admin','academic_head','program_head','principal_assistant','superadmin'] as $r)
                             <option value="{{ $r }}" {{ old('role', $user->role) === $r ? 'selected' : '' }}>{{ str_replace('_',' ',ucfirst($r)) }}</option>
                         @endforeach
                     </select>

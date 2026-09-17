@@ -143,7 +143,7 @@ class SuperadminController extends Controller
             'role'          => $request->role,
             'department'    => $request->department,
             'phone'         => $request->phone,
-            'is_admin'      => in_array($request->role, ['mis', 'school_admin', 'building_admin', 'superadmin']),
+            'is_admin'      => in_array($request->role, ['mis', 'admin', 'school_admin', 'building_admin', 'superadmin']),
             'is_superadmin' => $request->role === 'superadmin' ? true : false,
             'force_password_change' => $request->boolean('force_password_change', true),
             'permissions'   => $request->input('permissions', []),
@@ -186,7 +186,7 @@ class SuperadminController extends Controller
             'role'          => $request->role,
             'department'    => $request->department,
             'phone'         => $request->phone,
-            'is_admin'      => in_array($request->role, ['mis', 'school_admin', 'building_admin', 'superadmin']),
+            'is_admin'      => in_array($request->role, ['mis', 'admin', 'school_admin', 'building_admin', 'superadmin']),
             'is_superadmin' => $request->role === 'superadmin',
             'permissions'   => $request->input('permissions', []),
         ];

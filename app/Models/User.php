@@ -387,6 +387,8 @@ class User extends Authenticatable implements JWTSubject
 
     const ROLE_ADMIN = 'mis';
 
+    const ROLE_ADMINISTRATOR = 'admin';
+
     const ROLE_SCHOOL_ADMIN = 'school_admin';
 
     const ROLE_BUILDING_ADMIN = 'building_admin';
