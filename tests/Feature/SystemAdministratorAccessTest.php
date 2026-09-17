@@ -8,6 +8,24 @@ use Tests\TestCase;
 
 class SystemAdministratorAccessTest extends TestCase
 {
+    public function test_legacy_user_links_open_current_management_views(): void
+    {
+        $controller = new \App\Http\Controllers\SuperadminController;
+        foreach (['active' => 'active', 'archived' => 'archives', 'deleted' => 'deleted', 'locked' => 'locked'] as $status => $view) {
+            $response = $controller->users(Request::create('/superadmin/users', 'GET', ['status' => $status, 'search' => 'sample']));
+            $this->assertSame(route('admin.users', ['search' => 'sample', 'view' => $view]), $response->getTargetUrl());
+        }
+        $this->assertSame(route('admin.users', ['create' => 1]), $controller->createUser()->getTargetUrl());
+    }
+
+    public function test_administrator_layout_uses_main_app_shell(): void
+    {
+        $layout = file_get_contents(resource_path('views/superadmin/layout.blade.php'));
+        $this->assertStringContainsString("@extends('layouts.app')", $layout);
+        $this->assertStringNotContainsString('<aside', $layout);
+        $this->assertStringNotContainsString("localStorage.getItem('sa_theme')", $layout);
+    }
+
     public function test_mis_cannot_retain_admin_privileges_from_old_permissions(): void
     {
         $user = new User;

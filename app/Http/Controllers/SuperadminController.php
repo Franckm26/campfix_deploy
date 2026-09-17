@@ -27,11 +27,11 @@ class SuperadminController extends Controller
         $noScopes = fn() => User::withoutGlobalScopes();
 
         $stats = [
-            'total_users'         => $noScopes()->count(),
-            'active_users'        => $noScopes()->where('is_deleted', false)->where('is_archived', false)->count(),
-            'archived_users'      => $noScopes()->where('is_archived', true)->count(),
-            'deleted_users'       => $noScopes()->where('is_deleted', true)->count(),
-            'locked_users'        => $noScopes()->where('is_deleted', false)->whereNotNull('locked_until')->where('locked_until', '>', now())->count(),
+            'total_users'         => $noScopes()->hideSuperadmin()->count(),
+            'active_users'        => User::hideSuperadmin()->where(fn ($q) => $q->where('is_archived', false)->orWhereNull('is_archived'))->count(),
+            'archived_users'      => User::hideSuperadmin()->where('is_archived', true)->count(),
+            'deleted_users'       => $noScopes()->hideSuperadmin()->where('is_deleted', true)->count(),
+            'locked_users'        => User::hideSuperadmin()->whereNotNull('locked_until')->where('locked_until', '>', now())->count(),
             'total_concerns'      => Concern::withoutGlobalScopes()->count(),
             'open_concerns'       => Concern::where('is_deleted', false)->whereNotIn('status', ['Resolved', 'Closed'])->count(),
             'resolved_concerns'   => Concern::where('status', 'Resolved')->count(),
@@ -105,33 +105,22 @@ class SuperadminController extends Controller
 
     public function users(Request $request)
     {
-        $search    = $request->get('search');
-        $role      = $request->get('role');
-        $status    = $request->get('status', 'active');
-        $perPage   = $request->get('per_page', 20);
+        $view = match ($request->input('status', 'active')) {
+            'archived' => 'archives',
+            'deleted' => 'deleted',
+            'locked' => 'locked',
+            default => 'active',
+        };
 
-        // Bypass BOTH global scopes so superadmin can see all users including other superadmins
-        $query = User::withoutGlobalScopes()
-            ->when($search, fn($q) => $q->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('department', 'like', "%{$search}%");
-            }))
-            ->when($role, fn($q) => $q->where('role', $role))
-            ->when($status === 'active',   fn($q) => $q->where('is_deleted', false)->where('is_archived', false))
-            ->when($status === 'archived', fn($q) => $q->where('is_archived', true))
-            ->when($status === 'deleted',  fn($q) => $q->where('is_deleted', true))
-            ->when($status === 'locked',   fn($q) => $q->where('is_deleted', false)->whereNotNull('locked_until')->where('locked_until', '>', now()))
-            ->orderBy('created_at', 'desc');
-
-        $users = $query->paginate($perPage)->withQueryString();
-
-        return view('superadmin.users', compact('users', 'search', 'role', 'status'));
+        return redirect()->route('admin.users', array_merge(
+            $request->only(['search', 'role', 'per_page']),
+            ['view' => $view]
+        ));
     }
 
     public function createUser()
     {
-        return view('superadmin.users-create');
+        return redirect()->route('admin.users', ['create' => 1]);
     }
 
     public function storeUser(Request $request)

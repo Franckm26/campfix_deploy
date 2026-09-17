@@ -80,7 +80,7 @@
             </span>
         </div>
         <h1 style="font-size:24px;font-weight:700;color:#fff;margin:0 0 6px">Welcome back, {{ auth()->user()->name }}</h1>
-        <p style="color:#c4b5fd;margin:0;font-size:13px">Full system control · All modules · Hidden audit trail · {{ now()->format('l, F j, Y') }}</p>
+        <p style="color:#c4b5fd;margin:0;font-size:13px">Daily operations · User management · System oversight · {{ now()->format('l, F j, Y') }}</p>
     </div>
 </div>
 
@@ -88,15 +88,15 @@
 <div class="section-title"><i class="fas fa-users"></i> Users</div>
 <div class="row g-3 mb-2">
     <div class="col-6 col-md-3 col-xl-2">
-        <a href="{{ route('superadmin.users') }}" class="module-card blue">
+        <a href="{{ route('admin.users') }}" class="module-card blue">
             <div class="module-icon" style="background:rgba(59,130,246,.15);color:#60a5fa"><i class="fas fa-users"></i></div>
             <div class="module-title">Total Users</div>
             <div class="module-count">{{ number_format($stats['total_users']) }}</div>
-            <div class="module-sub">All accounts</div>
+            <div class="module-sub">Managed accounts, including archives/deleted</div>
         </a>
     </div>
     <div class="col-6 col-md-3 col-xl-2">
-        <a href="{{ route('superadmin.users', ['status'=>'active']) }}" class="module-card green">
+        <a href="{{ route('admin.users', ['view'=>'active']) }}" class="module-card green">
             <div class="module-icon" style="background:rgba(34,197,94,.15);color:#4ade80"><i class="fas fa-user-check"></i></div>
             <div class="module-title">Active</div>
             <div class="module-count">{{ number_format($stats['active_users']) }}</div>
@@ -104,7 +104,7 @@
         </a>
     </div>
     <div class="col-6 col-md-3 col-xl-2">
-        <a href="{{ route('superadmin.users', ['status'=>'archived']) }}" class="module-card yellow">
+        <a href="{{ route('admin.users', ['view'=>'archives']) }}" class="module-card yellow">
             <div class="module-icon" style="background:rgba(245,158,11,.15);color:#fbbf24"><i class="fas fa-box-archive"></i></div>
             <div class="module-title">Archived</div>
             <div class="module-count">{{ number_format($stats['archived_users']) }}</div>
@@ -112,7 +112,7 @@
         </a>
     </div>
     <div class="col-6 col-md-3 col-xl-2">
-        <a href="{{ route('superadmin.users', ['status'=>'deleted']) }}" class="module-card red">
+        <a href="{{ route('admin.users', ['view'=>'deleted']) }}" class="module-card red">
             <div class="module-icon" style="background:rgba(239,68,68,.15);color:#f87171"><i class="fas fa-user-slash"></i></div>
             <div class="module-title">Deleted</div>
             <div class="module-count">{{ number_format($stats['deleted_users']) }}</div>
@@ -120,7 +120,7 @@
         </a>
     </div>
     <div class="col-6 col-md-3 col-xl-2">
-        <a href="{{ route('superadmin.users', ['status'=>'locked']) }}" class="module-card red">
+        <a href="{{ route('admin.users', ['view'=>'locked']) }}" class="module-card red">
             <div class="module-icon" style="background:rgba(239,68,68,.15);color:#f87171"><i class="fas fa-lock"></i></div>
             <div class="module-title">Locked</div>
             <div class="module-count" style="{{ $stats['locked_users'] > 0 ? 'color:#f87171' : '' }}">{{ number_format($stats['locked_users']) }}</div>
@@ -128,7 +128,7 @@
         </a>
     </div>
     <div class="col-6 col-md-3 col-xl-2">
-        <a href="{{ route('superadmin.users.create') }}" class="module-card purple">
+        <a href="{{ route('admin.users', ['create'=>1]) }}" class="module-card purple">
             <div class="module-icon" style="background:rgba(124,58,237,.15);color:#a855f7"><i class="fas fa-user-plus"></i></div>
             <div class="module-title">Create User</div>
             <div class="module-count" style="font-size:20px;padding-top:4px"><i class="fas fa-plus"></i></div>

@@ -2339,6 +2339,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    @if(request()->boolean('create'))
+        openAddUserModal();
+    @endif
+
     // Auto-reopen Add User modal if server returned validation errors for it
     @if($errors->hasAny(['name','email','password','phone','role']))
     (function() {

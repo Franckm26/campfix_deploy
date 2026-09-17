@@ -2250,6 +2250,7 @@ class AdminController extends Controller
 
             $lockedUsersList = User::hideSuperadmin()->where('is_deleted', false)
                 ->whereNotNull('locked_until')
+                ->where('locked_until', '>', now())
                 ->orderBy('updated_at', 'desc')
                 ->paginate($perPage);
 

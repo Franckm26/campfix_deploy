@@ -334,7 +334,7 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class="sidebar-content">
         @auth
 
-        <a href="/dashboard" class="{{ Request::is('dashboard') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
+        <a href="/dashboard" class="{{ Request::is('dashboard') || request()->routeIs('superadmin.dashboard') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
             <i class="fas fa-home"></i> {{ app()->getLocale() === 'tl' ? 'Home' : 'Home' }}
         </a>
 
@@ -394,10 +394,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
         {{-- Building Admin navigation --}}
         @if(auth()->user()->isSystemAdministrator())
-            <a href="{{ route('superadmin.dashboard') }}"><i class="fas fa-shield-halved"></i> Administrator</a>
             <a href="{{ route('admin.users') }}"><i class="fas fa-users"></i> User Management</a>
             <a href="{{ route('admin.management') }}"><i class="fas fa-tools"></i> Management</a>
+            <a href="{{ route('superadmin.categories') }}"><i class="fas fa-tags"></i> Categories</a>
+            <a href="{{ route('superadmin.concerns') }}"><i class="fas fa-exclamation-circle"></i> Concerns</a>
+            <a href="{{ route('superadmin.reports') }}"><i class="fas fa-file-alt"></i> Reports</a>
+            <a href="{{ route('superadmin.events') }}"><i class="fas fa-calendar-alt"></i> Events</a>
+            <a href="{{ route('superadmin.analytics') }}"><i class="fas fa-chart-line"></i> Analytics</a>
+            <a href="{{ route('welcome.credentials') }}"><i class="fas fa-envelope"></i> Welcome Emails</a>
             <a href="{{ route('superadmin.activity-logs') }}"><i class="fas fa-history"></i> Audit Logs</a>
+            <a href="{{ route('superadmin.superadmin-logs') }}"><i class="fas fa-shield-alt"></i> Administrator Logs</a>
+            <a href="{{ route('superadmin.settings') }}"><i class="fas fa-cog"></i> System Settings</a>
         @endif
         @if(auth()->user()->role === 'building_admin')
             {{-- Reports dropdown for building admin --}}
@@ -609,7 +616,18 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     </div>
 
-    @yield('content')
+    @if(request()->routeIs('superadmin.*'))
+        <div class="sa-content">
+            @foreach(['success', 'error', 'info'] as $messageType)
+                @if(session($messageType))
+                    <div class="sa-alert sa-alert-{{ $messageType }}">{{ session($messageType) }}</div>
+                @endif
+            @endforeach
+            @yield('content')
+        </div>
+    @else
+        @yield('content')
+    @endif
 
     @auth
 
