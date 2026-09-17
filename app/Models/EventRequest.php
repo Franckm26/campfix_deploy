@@ -502,9 +502,9 @@ class EventRequest extends Model
      */
     public function isApprovedByAllSchoolAdmins(): bool
     {
-        $schoolAdmins = User::whereIn('role', [User::ROLE_SCHOOL_ADMIN, User::ROLE_ADMIN])->get();
+        $schoolAdmins = User::where('role', User::ROLE_SCHOOL_ADMIN)->get();
         if ($schoolAdmins->isEmpty()) {
-            return true; // No school admins or MIS, skip this level
+            return true; // No school administrators, skip this level
         }
 
         if ($this->approved_by) {

@@ -378,16 +378,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 <i class="fas fa-tasks"></i> {{ app()->getLocale() === 'tl' ? 'Gawain' : 'Task' }}
             </a>
 
-            <a href="/admin/users" class="{{ Request::is('admin/users') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
-                <i class="fas fa-users"></i> {{ app()->getLocale() === 'tl' ? 'Mga Gumagamit' : 'Users' }}
-            </a>
-
             <a href="{{ route('role.analytics') }}" class="{{ Request::is('role-analytics') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-chart-line"></i> Analytics
             </a>
 
-            <a href="{{ route('admin.logs') }}" class="{{ Request::is('admin/logs*') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
-                <i class="fas fa-history"></i> {{ app()->getLocale() === 'tl' ? 'Audit Logs' : 'Audit Logs' }}
+            <a href="{{ route('history.index') }}" class="{{ Request::is('history') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
+                <i class="fas fa-history"></i> History
             </a>
 
             <a href="/settings" class="{{ Request::is('settings') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
@@ -397,6 +393,12 @@ document.addEventListener('DOMContentLoaded', function() {
         @endif
 
         {{-- Building Admin navigation --}}
+        @if(auth()->user()->isSystemAdministrator())
+            <a href="{{ route('superadmin.dashboard') }}"><i class="fas fa-shield-halved"></i> Administrator</a>
+            <a href="{{ route('admin.users') }}"><i class="fas fa-users"></i> User Management</a>
+            <a href="{{ route('admin.management') }}"><i class="fas fa-tools"></i> Management</a>
+            <a href="{{ route('superadmin.activity-logs') }}"><i class="fas fa-history"></i> Audit Logs</a>
+        @endif
         @if(auth()->user()->role === 'building_admin')
             {{-- Reports dropdown for building admin --}}
             <div class="nav-dropdown {{ Request::is('admin/reports*') || Request::is('admin/analytics*') ? 'open' : '' }}">

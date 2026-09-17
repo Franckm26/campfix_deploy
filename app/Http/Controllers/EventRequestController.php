@@ -345,7 +345,7 @@ class EventRequestController extends Controller
                 }
 
                 // Check if requester is a School Admin
-                if ($user->isSchoolAdmin() || $user->isAdmin()) {
+                if ($user->isSchoolAdmin()) {
                     $approvalHistory[] = [
                         'level' => 4,
                         'role' => 'School Admin',
@@ -1083,7 +1083,7 @@ class EventRequestController extends Controller
                 }
             }
 
-        } elseif ($user->isSchoolAdmin() || $user->isAdmin()) {
+        } elseif ($user->isSchoolAdmin()) {
             if (! $eventRequest->canBeApprovedAtLevel(EventRequest::LEVEL_4_SCHOOL_ADMIN)) {
                 $nextLevel = $eventRequest->getNextApprovalLevel();
                 if ($nextLevel !== null && $eventRequest->approval_level !== $nextLevel) {
@@ -1248,7 +1248,7 @@ class EventRequestController extends Controller
             } elseif ($user->isBuildingAdmin()) {
                 $rejectLevel = 3;
                 $rejectRole = 'Building Admin';
-            } elseif ($user->isSchoolAdmin() || $user->isAdmin()) {
+            } elseif ($user->isSchoolAdmin()) {
                 $rejectLevel = 4;
                 $rejectRole = 'School Admin';
             }
@@ -2164,7 +2164,7 @@ class EventRequestController extends Controller
                     return false;
                 }
                 $userLevel = 3;
-            } elseif ($user->isSchoolAdmin() || $user->isAdmin()) {
+            } elseif ($user->isSchoolAdmin()) {
                 $userLevel = 4;
             }
 
@@ -2230,7 +2230,7 @@ class EventRequestController extends Controller
                 return (($user->isProgramHead() || $user->isPrincipalAssistant()) && (int) $eventRequest->approved_by_level_1 === (int) $user->id)
                     || ($user->isAcademicHead() && (int) $eventRequest->approved_by_level_2 === (int) $user->id)
                     || ($user->isBuildingAdmin() && (int) $eventRequest->approved_by_level_3 === (int) $user->id)
-                    || (($user->isSchoolAdmin() || $user->isAdmin()) && (int) $eventRequest->approved_by === (int) $user->id);
+                    || ($user->isSchoolAdmin() && (int) $eventRequest->approved_by === (int) $user->id);
             })
             ->values();
     }

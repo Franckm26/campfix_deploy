@@ -261,7 +261,7 @@ class DashboardController extends Controller
                     return ! $isShs && $level === EventRequest::LEVEL_3_BUILDING_ADMIN;
                 }
 
-                return ($user->isSchoolAdmin() || $user->isAdmin())
+                return $user->isSchoolAdmin()
                     && $level === EventRequest::LEVEL_4_SCHOOL_ADMIN;
             })
             ->values();

@@ -11,7 +11,7 @@ class HistoryAccessTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_only_mis_can_open_forensic_audit_logs(): void
+    public function test_only_system_administrator_can_open_forensic_audit_logs(): void
     {
         $mis = User::create([
             'name' => 'MIS User',
@@ -26,8 +26,13 @@ class HistoryAccessTest extends TestCase
             'role' => 'building_admin',
         ]);
 
-        $this->actingAs($mis)->get(route('admin.logs'))->assertOk();
-        $this->actingAs($buildingAdmin)->get(route('admin.logs'))->assertForbidden();
+        $administrator = User::forceCreate([
+            'name' => 'Administrator', 'email' => 'administrator@example.com',
+            'password' => bcrypt('password'), 'role' => 'superadmin', 'is_superadmin' => true,
+        ]);
+        $this->actingAs($administrator)->get(route('admin.logs'))->assertOk();
+        $this->actingAs($mis)->get(route('admin.logs'))->assertNotFound();
+        $this->actingAs($buildingAdmin)->get(route('admin.logs'))->assertNotFound();
     }
 
     public function test_personal_history_only_contains_the_current_users_actions(): void
@@ -63,7 +68,7 @@ class HistoryAccessTest extends TestCase
             ->assertDontSee('Hidden action from another account');
     }
 
-    public function test_mis_cannot_use_the_personal_history_page(): void
+    public function test_mis_can_use_the_personal_history_page(): void
     {
         $mis = User::create([
             'name' => 'MIS User',
@@ -72,6 +77,6 @@ class HistoryAccessTest extends TestCase
             'role' => 'mis',
         ]);
 
-        $this->actingAs($mis)->get(route('history.index'))->assertForbidden();
+        $this->actingAs($mis)->get(route('history.index'))->assertOk();
     }
 }

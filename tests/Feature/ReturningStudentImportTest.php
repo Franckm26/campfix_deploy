@@ -55,7 +55,7 @@ class ReturningStudentImportTest extends TestCase
     public function test_email_match_restores_legacy_student_without_student_id(): void
     {
         Schema::table('users', fn (Blueprint $table) => $table->string('student_id')->nullable());
-        $actor = User::forceCreate(['name' => 'MIS', 'email' => 'mis@example.com', 'password' => 'unchanged', 'role' => 'mis']);
+        $actor = User::forceCreate(['name' => 'Administrator', 'email' => 'admin@example.com', 'password' => 'unchanged', 'role' => 'superadmin', 'is_superadmin' => true]);
         $this->actingAs($actor);
         $folder = UserArchiveFolder::create(['name' => 'Old Year', 'user_count' => 2]);
         $returning = User::forceCreate([
@@ -88,7 +88,7 @@ class ReturningStudentImportTest extends TestCase
             $table->string('department')->nullable();
             $table->string('level')->nullable();
         });
-        $actor = User::forceCreate(['name' => 'MIS', 'email' => 'mis@example.com', 'password' => 'unchanged', 'role' => 'mis']);
+        $actor = User::forceCreate(['name' => 'Administrator', 'email' => 'admin@example.com', 'password' => 'unchanged', 'role' => 'superadmin', 'is_superadmin' => true]);
         $this->actingAs($actor);
         $student = User::forceCreate([
             'name' => 'BSTM 1Y1 LAST,FIRST', 'email' => 'original@example.com',
@@ -124,7 +124,7 @@ class ReturningStudentImportTest extends TestCase
 
     public function test_folder_restore_does_not_count_active_imports_as_archived(): void
     {
-        $actor = User::forceCreate(['name' => 'MIS', 'email' => 'mis@example.com', 'password' => 'unchanged', 'role' => 'mis']);
+        $actor = User::forceCreate(['name' => 'Administrator', 'email' => 'admin@example.com', 'password' => 'unchanged', 'role' => 'superadmin', 'is_superadmin' => true]);
         $this->actingAs($actor);
         $folder = UserArchiveFolder::create(['name' => 'New Year', 'user_count' => 705]);
         $active = User::forceCreate([
@@ -143,7 +143,7 @@ class ReturningStudentImportTest extends TestCase
         Schema::table('users', function (Blueprint $table) {
             $table->string('student_id')->nullable();
         });
-        $actor = User::forceCreate(['name' => 'MIS', 'email' => 'mis@example.com', 'password' => 'unchanged', 'role' => 'mis']);
+        $actor = User::forceCreate(['name' => 'Administrator', 'email' => 'admin@example.com', 'password' => 'unchanged', 'role' => 'superadmin', 'is_superadmin' => true]);
         $this->actingAs($actor);
         $old = UserArchiveFolder::create(['name' => '2025-2026', 'user_count' => 3]);
         $target = UserArchiveFolder::create(['name' => '2026-2027', 'user_count' => 0]);

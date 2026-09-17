@@ -66,7 +66,7 @@
                             <div>
                                 <div style="font-weight:500">{{ $user->name }}</div>
                                 @if($user->is_superadmin)
-                                    <span class="sa-badge sa-badge-purple" style="font-size:10px">Superadmin</span>
+                                    <span class="sa-badge sa-badge-purple" style="font-size:10px">System Administrator</span>
                                 @endif
                             </div>
                         </div>

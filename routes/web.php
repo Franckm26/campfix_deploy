@@ -109,9 +109,11 @@ Route::get('/login', function () {
 })->name('login');
 
 /* WELCOME CREDENTIALS PAGE - Temporary page for users to get their login credentials */
+Route::middleware(['auth', 'superadmin'])->group(function () {
 Route::get('/welcome-credentials', [WelcomeCredentialsController::class, 'index'])->name('welcome.credentials');
 Route::get('/welcome-credentials/search/{studentId}', [WelcomeCredentialsController::class, 'search']);
 Route::post('/welcome-credentials/send/{userId}', [WelcomeCredentialsController::class, 'send']);
+});
 
 /* AUTH - Rate Limited */
 Route::middleware(['web', 'throttle:auth'])->group(function () {
@@ -392,6 +394,7 @@ Route::middleware(['auth', 'admin', 'throttle:admin'])->group(function () {
     Route::get('/admin/export-pdf', [AdminController::class, 'exportPdf'])->middleware('throttle:exports')->name('admin.export.pdf');
 
     // User management
+    Route::middleware('superadmin')->group(function () {
     Route::post('/admin/reauth', [AdminController::class, 'reauth'])->name('admin.reauth');
     Route::get('/admin/users', [AdminController::class, 'users'])->name('admin.users');
     Route::post('/admin/users', [AdminController::class, 'storeUser'])->middleware('throttle:user-management')->name('admin.users.store');
@@ -430,6 +433,7 @@ Route::middleware(['auth', 'admin', 'throttle:admin'])->group(function () {
     Route::post('/admin/deleted-users/{id}/restore', [AdminController::class, 'restoreDeletedUser'])->name('admin.deletedUsers.restore');
     Route::delete('/admin/deleted-users', [AdminController::class, 'permanentDeleteAllDeleted'])->name('admin.deletedUsers.permanentDeleteAll');
     Route::delete('/admin/deleted-users/{id}', [AdminController::class, 'permanentDeleteUser'])->name('admin.deletedUsers.permanentDelete');
+    });
 
     // Deleted reports inline actions (for inline deleted view)
     Route::post('/admin/reports/{id}/restore-deleted', [AdminController::class, 'restoreDeletedReport'])->name('admin.deletedReports.restore');
@@ -462,7 +466,7 @@ Route::middleware(['auth', 'admin', 'throttle:admin'])->group(function () {
     Route::delete('/admin/deleted-events', [AdminController::class, 'permanentDeleteAllEvents'])->name('admin.deletedEvents.permanentDeleteAll');
 
     // Forensic audit logs - MIS only, including every archive/delete mutation.
-    Route::middleware('role:mis')->group(function () {
+    Route::middleware('superadmin')->group(function () {
         Route::get('/admin/logs', [AdminController::class, 'logs'])->name('admin.logs');
         Route::post('/admin/logs/archive-all', [AdminController::class, 'archiveLogsBulk'])->name('admin.logs.archive.bulk');
         Route::post('/admin/logs/{log}/restore', [AdminController::class, 'restoreLog'])->name('admin.logs.restore');

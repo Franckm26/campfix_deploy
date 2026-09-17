@@ -9,7 +9,7 @@
     <div class="col-md-6">
         <div class="sa-card">
             <h2 style="font-size:15px;font-weight:600;color:var(--sa-text);margin:0 0 16px">
-                <i class="fas fa-shield-halved me-2" style="color:var(--sa-accent2)"></i>Superadmin Accounts
+                <i class="fas fa-shield-halved me-2" style="color:var(--sa-accent2)"></i>System Administrator Accounts
             </h2>
             @forelse($superadmins as $sa)
             <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--sa-border)">
@@ -29,7 +29,7 @@
             <p style="color:var(--sa-muted);font-size:13px">No superadmin accounts found.</p>
             @endforelse
             <a href="{{ route('superadmin.users.create') }}" class="sa-btn sa-btn-primary mt-3" style="width:100%;justify-content:center">
-                <i class="fas fa-plus"></i> Add Superadmin
+                <i class="fas fa-plus"></i> Add System Administrator
             </a>
         </div>
     </div>
@@ -51,7 +51,7 @@
                     <i class="fas fa-list-check" style="color:var(--sa-info)"></i> View All Activity Logs
                 </a>
                 <a href="{{ route('superadmin.superadmin-logs') }}" class="sa-btn sa-btn-ghost" style="justify-content:flex-start">
-                    <i class="fas fa-eye-slash" style="color:var(--sa-accent2)"></i> View Superadmin Logs
+                    <i class="fas fa-eye-slash" style="color:var(--sa-accent2)"></i> View Administrator Logs
                 </a>
                 <a href="{{ route('superadmin.analytics') }}" class="sa-btn sa-btn-ghost" style="justify-content:flex-start">
                     <i class="fas fa-chart-line" style="color:var(--sa-success)"></i> System Analytics

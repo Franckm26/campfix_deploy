@@ -76,7 +76,7 @@
     <div style="position:relative">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
             <span style="background:rgba(255,255,255,.15);padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#c4b5fd">
-                <i class="fas fa-shield-halved me-1"></i>Superadmin Access
+                <i class="fas fa-shield-halved me-1"></i>System Administrator Access
             </span>
         </div>
         <h1 style="font-size:24px;font-weight:700;color:#fff;margin:0 0 6px">Welcome back, {{ auth()->user()->name }}</h1>

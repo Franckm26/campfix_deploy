@@ -75,7 +75,7 @@
                                 <span class="sa-badge sa-badge-yellow">Force PW Change</span>
                             @endif
                             @if($user->is_superadmin)
-                                <span class="sa-badge sa-badge-purple"><i class="fas fa-shield-halved me-1"></i>Superadmin</span>
+                                <span class="sa-badge sa-badge-purple"><i class="fas fa-shield-halved me-1"></i>System Administrator</span>
                             @endif
                         </div>
                         <div style="font-size:11px;color:var(--sa-muted);margin-top:8px">

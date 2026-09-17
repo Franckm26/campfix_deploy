@@ -1,6 +1,6 @@
 @extends('superadmin.layout')
 
-@section('page_title', 'Superadmin Logs')
+@section('page_title', 'System Administrator Logs')
 
 @section('content')
 
@@ -28,7 +28,7 @@
         <table class="sa-table">
             <thead>
                 <tr>
-                    <th>Superadmin</th>
+                    <th>System Administrator</th>
                     <th>Action</th>
                     <th>Description</th>
                     <th>IP Address</th>

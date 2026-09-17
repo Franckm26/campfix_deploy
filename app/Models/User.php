@@ -129,7 +129,13 @@ class User extends Authenticatable implements JWTSubject
 
     public function isSuperAdmin(): bool
     {
-        return (bool) $this->is_superadmin;
+        return (bool) $this->is_superadmin || $this->role === 'superadmin';
+    }
+
+    public function isSystemAdministrator(): bool
+    {
+        // Retain the persisted role for compatibility with existing constraints.
+        return $this->isSuperAdmin();
     }
 
     /**
@@ -177,10 +183,9 @@ class User extends Authenticatable implements JWTSubject
     {
         $hidden = self::hiddenModules();
         
-        // MIS role automatically gets mis_tasks and module_access, so hide them from UI
+        // MIS tasks belong to the MIS role; administrative permissions do not.
         if ($role === 'mis') {
             $hidden[] = 'mis_tasks';
-            $hidden[] = 'module_access';
         }
         
         return $hidden;
@@ -210,9 +215,7 @@ class User extends Authenticatable implements JWTSubject
     {
         $map = [
             'mis' => [
-                'concerns', 'events', 'users',
-                'users_create', 'users_archive', 'users_lock', 'users_unlock', 'users_edit', 'users_delete',
-                'module_access', 'categories', 'logs', 'analytics', 'mis_tasks', 'settings',
+                'concerns', 'events', 'analytics', 'mis_tasks', 'settings',
             ],
             'school_admin' => [
                 'concerns', 'reports', 'events', 'analytics', 'settings',
@@ -253,6 +256,11 @@ class User extends Authenticatable implements JWTSubject
             return true;
         }
 
+        // Old stored permissions must not retain administrative authority.
+        if (in_array($module, ['users', 'module_access', 'logs'], true) || str_starts_with($module, 'users_')) {
+            return false;
+        }
+
         // If explicit permissions are set, use them
         if (! is_null($this->permissions)) {
             $perms = is_array($this->permissions) ? $this->permissions : json_decode($this->permissions, true);
@@ -277,11 +285,14 @@ class User extends Authenticatable implements JWTSubject
 
     public function isAdmin()
     {
-        return $this->role === 'mis';
+        return $this->isSystemAdministrator();
     }
 
     public function getRoleDisplayNameAttribute(): string
     {
+        if ($this->isSystemAdministrator()) {
+            return 'System Administrator';
+        }
         return match ($this->role) {
             'mis' => 'MIS',
             'school_admin' => 'School Administrator',
@@ -292,7 +303,7 @@ class User extends Authenticatable implements JWTSubject
             'maintenance' => 'Maintenance',
             'faculty' => 'Faculty',
             'student' => 'Student',
-            'superadmin' => 'Superadmin',
+            'superadmin' => 'System Administrator',
             default => str((string) $this->role)->replace('_', ' ')->title()->toString(),
         };
     }

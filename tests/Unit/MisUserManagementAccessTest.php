@@ -7,7 +7,7 @@ use PHPUnit\Framework\TestCase;
 
 class MisUserManagementAccessTest extends TestCase
 {
-    public function test_mis_user_can_manage_the_account_that_created_them(): void
+    public function test_creator_relationship_does_not_grant_mis_user_management(): void
     {
         $creator = new User(['role' => 'mis']);
         $creator->id = 10;
@@ -17,6 +17,8 @@ class MisUserManagementAccessTest extends TestCase
 
         $this->assertFalse($creator->isProtectedFrom($misUser));
         $this->assertFalse($misUser->isProtectedFrom($creator));
+        $this->assertFalse($misUser->canAccess('users'));
+        $this->assertFalse($creator->canAccess('users_delete'));
     }
 
     public function test_user_role_has_a_readable_display_name(): void

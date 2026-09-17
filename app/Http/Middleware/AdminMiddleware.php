@@ -23,7 +23,7 @@ class AdminMiddleware
 
         // Allow MIS, School Admin, and Building Admin to access admin routes
         // School Administrator, Academic Head, and Program Head should use the principal dashboard
-        if (! in_array($user->role, ['mis', 'school_admin', 'building_admin'])) {
+        if (! $user->isSystemAdministrator() && ! in_array($user->role, ['mis', 'school_admin', 'building_admin'])) {
             SecurityLogger::logUnauthorizedAccess([
                 'user_id' => $user->id,
                 'reason' => 'Insufficient role for admin access',

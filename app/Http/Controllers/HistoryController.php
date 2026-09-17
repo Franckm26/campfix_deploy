@@ -16,9 +16,9 @@ class HistoryController extends Controller
         $user = $request->user();
 
         abort_if(
-            $user->role === 'mis' || $user->role === 'superadmin' || $user->is_superadmin,
+            $user->isSystemAdministrator(),
             403,
-            'MIS accounts must use the Audit Logs module.'
+            'System administrators must use the Audit Logs module.'
         );
 
         $validated = $request->validate([

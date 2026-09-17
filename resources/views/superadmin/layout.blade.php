@@ -367,7 +367,7 @@
 {{-- Sidebar --}}
 <aside class="sa-sidebar" id="saSidebar">
     <div class="sa-brand">
-        <div class="sa-brand-badge"><i class="fas fa-shield-halved"></i> Superadmin</div>
+        <div class="sa-brand-badge"><i class="fas fa-shield-halved"></i> System Administrator</div>
         <p class="sa-brand-title">CampFix</p>
         <p class="sa-brand-sub">System Control Panel</p>
     </div>
@@ -382,6 +382,9 @@
         </a>
 
         <div class="sa-nav-section">Management</div>
+        <a href="{{ route('admin.users') }}" class="sa-nav-link"><i class="fas fa-users-gear"></i> User Operations / Import</a>
+        <a href="{{ route('admin.management') }}" class="sa-nav-link"><i class="fas fa-tools"></i> Operations Setup</a>
+        <a href="{{ route('welcome.credentials') }}" class="sa-nav-link"><i class="fas fa-envelope"></i> Welcome Emails</a>
         <a href="{{ route('superadmin.users') }}" class="sa-nav-link {{ request()->routeIs('superadmin.users*') ? 'active' : '' }}">
             <i class="fas fa-users"></i> All Users
         </a>
@@ -403,7 +406,7 @@
             <i class="fas fa-list-check"></i> Activity Logs
         </a>
         <a href="{{ route('superadmin.superadmin-logs') }}" class="sa-nav-link {{ request()->routeIs('superadmin.superadmin-logs') ? 'active' : '' }}">
-            <i class="fas fa-eye-slash"></i> Superadmin Logs
+            <i class="fas fa-eye-slash"></i> Administrator Logs
         </a>
 
         <div class="sa-nav-section">System</div>
@@ -420,7 +423,7 @@
             <div class="sa-avatar">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</div>
             <div>
                 <div class="sa-user-name">{{ auth()->user()->name }}</div>
-                <div class="sa-user-role">Superadmin</div>
+                <div class="sa-user-role">System Administrator</div>
             </div>
         </div>
         <form method="POST" action="/logout">
@@ -446,7 +449,7 @@
             <button class="sa-theme-toggle" id="themeToggle" title="Toggle light/dark mode" onclick="toggleTheme()">
                 <i class="fas fa-sun" id="themeIcon"></i>
             </button>
-            <span class="sa-badge sa-badge-purple"><i class="fas fa-shield-halved me-1"></i>Superadmin</span>
+            <span class="sa-badge sa-badge-purple"><i class="fas fa-shield-halved me-1"></i>System Administrator</span>
         </div>
     </div>
 

@@ -1415,7 +1415,7 @@ const importRoleDefaults = {
     student: ['concerns','settings'],
     faculty: ['events','concerns','settings'],
     staff: ['events','concerns','settings'], // Default for staff, will be overridden by specific role
-    mis: ['concerns','events','users','users_create','users_archive','users_lock','users_unlock','users_edit','users_delete','module_access','categories','logs','mis_tasks','settings'],
+    mis: @json(\App\Models\User::defaultPermissions('mis')),
     school_admin: ['concerns','reports','events','analytics','settings'],
     building_admin: ['concerns','reports','events','analytics','settings'],
     academic_head: ['events','settings'],
@@ -1886,7 +1886,7 @@ function initializeUserTableEvents() {
 
 // â”€â”€ Role default permissions map (mirrors User::defaultPermissions) â”€â”€
 const roleDefaults = {
-    mis:                  ['concerns','events','users','users_create','users_archive','users_lock','users_unlock','users_edit','users_delete','module_access','categories','logs','mis_tasks','settings'],
+    mis: @json(\App\Models\User::defaultPermissions('mis')),
     school_admin:         ['concerns','reports','events','analytics','settings'],
     building_admin:       ['concerns','reports','events','analytics','settings'],
     academic_head:        ['events','settings'],
@@ -1928,7 +1928,6 @@ function getHiddenModulesForRole(role) {
     // MIS role automatically gets mis_tasks and module_access, so hide them from UI
     if (role === 'mis') {
         hidden.push('mis_tasks');
-        hidden.push('module_access');
     }
     
     console.log('Hidden modules for role', role, ':', hidden);
@@ -2123,7 +2122,7 @@ function onRoleChange(role) {
     const hiddenModules = ['settings', 'categories'];  // Always hidden for all roles
     const isMis = role === 'mis';
     if (isMis) {
-        hiddenModules.push('module_access', 'mis_tasks');  // Also hidden for MIS
+        hiddenModules.push('mis_tasks');
     }
     
     // Show/hide all modules based on role
@@ -2166,7 +2165,7 @@ function applyRoleDefaults(role) {
     const isMis = role === 'mis';
     
     if (isMis) {
-        hiddenModules.push('module_access', 'mis_tasks');  // Also hidden for MIS role
+        hiddenModules.push('mis_tasks');
     }
     
     document.querySelectorAll('#addUserModal input[name="permissions[]"]').forEach(cb => {
@@ -2271,7 +2270,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
                 
                 // For MIS role, also hide mis_tasks and module_access (auto-granted)
-                const misModules = ['module_access', 'mis_tasks'];
+                const misModules = ['mis_tasks'];
                 misModules.forEach(moduleKey => {
                     const moduleDiv = modal.querySelector(`.permission-module[data-module="${moduleKey}"]`);
                     if (moduleDiv) {
@@ -2695,7 +2694,7 @@ async function editUser(userUuid) {
             // Get hidden modules for this role
             const hiddenModules = ['settings', 'categories'];  // Base hidden: settings, categories
             const isMis = role === 'mis';
-            const hidden = isMis ? [...hiddenModules, 'mis_tasks', 'module_access'] : hiddenModules;
+            const hidden = isMis ? [...hiddenModules, 'mis_tasks'] : hiddenModules;
             
             let moduleHtml = '<div id="swal-module-access" style="max-height:400px;overflow-y:auto">';
             moduleHtml += '<div style="margin-bottom:12px"><strong style="color:#0d6efd"><i class="fas fa-shield-halved me-2"></i>Module Access</strong><br><small class="text-muted">Defaults update automatically when the role changes.</small></div>';
@@ -3000,7 +2999,7 @@ function onSwalRoleChange(role) {
     // Get hidden modules for this role
     const hiddenModules = ['settings', 'categories'];
     const isMis = role === 'mis';
-    const hidden = isMis ? [...hiddenModules, 'mis_tasks', 'module_access'] : hiddenModules;
+    const hidden = isMis ? [...hiddenModules, 'mis_tasks'] : hiddenModules;
     
     // Rebuild the module access HTML
     const modulesGrid = moduleContainer.querySelector('[data-permission-grid]');

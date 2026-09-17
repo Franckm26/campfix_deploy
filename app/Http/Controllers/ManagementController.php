@@ -26,7 +26,7 @@ class ManagementController extends Controller
     // ─── Access guard ────────────────────────────────────────────────────────
     private function guardBuildingAdmin()
     {
-        if (auth()->user()->role !== 'building_admin') {
+        if (! auth()->user()->isSystemAdministrator() && auth()->user()->role !== 'building_admin') {
             abort(403, 'Access denied.');
         }
     }
