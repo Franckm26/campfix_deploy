@@ -183,4 +183,34 @@ class UserEditNotificationTest extends TestCase
             $this->assertFalse($user->isSystemAdministrator());
         }
     }
+
+    public function test_system_administrator_can_change_own_role_and_is_redirected_out_of_user_management(): void
+    {
+        Notification::fake();
+        Mail::fake();
+
+        $administrator = User::create([
+            'name' => 'System Administrator', 'email' => 'self-admin@example.com',
+            'password' => bcrypt('password'), 'role' => 'admin',
+            'is_admin' => true, 'is_superadmin' => true, 'permissions' => [],
+        ]);
+
+        $this->actingAs($administrator)->putJson(route('admin.users.update', $administrator->uuid), [
+            'name' => $administrator->name,
+            'backup_email' => null,
+            'role' => 'faculty',
+            'phone' => null,
+            'department' => null,
+            'student_id' => null,
+            'permissions' => User::defaultPermissions('faculty'),
+        ])->assertOk()
+            ->assertJsonPath('user.role', 'faculty')
+            ->assertJsonPath('user.is_system_administrator', false)
+            ->assertJsonPath('redirect', route('dashboard'));
+
+        $administrator->refresh();
+        $this->assertSame('faculty', $administrator->role);
+        $this->assertFalse((bool) $administrator->is_admin);
+        $this->assertFalse((bool) $administrator->is_superadmin);
+    }
 }

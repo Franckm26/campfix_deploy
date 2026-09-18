@@ -61,7 +61,11 @@ class DatabaseTransaction
         // A number of existing controllers intentionally convert caught
         // exceptions into redirects with a flashed error message. Treat those
         // as failed units of work too, so earlier writes are not committed.
-        if ($request->hasSession()) {
+        // Flash errors are used by legacy controllers when redirecting after a
+        // caught failure. They must not roll back an otherwise successful JSON
+        // response: a stale/unrelated flash value would make the browser show
+        // success while silently discarding the database update.
+        if ($response->isRedirection() && $request->hasSession()) {
             $newFlashKeys = (array) $request->session()->get('_flash.new', []);
             if (in_array('error', $newFlashKeys, true)) {
                 return true;
