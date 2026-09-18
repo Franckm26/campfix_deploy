@@ -183,59 +183,6 @@
     </a>
 </div>
 
-{{-- ── SYSTEM MODULES ── --}}
-<div class="section-title"><i class="fas fa-gear"></i> System</div>
-<div class="row g-3 mb-4">
-    <div class="col-6 col-md-3 col-xl-2">
-        <a href="{{ route('superadmin.categories') }}" class="module-card indigo">
-            <div class="module-icon" style="background:rgba(99,102,241,.15);color:#818cf8"><i class="fas fa-tags"></i></div>
-            <div class="module-title">Categories</div>
-            <div class="module-count">{{ number_format($stats['total_categories']) }}</div>
-            <div class="module-sub">Active categories</div>
-        </a>
-    </div>
-    <div class="col-6 col-md-3 col-xl-2">
-        <a href="{{ route('admin.logs') }}" class="module-card pink">
-            <div class="module-icon" style="background:rgba(236,72,153,.15);color:#f472b6"><i class="fas fa-list-check"></i></div>
-            <div class="module-title">Audit Logs</div>
-            <div class="module-count">{{ number_format($stats['total_activity_logs']) }}</div>
-            <div class="module-sub">All system events</div>
-        </a>
-    </div>
-    <div class="col-6 col-md-3 col-xl-2">
-        <a href="{{ route('superadmin.superadmin-logs') }}" class="module-card purple">
-            <div class="module-icon" style="background:rgba(124,58,237,.15);color:#a855f7"><i class="fas fa-eye-slash"></i></div>
-            <div class="module-title">SA Logs</div>
-            <div class="module-count" style="font-size:18px;padding-top:6px">Private</div>
-            <div class="module-sub">Hidden from admins</div>
-        </a>
-    </div>
-    <div class="col-6 col-md-3 col-xl-2">
-        <a href="{{ route('superadmin.analytics') }}" class="module-card green">
-            <div class="module-icon" style="background:rgba(34,197,94,.15);color:#4ade80"><i class="fas fa-chart-line"></i></div>
-            <div class="module-title">Analytics</div>
-            <div class="module-count" style="font-size:18px;padding-top:6px">Charts</div>
-            <div class="module-sub">12-month trends</div>
-        </a>
-    </div>
-    <div class="col-6 col-md-3 col-xl-2">
-        <a href="{{ route('superadmin.settings') }}" class="module-card teal">
-            <div class="module-icon" style="background:rgba(20,184,166,.15);color:#2dd4bf"><i class="fas fa-gear"></i></div>
-            <div class="module-title">Settings</div>
-            <div class="module-count" style="font-size:18px;padding-top:6px">System</div>
-            <div class="module-sub">Config & info</div>
-        </a>
-    </div>
-    <div class="col-6 col-md-3 col-xl-2">
-        <a href="{{ route('dashboard') }}" class="module-card" style="border-color:var(--sa-border)">
-            <div class="module-icon" style="background:rgba(255,255,255,.06);color:var(--sa-muted)"><i class="fas fa-arrow-left"></i></div>
-            <div class="module-title" style="color:var(--sa-muted)">Back to App</div>
-            <div class="module-count" style="font-size:18px;padding-top:6px;color:var(--sa-muted)">App</div>
-            <div class="module-sub">Regular dashboard</div>
-        </a>
-    </div>
-</div>
-
 {{-- ── Charts + Panels Row ── --}}
 <div class="row g-3 mb-4">
     {{-- Registration Chart --}}

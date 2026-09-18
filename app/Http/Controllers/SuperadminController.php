@@ -40,8 +40,6 @@ class SuperadminController extends Controller
             'open_reports'        => Report::where('is_deleted', false)->whereNotIn('status', ['Resolved'])->count(),
             'total_events'        => EventRequest::withoutGlobalScopes()->count(),
             'pending_events'      => EventRequest::where('status', 'Pending')->count(),
-            'total_categories'    => Category::count(),
-            'total_activity_logs' => ActivityLog::count(),
         ];
 
         // Users by role (include superadmin)

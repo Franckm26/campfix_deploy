@@ -40,6 +40,9 @@ class SystemAdministratorAccessTest extends TestCase
         $this->assertStringContainsString('Open Concerns', $dashboard);
         $this->assertStringContainsString('Open Reports', $dashboard);
         $this->assertStringContainsString('Pending Events', $dashboard);
+        $this->assertStringNotContainsString('>Back to App</div>', $dashboard);
+        $this->assertStringNotContainsString('>Categories</div>', $dashboard);
+        $this->assertStringNotContainsString('<i class="fas fa-gear"></i> System</div>', $dashboard);
     }
 
     public function test_system_administrator_sidebar_reuses_operational_modules_without_mis_duplicates(): void
