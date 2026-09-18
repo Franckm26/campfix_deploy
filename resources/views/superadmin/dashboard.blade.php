@@ -1,6 +1,8 @@
 @extends('superadmin.layout')
 
-@section('page_title', 'System Dashboard')
+@section('page_title')
+<h2 class="fw-bold mb-0">Dashboard</h2>
+@endsection
 
 @section('extra_styles')
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -64,25 +66,22 @@
         height: 1px;
         background: var(--sa-border);
     }
+    .operations-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+        margin-bottom: .5rem;
+    }
+    @media (min-width: 768px) {
+        .operations-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    @media (min-width: 1200px) {
+        .operations-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+    }
 </style>
 @endsection
 
 @section('content')
-
-{{-- Welcome Banner --}}
-<div style="background:linear-gradient(135deg,#1e1b4b 0%,#312e81 50%,#4c1d95 100%);border-radius:14px;padding:28px 32px;margin-bottom:28px;position:relative;overflow:hidden">
-    <div style="position:absolute;top:-20px;right:-20px;width:180px;height:180px;background:rgba(255,255,255,.04);border-radius:50%"></div>
-    <div style="position:absolute;bottom:-40px;right:60px;width:120px;height:120px;background:rgba(255,255,255,.03);border-radius:50%"></div>
-    <div style="position:relative">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-            <span style="background:rgba(255,255,255,.15);padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#c4b5fd">
-                <i class="fas fa-shield-halved me-1"></i>System Administrator Access
-            </span>
-        </div>
-        <h1 style="font-size:24px;font-weight:700;color:#fff;margin:0 0 6px">Welcome back, {{ auth()->user()->name }}</h1>
-        <p style="color:#c4b5fd;margin:0;font-size:13px">Daily operations · User management · System oversight · {{ now()->format('l, F j, Y') }}</p>
-    </div>
-</div>
 
 {{-- ── USERS MODULE ── --}}
 <div class="section-title"><i class="fas fa-users"></i> Users</div>
@@ -137,75 +136,51 @@
     </div>
 </div>
 
-{{-- ── CONCERNS MODULE ── --}}
-<div class="section-title"><i class="fas fa-triangle-exclamation"></i> Concerns</div>
-<div class="row g-3 mb-2">
-    <div class="col-6 col-md-3 col-xl-2">
-        <a href="{{ route('superadmin.concerns') }}" class="module-card purple">
-            <div class="module-icon" style="background:rgba(124,58,237,.15);color:#a855f7"><i class="fas fa-triangle-exclamation"></i></div>
-            <div class="module-title">All Concerns</div>
-            <div class="module-count">{{ number_format($stats['total_concerns']) }}</div>
-            <div class="module-sub">System-wide total</div>
-        </a>
-    </div>
-    <div class="col-6 col-md-3 col-xl-2">
-        <a href="{{ route('superadmin.concerns', ['status'=>'Pending']) }}" class="module-card yellow">
-            <div class="module-icon" style="background:rgba(245,158,11,.15);color:#fbbf24"><i class="fas fa-clock"></i></div>
-            <div class="module-title">Open</div>
-            <div class="module-count">{{ number_format($stats['open_concerns']) }}</div>
-            <div class="module-sub">Unresolved</div>
-        </a>
-    </div>
-    <div class="col-6 col-md-3 col-xl-2">
-        <a href="{{ route('superadmin.concerns', ['status'=>'Resolved']) }}" class="module-card green">
-            <div class="module-icon" style="background:rgba(34,197,94,.15);color:#4ade80"><i class="fas fa-circle-check"></i></div>
-            <div class="module-title">Resolved</div>
-            <div class="module-count">{{ number_format($stats['resolved_concerns']) }}</div>
-            <div class="module-sub">All time</div>
-        </a>
-    </div>
-</div>
-
-{{-- ── REPORTS MODULE ── --}}
-<div class="section-title"><i class="fas fa-file-lines"></i> Reports</div>
-<div class="row g-3 mb-2">
-    <div class="col-6 col-md-3 col-xl-2">
-        <a href="{{ route('admin.reports') }}" class="module-card blue">
-            <div class="module-icon" style="background:rgba(59,130,246,.15);color:#60a5fa"><i class="fas fa-file-lines"></i></div>
-            <div class="module-title">All Reports</div>
-            <div class="module-count">{{ number_format($stats['total_reports']) }}</div>
-            <div class="module-sub">System-wide total</div>
-        </a>
-    </div>
-    <div class="col-6 col-md-3 col-xl-2">
-        <a href="{{ route('admin.reports', ['status'=>'Pending']) }}" class="module-card yellow">
-            <div class="module-icon" style="background:rgba(245,158,11,.15);color:#fbbf24"><i class="fas fa-hourglass-half"></i></div>
-            <div class="module-title">Open</div>
-            <div class="module-count">{{ number_format($stats['open_reports']) }}</div>
-            <div class="module-sub">Unresolved</div>
-        </a>
-    </div>
-</div>
-
-{{-- ── EVENTS MODULE ── --}}
-<div class="section-title"><i class="fas fa-calendar-days"></i> Event Requests</div>
-<div class="row g-3 mb-2">
-    <div class="col-6 col-md-3 col-xl-2">
-        <a href="{{ route('admin.events') }}" class="module-card teal">
-            <div class="module-icon" style="background:rgba(20,184,166,.15);color:#2dd4bf"><i class="fas fa-calendar-days"></i></div>
-            <div class="module-title">All Events</div>
-            <div class="module-count">{{ number_format($stats['total_events']) }}</div>
-            <div class="module-sub">System-wide total</div>
-        </a>
-    </div>
-    <div class="col-6 col-md-3 col-xl-2">
-        <a href="{{ route('admin.events', ['view'=>'pending']) }}" class="module-card yellow">
-            <div class="module-icon" style="background:rgba(245,158,11,.15);color:#fbbf24"><i class="fas fa-calendar-clock"></i></div>
-            <div class="module-title">Pending</div>
-            <div class="module-count">{{ number_format($stats['pending_events']) }}</div>
-            <div class="module-sub">Awaiting approval</div>
-        </a>
-    </div>
+{{-- ── DAILY OPERATIONS ── --}}
+<div class="section-title"><i class="fas fa-clipboard-list"></i> Daily Operations</div>
+<div class="operations-grid">
+    <a href="{{ route('superadmin.concerns') }}" class="module-card purple">
+        <div class="module-icon" style="background:rgba(124,58,237,.15);color:#a855f7"><i class="fas fa-triangle-exclamation"></i></div>
+        <div class="module-title">All Concerns</div>
+        <div class="module-count">{{ number_format($stats['total_concerns']) }}</div>
+        <div class="module-sub">System-wide total</div>
+    </a>
+    <a href="{{ route('superadmin.concerns', ['status'=>'Pending']) }}" class="module-card yellow">
+        <div class="module-icon" style="background:rgba(245,158,11,.15);color:#fbbf24"><i class="fas fa-clock"></i></div>
+        <div class="module-title">Open Concerns</div>
+        <div class="module-count">{{ number_format($stats['open_concerns']) }}</div>
+        <div class="module-sub">Unresolved</div>
+    </a>
+    <a href="{{ route('superadmin.concerns', ['status'=>'Resolved']) }}" class="module-card green">
+        <div class="module-icon" style="background:rgba(34,197,94,.15);color:#4ade80"><i class="fas fa-circle-check"></i></div>
+        <div class="module-title">Resolved Concerns</div>
+        <div class="module-count">{{ number_format($stats['resolved_concerns']) }}</div>
+        <div class="module-sub">All time</div>
+    </a>
+    <a href="{{ route('admin.reports') }}" class="module-card blue">
+        <div class="module-icon" style="background:rgba(59,130,246,.15);color:#60a5fa"><i class="fas fa-file-lines"></i></div>
+        <div class="module-title">All Reports</div>
+        <div class="module-count">{{ number_format($stats['total_reports']) }}</div>
+        <div class="module-sub">System-wide total</div>
+    </a>
+    <a href="{{ route('admin.reports', ['status'=>'Pending']) }}" class="module-card yellow">
+        <div class="module-icon" style="background:rgba(245,158,11,.15);color:#fbbf24"><i class="fas fa-hourglass-half"></i></div>
+        <div class="module-title">Open Reports</div>
+        <div class="module-count">{{ number_format($stats['open_reports']) }}</div>
+        <div class="module-sub">Unresolved</div>
+    </a>
+    <a href="{{ route('admin.events') }}" class="module-card teal">
+        <div class="module-icon" style="background:rgba(20,184,166,.15);color:#2dd4bf"><i class="fas fa-calendar-days"></i></div>
+        <div class="module-title">All Events</div>
+        <div class="module-count">{{ number_format($stats['total_events']) }}</div>
+        <div class="module-sub">System-wide total</div>
+    </a>
+    <a href="{{ route('admin.events', ['view'=>'pending']) }}" class="module-card yellow">
+        <div class="module-icon" style="background:rgba(245,158,11,.15);color:#fbbf24"><i class="fas fa-calendar-clock"></i></div>
+        <div class="module-title">Pending Events</div>
+        <div class="module-count">{{ number_format($stats['pending_events']) }}</div>
+        <div class="module-sub">Awaiting approval</div>
+    </a>
 </div>
 
 {{-- ── SYSTEM MODULES ── --}}

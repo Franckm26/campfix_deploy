@@ -28,6 +28,20 @@ class SystemAdministratorAccessTest extends TestCase
         $this->assertStringNotContainsString("localStorage.getItem('sa_theme')", $layout);
     }
 
+    public function test_system_dashboard_uses_compact_header_and_aligned_operations_cards(): void
+    {
+        $dashboard = file_get_contents(resource_path('views/superadmin/dashboard.blade.php'));
+
+        $this->assertStringContainsString('<h2 class="fw-bold mb-0">Dashboard</h2>', $dashboard);
+        $this->assertStringNotContainsString('Welcome back,', $dashboard);
+        $this->assertStringNotContainsString('System Dashboard', $dashboard);
+        $this->assertStringContainsString('grid-template-columns: repeat(7, minmax(0, 1fr))', $dashboard);
+        $this->assertStringContainsString('<div class="operations-grid">', $dashboard);
+        $this->assertStringContainsString('Open Concerns', $dashboard);
+        $this->assertStringContainsString('Open Reports', $dashboard);
+        $this->assertStringContainsString('Pending Events', $dashboard);
+    }
+
     public function test_system_administrator_sidebar_reuses_operational_modules_without_mis_duplicates(): void
     {
         $layout = file_get_contents(resource_path('views/layouts/app.blade.php'));
