@@ -335,7 +335,7 @@
                                 <td>{{ $user->name }}</td>
                                 <td>{{ $user->email }}</td>
                                 <td>
-                                    @php $staffRoles = ['mis','school_admin','building_admin','academic_head','program_head','principal_assistant']; @endphp
+                                    @php $staffRoles = ['admin','superadmin','mis','school_admin','building_admin','academic_head','program_head','principal_assistant']; @endphp
                                     @if($user->department)
                                         {{ $user->department }}{{ $user->level ? ' - ' . $user->level : '' }}
                                     @elseif(in_array($user->role, $staffRoles))
@@ -416,7 +416,7 @@
                             <div class="user-card-field">
                                 <span class="user-card-label">Department:</span>
                                 <span class="user-card-value">
-                                    @php $staffRoles = ['mis','school_admin','building_admin','academic_head','program_head','principal_assistant']; @endphp
+                                    @php $staffRoles = ['admin','superadmin','mis','school_admin','building_admin','academic_head','program_head','principal_assistant']; @endphp
                                     @if($user->department)
                                         {{ $user->department }}{{ $user->level ? ' - ' . $user->level : '' }}
                                     @elseif(in_array($user->role, $staffRoles))
