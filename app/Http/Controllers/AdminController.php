@@ -1528,57 +1528,6 @@ class AdminController extends Controller
             });
         }
 
-        $reportStatsBase = Report::query()->forOperationalRole($operationalUser);
-        $reportStats = [
-            'total' => (clone $reportStatsBase)->where('is_deleted', false)
-                ->where(function ($q) {
-                    $q->where('building_admin_archived', false)
-                        ->where('mis_archived', false)
-                        ->where('school_admin_archived', false)
-                        ->where('admin_archived', false);
-                })->count(),
-            'pending' => (clone $reportStatsBase)->where('is_deleted', false)
-                ->where('status', 'Pending')
-                ->where(function ($q) {
-                    $q->where('building_admin_archived', false)
-                        ->where('mis_archived', false)
-                        ->where('school_admin_archived', false)
-                        ->where('admin_archived', false);
-                })->count(),
-            'assigned' => (clone $reportStatsBase)->where('is_deleted', false)
-                ->where('status', 'Assigned')
-                ->where(function ($q) {
-                    $q->where('building_admin_archived', false)
-                        ->where('mis_archived', false)
-                        ->where('school_admin_archived', false)
-                        ->where('admin_archived', false);
-                })->count(),
-            'in_progress' => (clone $reportStatsBase)->where('is_deleted', false)
-                ->where('status', 'In Progress')
-                ->where(function ($q) {
-                    $q->where('building_admin_archived', false)
-                        ->where('mis_archived', false)
-                        ->where('school_admin_archived', false)
-                        ->where('admin_archived', false);
-                })->count(),
-            'resolved' => (clone $reportStatsBase)->where('is_deleted', false)
-                ->where('status', 'Resolved')
-                ->where(function ($q) {
-                    $q->where('building_admin_archived', false)
-                        ->where('mis_archived', false)
-                        ->where('school_admin_archived', false)
-                        ->where('admin_archived', false);
-                })->count(),
-            'critical' => (clone $reportStatsBase)->where('is_deleted', false)
-                ->where('severity', 'critical')
-                ->where(function ($q) {
-                    $q->where('building_admin_archived', false)
-                        ->where('mis_archived', false)
-                        ->where('school_admin_archived', false)
-                        ->where('admin_archived', false);
-                })->count(),
-        ];
-
         $reports = $query
             ->orderByRaw("CASE status WHEN 'Pending' THEN 1 WHEN 'Assigned' THEN 2 WHEN 'In Progress' THEN 3 WHEN 'Resolved' THEN 4 ELSE 5 END")
             ->orderBy('created_at', 'desc')
@@ -1589,8 +1538,6 @@ class AdminController extends Controller
             'viewType' => $viewType,
             'reports' => $reports,
             'categories' => $categories,
-            'totalReports' => $reportStats['total'],
-            'reportStats' => $reportStats,
             'totalCost' => 0,
             'groupedReports' => collect(),
             'locationStats' => collect(),

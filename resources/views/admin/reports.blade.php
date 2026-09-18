@@ -308,44 +308,6 @@
     </div>
 
     @if(($viewType ?? 'active') == 'active')
-    <!-- Summary Cards -->
-    @if(auth()->user()->role !== 'building_admin')
-    <div class="row mb-4" style="display: flex !important;">
-        <div class="col-md-3">
-            <div class="card bg-primary text-white">
-                <div class="card-body">
-                    <h5>Total</h5>
-                    <h2>{{ $reportStats['total'] ?? $reports->count() }}</h2>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-warning">
-                <div class="card-body">
-                    <h5>Pending</h5>
-                    <h2>{{ $reportStats['pending'] ?? $reports->where('status', 'Pending')->count() }}</h2>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-success text-white">
-                <div class="card-body">
-                    <h5>Resolved</h5>
-                    <h2>{{ $reportStats['resolved'] ?? $reports->where('status', 'Resolved')->count() }}</h2>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-danger text-white">
-                <div class="card-body">
-                    <h5>Critical</h5>
-                    <h2>{{ $reportStats['critical'] ?? $reports->where('severity', 'critical')->count() }}</h2>
-                </div>
-            </div>
-        </div>
-    </div>
-    @endif
-
     <!-- Reports Table -->
     <div class="card" style="display: block !important;">
         <div class="card-body" style="display: block !important;">
