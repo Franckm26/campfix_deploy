@@ -394,25 +394,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
         {{-- System Administrator navigation --}}
         @if(auth()->user()->isSystemAdministrator())
-            @php
-                $registeredModules = \App\Models\User::allModules();
-                $administratorModuleNavigation = [
-                    'users' => ['route' => 'admin.users', 'icon' => 'fa-users', 'active' => ['admin/users*', 'system-admin/users*']],
-                    'module_access' => ['route' => 'admin.management', 'icon' => 'fa-shield-halved', 'active' => ['admin/management*', 'system-admin/management*']],
-                    'reports' => ['route' => 'superadmin.reports', 'icon' => 'fa-file-alt', 'active' => ['system-admin/reports*']],
-                    'events' => ['route' => 'superadmin.events', 'icon' => 'fa-calendar-alt', 'active' => ['system-admin/events*']],
-                    'analytics' => ['route' => 'superadmin.analytics', 'icon' => 'fa-chart-line', 'active' => ['system-admin/analytics*']],
-                    'logs' => ['route' => 'superadmin.activity-logs', 'icon' => 'fa-history', 'active' => ['system-admin/activity-logs*']],
-                    'settings' => ['route' => 'superadmin.settings', 'icon' => 'fa-cog', 'active' => ['system-admin/settings*']],
-                ];
-            @endphp
-            @foreach($administratorModuleNavigation as $moduleKey => $navigation)
-                @if(isset($registeredModules[$moduleKey]) && auth()->user()->canAccess($moduleKey))
-                    <a href="{{ route($navigation['route']) }}" class="{{ collect($navigation['active'])->contains(fn ($pattern) => Request::is($pattern)) ? 'active' : '' }}">
-                        <i class="fas {{ $navigation['icon'] }}"></i> {{ $registeredModules[$moduleKey]['label'] }}
-                    </a>
-                @endif
-            @endforeach
+            <a href="{{ route('admin.users') }}" class="{{ Request::is('admin/users*') || Request::is('system-admin/users*') ? 'active' : '' }}"><i class="fas fa-users"></i> User Management</a>
+            <a href="{{ route('admin.reports') }}" class="{{ Request::is('admin/reports*') || Request::is('system-admin/reports*') ? 'active' : '' }}"><i class="fas fa-file-alt"></i> Reports</a>
+            <a href="{{ route('admin.events') }}" class="{{ Request::is('admin/events*') || Request::is('system-admin/events*') ? 'active' : '' }}"><i class="fas fa-calendar-alt"></i> Events</a>
+            <a href="{{ route('admin.management') }}" class="{{ Request::is('admin/management*') ? 'active' : '' }}"><i class="fas fa-tools"></i> Management</a>
+            <a href="{{ route('superadmin.analytics') }}" class="{{ Request::is('system-admin/analytics*') ? 'active' : '' }}"><i class="fas fa-chart-line"></i> Analytics</a>
+            <a href="{{ route('superadmin.activity-logs') }}" class="{{ Request::is('system-admin/activity-logs*') ? 'active' : '' }}"><i class="fas fa-history"></i> Audit Logs</a>
+            <a href="{{ route('settings.index') }}" class="{{ Request::is('settings') ? 'active' : '' }}"><i class="fas fa-cog"></i> Settings</a>
         @endif
         @if(auth()->user()->role === 'building_admin')
             {{-- Reports dropdown for building admin --}}

@@ -458,8 +458,8 @@ class SuperadminController extends Controller
 
         $operationsOverview = collect([
             ['label' => 'Open concerns', 'count' => $openConcerns, 'url' => route('superadmin.concerns')],
-            ['label' => 'Open reports', 'count' => $openReports, 'url' => route('superadmin.reports', ['status' => 'Pending'])],
-            ['label' => 'Pending event requests', 'count' => $pendingEvents, 'url' => route('superadmin.events', ['status' => 'Pending'])],
+            ['label' => 'Open reports', 'count' => $openReports, 'url' => route('admin.reports', ['status' => 'Pending'])],
+            ['label' => 'Pending event requests', 'count' => $pendingEvents, 'url' => route('admin.events', ['view' => 'pending'])],
             ['label' => 'Locked accounts', 'count' => $lockedUsers, 'url' => route('admin.users', ['view' => 'locked'])],
             ['label' => 'Archived users', 'count' => $archivedUsers, 'url' => route('admin.users', ['view' => 'archives'])],
             ['label' => 'Deleted users', 'count' => $deletedUsers, 'url' => route('admin.users', ['view' => 'deleted'])],

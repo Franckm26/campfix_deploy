@@ -590,10 +590,10 @@ Route::middleware(['auth', 'superadmin'])->prefix('system-admin')->name('superad
     Route::get('/concerns', [\App\Http\Controllers\SuperadminController::class, 'concerns'])->name('concerns');
     Route::delete('/concerns/{id}/force-delete', [\App\Http\Controllers\SuperadminController::class, 'forceDeleteConcern'])->name('concerns.force-delete');
     
-    Route::get('/reports', [\App\Http\Controllers\SuperadminController::class, 'reports'])->name('reports');
+    Route::get('/reports', [AdminController::class, 'reports'])->name('reports');
     Route::delete('/reports/{id}/force-delete', [\App\Http\Controllers\SuperadminController::class, 'forceDeleteReport'])->name('reports.force-delete');
     
-    Route::get('/events', [\App\Http\Controllers\SuperadminController::class, 'events'])->name('events');
+    Route::get('/events', [EventRequestController::class, 'adminIndex'])->name('events');
     Route::delete('/events/{id}/force-delete', [\App\Http\Controllers\SuperadminController::class, 'forceDeleteEvent'])->name('events.force-delete');
     
     // Activity Logs

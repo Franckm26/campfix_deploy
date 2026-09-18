@@ -170,7 +170,7 @@
 <div class="section-title"><i class="fas fa-file-lines"></i> Reports</div>
 <div class="row g-3 mb-2">
     <div class="col-6 col-md-3 col-xl-2">
-        <a href="{{ route('superadmin.reports') }}" class="module-card blue">
+        <a href="{{ route('admin.reports') }}" class="module-card blue">
             <div class="module-icon" style="background:rgba(59,130,246,.15);color:#60a5fa"><i class="fas fa-file-lines"></i></div>
             <div class="module-title">All Reports</div>
             <div class="module-count">{{ number_format($stats['total_reports']) }}</div>
@@ -178,7 +178,7 @@
         </a>
     </div>
     <div class="col-6 col-md-3 col-xl-2">
-        <a href="{{ route('superadmin.reports', ['status'=>'Pending']) }}" class="module-card yellow">
+        <a href="{{ route('admin.reports', ['status'=>'Pending']) }}" class="module-card yellow">
             <div class="module-icon" style="background:rgba(245,158,11,.15);color:#fbbf24"><i class="fas fa-hourglass-half"></i></div>
             <div class="module-title">Open</div>
             <div class="module-count">{{ number_format($stats['open_reports']) }}</div>
@@ -191,7 +191,7 @@
 <div class="section-title"><i class="fas fa-calendar-days"></i> Event Requests</div>
 <div class="row g-3 mb-2">
     <div class="col-6 col-md-3 col-xl-2">
-        <a href="{{ route('superadmin.events') }}" class="module-card teal">
+        <a href="{{ route('admin.events') }}" class="module-card teal">
             <div class="module-icon" style="background:rgba(20,184,166,.15);color:#2dd4bf"><i class="fas fa-calendar-days"></i></div>
             <div class="module-title">All Events</div>
             <div class="module-count">{{ number_format($stats['total_events']) }}</div>
@@ -199,7 +199,7 @@
         </a>
     </div>
     <div class="col-6 col-md-3 col-xl-2">
-        <a href="{{ route('superadmin.events', ['status'=>'Pending']) }}" class="module-card yellow">
+        <a href="{{ route('admin.events', ['view'=>'pending']) }}" class="module-card yellow">
             <div class="module-icon" style="background:rgba(245,158,11,.15);color:#fbbf24"><i class="fas fa-calendar-clock"></i></div>
             <div class="module-title">Pending</div>
             <div class="module-count">{{ number_format($stats['pending_events']) }}</div>

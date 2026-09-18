@@ -26,14 +26,24 @@ class SystemAdministratorAccessTest extends TestCase
         $this->assertStringNotContainsString("localStorage.getItem('sa_theme')", $layout);
     }
 
-    public function test_system_administrator_sidebar_uses_registered_modules_without_mis_duplicates(): void
+    public function test_system_administrator_sidebar_reuses_operational_modules_without_mis_duplicates(): void
     {
         $layout = file_get_contents(resource_path('views/layouts/app.blade.php'));
 
         $this->assertStringContainsString("role === 'mis' && ! auth()->user()->isSystemAdministrator()", $layout);
-        $this->assertStringContainsString('$registeredModules = \\App\\Models\\User::allModules()', $layout);
-        $this->assertStringContainsString('auth()->user()->canAccess($moduleKey)', $layout);
-        $this->assertStringContainsString("'module_access' => ['route' => 'admin.management'", $layout);
+        $this->assertStringContainsString("route('admin.reports')", $layout);
+        $this->assertStringContainsString("route('admin.events')", $layout);
+        $this->assertStringContainsString("route('admin.management')", $layout);
+        $this->assertStringNotContainsString('Module Access Control</a>', $layout);
+    }
+
+    public function test_legacy_system_administrator_urls_use_existing_operational_controllers(): void
+    {
+        $reports = app('router')->getRoutes()->match(Request::create('/system-admin/reports', 'GET'));
+        $events = app('router')->getRoutes()->match(Request::create('/system-admin/events', 'GET'));
+
+        $this->assertSame(\App\Http\Controllers\AdminController::class.'@reports', $reports->getActionName());
+        $this->assertSame(\App\Http\Controllers\EventRequestController::class.'@adminIndex', $events->getActionName());
     }
 
     public function test_mis_cannot_retain_admin_privileges_from_old_permissions(): void
