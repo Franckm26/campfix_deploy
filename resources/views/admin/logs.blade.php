@@ -102,7 +102,9 @@
 @endsection
 
 @section('content')
-@php($logsIndexRoute = auth()->user()->isSystemAdministrator() ? 'superadmin.activity-logs' : 'admin.logs')
+@php
+    $logsIndexRoute = auth()->user()->isSystemAdministrator() ? 'superadmin.activity-logs' : 'admin.logs';
+@endphp
 <div class="container-fluid px-3">
 
     <div class="d-flex justify-content-between align-items-center mb-3">

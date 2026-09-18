@@ -148,7 +148,9 @@
 @endsection
 
 @section('content')
-@php($usersIndexRoute = auth()->user()->isSystemAdministrator() ? 'superadmin.users' : 'admin.users')
+@php
+    $usersIndexRoute = auth()->user()->isSystemAdministrator() ? 'superadmin.users' : 'admin.users';
+@endphp
 <div class="container-fluid px-3">
     
     <!-- Context Menu (Right-Click) -->

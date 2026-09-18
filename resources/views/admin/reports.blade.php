@@ -131,7 +131,9 @@
 @endsection
 
 @section('content')
-@php($reportsIndexRoute = auth()->user()->isSystemAdministrator() ? 'superadmin.reports' : 'admin.reports')
+@php
+    $reportsIndexRoute = auth()->user()->isSystemAdministrator() ? 'superadmin.reports' : 'admin.reports';
+@endphp
 <div class="container-fluid px-3">
     
     <!-- Context Menu -->

@@ -88,6 +88,7 @@ class SystemAdministratorAccessTest extends TestCase
         ] as $view => $routeName) {
             $contents = file_get_contents(resource_path('views/'.$view));
             $this->assertStringContainsString("isSystemAdministrator() ? '{$routeName}'", $contents, $view);
+            $this->assertStringNotContainsString('@php(', $contents, $view.' must use a valid Blade PHP block');
         }
     }
 

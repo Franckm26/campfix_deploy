@@ -144,7 +144,9 @@
 @endsection
 
 @section('content')
-@php($eventsIndexRoute = auth()->user()->isSystemAdministrator() ? 'superadmin.events' : 'admin.events')
+@php
+    $eventsIndexRoute = auth()->user()->isSystemAdministrator() ? 'superadmin.events' : 'admin.events';
+@endphp
 <div class="container-fluid px-3">
 
 
@@ -1897,5 +1899,4 @@ function executeEventAction(type, id) {
 @endif
 
 @endsection
-
 
