@@ -144,6 +144,7 @@
 @endsection
 
 @section('content')
+@php($eventsIndexRoute = auth()->user()->isSystemAdministrator() ? 'superadmin.events' : 'admin.events')
 <div class="container-fluid px-3">
 
 
@@ -238,32 +239,32 @@
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                 <ul class="nav nav-pills mb-0 flex-wrap">
                     <li class="nav-item">
-                        <a class="nav-link {{ ($viewType ?? 'pending') == 'pending' ? 'active' : '' }}" href="{{ route('admin.events', ['view' => 'pending']) }}">
+                        <a class="nav-link {{ ($viewType ?? 'pending') == 'pending' ? 'active' : '' }}" href="{{ route($eventsIndexRoute, ['view' => 'pending']) }}">
                             <i class="fas fa-calendar-check"></i> Pending
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ ($viewType ?? '') == 'approved' ? 'active' : '' }}" href="{{ route('admin.events', ['view' => 'approved']) }}" style="{{ ($viewType ?? '') == 'approved' ? '' : 'color: #28a745;' }}">
+                        <a class="nav-link {{ ($viewType ?? '') == 'approved' ? 'active' : '' }}" href="{{ route($eventsIndexRoute, ['view' => 'approved']) }}" style="{{ ($viewType ?? '') == 'approved' ? '' : 'color: #28a745;' }}">
                             <i class="fas fa-check-circle"></i> Approved
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ ($viewType ?? '') == 'finished' ? 'active' : '' }}" href="{{ route('admin.events', ['view' => 'finished']) }}" style="{{ ($viewType ?? '') == 'finished' ? '' : 'color: #6f42c1;' }}">
+                        <a class="nav-link {{ ($viewType ?? '') == 'finished' ? 'active' : '' }}" href="{{ route($eventsIndexRoute, ['view' => 'finished']) }}" style="{{ ($viewType ?? '') == 'finished' ? '' : 'color: #6f42c1;' }}">
                             <i class="fas fa-flag-checkered"></i> Finished
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ ($viewType ?? '') == 'rejected' ? 'active' : '' }}" href="{{ route('admin.events', ['view' => 'rejected']) }}" style="{{ ($viewType ?? '') == 'rejected' ? '' : 'color: #dc3545;' }}">
+                        <a class="nav-link {{ ($viewType ?? '') == 'rejected' ? 'active' : '' }}" href="{{ route($eventsIndexRoute, ['view' => 'rejected']) }}" style="{{ ($viewType ?? '') == 'rejected' ? '' : 'color: #dc3545;' }}">
                             <i class="fas fa-times-circle"></i> Rejected
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ ($viewType ?? '') == 'archives' ? 'active' : '' }}" href="{{ route('admin.events', ['view' => 'archives']) }}">
+                        <a class="nav-link {{ ($viewType ?? '') == 'archives' ? 'active' : '' }}" href="{{ route($eventsIndexRoute, ['view' => 'archives']) }}">
                             <i class="fas fa-archive"></i> Archived
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ ($viewType ?? '') == 'deleted' ? 'active' : '' }}" href="{{ route('admin.events', ['view' => 'deleted']) }}" style="color: #dc3545;">
+                        <a class="nav-link {{ ($viewType ?? '') == 'deleted' ? 'active' : '' }}" href="{{ route($eventsIndexRoute, ['view' => 'deleted']) }}" style="color: #dc3545;">
                             <i class="fas fa-trash-alt"></i> Deleted
                         </a>
                     </li>
@@ -274,7 +275,7 @@
                     </a>
                 </div>
             </div>
-            <form method="GET" action="{{ route('admin.events') }}">
+            <form method="GET" action="{{ route($eventsIndexRoute) }}">
                 <input type="hidden" name="view" value="{{ $viewType ?? 'pending' }}">
                 <div class="row g-2">
                     <div class="col-12 col-md">
@@ -306,7 +307,7 @@
                     </div>
                     <div class="col-auto">
                         <button type="submit" class="btn btn-primary btn-sm">Filter</button>
-                        <a href="{{ route('admin.events') }}" class="btn btn-secondary btn-sm ms-1"><i class="fas fa-times"></i></a>
+                        <a href="{{ route($eventsIndexRoute) }}" class="btn btn-secondary btn-sm ms-1"><i class="fas fa-times"></i></a>
                     </div>
                 </div>
             </form>
@@ -524,7 +525,7 @@
                 <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
                 <h4 class="text-muted">No event requests found</h4>
                 <p>There are no event requests matching your filters.</p>
-                <a href="{{ route('admin.events') }}" class="btn btn-primary">View All Requests</a>
+                <a href="{{ route($eventsIndexRoute) }}" class="btn btn-primary">View All Requests</a>
             </div>
         </div>
     @endif
@@ -1380,7 +1381,7 @@
                                             <i class="fas fa-check-circle fa-2x d-block mb-3"></i>
                                             <h5>No Deleted Events</h5>
                                             <p class="mb-0">Deleted events will appear here. You can delete events from the Events page.</p>
-                                            <a href="{{ route('admin.events') }}" class="btn btn-primary mt-3">
+                                            <a href="{{ route($eventsIndexRoute) }}" class="btn btn-primary mt-3">
                                                 <i class="fas fa-calendar-alt"></i> Go to Events
                                             </a>
                                         </div>
@@ -1470,7 +1471,7 @@
                                 <i class="fas fa-check-circle fa-2x d-block mb-3"></i>
                                 <h5>No Deleted Events</h5>
                                 <p class="mb-0">Deleted events will appear here. You can delete events from the Events page.</p>
-                                <a href="{{ route('admin.events') }}" class="btn btn-primary mt-3">
+                                <a href="{{ route($eventsIndexRoute) }}" class="btn btn-primary mt-3">
                                     <i class="fas fa-calendar-alt"></i> Go to Events
                                 </a>
                             </div>
@@ -1484,7 +1485,7 @@
                         <i class="fas fa-check-circle fa-2x d-block mb-3 text-success"></i>
                         <h5>No Deleted Events</h5>
                         <p class="mb-0 text-muted">Deleted events will appear here. You can delete events from the Events page.</p>
-                        <a href="{{ route('admin.events') }}" class="btn btn-primary mt-3">
+                        <a href="{{ route($eventsIndexRoute) }}" class="btn btn-primary mt-3">
                             <i class="fas fa-calendar-alt"></i> Go to Events
                         </a>
                     </div>
@@ -1872,7 +1873,7 @@ function executeEventAction(type, id) {
                     .then(data => {
                         if (data.success) {
                             // Reload the page to show filtered results
-                            window.location.href = '{{ route("admin.events", ["view" => "deleted"]) }}&days=' + days;
+                            window.location.href = '{{ route($eventsIndexRoute, ["view" => "deleted"]) }}&days=' + days;
                         } else {
                             swalAlert('Error saving preference.', 'error');
                         }
@@ -1896,7 +1897,5 @@ function executeEventAction(type, id) {
 @endif
 
 @endsection
-
-
 
 

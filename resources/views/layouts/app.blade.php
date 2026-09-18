@@ -394,13 +394,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
         {{-- System Administrator navigation --}}
         @if(auth()->user()->isSystemAdministrator())
-            <a href="{{ route('admin.users') }}" class="{{ Request::is('admin/users*') || Request::is('system-admin/users*') ? 'active' : '' }}"><i class="fas fa-users"></i> User Management</a>
-            <a href="{{ route('admin.reports') }}" class="{{ Request::is('admin/reports*') || Request::is('system-admin/reports*') ? 'active' : '' }}"><i class="fas fa-file-alt"></i> Reports</a>
-            <a href="{{ route('admin.events') }}" class="{{ Request::is('admin/events*') || Request::is('system-admin/events*') ? 'active' : '' }}"><i class="fas fa-calendar-alt"></i> Events</a>
-            <a href="{{ route('admin.management') }}" class="{{ Request::is('admin/management*') ? 'active' : '' }}"><i class="fas fa-tools"></i> Management</a>
+            <a href="{{ route('superadmin.users') }}" class="{{ Request::is('admin/users*') || Request::is('system-admin/users*') ? 'active' : '' }}"><i class="fas fa-users"></i> User Management</a>
+            <a href="{{ route('superadmin.reports') }}" class="{{ Request::is('admin/reports*') || Request::is('system-admin/reports*') ? 'active' : '' }}"><i class="fas fa-file-alt"></i> Reports</a>
+            <a href="{{ route('superadmin.events') }}" class="{{ Request::is('admin/events*') || Request::is('system-admin/events*') ? 'active' : '' }}"><i class="fas fa-calendar-alt"></i> Events</a>
+            <a href="{{ route('superadmin.management') }}" class="{{ Request::is('admin/management*') || Request::is('system-admin/management*') ? 'active' : '' }}"><i class="fas fa-tools"></i> Management</a>
             <a href="{{ route('superadmin.analytics') }}" class="{{ Request::is('system-admin/analytics*') ? 'active' : '' }}"><i class="fas fa-chart-line"></i> Analytics</a>
-            <a href="{{ route('admin.logs') }}" class="{{ Request::is('admin/logs*') || Request::is('system-admin/activity-logs*') ? 'active' : '' }}"><i class="fas fa-history"></i> Audit Logs</a>
-            <a href="{{ route('settings.index') }}" class="{{ Request::is('settings') ? 'active' : '' }}"><i class="fas fa-cog"></i> Settings</a>
+            <a href="{{ route('superadmin.activity-logs') }}" class="{{ Request::is('admin/logs*') || Request::is('system-admin/activity-logs*') ? 'active' : '' }}"><i class="fas fa-history"></i> Audit Logs</a>
+            <a href="{{ route('superadmin.settings') }}" class="{{ Request::is('settings') || Request::is('system-admin/settings') ? 'active' : '' }}"><i class="fas fa-cog"></i> Settings</a>
         @endif
         @if(auth()->user()->role === 'building_admin')
             {{-- Reports dropdown for building admin --}}

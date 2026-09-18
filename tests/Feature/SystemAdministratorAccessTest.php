@@ -51,11 +51,12 @@ class SystemAdministratorAccessTest extends TestCase
 
         $this->assertStringContainsString("role === 'mis' && ! auth()->user()->isSystemAdministrator()", $layout);
         $this->assertStringContainsString("route('history.index')", $layout);
-        $this->assertStringContainsString("route('admin.reports')", $layout);
-        $this->assertStringContainsString("route('admin.events')", $layout);
-        $this->assertStringContainsString("route('admin.management')", $layout);
-        $this->assertStringContainsString("route('admin.logs')", $layout);
-        $this->assertStringNotContainsString("route('superadmin.activity-logs')", $layout);
+        $this->assertStringContainsString("route('superadmin.users')", $layout);
+        $this->assertStringContainsString("route('superadmin.reports')", $layout);
+        $this->assertStringContainsString("route('superadmin.events')", $layout);
+        $this->assertStringContainsString("route('superadmin.management')", $layout);
+        $this->assertStringContainsString("route('superadmin.activity-logs')", $layout);
+        $this->assertStringContainsString("route('superadmin.settings')", $layout);
         $this->assertStringNotContainsString('Module Access Control</a>', $layout);
     }
 
@@ -64,10 +65,30 @@ class SystemAdministratorAccessTest extends TestCase
         $reports = app('router')->getRoutes()->match(Request::create('/system-admin/reports', 'GET'));
         $events = app('router')->getRoutes()->match(Request::create('/system-admin/events', 'GET'));
         $activityLogs = app('router')->getRoutes()->match(Request::create('/system-admin/activity-logs', 'GET'));
+        $users = app('router')->getRoutes()->match(Request::create('/system-admin/users', 'GET'));
+        $management = app('router')->getRoutes()->match(Request::create('/system-admin/management', 'GET'));
+        $settings = app('router')->getRoutes()->match(Request::create('/system-admin/settings', 'GET'));
 
         $this->assertSame(\App\Http\Controllers\AdminController::class.'@reports', $reports->getActionName());
         $this->assertSame(\App\Http\Controllers\EventRequestController::class.'@adminIndex', $events->getActionName());
         $this->assertSame(\App\Http\Controllers\AdminController::class.'@logs', $activityLogs->getActionName());
+        $this->assertSame(\App\Http\Controllers\AdminController::class.'@users', $users->getActionName());
+        $this->assertSame(\App\Http\Controllers\ManagementController::class.'@index', $management->getActionName());
+        $this->assertSame(\App\Http\Controllers\SettingsController::class.'@index', $settings->getActionName());
+    }
+
+    public function test_operational_pages_preserve_system_administrator_prefix_for_get_navigation(): void
+    {
+        foreach ([
+            'admin/users.blade.php' => 'superadmin.users',
+            'admin/reports.blade.php' => 'superadmin.reports',
+            'admin/events.blade.php' => 'superadmin.events',
+            'admin/management.blade.php' => 'superadmin.management',
+            'admin/logs.blade.php' => 'superadmin.activity-logs',
+        ] as $view => $routeName) {
+            $contents = file_get_contents(resource_path('views/'.$view));
+            $this->assertStringContainsString("isSystemAdministrator() ? '{$routeName}'", $contents, $view);
+        }
     }
 
     public function test_mis_cannot_retain_admin_privileges_from_old_permissions(): void

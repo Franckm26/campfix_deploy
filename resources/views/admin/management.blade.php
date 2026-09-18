@@ -112,6 +112,10 @@
 @endsection
 
 @section('content')
+@php
+    $managementIndexRoute = auth()->user()->isSystemAdministrator() ? 'superadmin.management' : 'admin.management';
+    $managementEventsRoute = auth()->user()->isSystemAdministrator() ? 'superadmin.events' : 'admin.events';
+@endphp
 <div class="container-fluid px-3">
 
     <!-- Tabs -->
@@ -120,28 +124,28 @@
             <ul class="nav nav-pills mb-0 flex-wrap">
                 <li class="nav-item">
                     <a class="nav-link {{ $tab === 'staff' ? 'active' : '' }}"
-                       href="{{ route('admin.management', ['tab' => 'staff']) }}">
+                       href="{{ route($managementIndexRoute, ['tab' => 'staff']) }}">
                         <i class="fas fa-hard-hat"></i> Maintenance Staff
                         <span class="badge bg-secondary ms-1">{{ $staff->total() }}</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link {{ $tab === 'events' ? 'active' : '' }}"
-                       href="{{ route('admin.management', ['tab' => 'events']) }}">
+                       href="{{ route($managementIndexRoute, ['tab' => 'events']) }}">
                         <i class="fas fa-calendar-check"></i> Event Requests
                         <span class="badge bg-secondary ms-1">{{ $events->total() }}</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link {{ $tab === 'facilities' ? 'active' : '' }}"
-                       href="{{ route('admin.management', ['tab' => 'facilities']) }}">
+                       href="{{ route($managementIndexRoute, ['tab' => 'facilities']) }}">
                         <i class="fas fa-building"></i> Facilities
                         <span class="badge bg-secondary ms-1">{{ $facilities->total() }}</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link {{ $tab === 'categories' ? 'active' : '' }}"
-                       href="{{ route('admin.management', ['tab' => 'categories']) }}">
+                       href="{{ route($managementIndexRoute, ['tab' => 'categories']) }}">
                         <i class="fas fa-tags"></i> Categories
                         <span class="badge bg-secondary ms-1">{{ $categories->total() }}</span>
                     </a>
@@ -163,7 +167,7 @@
         </div>
         <div class="card-body">
             <!-- Search -->
-            <form method="GET" action="{{ route('admin.management') }}" class="row g-2 mb-3">
+            <form method="GET" action="{{ route($managementIndexRoute) }}" class="row g-2 mb-3">
                 <input type="hidden" name="tab" value="staff">
                 <div class="col-md-4">
                     <input type="text" name="staff_search" class="form-control form-control-sm"
@@ -171,7 +175,7 @@
                 </div>
                 <div class="col-auto">
                     <button type="submit" class="btn btn-primary btn-sm">Search</button>
-                    <a href="{{ route('admin.management', ['tab' => 'staff']) }}" class="btn btn-secondary btn-sm ms-1">
+                    <a href="{{ route($managementIndexRoute, ['tab' => 'staff']) }}" class="btn btn-secondary btn-sm ms-1">
                         <i class="fas fa-times"></i>
                     </a>
                 </div>
@@ -283,7 +287,7 @@
         </div>
         <div class="card-body">
             <!-- Filters -->
-            <form method="GET" action="{{ route('admin.management') }}" class="row g-2 mb-3">
+            <form method="GET" action="{{ route($managementIndexRoute) }}" class="row g-2 mb-3">
                 <input type="hidden" name="tab" value="facilities">
                 <div class="col-md-3">
                     <input type="text" name="facility_search" class="form-control form-control-sm"
@@ -299,7 +303,7 @@
                 </div>
                 <div class="col-auto">
                     <button type="submit" class="btn btn-primary btn-sm">Filter</button>
-                    <a href="{{ route('admin.management', ['tab' => 'facilities']) }}" class="btn btn-secondary btn-sm ms-1">
+                    <a href="{{ route($managementIndexRoute, ['tab' => 'facilities']) }}" class="btn btn-secondary btn-sm ms-1">
                         <i class="fas fa-times"></i>
                     </a>
                 </div>
@@ -491,7 +495,7 @@
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0"><i class="fas fa-sliders text-primary"></i> Event Request Approvals</h5>
-            <a class="btn btn-primary btn-sm" href="{{ route('admin.events') }}"><i class="fas fa-arrow-up-right-from-square"></i> Review requests</a>
+            <a class="btn btn-primary btn-sm" href="{{ route($managementEventsRoute) }}"><i class="fas fa-arrow-up-right-from-square"></i> Review requests</a>
         </div>
         <div class="card-body">
             <p class="text-muted">Define who approves each event request based on its intended user and request type.</p>

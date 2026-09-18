@@ -131,6 +131,7 @@
 @endsection
 
 @section('content')
+@php($reportsIndexRoute = auth()->user()->isSystemAdministrator() ? 'superadmin.reports' : 'admin.reports')
 <div class="container-fluid px-3">
     
     <!-- Context Menu -->
@@ -237,17 +238,17 @@
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                 <ul class="nav nav-pills mb-0 flex-wrap">
                     <li class="nav-item">
-                        <a class="nav-link {{ ($viewType ?? 'active') == 'active' ? 'active' : '' }}" href="{{ route('admin.reports', ['view' => 'active']) }}">
+                        <a class="nav-link {{ ($viewType ?? 'active') == 'active' ? 'active' : '' }}" href="{{ route($reportsIndexRoute, ['view' => 'active']) }}">
                             <i class="fas fa-clipboard-list"></i> Reported Issues
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ ($viewType ?? '') == 'archives' ? 'active' : '' }}" href="{{ route('admin.reports', ['view' => 'archives']) }}">
+                        <a class="nav-link {{ ($viewType ?? '') == 'archives' ? 'active' : '' }}" href="{{ route($reportsIndexRoute, ['view' => 'archives']) }}">
                             <i class="fas fa-archive"></i> Archived Reports
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ ($viewType ?? '') == 'deleted' ? 'active' : '' }}" href="{{ route('admin.reports', ['view' => 'deleted']) }}" style="color: #dc3545;">
+                        <a class="nav-link {{ ($viewType ?? '') == 'deleted' ? 'active' : '' }}" href="{{ route($reportsIndexRoute, ['view' => 'deleted']) }}" style="color: #dc3545;">
                             <i class="fas fa-trash-alt"></i> Deleted Reports
                         </a>
                     </li>
@@ -263,7 +264,7 @@
                     <i class="fas fa-file-pdf"></i> Export PDF
                 </a>
             </div>
-            <form method="GET" action="{{ route('admin.reports') }}" id="reportsFilterForm">
+            <form method="GET" action="{{ route($reportsIndexRoute) }}" id="reportsFilterForm">
                 <input type="hidden" name="view" value="{{ $viewType ?? 'active' }}">
                 <div class="row g-2">
                     <div class="col-6 col-md">
@@ -300,7 +301,7 @@
                     </div>
                     <div class="col-auto">
                         <button type="submit" class="btn btn-primary btn-sm">Filter</button>
-                        <a href="{{ route('admin.reports', ['view' => $viewType ?? 'active']) }}" class="btn btn-secondary btn-sm ms-1"><i class="fas fa-times"></i></a>
+                        <a href="{{ route($reportsIndexRoute, ['view' => $viewType ?? 'active']) }}" class="btn btn-secondary btn-sm ms-1"><i class="fas fa-times"></i></a>
                     </div>
                 </div>
             </form>
@@ -907,7 +908,7 @@
                                             <i class="fas fa-check-circle fa-2x d-block mb-3"></i>
                                             <h5>No Deleted Concerns</h5>
                                             <p class="mb-0">Deleted concerns will appear here. You can delete concerns from the Reports page.</p>
-                                            <a href="{{ route('admin.reports') }}" class="btn btn-primary mt-3">
+                                            <a href="{{ route($reportsIndexRoute) }}" class="btn btn-primary mt-3">
                                                 <i class="fas fa-file-alt"></i> Go to Reports
                                             </a>
                                         </div>
@@ -1001,7 +1002,7 @@
                                 <i class="fas fa-check-circle fa-2x d-block mb-3"></i>
                                 <h5>No Deleted Concerns</h5>
                                 <p class="mb-0">Deleted concerns will appear here. You can delete concerns from the Reports page.</p>
-                                <a href="{{ route('admin.reports') }}" class="btn btn-primary mt-3">
+                                <a href="{{ route($reportsIndexRoute) }}" class="btn btn-primary mt-3">
                                     <i class="fas fa-file-alt"></i> Go to Reports
                                 </a>
                             </div>
@@ -1015,7 +1016,7 @@
                         <i class="fas fa-check-circle fa-2x d-block mb-3 text-success"></i>
                         <h5>No Deleted Concerns</h5>
                         <p class="mb-0 text-muted">Deleted concerns will appear here. You can delete concerns from the Reports page.</p>
-                        <a href="{{ route('admin.reports') }}" class="btn btn-primary mt-3">
+                        <a href="{{ route($reportsIndexRoute) }}" class="btn btn-primary mt-3">
                             <i class="fas fa-file-alt"></i> Go to Reports
                         </a>
                     </div>
@@ -2763,7 +2764,7 @@ if (retentionDaysElement) {
             .then(data => {
                 if (data.success) {
                     // Reload the page to show filtered results
-                    window.location.href = '{{ route("admin.reports") }}?view=deleted&days=' + days;
+                    window.location.href = '{{ route($reportsIndexRoute) }}?view=deleted&days=' + days;
                 } else {
                     alert('Error saving preference.');
                 }

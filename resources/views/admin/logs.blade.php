@@ -102,17 +102,18 @@
 @endsection
 
 @section('content')
+@php($logsIndexRoute = auth()->user()->isSystemAdministrator() ? 'superadmin.activity-logs' : 'admin.logs')
 <div class="container-fluid px-3">
 
     <div class="d-flex justify-content-between align-items-center mb-3">
         <ul class="nav nav-pills mb-0">
             <li class="nav-item">
-                <a class="nav-link {{ !$isArchived ? 'active' : '' }}" href="{{ route('admin.logs') }}">
+                <a class="nav-link {{ !$isArchived ? 'active' : '' }}" href="{{ route($logsIndexRoute) }}">
                     <i class="fas fa-list me-1"></i> Active Logs
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link {{ $isArchived ? 'active' : '' }}" href="{{ route('admin.logs', ['view' => 'archived']) }}">
+                <a class="nav-link {{ $isArchived ? 'active' : '' }}" href="{{ route($logsIndexRoute, ['view' => 'archived']) }}">
                     <i class="fas fa-archive me-1"></i> Archived Folders
                 </a>
             </li>
@@ -152,7 +153,7 @@
                         <div class="text-muted" style="font-size:12px">{{ $folder->description }}</div>
                         <div class="text-muted" style="font-size:11px">{{ $folder->created_at->format('m/d/Y') }}</div>
                         <div class="d-flex gap-2 mt-3">
-                            <a href="{{ route('admin.logs.folder', $folder->id) }}" class="btn btn-sm btn-primary">
+                            <a href="{{ route(auth()->user()->isSystemAdministrator() ? 'superadmin.activity-logs.folder' : 'admin.logs.folder', $folder->id) }}" class="btn btn-sm btn-primary">
                                 <i class="fas fa-folder-open"></i> View
                             </a>
                             <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#restoreFolderModal{{ $folder->id }}" title="Restore">
@@ -225,7 +226,7 @@
     <!-- Filters -->
     <div class="card mb-3">
         <div class="card-body py-2">
-            <form method="GET" action="{{ route('admin.logs') }}" class="row g-2 align-items-end">
+            <form method="GET" action="{{ route($logsIndexRoute) }}" class="row g-2 align-items-end">
                 <div class="col-md-3">
                     <select name="action" class="form-select form-select-sm">
                         <option value="">All Actions</option>
@@ -275,7 +276,7 @@
                 </div>
                 <div class="col-auto d-flex gap-1">
                     <button type="submit" class="btn btn-primary btn-sm">Filter</button>
-                    <a href="{{ route('admin.logs') }}" class="btn btn-secondary btn-sm"><i class="fas fa-times"></i></a>
+                    <a href="{{ route($logsIndexRoute) }}" class="btn btn-secondary btn-sm"><i class="fas fa-times"></i></a>
                 </div>
             </form>
         </div>

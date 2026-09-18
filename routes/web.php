@@ -577,10 +577,10 @@ Route::middleware(['auth', 'superadmin'])->prefix('system-admin')->name('superad
     Route::get('/', [\App\Http\Controllers\SuperadminController::class, 'dashboard'])->name('dashboard');
     
     // User Management
-    Route::get('/users', [\App\Http\Controllers\SuperadminController::class, 'users'])->name('users');
+    Route::get('/users', [AdminController::class, 'users'])->name('users');
     Route::get('/users/create', [\App\Http\Controllers\SuperadminController::class, 'createUser'])->name('users.create');
     Route::post('/users', [\App\Http\Controllers\SuperadminController::class, 'storeUser'])->name('users.store');
-    Route::get('/users/{uuid}/edit', [\App\Http\Controllers\SuperadminController::class, 'editUser'])->name('users.edit');
+    Route::get('/users/{uuid}/edit', [AdminController::class, 'editUser'])->name('users.edit');
     Route::put('/users/{uuid}', [\App\Http\Controllers\SuperadminController::class, 'updateUser'])->name('users.update');
     Route::delete('/users/{uuid}', [\App\Http\Controllers\SuperadminController::class, 'deleteUser'])->name('users.delete');
     Route::post('/users/{uuid}/restore', [\App\Http\Controllers\SuperadminController::class, 'restoreUser'])->name('users.restore');
@@ -598,6 +598,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('system-admin')->name('superad
     
     // Keep the legacy URL, but reuse the established operational audit-log module.
     Route::get('/activity-logs', [AdminController::class, 'logs'])->name('activity-logs');
+    Route::get('/activity-logs/folders/{id}', [AdminController::class, 'logArchiveFolder'])->name('activity-logs.folder');
     Route::delete('/activity-logs/{id}', [\App\Http\Controllers\SuperadminController::class, 'deleteActivityLog'])->name('activity-logs.delete');
     Route::delete('/activity-logs', [\App\Http\Controllers\SuperadminController::class, 'clearAllActivityLogs'])->name('activity-logs.clear');
     
@@ -612,9 +613,12 @@ Route::middleware(['auth', 'superadmin'])->prefix('system-admin')->name('superad
     
     // Analytics
     Route::get('/analytics', [\App\Http\Controllers\SuperadminController::class, 'analytics'])->name('analytics');
+
+    // Operational management
+    Route::get('/management', [\App\Http\Controllers\ManagementController::class, 'index'])->name('management');
     
     // Settings
-    Route::get('/settings', [\App\Http\Controllers\SuperadminController::class, 'settings'])->name('settings');
+    Route::get('/settings', [SettingsController::class, 'index'])->name('settings');
     Route::put('/settings', [\App\Http\Controllers\SuperadminController::class, 'updateSettings'])->name('settings.update');
 });
 
