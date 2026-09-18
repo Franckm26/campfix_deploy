@@ -83,14 +83,6 @@ class ActivityLog extends Model
 
         $forensicAction = (bool) preg_match(self::FORENSIC_ACTION_PATTERN, (string) $action);
 
-        // Superadmin actions are logged exclusively in superadmin_activity_logs — skip here
-        if (auth()->check()) {
-            $actor = auth()->user();
-            if ($actor->is_superadmin || $actor->role === 'superadmin') {
-                return null;
-            }
-        }
-
         $request = request();
         
         $data = [

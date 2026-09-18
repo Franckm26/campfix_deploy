@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\ActivityLog;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class SystemAdministratorAccessTest extends TestCase
@@ -73,6 +75,62 @@ class SystemAdministratorAccessTest extends TestCase
         $this->assertSame('System Administrator', $user->role_display_name);
         foreach (array_keys(User::allModules()) as $module) {
             $this->assertTrue($user->canAccess($module));
+        }
+    }
+
+    public function test_system_administrator_actions_are_written_to_the_forensic_audit_trail(): void
+    {
+        Schema::dropIfExists('activity_logs');
+        Schema::create('activity_logs', function ($table) {
+            $table->id();
+            $table->unsignedBigInteger('user_id')->nullable();
+            $table->string('action');
+            $table->text('description');
+            $table->unsignedBigInteger('concern_id')->nullable();
+            $table->unsignedBigInteger('report_id')->nullable();
+            $table->unsignedBigInteger('event_request_id')->nullable();
+            $table->unsignedBigInteger('facility_request_id')->nullable();
+            $table->unsignedBigInteger('item_user_id')->nullable();
+            $table->string('ip_address')->nullable();
+            $table->text('user_agent')->nullable();
+            $table->text('old_values')->nullable();
+            $table->text('new_values')->nullable();
+            $table->text('metadata')->nullable();
+            $table->boolean('is_archived')->default(false);
+            $table->timestamp('archived_at')->nullable();
+            $table->unsignedBigInteger('archived_by')->nullable();
+            $table->unsignedBigInteger('log_archive_folder_id')->nullable();
+            $table->timestamps();
+        });
+
+        try {
+            $administrator = new User;
+            $administrator->forceFill([
+                'id' => 77,
+                'name' => 'System Administrator',
+                'email' => 'administrator@example.com',
+                'role' => 'superadmin',
+                'is_superadmin' => true,
+            ]);
+            $this->actingAs($administrator);
+
+            $log = ActivityLog::log(
+                'user_updated',
+                'Updated user: Test User',
+                88,
+                'user',
+                ['role' => 'mis'],
+                ['role' => 'staff']
+            );
+
+            $this->assertNotNull($log);
+            $this->assertSame(77, $log->user_id);
+            $this->assertSame(88, $log->item_user_id);
+            $this->assertSame('forensic', $log->metadata['record_scope']);
+            $this->assertSame(1, ActivityLog::forensic()->count());
+        } finally {
+            auth()->logout();
+            Schema::dropIfExists('activity_logs');
         }
     }
 

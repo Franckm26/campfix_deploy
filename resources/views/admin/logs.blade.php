@@ -97,12 +97,17 @@
 @endsection
 
 @section('page_title')
-<h2>Audit Logs</h2>
-<p>Full change history with field-level tracking</p>
+<h2>Forensic Audit Logs</h2>
+<p>Security and account evidence with actor, request, IP address, device, and field-level tracking</p>
 @endsection
 
 @section('content')
 <div class="container-fluid px-3">
+
+    <div class="alert alert-info py-2 mb-3">
+        <i class="fas fa-shield-alt me-1"></i>
+        This forensic view records user-management and security actions, including changes made by System Administrators.
+    </div>
 
     <div class="d-flex justify-content-between align-items-center mb-3">
         <ul class="nav nav-pills mb-0">
@@ -402,6 +407,19 @@
                                             <div>{!! $line !!}</div>
                                         @endforeach
                                     </div>
+                                    <details class="mt-2" style="font-size:12px">
+                                        <summary class="text-primary" style="cursor:pointer">View forensic evidence</summary>
+                                        <div class="border rounded p-2 mt-1 bg-light">
+                                            <div><strong>Actor ID:</strong> {{ $log->user_id ?? 'System' }}</div>
+                                            <div><strong>Actor email:</strong> {{ $log->user->email ?? 'N/A' }}</div>
+                                            @if($log->item_user_id)
+                                                <div><strong>Target user ID:</strong> {{ $log->item_user_id }}</div>
+                                            @endif
+                                            <div><strong>Request:</strong> {{ strtoupper(data_get($log->metadata, 'method', 'N/A')) }} {{ data_get($log->metadata, 'url', 'N/A') }}</div>
+                                            <div><strong>User agent/device:</strong> {{ $log->user_agent ?? 'N/A' }}</div>
+                                            <div><strong>Record ID:</strong> {{ $log->id }}</div>
+                                        </div>
+                                    </details>
                                 </td>
                                 <td>
                                     <div class="fw-semibold">{{ $log->user->name ?? 'System' }}</div>
@@ -449,6 +467,16 @@
                                 <span class="log-card-label">Time:</span>
                                 <span class="log-card-value">{{ $log->created_at->format('h:i:s A') }}</span>
                             </div>
+                            <details class="log-card-field">
+                                <summary class="log-card-label" style="cursor:pointer">Forensic evidence</summary>
+                                <div class="log-card-value"><strong>Actor:</strong> {{ $log->user->email ?? 'System' }}</div>
+                                @if($log->item_user_id)
+                                    <div class="log-card-value"><strong>Target user ID:</strong> {{ $log->item_user_id }}</div>
+                                @endif
+                                <div class="log-card-value"><strong>Request:</strong> {{ strtoupper(data_get($log->metadata, 'method', 'N/A')) }} {{ data_get($log->metadata, 'url', 'N/A') }}</div>
+                                <div class="log-card-value"><strong>Device:</strong> {{ $log->user_agent ?? 'N/A' }}</div>
+                                <div class="log-card-value"><strong>Record ID:</strong> {{ $log->id }}</div>
+                            </details>
                         </div>
                     </div>
                 @empty

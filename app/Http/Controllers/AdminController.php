@@ -4541,16 +4541,10 @@ class AdminController extends Controller
 
         $query = ActivityLog::with('user', 'concern')
             ->where('is_archived', $isArchived)
-            ->forensic()
-            // Never expose superadmin actions to regular admins
-            ->whereDoesntHave('user', fn($q) => $q->withoutGlobalScopes()
-                ->where(function ($q) {
-                    $q->where('is_superadmin', true)->orWhere('role', 'superadmin');
-                })
-            );
+            ->forensic();
 
-        // MIS audit access is limited to forensic user/security and system records.
-        // Workflow records for concerns and reports must not be visible, even through a crafted filter URL.
+        // Defense in depth for any legacy MIS access: workflow records must never leak
+        // through a crafted audit-log filter URL.
         if ($currentUser->role === 'mis') {
             $query->where('action', 'not like', 'concern_%')
                 ->where('action', 'not like', 'report_%')
