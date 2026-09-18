@@ -2914,7 +2914,10 @@ async function editUser(userUuid) {
                 const data = await updateResponse.json().catch(() => ({}));
                 if (updateResponse.ok && data.success) {
                     const savedPermissions = data.user?.permissions || [];
-                    const missingPermissions = formValues.permissions.filter(permission => !savedPermissions.includes(permission));
+                    const savedRole = data.user?.role || '';
+                    // For system admin roles, permissions are granted implicitly — skip the mismatch check
+                    const isSystemAdminRole = savedRole === 'admin' || savedRole === 'superadmin';
+                    const missingPermissions = isSystemAdminRole ? [] : formValues.permissions.filter(permission => !savedPermissions.includes(permission));
                     if (data.user?.role !== formValues.role || missingPermissions.length) {
                         throw new Error('The saved user does not match the selected role and module access. Please try again.');
                     }
