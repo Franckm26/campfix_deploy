@@ -26,6 +26,7 @@ class UserEditNotificationTest extends TestCase
             $table->string('backup_email')->nullable();
             $table->string('password');
             $table->string('role');
+            $table->boolean('is_admin')->default(false);
             $table->json('permissions')->nullable();
             $table->string('phone')->nullable();
             $table->string('department')->nullable();
@@ -63,7 +64,8 @@ class UserEditNotificationTest extends TestCase
             'name' => 'MIS Administrator',
             'email' => 'mis@example.com',
             'password' => bcrypt('password'),
-            'role' => 'mis',
+            'role' => 'admin',
+            'is_superadmin' => true,
         ]);
         $user = User::create([
             'name' => 'Original Name',
@@ -98,7 +100,8 @@ class UserEditNotificationTest extends TestCase
             'name' => 'MIS Administrator',
             'email' => 'mis-json@example.com',
             'password' => bcrypt('password'),
-            'role' => 'mis',
+            'role' => 'admin',
+            'is_superadmin' => true,
         ]);
         $user = User::create([
             'name' => 'User With Backup',
@@ -119,7 +122,7 @@ class UserEditNotificationTest extends TestCase
     {
         Notification::fake();
         Mail::fake();
-        $mis = User::create(['name' => 'MIS Administrator', 'email' => 'mis-update@example.com', 'password' => bcrypt('password'), 'role' => 'mis']);
+        $mis = User::create(['name' => 'System Administrator', 'email' => 'mis-update@example.com', 'password' => bcrypt('password'), 'role' => 'admin', 'is_superadmin' => true]);
         $user = User::create(['name' => 'Faculty User', 'email' => 'faculty-update@example.com', 'password' => bcrypt('password'), 'role' => 'faculty', 'permissions' => ['concerns', 'settings']]);
 
         $this->actingAs($mis)->putJson(route('admin.users.update', $user->uuid), [
@@ -135,7 +138,7 @@ class UserEditNotificationTest extends TestCase
 
     public function test_invalid_json_edit_does_not_claim_success_or_change_role(): void
     {
-        $mis = User::create(['name' => 'MIS Administrator', 'email' => 'mis-validation@example.com', 'password' => bcrypt('password'), 'role' => 'mis']);
+        $mis = User::create(['name' => 'System Administrator', 'email' => 'mis-validation@example.com', 'password' => bcrypt('password'), 'role' => 'admin', 'is_superadmin' => true]);
         $user = User::create(['name' => 'Faculty User', 'email' => 'faculty-validation@example.com', 'password' => bcrypt('password'), 'role' => 'faculty']);
 
         $this->actingAs($mis)->putJson(route('admin.users.update', $user->uuid), [
@@ -143,5 +146,41 @@ class UserEditNotificationTest extends TestCase
         ])->assertUnprocessable()->assertJsonValidationErrors('phone');
 
         $this->assertSame('faculty', $user->fresh()->role);
+    }
+
+    public function test_changing_system_administrator_to_any_other_role_clears_administrator_status(): void
+    {
+        Notification::fake();
+        Mail::fake();
+
+        $administrator = User::create([
+            'name' => 'System Administrator', 'email' => 'system-admin@example.com',
+            'password' => bcrypt('password'), 'role' => 'admin', 'is_superadmin' => true,
+            'permissions' => [],
+        ]);
+        $user = User::create([
+            'name' => 'Legacy Administrator', 'email' => 'legacy-admin@example.com',
+            'password' => bcrypt('password'), 'role' => 'mis', 'is_superadmin' => true,
+            'permissions' => [],
+        ]);
+
+        $roles = ['student', 'faculty', 'maintenance', 'mis', 'school_admin', 'building_admin', 'academic_head', 'program_head', 'principal_assistant'];
+        foreach ($roles as $role) {
+            $this->actingAs($administrator)->putJson(route('admin.users.update', $user->uuid), [
+                'name' => $user->name,
+                'backup_email' => null,
+                'role' => $role,
+                'phone' => null,
+                'department' => null,
+                'student_id' => null,
+                'permissions' => User::defaultPermissions($role),
+            ])->assertOk()->assertJsonPath('user.role', $role)
+                ->assertJsonPath('user.is_system_administrator', false);
+
+            $user->refresh();
+            $this->assertSame($role, $user->role);
+            $this->assertFalse((bool) $user->is_superadmin);
+            $this->assertFalse($user->isSystemAdministrator());
+        }
     }
 }

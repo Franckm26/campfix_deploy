@@ -2918,7 +2918,12 @@ async function editUser(userUuid) {
                     // For system admin roles, permissions are granted implicitly — skip the mismatch check
                     const isSystemAdminRole = savedRole === 'admin' || savedRole === 'superadmin';
                     const missingPermissions = isSystemAdminRole ? [] : formValues.permissions.filter(permission => !savedPermissions.includes(permission));
-                    if (data.user?.role !== formValues.role || missingPermissions.length) {
+                    const savedFieldsMatch = data.user?.name === formValues.name
+                        && (data.user?.backup_email || '') === formValues.backupEmail
+                        && (data.user?.phone || '') === formValues.phone
+                        && (data.user?.student_id || '') === formValues.studentId
+                        && (data.user?.department || '') === formValues.dept;
+                    if (data.user?.role !== formValues.role || missingPermissions.length || !savedFieldsMatch) {
                         throw new Error('The saved user does not match the selected role and module access. Please try again.');
                     }
                     Swal.fire({
@@ -2928,7 +2933,11 @@ async function editUser(userUuid) {
                         timer: 2000,
                         showConfirmButton: false
                     }).then(() => {
-                        window.location.reload();
+                        if (data.redirect) {
+                            window.location.href = data.redirect;
+                        } else {
+                            window.location.reload();
+                        }
                     });
                 } else {
                     const validationErrors = data.errors ? Object.values(data.errors).flat().join(' ') : '';

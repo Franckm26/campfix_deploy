@@ -2521,7 +2521,7 @@ class AdminController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'backup_email' => $user->backup_email,
-                'role' => $user->role,
+                'role' => $user->isSystemAdministrator() ? 'admin' : $user->role,
                 'department' => $user->department,
                 'phone' => $user->phone,
                 'student_id' => $user->student_id,
@@ -2590,7 +2590,7 @@ class AdminController extends Controller
             'backup_email.unique' => 'That email address is already used by another account.',
         ]);
 
-        $originalRole = $user->role;
+        $originalRole = $user->isSystemAdministrator() ? 'admin' : $user->role;
 
         // Capture old values before changes
         $oldValues = [
@@ -2608,7 +2608,15 @@ class AdminController extends Controller
         // Primary email is an immutable account identifier in this workflow.
         // Ignore any forged `email` value submitted outside the locked UI.
         $user->backup_email = $request->filled('backup_email') ? trim($request->input('backup_email')) : null;
-        $user->role = $request->input('role');
+        $requestedRole = $request->input('role');
+        $user->role = $requestedRole;
+        // Keep the effective role and the legacy administrator flags in sync.
+        // Previously an account could be saved as MIS while is_superadmin stayed
+        // true, making the successful update appear to have been ignored.
+        $user->is_superadmin = $requestedRole === 'admin';
+        if (Schema::hasColumn('users', 'is_admin')) {
+            $user->is_admin = in_array($requestedRole, ['admin', 'mis', 'school_admin', 'building_admin'], true);
+        }
         $user->phone = $request->input('phone');
         $user->department = $request->input('department');
         $user->student_id = $request->input('student_id');
@@ -2618,7 +2626,7 @@ class AdminController extends Controller
                 $submittedPermissions,
                 User::roleSpecificHiddenModules($user->role)
             )));
-        } elseif ($originalRole !== $user->role) {
+        } elseif ($originalRole !== $requestedRole) {
             $user->permissions = User::defaultPermissions($user->role);
         }
 
@@ -2751,15 +2759,21 @@ class AdminController extends Controller
         $user->refresh();
 
         if ($request->expectsJson() || $request->ajax()) {
+            $redirectAfterUpdate = auth()->id() === $user->id && ! $user->isSystemAdministrator()
+                ? route('dashboard')
+                : null;
+
             return response()->json([
                 'success' => true,
                 'message' => 'User updated successfully!',
+                'redirect' => $redirectAfterUpdate,
                 'user' => [
                     'uuid' => $user->uuid,
                     'name' => $user->name,
                     'email' => $user->email,
                     'backup_email' => $user->backup_email,
-                    'role' => $user->role,
+                    'role' => $user->isSystemAdministrator() ? 'admin' : $user->role,
+                    'is_system_administrator' => $user->isSystemAdministrator(),
                     'department' => $user->department,
                     'phone' => $user->phone,
                     'student_id' => $user->student_id,
