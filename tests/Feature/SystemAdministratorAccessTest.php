@@ -45,6 +45,16 @@ class SystemAdministratorAccessTest extends TestCase
         $this->assertStringNotContainsString('<i class="fas fa-gear"></i> System</div>', $dashboard);
     }
 
+    public function test_system_administrator_analytics_uses_the_expanded_branded_summary(): void
+    {
+        $analytics = file_get_contents(resource_path('views/superadmin/analytics.blade.php'));
+
+        $this->assertStringContainsString('max-width:min(calc(100vw - 48px),1440px)!important', $analytics);
+        $this->assertStringContainsString('max-width:none!important', $analytics);
+        $this->assertStringContainsString('CampFix: A Web-Based Platform for Campus Facility Requests', $analytics);
+        $this->assertStringContainsString('STI-Academic-Seal-One-Color_400.png', $analytics);
+    }
+
     public function test_system_administrator_sidebar_reuses_operational_modules_without_mis_duplicates(): void
     {
         $layout = file_get_contents(resource_path('views/layouts/app.blade.php'));

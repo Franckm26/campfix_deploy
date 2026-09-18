@@ -15,7 +15,12 @@
     .sa-analytics-kpi header{display:flex;align-items:center;justify-content:space-between;color:var(--sa-muted);font-size:11px;font-weight:700;text-transform:uppercase}.sa-analytics-kpi header i{color:var(--metric-color);font-size:17px}.sa-analytics-kpi strong{display:block;margin-top:7px;color:var(--sa-text);font-size:28px}.sa-analytics-kpi p{margin:4px 0 0;color:var(--sa-muted);font-size:11px}
     .sa-operations-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.sa-operation-link{display:flex;align-items:center;justify-content:space-between;padding:11px 13px;border:1px solid var(--sa-border);border-radius:7px;color:var(--sa-text);text-decoration:none}.sa-operation-link:hover{border-color:var(--sa-accent);color:var(--sa-accent)}.sa-operation-link strong{font-size:18px}
     .sa-summary-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:18px 0}.sa-summary-metric{padding:12px;border:1px solid var(--sa-border);border-radius:7px;background:var(--sa-hover)}.sa-summary-metric span,.sa-summary-metric small{display:block;color:var(--sa-muted);font-size:11px}.sa-summary-metric strong{display:block;margin:4px 0;color:var(--sa-text);font-size:24px}.sa-summary-assessment{padding:14px 16px;border-left:4px solid var(--sa-accent);border-radius:6px;background:var(--sa-hover);color:var(--sa-text);line-height:1.55}.sa-summary-priority{display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:start;gap:10px;padding:12px 0;border-bottom:1px solid var(--sa-border);color:var(--sa-text)}.sa-summary-priority:last-child{border-bottom:0}.sa-summary-priority>i{margin-top:3px}.sa-summary-priority strong,.sa-summary-priority span{display:block}.sa-summary-priority span{margin-top:2px;color:var(--sa-muted);font-size:12px}.sa-summary-priority.critical>i{color:#ef4444}.sa-summary-priority.warning>i{color:#f59e0b}.sa-summary-priority.info>i{color:#3b82f6}.sa-summary-priority.success>i{color:#22c55e}
-    @media(max-width:1000px){.sa-analytics-kpis,.sa-summary-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:620px){.sa-analytics-intro{align-items:flex-start;flex-direction:column}.sa-analytics-kpis,.sa-operations-grid,.sa-summary-metrics{grid-template-columns:1fr}.sa-summary-priority{grid-template-columns:28px minmax(0,1fr)}.sa-summary-priority a{grid-column:2}}
+    #systemExecutiveSummaryModal .modal-dialog{--bs-modal-width:min(calc(100vw - 48px),1440px);width:min(calc(100vw - 48px),1440px)!important;max-width:min(calc(100vw - 48px),1440px)!important}
+    #systemExecutiveSummaryModal .modal-content{width:100%!important;max-width:none!important}
+    #systemExecutiveSummaryModal .modal-body{overflow-x:hidden}
+    .sa-summary-letterhead{display:grid;grid-template-columns:100px minmax(0,1fr) 100px;gap:20px;align-items:center;margin-bottom:20px;padding:18px;border-bottom:1px solid var(--sa-border);background:var(--sa-hover)}
+    .sa-summary-letterhead img{display:block;width:88px;height:88px;margin:auto;object-fit:contain}.sa-summary-letterhead-copy{text-align:center}.sa-summary-letterhead-title{font-size:clamp(14px,1.25vw,18px);font-weight:800;line-height:1.3;color:var(--sa-text)}.sa-summary-letterhead-address{margin-top:7px;color:var(--sa-muted);font-size:11px;line-height:1.35}
+    @media(max-width:1000px){.sa-analytics-kpis,.sa-summary-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:620px){.sa-analytics-intro{align-items:flex-start;flex-direction:column}.sa-analytics-kpis,.sa-operations-grid,.sa-summary-metrics{grid-template-columns:1fr}.sa-summary-priority{grid-template-columns:28px minmax(0,1fr)}.sa-summary-priority a{grid-column:2}#systemExecutiveSummaryModal .modal-dialog{width:calc(100vw - 16px)!important;max-width:calc(100vw - 16px)!important}.sa-summary-letterhead{grid-template-columns:52px minmax(0,1fr) 52px;gap:8px;padding:12px}.sa-summary-letterhead img{width:48px;height:48px}.sa-summary-letterhead-title{font-size:10px}.sa-summary-letterhead-address{font-size:8px}}
 </style>
 
 <div class="sa-analytics-intro">
@@ -122,6 +127,14 @@
                 <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" id="systemExecutiveSummaryContent">
+                <div class="sa-summary-letterhead">
+                    <img src="{{ asset('Campfix/Images/logo.png') }}" alt="CampFix logo">
+                    <div class="sa-summary-letterhead-copy">
+                        <div class="sa-summary-letterhead-title">CampFix: A Web-Based Platform for Campus Facility Requests, Concern Reporting, and Data-Driven Decision Support for STI College Novaliches</div>
+                        <div class="sa-summary-letterhead-address">STI Academic Center, Diamond Avenue corner Quirino Highway<br>San Bartolome, Novaliches, Quezon City, 1116 Metro Manila</div>
+                    </div>
+                    <img src="{{ asset('Campfix/Images/STI-Academic-Seal-One-Color_400.png') }}" alt="STI academic seal">
+                </div>
                 <div class="sa-summary-assessment">
                     <strong>Executive assessment</strong>
                     <div>{{ $executiveBrief['assessment'] }}</div>
@@ -257,13 +270,16 @@ window.saCharts = [c1, c2, c3, c4];
 document.getElementById('printSystemExecutiveSummary')?.addEventListener('click', function () {
     const content = document.getElementById('systemExecutiveSummaryContent');
     if (!content) return;
+    const printableContent = content.cloneNode(true);
+    const letterhead = printableContent.querySelector('.sa-summary-letterhead');
+    if (letterhead) letterhead.remove();
 
     const printWindow = window.open('', '_blank', 'width=1000,height=760');
     if (!printWindow) return;
 
     printWindow.document.write(`<!doctype html><html><head><title>System Administrator Executive Summary</title><style>
-        body{font-family:Arial,sans-serif;color:#172033;padding:36px;line-height:1.5}h1{font-size:24px;margin-bottom:4px}p{color:#5f6b7a}.sa-summary-assessment{padding:14px 16px;border-left:4px solid #6f42c1;background:#f6f3ff}.sa-summary-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0}.sa-summary-metric{padding:12px;border:1px solid #dce2ea}.sa-summary-metric span,.sa-summary-metric small{display:block;color:#66758a;font-size:11px}.sa-summary-metric strong{display:block;font-size:23px}.sa-summary-priority{display:grid;grid-template-columns:24px 1fr;gap:8px;padding:11px 0;border-bottom:1px solid #dce2ea}.sa-summary-priority span{display:block;color:#66758a;font-size:12px}.sa-summary-priority a{display:none}table{width:100%;border-collapse:collapse}th,td{padding:8px;border:1px solid #dce2ea;text-align:left}.text-end{text-align:right!important}@media print{body{padding:0}}
-    </style></head><body><h1>System Administrator Executive Summary</h1><p>Generated {{ $executiveBrief['generated_at'] }}</p>${content.innerHTML}</body></html>`);
+        @page{size:A4 portrait;margin:10mm 14mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#172033;padding:0;line-height:1.5}.sa-summary-letterhead{display:grid;grid-template-columns:30mm 1fr 30mm;gap:5mm;align-items:center;padding:0 4mm 5mm;border-bottom:1px solid #111}.sa-summary-letterhead img{display:block;width:24mm;height:24mm;margin:auto;object-fit:contain}.sa-summary-letterhead-copy{text-align:center}.sa-summary-letterhead-title{font-size:8.5pt;font-weight:700;line-height:1.25}.sa-summary-letterhead-address{margin-top:1mm;font-size:7.5pt;line-height:1.35}h1{font-size:18pt;margin:7mm 0 1mm}p{color:#5f6b7a}.sa-summary-assessment{padding:14px 16px;border-left:4px solid #6f42c1;background:#f6f3ff}.sa-summary-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0}.sa-summary-metric{padding:12px;border:1px solid #dce2ea}.sa-summary-metric span,.sa-summary-metric small{display:block;color:#66758a;font-size:11px}.sa-summary-metric strong{display:block;font-size:23px}.sa-summary-priority{display:grid;grid-template-columns:24px 1fr;gap:8px;padding:11px 0;border-bottom:1px solid #dce2ea;break-inside:avoid}.sa-summary-priority span{display:block;color:#66758a;font-size:12px}.sa-summary-priority a{display:none}table{width:100%;border-collapse:collapse}th,td{padding:8px;border:1px solid #dce2ea;text-align:left}.text-end{text-align:right!important}
+    </style></head><body>${letterhead ? letterhead.outerHTML : ''}<h1>System Administrator Executive Summary</h1><p>Generated {{ $executiveBrief['generated_at'] }}</p>${printableContent.innerHTML}</body></html>`);
     printWindow.document.close();
     printWindow.focus();
     printWindow.print();
