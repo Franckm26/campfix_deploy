@@ -1134,48 +1134,78 @@ document.addEventListener('DOMContentLoaded', function() {
     var modalEndTime = document.getElementById('modal_end_time');
     var modalAreaOfUse = document.getElementById('modal_area_of_use');
 
-    [modalEventDate, modalStartTime, modalEndTime].forEach(function(element) {
+    [modalEventDate, modalStartTime, modalEndTime, modalAreaOfUse].forEach(function(element) {
         if (element) {
-            element.addEventListener('change', function() {
-                if (modalAreaOfUse && modalAreaOfUse.value) {
-                    var isCourt = modalAreaOfUse.value.toLowerCase().includes('court');
-                    if (isCourt) {
-                        checkCourtAvailabilityModal();
-                    }
-                }
-            });
+            element.addEventListener('change', checkRoomAvailability);
         }
     });
 
-    // Court availability listeners
-    if (modalAreaOfUse) {
-        modalAreaOfUse.addEventListener('change', function() {
-            var isCourt = this.value && this.value.toLowerCase().includes('court');
-            if (isCourt) {
-                checkCourtAvailabilityModal();
-            }
-        });
-    }
-
-    // AVR availability listeners
-    if (modalAreaOfUse) {
-        modalAreaOfUse.addEventListener('change', function() {
-            if (this.value === 'AVR') {
-                checkAvrAvailabilityModal();
-            }
-        });
-    }
-
-    var modalAvrSelection = document.getElementById('modal_avr_selection');
-    if (modalAvrSelection) {
-        modalAvrSelection.addEventListener('change', function() {
-            checkAvrAvailabilityModal();
-        });
-    }
-
     function checkRoomAvailability() {
-        // Room availability checking is no longer needed as rooms are now part of the location dropdown
-        // This function is kept for backward compatibility but does nothing
+        var location = modalAreaOfUse ? modalAreaOfUse.value : '';
+        var eventDate = modalEventDate ? modalEventDate.value : '';
+        var startTime = modalStartTime ? modalStartTime.value : '';
+        var endTime = modalEndTime ? modalEndTime.value : '';
+        var existingMsg = document.getElementById('modal_facility_availability_message');
+
+        if (existingMsg) existingMsg.remove();
+        if (!location || !eventDate || !startTime || !endTime || endTime <= startTime) return;
+
+        var messageDiv = document.createElement('div');
+        messageDiv.id = 'modal_facility_availability_message';
+        messageDiv.className = 'alert alert-info mt-2';
+        messageDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking availability...';
+
+        var areaOfUseContainer = document.getElementById('modal_area_of_use_container');
+        if (areaOfUseContainer) {
+            areaOfUseContainer.parentNode.insertBefore(messageDiv, areaOfUseContainer.nextSibling);
+        }
+
+        fetch(@json(url('/api/check-room-availability')), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                location: location,
+                event_date: eventDate,
+                start_time: startTime,
+                end_time: endTime
+            })
+        })
+        .then(function(response) {
+            if (!response.ok) throw new Error('Availability request failed with status ' + response.status);
+            return response.json();
+        })
+        .then(function(data) {
+            var currentMessage = document.getElementById('modal_facility_availability_message');
+            if (!currentMessage) return;
+
+            if (data.available) {
+                currentMessage.className = 'alert alert-success mt-2';
+                currentMessage.textContent = location + ' is available for the selected time.';
+                return;
+            }
+
+            currentMessage.className = 'alert alert-danger mt-2';
+            var conflicts = Array.isArray(data.conflicting_events)
+                ? data.conflicting_events.map(function(event) {
+                    return event.start_time + ' - ' + event.end_time + ' (' + event.user + ')';
+                }).join('; ')
+                : '';
+            currentMessage.textContent = data.reason || (location + ' is not available for the selected time.');
+            if (conflicts) currentMessage.textContent += ' Conflicts: ' + conflicts;
+        })
+        .catch(function(error) {
+            console.error('Error checking facility availability:', error);
+            var currentMessage = document.getElementById('modal_facility_availability_message');
+            if (currentMessage) {
+                currentMessage.className = 'alert alert-warning mt-2';
+                currentMessage.textContent = 'Unable to check availability. Please try again.';
+            }
+        });
     }
 
     // Function to check if required fields are filled and enable/disable Preview button
@@ -1406,25 +1436,13 @@ document.addEventListener('DOMContentLoaded', function() {
             isValid = false;
         }
 
-        // Check court availability before submission if court is selected
+        // Prevent submission when the selected facility is already reserved or unavailable.
         var areaOfUse = document.getElementById('modal_area_of_use');
-        if (areaOfUse && areaOfUse.value === 'Court') {
-            var courtAvailabilityMsg = document.getElementById('modal_court_availability_message');
-            if (courtAvailabilityMsg && courtAvailabilityMsg.classList.contains('alert-danger')) {
-                showFieldError(areaOfUse, 'The court is not available for the chosen time. Please select a different time.');
-                errors.push('Court not available');
-                isValid = false;
-            }
-        }
-
-        // Check AVR availability before submission if AVR is selected
-        if (areaOfUse && areaOfUse.value === 'AVR') {
-            var avrAvailabilityMsg = document.getElementById('modal_avr_availability_message');
-            if (avrAvailabilityMsg && avrAvailabilityMsg.classList.contains('alert-danger')) {
-                showFieldError(areaOfUse, 'The AVR is not available for the chosen time. Please select a different time.');
-                errors.push('AVR not available');
-                isValid = false;
-            }
+        var facilityAvailabilityMsg = document.getElementById('modal_facility_availability_message');
+        if (areaOfUse && facilityAvailabilityMsg && facilityAvailabilityMsg.classList.contains('alert-danger')) {
+            showFieldError(areaOfUse, 'This facility is not available for the chosen time. Please select another facility or time.');
+            errors.push('Facility not available');
+            isValid = false;
         }
         
         return isValid;

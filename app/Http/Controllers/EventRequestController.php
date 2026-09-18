@@ -10,6 +10,7 @@ use App\Models\EventApprovalChain;
 use App\Models\EventRequestType;
 use App\Models\EventIntendedUser;
 use App\Models\EventDepartment;
+use App\Models\Facility;
 use App\Models\FacilityRequest;
 use App\Models\Report;
 use App\Models\User;
@@ -163,6 +164,18 @@ class EventRequestController extends Controller
                 'request_type.in' => 'Please select a valid request type (Academic or Non-Academic).',
                 'other_category.required_if' => 'Please specify the category when selecting "Other".',
             ]);
+
+            $availability = $this->facilityAvailability(
+                $validatedData['location'],
+                $validatedData['event_date'],
+                $validatedData['start_time'],
+                $validatedData['end_time']
+            );
+            if (! $availability['available']) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'location' => $availability['reason'].' Please select another facility or time.',
+                ]);
+            }
 
             // Process materials_needed - convert to array if provided
             $materialsNeeded = null;
@@ -2544,164 +2557,100 @@ class EventRequestController extends Controller
 
     public function checkRoomAvailability(Request $request)
     {
-        $request->validate([
-            'room_number' => 'required|string',
+        $validated = $request->validate([
+            'location' => 'nullable|string|max:255|required_without:room_number',
+            'room_number' => 'nullable|string|max:255|required_without:location',
             'event_date' => 'required|date',
-            'start_time' => 'required',
-            'end_time' => 'required|after:start_time',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'required|date_format:H:i|after:start_time',
         ]);
 
-        $roomNumber = $request->room_number;
-        $eventDate = $request->event_date;
-        $startTime = $request->start_time;
-        $endTime = $request->end_time;
-
-        // Check for conflicting events
-        $conflictingEvents = EventRequest::where('room_number', $roomNumber)
-            ->where('event_date', $eventDate)
-            ->where('status', 'Approved')
-            ->where(function ($query) use ($startTime, $endTime) {
-                $query->where(function ($q) use ($startTime) {
-                    // New event starts during existing event
-                    $q->where('start_time', '<=', $startTime)
-                        ->where('end_time', '>', $startTime);
-                })->orWhere(function ($q) use ($endTime) {
-                    // New event ends during existing event
-                    $q->where('start_time', '<', $endTime)
-                        ->where('end_time', '>=', $endTime);
-                })->orWhere(function ($q) use ($startTime, $endTime) {
-                    // New event completely encompasses existing event
-                    $q->where('start_time', '>=', $startTime)
-                        ->where('end_time', '<=', $endTime);
-                })->orWhere(function ($q) use ($startTime, $endTime) {
-                    // Existing event completely encompasses new event
-                    $q->where('start_time', '<=', $startTime)
-                        ->where('end_time', '>=', $endTime);
-                });
-            })
-            ->get();
-
-        $available = $conflictingEvents->isEmpty();
-
-        return response()->json([
-            'available' => $available,
-            'conflicting_events' => $conflictingEvents->map(function ($event) {
-                return [
-                    
-                    'start_time' => $event->start_time,
-                    'end_time' => $event->end_time,
-                    'user' => $event->user->name ?? 'Unknown',
-                ];
-            }),
-        ]);
+        return $this->availabilityResponse(
+            $validated['location'] ?? $validated['room_number'],
+            $validated['event_date'],
+            $validated['start_time'],
+            $validated['end_time']
+        );
     }
 
     public function checkCourtAvailability(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
+            'location' => 'nullable|string|max:255',
             'event_date' => 'required|date',
-            'start_time' => 'required',
-            'end_time' => 'required|after:start_time',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'required|date_format:H:i|after:start_time',
         ]);
 
-        $eventDate = $request->event_date;
-        $startTime = $request->start_time;
-        $endTime = $request->end_time;
-
-        // Check for conflicting court events
-        $conflictingEvents = EventRequest::with('user')
-            ->where('location', 'LIKE', 'Court%')
-            ->where('event_date', $eventDate)
-            ->where('status', 'Approved')
-            ->where(function ($query) use ($startTime, $endTime) {
-                $query->where(function ($q) use ($startTime) {
-                    // New event starts during existing event
-                    $q->where('start_time', '<=', $startTime)
-                        ->where('end_time', '>', $startTime);
-                })->orWhere(function ($q) use ($endTime) {
-                    // New event ends during existing event
-                    $q->where('start_time', '<', $endTime)
-                        ->where('end_time', '>=', $endTime);
-                })->orWhere(function ($q) use ($startTime, $endTime) {
-                    // New event completely encompasses existing event
-                    $q->where('start_time', '>=', $startTime)
-                        ->where('end_time', '<=', $endTime);
-                })->orWhere(function ($q) use ($startTime, $endTime) {
-                    // Existing event completely encompasses new event
-                    $q->where('start_time', '<=', $startTime)
-                        ->where('end_time', '>=', $endTime);
-                });
-            })
-            ->get();
-
-        $available = $conflictingEvents->isEmpty();
-
-        return response()->json([
-            'available' => $available,
-            'conflicting_events' => $conflictingEvents->map(function ($event) {
-                return [
-                    
-                    'start_time' => $event->start_time,
-                    'end_time' => $event->end_time,
-                    'user' => $event->user->name ?? 'Unknown',
-                ];
-            }),
-        ]);
+        return $this->availabilityResponse(
+            $validated['location'] ?? 'Court',
+            $validated['event_date'],
+            $validated['start_time'],
+            $validated['end_time'],
+            empty($validated['location'])
+        );
     }
 
     public function checkAvrAvailability(Request $request)
     {
-        $request->validate([
-            'avr_selection' => 'required|in:AVR 1,AVR 2',
+        $validated = $request->validate([
+            'location' => 'nullable|string|max:255|required_without:avr_selection',
+            'avr_selection' => 'nullable|string|max:255|required_without:location',
             'event_date' => 'required|date',
-            'start_time' => 'required',
-            'end_time' => 'required|after:start_time',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'required|date_format:H:i|after:start_time',
         ]);
 
-        $avrSelection = $request->avr_selection;
-        $eventDate = $request->event_date;
-        $startTime = $request->start_time;
-        $endTime = $request->end_time;
+        return $this->availabilityResponse(
+            $validated['location'] ?? $validated['avr_selection'],
+            $validated['event_date'],
+            $validated['start_time'],
+            $validated['end_time']
+        );
+    }
 
-        // Check for conflicting AVR events
+    private function availabilityResponse(string $location, string $eventDate, string $startTime, string $endTime, bool $locationPrefix = false)
+    {
+        $availability = $this->facilityAvailability($location, $eventDate, $startTime, $endTime, $locationPrefix);
+
+        return response()->json($availability);
+    }
+
+    private function facilityAvailability(string $location, string $eventDate, string $startTime, string $endTime, bool $locationPrefix = false): array
+    {
+        $facility = Facility::where('name', $location)->first();
+        if ($facility && $facility->status !== 'available') {
+            return [
+                'available' => false,
+                'reason' => $facility->status === 'under_maintenance'
+                    ? 'This facility is currently under maintenance.'
+                    : 'This facility is currently unavailable.',
+                'conflicting_events' => [],
+            ];
+        }
+
         $conflictingEvents = EventRequest::with('user')
-            ->where('location', 'LIKE', 'AVR%')
-            ->where('location', 'LIKE', "%{$avrSelection}%")
-            ->where('event_date', $eventDate)
-            ->where('status', 'Approved')
-            ->where(function ($query) use ($startTime, $endTime) {
-                $query->where(function ($q) use ($startTime) {
-                    // New event starts during existing event
-                    $q->where('start_time', '<=', $startTime)
-                        ->where('end_time', '>', $startTime);
-                })->orWhere(function ($q) use ($endTime) {
-                    // New event ends during existing event
-                    $q->where('start_time', '<', $endTime)
-                        ->where('end_time', '>=', $endTime);
-                })->orWhere(function ($q) use ($startTime, $endTime) {
-                    // New event completely encompasses existing event
-                    $q->where('start_time', '>=', $startTime)
-                        ->where('end_time', '<=', $endTime);
-                })->orWhere(function ($q) use ($startTime, $endTime) {
-                    // Existing event completely encompasses new event
-                    $q->where('start_time', '<=', $startTime)
-                        ->where('end_time', '>=', $endTime);
-                });
-            })
+            ->when(
+                $locationPrefix,
+                fn ($query) => $query->where('location', 'LIKE', $location.'%'),
+                fn ($query) => $query->where('location', $location)
+            )
+            ->whereDate('event_date', $eventDate)
+            ->where('status', EventRequest::STATUS_APPROVED)
+            ->where('start_time', '<', $endTime)
+            ->where('end_time', '>', $startTime)
+            ->orderBy('start_time')
             ->get();
 
-        $available = $conflictingEvents->isEmpty();
-
-        return response()->json([
-            'available' => $available,
-            'conflicting_events' => $conflictingEvents->map(function ($event) {
-                return [
-                    
-                    'start_time' => $event->start_time,
-                    'end_time' => $event->end_time,
-                    'user' => $event->user->name ?? 'Unknown',
-                ];
-            }),
-        ]);
+        return [
+            'available' => $conflictingEvents->isEmpty(),
+            'reason' => $conflictingEvents->isEmpty() ? null : 'This facility is already reserved during the selected time.',
+            'conflicting_events' => $conflictingEvents->map(fn ($event) => [
+                'title' => $event->location,
+                'start_time' => $event->start_time,
+                'end_time' => $event->end_time,
+                'user' => $event->user?->name ?? 'Unknown',
+            ])->values(),
+        ];
     }
 }
