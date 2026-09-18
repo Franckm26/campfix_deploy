@@ -814,7 +814,7 @@
 
     .dss-report-cover {
         display: grid;
-        grid-template-columns: 72px minmax(0, 1fr);
+        grid-template-columns: 88px minmax(0, 1fr) 88px;
         gap: 16px;
         align-items: center;
         padding: 18px;
@@ -823,10 +823,10 @@
         background: #f8fafc;
     }
 
-    .dss-report-cover img { width: 64px; height: 64px; object-fit: contain; }
-    .dss-report-cover span { color: #1769e0; font-size: 12px; font-weight: 800; text-transform: uppercase; }
-    .dss-report-cover h1 { margin: 2px 0; color: #10233f; font-size: 22px; }
-    .dss-report-cover p { margin: 0; color: #66758a; }
+    .dss-report-cover img { display: block; width: 76px; height: 76px; margin: auto; object-fit: contain; }
+    .dss-report-letterhead { min-width: 0; color: #111; text-align: center; }
+    .dss-report-title { font-size: 15px; font-weight: 800; line-height: 1.3; }
+    .dss-report-address { margin-top: 7px; font-size: 11px; line-height: 1.35; }
     .dss-report-cover dl { display: grid; grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 16px; margin: 0; font-size: 11px; }
     .dss-report-cover dl div { display: grid; grid-template-columns: 78px minmax(0, 1fr); gap: 8px; }
     .dss-report-cover dt { color: #718096; }
@@ -908,6 +908,13 @@
 
     #executiveSummaryModal .modal-body {
         padding: 16px;
+        overflow-x: hidden;
+    }
+
+    #executiveSummaryModal .modal-dialog {
+        --bs-modal-width: min(calc(100vw - 48px), 1440px);
+        width: min(calc(100vw - 48px), 1440px) !important;
+        max-width: min(calc(100vw - 48px), 1440px) !important;
     }
 
     #executiveSummaryModal .dss-report {
@@ -917,16 +924,15 @@
 
     #executiveSummaryModal .dss-report-cover {
         display: grid !important;
-        grid-template-columns: 84px minmax(280px, 1fr) minmax(310px, .9fr) !important;
+        grid-template-columns: 100px minmax(0, 1fr) 100px !important;
         column-gap: 20px;
     }
 
-    #executiveSummaryModal .dss-report-cover > div { min-width: 0; }
-    #executiveSummaryModal .dss-report-cover h1 { font-size: clamp(20px, 2vw, 28px); overflow-wrap: normal; }
+    #executiveSummaryModal .dss-report-title { font-size: clamp(14px, 1.25vw, 18px); }
 
     #executiveSummaryModal .dss-report-cover dl {
-        grid-column: auto;
-        grid-template-columns: 1fr;
+        grid-column: 1 / -1;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 7px;
     }
 
@@ -975,12 +981,16 @@
         .analytics-responsive-modal .modal-header,
         .analytics-responsive-modal .modal-footer { padding: 12px; }
         .analytics-responsive-modal .modal-footer { flex-wrap: wrap; }
-        #executiveSummaryModal .dss-report-cover { grid-template-columns: 52px minmax(0, 1fr) !important; padding: 13px; }
+        #executiveSummaryModal .modal-dialog { width: calc(100vw - 16px) !important; max-width: calc(100vw - 16px) !important; }
+        #executiveSummaryModal .dss-report-cover { grid-template-columns: 52px minmax(0, 1fr) 52px !important; gap: 8px; padding: 13px; }
+        #executiveSummaryModal .dss-report-cover img { width: 48px; height: 48px; }
+        #executiveSummaryModal .dss-report-title { font-size: 11px; }
+        #executiveSummaryModal .dss-report-address { font-size: 9px; }
         #executiveSummaryModal .dss-report-cover dl { grid-column: 1 / -1; }
     }
 
     @media (max-width: 900px) and (min-width: 651px) {
-        #executiveSummaryModal .dss-report-cover { grid-template-columns: 64px minmax(0, 1fr) !important; }
+        #executiveSummaryModal .dss-report-cover { grid-template-columns: 72px minmax(0, 1fr) 72px !important; }
         #executiveSummaryModal .dss-report-cover dl { grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(0, 1fr)); }
         #executiveSummaryModal .dss-report-cover dl div { grid-template-columns: 78px minmax(0, 1fr); }
     }
