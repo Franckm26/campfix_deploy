@@ -5225,9 +5225,11 @@ class AdminController extends Controller
         $assignedIds = $reports->pluck('assigned_to')->filter()->unique()->values();
         $maintenanceNames = MaintenanceStaff::whereIn('id', $assignedIds)->pluck('name', 'id');
         $misNames = User::whereIn('id', $assignedIds)->where('role', 'mis')->pluck('name', 'id');
-        $currentRole = (string) optional(auth()->user())->role;
-        $canAssignCategoryTickets = in_array($currentRole, ['building_admin', 'school_admin', 'academic_head', 'mis'], true);
-        $canProgressCategoryTickets = in_array($currentRole, ['building_admin', 'school_admin', 'mis', 'maintenance'], true);
+        $currentUser = auth()->user();
+        $currentRole = (string) optional($currentUser)->role;
+        $isSystemAdministrator = (bool) optional($currentUser)->isSystemAdministrator();
+        $canAssignCategoryTickets = $isSystemAdministrator || in_array($currentRole, ['building_admin', 'school_admin', 'academic_head', 'mis'], true);
+        $canProgressCategoryTickets = $isSystemAdministrator || in_array($currentRole, ['building_admin', 'school_admin', 'mis', 'maintenance'], true);
         $categoryWorkspace = $reports
             ->groupBy(fn ($report) => optional($report->category)->name ?: 'Uncategorized')
             ->map(function ($items, $category) use ($reportWeight, $monthStart, $maintenanceNames, $misNames, $canAssignCategoryTickets, $canProgressCategoryTickets) {

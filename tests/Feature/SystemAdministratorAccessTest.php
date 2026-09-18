@@ -45,14 +45,17 @@ class SystemAdministratorAccessTest extends TestCase
         $this->assertStringNotContainsString('<i class="fas fa-gear"></i> System</div>', $dashboard);
     }
 
-    public function test_system_administrator_analytics_uses_the_expanded_branded_summary(): void
+    public function test_system_administrator_analytics_reuses_the_operational_analytics_module(): void
     {
-        $analytics = file_get_contents(resource_path('views/superadmin/analytics.blade.php'));
+        $route = app('router')->getRoutes()->match(Request::create('/system-admin/analytics', 'GET'));
+        $analytics = file_get_contents(resource_path('views/admin/analytics.blade.php'));
 
-        $this->assertStringContainsString('max-width:min(calc(100vw - 48px),1440px)!important', $analytics);
-        $this->assertStringContainsString('max-width:none!important', $analytics);
+        $this->assertSame(\App\Http\Controllers\AdminController::class.'@analytics', $route->getActionName());
+        $this->assertStringContainsString("isSystemAdministrator() ? 'superadmin.analytics'", $analytics);
+        $this->assertStringContainsString("isSystemAdministrator() ? 'superadmin.reports'", $analytics);
+        $this->assertStringContainsString('class="risk-table"', $analytics);
+        $this->assertStringContainsString('id="executiveSummaryModal"', $analytics);
         $this->assertStringContainsString('CampFix: A Web-Based Platform for Campus Facility Requests', $analytics);
-        $this->assertStringContainsString('STI-Academic-Seal-One-Color_400.png', $analytics);
     }
 
     public function test_system_administrator_sidebar_reuses_operational_modules_without_mis_duplicates(): void

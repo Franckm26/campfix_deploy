@@ -612,7 +612,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('system-admin')->name('superad
     Route::delete('/categories/{id}', [\App\Http\Controllers\SuperadminController::class, 'deleteCategory'])->name('categories.delete');
     
     // Analytics
-    Route::get('/analytics', [\App\Http\Controllers\SuperadminController::class, 'analytics'])->name('analytics');
+    Route::get('/analytics', [AdminController::class, 'analytics'])->name('analytics');
 
     // Operational management
     Route::get('/management', [\App\Http\Controllers\ManagementController::class, 'index'])->name('management');
