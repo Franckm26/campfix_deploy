@@ -140,7 +140,7 @@ class RoleScopedAnalyticsTest extends TestCase
         $this->actingAs($mis);
         $rendered = view('admin.partials.role-executive-report', $view->getData())->render();
         $this->assertStringContainsString('Executive Management Summary', $rendered);
-        $this->assertStringContainsString('CampFix Decision Support System', $rendered);
+        $this->assertStringContainsString('CampFix: A Web-Based Platform for Campus Facility Requests', $rendered);
         $this->assertStringContainsString('Recommended management decision', $rendered);
     }
 
