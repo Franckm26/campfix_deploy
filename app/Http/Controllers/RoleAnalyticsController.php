@@ -51,51 +51,50 @@ class RoleAnalyticsController extends Controller
         $misAssignees = User::where('role', 'mis')
             ->whereIn('id', $reports->pluck('assigned_to')->filter()->unique())
             ->pluck('name', 'id');
-        $activeUsers = User::hideSuperadmin()->where('is_archived', false)->count();
-        $misUsers = User::where('role', 'mis')->where('is_archived', false)->count();
-        $lockedUsers = Schema::hasColumn('users', 'locked_until')
-            ? User::hideSuperadmin()->whereNotNull('locked_until')->where('locked_until', '>', now())->count()
-            : 0;
         $mine = $reports->where('assigned_to', $user->id);
+        $open = $reports->where('status', '!=', 'Resolved');
+        $unassigned = $open->whereNull('assigned_to');
+        $resolved = $reports->where('status', 'Resolved');
+        $resolutionRate = $reports->count() > 0 ? round(($resolved->count() / $reports->count()) * 100, 1) : 0;
         $operations = $this->misOperations($reports, $misAssignees, $user);
-        $decisionAlerts = $this->misDecisionAlerts($reports, $lockedUsers, $misAssignees);
+        $decisionAlerts = $this->misDecisionAlerts($reports, $misAssignees);
 
         $metrics = [
-            ['label' => 'Active users', 'value' => $activeUsers, 'context' => 'Accounts currently available in CampFix', 'icon' => 'fa-users', 'color' => '#1769e0'],
-            ['label' => 'MIS team', 'value' => $misUsers, 'context' => 'Active MIS user accounts', 'icon' => 'fa-user-shield', 'color' => '#6f42c1'],
-            ['label' => 'Technology/Internet', 'value' => $reports->count(), 'context' => $reports->where('status', '!=', 'Resolved')->count().' open MIS task(s)', 'icon' => 'fa-laptop-code', 'color' => '#e99a00'],
-            ['label' => 'My assigned tasks', 'value' => $mine->count(), 'context' => $mine->where('status', 'Resolved')->count().' resolved by you', 'icon' => 'fa-list-check', 'color' => '#148a58'],
+            ['label' => 'Technology/Internet', 'value' => $reports->count(), 'context' => 'MIS tasks received in this period', 'icon' => 'fa-laptop-code', 'color' => '#1769e0'],
+            ['label' => 'Open tasks', 'value' => $open->count(), 'context' => $unassigned->count().' still unassigned', 'icon' => 'fa-folder-open', 'color' => '#e99a00'],
+            ['label' => 'My open tasks', 'value' => $mine->where('status', '!=', 'Resolved')->count(), 'context' => $mine->where('status', 'Resolved')->count().' resolved by you', 'icon' => 'fa-list-check', 'color' => '#6f42c1'],
+            ['label' => 'Resolution rate', 'value' => $resolutionRate, 'context' => $resolved->count().' of '.$reports->count().' task(s) resolved', 'icon' => 'fa-circle-check', 'color' => '#148a58'],
         ];
 
         $statusStats = $this->statusStats($reports);
         $trendStats = $this->monthlyTrend($reports, 'created_at', fn ($item) => strtolower((string) $item->status) === 'resolved');
-        $roleStats = User::hideSuperadmin()->where('is_archived', false)->get()
-            ->groupBy('role')->map(fn ($items, $role) => ['label' => $this->roleLabel($role), 'count' => $items->count()])
+        $priorityStats = $reports->groupBy(fn ($item) => $this->roleLabel($item->priority ?: 'not_set'))
+            ->map(fn ($items, $priority) => ['label' => $priority, 'count' => $items->count()])
             ->sortByDesc('count')->values();
 
         $summary = [
             'title' => 'MIS Executive Summary',
-            'scope' => 'User administration and Technology/Internet operations',
-            'decision' => $reports->where('status', '!=', 'Resolved')->count() > 0
+            'scope' => 'Technology/Internet task operations and MIS service performance',
+            'decision' => $open->count() > 0
                 ? 'Prioritize unassigned and urgent Technology/Internet work, then move claimed tasks through resolution.'
-                : 'The Technology/Internet queue is clear. Continue monitoring user access and incoming reports.',
+                : 'The Technology/Internet queue is clear. Continue monitoring incoming reports and service performance.',
             'items' => [
-                "{$activeUsers} active user account(s) are currently managed, including {$misUsers} MIS account(s).",
-                $lockedUsers > 0 ? "{$lockedUsers} account(s) are currently locked and require a security review." : 'No active account lockouts require attention.',
-                $reports->where('status', '!=', 'Resolved')->count().' Technology/Internet task(s) remain open.',
-                $mine->where('status', '!=', 'Resolved')->count().' of the open MIS task(s) are assigned to you.',
+                $reports->count().' Technology/Internet task(s) were received in the selected period.',
+                $open->count().' task(s) remain open and '.$unassigned->count().' are unassigned.',
+                $mine->where('status', '!=', 'Resolved')->count().' open task(s) are assigned to you.',
+                $resolutionRate.'% of the MIS workload in this period is resolved.',
             ],
         ];
 
         return view('admin.role-analytics', [
             'mode' => 'mis',
             'pageTitle' => 'MIS Analytics',
-            'pageSubtitle' => 'User administration and Technology/Internet task performance',
+            'pageSubtitle' => 'Technology/Internet workload, ownership, priority, and resolution performance',
             'metrics' => $metrics,
             'statusStats' => $statusStats,
             'trendStats' => $trendStats,
-            'secondaryStats' => $roleStats,
-            'secondaryTitle' => 'Users by Role',
+            'secondaryStats' => $priorityStats,
+            'secondaryTitle' => 'Tasks by Priority',
             'recentItems' => $reports->take(12),
             'misAssignees' => $misAssignees,
             'operations' => $operations,
@@ -305,7 +304,7 @@ class RoleAnalyticsController extends Controller
             ->values();
     }
 
-    private function misDecisionAlerts(Collection $reports, int $lockedUsers, Collection $misAssignees): Collection
+    private function misDecisionAlerts(Collection $reports, Collection $misAssignees): Collection
     {
         $open = $reports->reject(fn (Concern $concern) => strtolower((string) $concern->status) === 'resolved');
         $unassigned = $open->whereNull('assigned_to');
@@ -322,21 +321,11 @@ class RoleAnalyticsController extends Controller
         if ($stale->isNotEmpty()) {
             $alerts->push($this->decisionAlert('Aging MIS queue', 'warning', $stale->count().' open task(s) are at least seven days old.', 'Long-running issues can affect service availability and user confidence.', 'Confirm progress, update status, or document blockers.', $stale, $misAssignees));
         }
-        if ($lockedUsers > 0) {
-            $alerts->push([
-                'key' => 'locked-users', 'level' => 'info', 'title' => 'Locked user accounts',
-                'body' => $lockedUsers.' active account lockout(s) require review.',
-                'why' => 'Account lockouts may indicate access problems or repeated failed sign-ins.',
-                'impact' => 'Validate the user and restore access when appropriate.',
-                'tickets' => [],
-            ]);
-        }
-
         return $alerts->isEmpty() ? collect([[
             'key' => 'mis-clear', 'level' => 'success', 'title' => 'No immediate MIS decision alerts',
             'body' => 'The current Technology/Internet workload has no unassigned, urgent, or aging exceptions.',
             'why' => 'The queue is within the current attention thresholds.',
-            'impact' => 'Continue monitoring new reports and account security.',
+            'impact' => 'Continue monitoring new reports and service performance.',
             'tickets' => [],
         ]]) : $alerts;
     }

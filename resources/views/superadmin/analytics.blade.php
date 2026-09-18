@@ -1,12 +1,45 @@
 @extends('superadmin.layout')
 
-@section('page_title', 'Analytics')
+@section('page_title', 'System Administrator Analytics')
 
 @section('extra_styles')
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 @endsection
 
 @section('content')
+
+<style>
+    .sa-analytics-intro{margin-bottom:18px;padding:18px 20px;border-left:4px solid var(--sa-accent);border-radius:8px;background:var(--sa-card);color:var(--sa-text)}
+    .sa-analytics-intro h2{margin:0 0 5px;font-size:20px}.sa-analytics-intro p{margin:0;color:var(--sa-muted);font-size:13px}
+    .sa-analytics-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:20px}.sa-analytics-kpi{position:relative;padding:16px 18px;border-left:4px solid var(--metric-color)}
+    .sa-analytics-kpi header{display:flex;align-items:center;justify-content:space-between;color:var(--sa-muted);font-size:11px;font-weight:700;text-transform:uppercase}.sa-analytics-kpi header i{color:var(--metric-color);font-size:17px}.sa-analytics-kpi strong{display:block;margin-top:7px;color:var(--sa-text);font-size:28px}.sa-analytics-kpi p{margin:4px 0 0;color:var(--sa-muted);font-size:11px}
+    .sa-operations-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.sa-operation-link{display:flex;align-items:center;justify-content:space-between;padding:11px 13px;border:1px solid var(--sa-border);border-radius:7px;color:var(--sa-text);text-decoration:none}.sa-operation-link:hover{border-color:var(--sa-accent);color:var(--sa-accent)}.sa-operation-link strong{font-size:18px}
+    @media(max-width:1000px){.sa-analytics-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:620px){.sa-analytics-kpis,.sa-operations-grid{grid-template-columns:1fr}}
+</style>
+
+<div class="sa-analytics-intro">
+    <h2>Daily Operations Overview</h2>
+    <p>{{ $executiveSummary }}</p>
+</div>
+
+<div class="sa-analytics-kpis">
+    @foreach($systemMetrics as $metric)
+        <article class="sa-card sa-analytics-kpi" style="--metric-color:{{ $metric['color'] }}">
+            <header><span>{{ $metric['label'] }}</span><i class="fas {{ $metric['icon'] }}"></i></header>
+            <strong>{{ number_format($metric['value']) }}</strong>
+            <p>{{ $metric['context'] }}</p>
+        </article>
+    @endforeach
+</div>
+
+<div class="sa-card mb-4">
+    <div style="font-size:13px;font-weight:600;color:var(--sa-text);margin-bottom:14px"><i class="fas fa-gauge-high me-2" style="color:var(--sa-accent)"></i>Operational Work Queues</div>
+    <div class="sa-operations-grid">
+        @foreach($operationsOverview as $operation)
+            <a class="sa-operation-link" href="{{ $operation['url'] }}"><span>{{ $operation['label'] }}</span><strong>{{ number_format($operation['count']) }}</strong></a>
+        @endforeach
+    </div>
+</div>
 
 <div class="row g-4">
     {{-- Concerns 12-month --}}

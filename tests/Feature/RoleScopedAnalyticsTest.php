@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Http\Controllers\RoleAnalyticsController;
+use App\Http\Controllers\SuperadminController;
 use App\Models\Category;
 use App\Models\Concern;
 use App\Models\EventRequest;
@@ -19,6 +20,7 @@ class RoleScopedAnalyticsTest extends TestCase
     {
         parent::setUp();
 
+        Schema::dropIfExists('superadmin_activity_logs');
         Schema::dropIfExists('reports');
         Schema::dropIfExists('concerns');
         Schema::dropIfExists('event_requests');
@@ -53,6 +55,7 @@ class RoleScopedAnalyticsTest extends TestCase
             $table->id();
             $table->foreignId('user_id')->nullable();
             $table->foreignId('category_id')->nullable();
+            $table->string('category')->nullable();
             $table->string('title')->nullable();
             $table->text('description')->nullable();
             $table->string('location')->nullable();
@@ -95,6 +98,19 @@ class RoleScopedAnalyticsTest extends TestCase
             $table->boolean('is_deleted')->default(false);
             $table->timestamps();
         });
+
+        Schema::create('superadmin_activity_logs', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->nullable();
+            $table->string('action');
+            $table->text('description')->nullable();
+            $table->string('ip_address')->nullable();
+            $table->text('user_agent')->nullable();
+            $table->json('old_values')->nullable();
+            $table->json('new_values')->nullable();
+            $table->json('metadata')->nullable();
+            $table->timestamps();
+        });
     }
 
     public function test_mis_analytics_uses_only_the_technology_internet_task_queue(): void
@@ -110,7 +126,10 @@ class RoleScopedAnalyticsTest extends TestCase
 
         $this->assertSame('mis', $view->getData()['mode']);
         $this->assertSame(['No internet'], $view->getData()['recentItems']->pluck('title')->all());
-        $this->assertSame(1, $view->getData()['metrics'][2]['value']);
+        $this->assertSame(1, $view->getData()['metrics'][0]['value']);
+        $this->assertSame('Technology/Internet task operations and MIS service performance', $view->getData()['summary']['scope']);
+        $this->assertSame('Tasks by Priority', $view->getData()['secondaryTitle']);
+        $this->assertStringNotContainsString('User administration', $view->getData()['pageSubtitle']);
         $this->assertSame('Technology/Internet', $view->getData()['operations']->first()['name']);
         $this->assertSame(1, $view->getData()['operations']->first()['stats']['urgent']);
         $this->assertSame(
@@ -143,6 +162,33 @@ class RoleScopedAnalyticsTest extends TestCase
             ['Broken desk'],
             Report::query()->forOperationalRole($buildingAdmin)->pluck('title')->all()
         );
+    }
+
+    public function test_system_administrator_analytics_combines_user_health_and_daily_operations(): void
+    {
+        $administrator = $this->user('System Administrator', 'admin');
+        $administrator->forceFill(['is_superadmin' => true])->save();
+        $requester = $this->user('Requester', 'student');
+
+        Concern::create(['user_id' => $requester->id, 'title' => 'Open concern', 'status' => 'Pending']);
+        Report::create(['title' => 'Open report', 'status' => 'Pending']);
+        EventRequest::create($this->eventData($requester, 'ICT'));
+
+        $this->actingAs($administrator);
+        $view = app(SuperadminController::class)->analytics();
+        $data = $view->getData();
+
+        $this->assertSame(
+            ['Active users', 'Locked accounts', 'Open concerns', 'Pending operations'],
+            collect($data['systemMetrics'])->pluck('label')->all()
+        );
+        $this->assertSame(1, collect($data['systemMetrics'])->firstWhere('label', 'Open concerns')['value']);
+        $this->assertSame(2, collect($data['systemMetrics'])->firstWhere('label', 'Pending operations')['value']);
+        $this->assertSame(
+            ['Open concerns', 'Open reports', 'Pending event requests', 'Locked accounts', 'Archived users', 'Deleted users'],
+            $data['operationsOverview']->pluck('label')->all()
+        );
+        $this->assertStringContainsString('Daily operations currently include', $data['executiveSummary']);
     }
 
     public function test_program_head_analytics_is_limited_to_its_department_and_approval_route(): void

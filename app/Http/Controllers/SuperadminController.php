@@ -12,6 +12,7 @@ use App\Models\SuperadminActivityLog;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -434,6 +435,40 @@ class SuperadminController extends Controller
 
     public function analytics()
     {
+        $activeUsers = User::withoutGlobalScopes()
+            ->where('is_deleted', false)
+            ->where(fn ($query) => $query->where('is_archived', false)->orWhereNull('is_archived'))
+            ->count();
+        $archivedUsers = User::withoutGlobalScopes()->where('is_deleted', false)->where('is_archived', true)->count();
+        $deletedUsers = User::withoutGlobalScopes()->where('is_deleted', true)->count();
+        $lockedUsers = Schema::hasColumn('users', 'locked_until')
+            ? User::withoutGlobalScopes()->where('is_deleted', false)->where('locked_until', '>', now())->count()
+            : 0;
+
+        $openConcerns = Concern::withoutGlobalScopes()->where('is_deleted', false)->whereNotIn('status', ['Resolved', 'Closed'])->count();
+        $openReports = Report::withTrashed()->where('is_deleted', false)->where('status', '!=', 'Resolved')->count();
+        $pendingEvents = EventRequest::withoutGlobalScopes()->where('is_deleted', false)->where('status', 'Pending')->count();
+
+        $systemMetrics = [
+            ['label' => 'Active users', 'value' => $activeUsers, 'context' => $archivedUsers.' archived · '.$deletedUsers.' deleted', 'icon' => 'fa-users', 'color' => '#1769e0'],
+            ['label' => 'Locked accounts', 'value' => $lockedUsers, 'context' => $lockedUsers ? 'Requires administrator review' : 'No active lockouts', 'icon' => 'fa-lock', 'color' => $lockedUsers ? '#d93645' : '#148a58'],
+            ['label' => 'Open concerns', 'value' => $openConcerns, 'context' => 'Unresolved day-to-day concerns', 'icon' => 'fa-clipboard-list', 'color' => '#e99a00'],
+            ['label' => 'Pending operations', 'value' => $openReports + $pendingEvents, 'context' => $openReports.' reports · '.$pendingEvents.' event requests', 'icon' => 'fa-list-check', 'color' => '#6f42c1'],
+        ];
+
+        $operationsOverview = collect([
+            ['label' => 'Open concerns', 'count' => $openConcerns, 'url' => route('superadmin.concerns')],
+            ['label' => 'Open reports', 'count' => $openReports, 'url' => route('superadmin.reports', ['status' => 'Pending'])],
+            ['label' => 'Pending event requests', 'count' => $pendingEvents, 'url' => route('superadmin.events', ['status' => 'Pending'])],
+            ['label' => 'Locked accounts', 'count' => $lockedUsers, 'url' => route('admin.users', ['view' => 'locked'])],
+            ['label' => 'Archived users', 'count' => $archivedUsers, 'url' => route('admin.users', ['view' => 'archives'])],
+            ['label' => 'Deleted users', 'count' => $deletedUsers, 'url' => route('admin.users', ['view' => 'deleted'])],
+        ]);
+
+        $executiveSummary = $lockedUsers + $openConcerns + $openReports + $pendingEvents > 0
+            ? "Daily operations currently include {$openConcerns} open concern(s), {$openReports} open report(s), {$pendingEvents} pending event request(s), and {$lockedUsers} locked account(s)."
+            : 'No open operational or account-access exceptions currently require administrator action.';
+
         // Monthly concerns for the past 12 months
         $monthlyConcerns = collect(range(11, 0))->map(function ($i) {
             $date = now()->subMonths($i);
@@ -486,7 +521,10 @@ class SuperadminController extends Controller
             'monthlyReports',
             'userGrowth',
             'concernsByCategory',
-            'topReporters'
+            'topReporters',
+            'systemMetrics',
+            'operationsOverview',
+            'executiveSummary'
         ));
     }
 
