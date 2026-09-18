@@ -47,8 +47,8 @@
                 <a href="{{ route('superadmin.users', ['status' => 'deleted']) }}" class="sa-btn sa-btn-ghost" style="justify-content:flex-start">
                     <i class="fas fa-trash" style="color:var(--sa-danger)"></i> View Deleted Users
                 </a>
-                <a href="{{ route('superadmin.activity-logs') }}" class="sa-btn sa-btn-ghost" style="justify-content:flex-start">
-                    <i class="fas fa-list-check" style="color:var(--sa-info)"></i> View All Activity Logs
+                <a href="{{ route('admin.logs') }}" class="sa-btn sa-btn-ghost" style="justify-content:flex-start">
+                    <i class="fas fa-list-check" style="color:var(--sa-info)"></i> View All Audit Logs
                 </a>
                 <a href="{{ route('superadmin.superadmin-logs') }}" class="sa-btn sa-btn-ghost" style="justify-content:flex-start">
                     <i class="fas fa-eye-slash" style="color:var(--sa-accent2)"></i> View Administrator Logs

@@ -220,9 +220,9 @@
         </a>
     </div>
     <div class="col-6 col-md-3 col-xl-2">
-        <a href="{{ route('superadmin.activity-logs') }}" class="module-card pink">
+        <a href="{{ route('admin.logs') }}" class="module-card pink">
             <div class="module-icon" style="background:rgba(236,72,153,.15);color:#f472b6"><i class="fas fa-list-check"></i></div>
-            <div class="module-title">Activity Logs</div>
+            <div class="module-title">Audit Logs</div>
             <div class="module-count">{{ number_format($stats['total_activity_logs']) }}</div>
             <div class="module-sub">All system events</div>
         </a>

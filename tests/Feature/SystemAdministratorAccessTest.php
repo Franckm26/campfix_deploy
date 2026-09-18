@@ -31,9 +31,12 @@ class SystemAdministratorAccessTest extends TestCase
         $layout = file_get_contents(resource_path('views/layouts/app.blade.php'));
 
         $this->assertStringContainsString("role === 'mis' && ! auth()->user()->isSystemAdministrator()", $layout);
+        $this->assertStringContainsString("route('history.index')", $layout);
         $this->assertStringContainsString("route('admin.reports')", $layout);
         $this->assertStringContainsString("route('admin.events')", $layout);
         $this->assertStringContainsString("route('admin.management')", $layout);
+        $this->assertStringContainsString("route('admin.logs')", $layout);
+        $this->assertStringNotContainsString("route('superadmin.activity-logs')", $layout);
         $this->assertStringNotContainsString('Module Access Control</a>', $layout);
     }
 
@@ -41,9 +44,11 @@ class SystemAdministratorAccessTest extends TestCase
     {
         $reports = app('router')->getRoutes()->match(Request::create('/system-admin/reports', 'GET'));
         $events = app('router')->getRoutes()->match(Request::create('/system-admin/events', 'GET'));
+        $activityLogs = app('router')->getRoutes()->match(Request::create('/system-admin/activity-logs', 'GET'));
 
         $this->assertSame(\App\Http\Controllers\AdminController::class.'@reports', $reports->getActionName());
         $this->assertSame(\App\Http\Controllers\EventRequestController::class.'@adminIndex', $events->getActionName());
+        $this->assertSame(\App\Http\Controllers\AdminController::class.'@logs', $activityLogs->getActionName());
     }
 
     public function test_mis_cannot_retain_admin_privileges_from_old_permissions(): void

@@ -596,8 +596,8 @@ Route::middleware(['auth', 'superadmin'])->prefix('system-admin')->name('superad
     Route::get('/events', [EventRequestController::class, 'adminIndex'])->name('events');
     Route::delete('/events/{id}/force-delete', [\App\Http\Controllers\SuperadminController::class, 'forceDeleteEvent'])->name('events.force-delete');
     
-    // Activity Logs
-    Route::get('/activity-logs', [\App\Http\Controllers\SuperadminController::class, 'activityLogs'])->name('activity-logs');
+    // Keep the legacy URL, but reuse the established operational audit-log module.
+    Route::get('/activity-logs', [AdminController::class, 'logs'])->name('activity-logs');
     Route::delete('/activity-logs/{id}', [\App\Http\Controllers\SuperadminController::class, 'deleteActivityLog'])->name('activity-logs.delete');
     Route::delete('/activity-logs', [\App\Http\Controllers\SuperadminController::class, 'clearAllActivityLogs'])->name('activity-logs.clear');
     
