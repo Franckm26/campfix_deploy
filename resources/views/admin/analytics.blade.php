@@ -917,6 +917,11 @@
         max-width: min(calc(100vw - 48px), 1440px) !important;
     }
 
+    #executiveSummaryModal .modal-content {
+        width: 100% !important;
+        max-width: none !important;
+    }
+
     #executiveSummaryModal .dss-report {
         width: 100%;
         min-width: 0;
