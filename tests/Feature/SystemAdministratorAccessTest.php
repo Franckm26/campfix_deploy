@@ -51,6 +51,7 @@ class SystemAdministratorAccessTest extends TestCase
 
         $this->assertStringContainsString("role === 'mis' && ! auth()->user()->isSystemAdministrator()", $layout);
         $this->assertStringContainsString("route('history.index')", $layout);
+        $this->assertStringContainsString("route('mis.management', ['tab' => 'categories'])", $layout);
         $this->assertStringContainsString("route('superadmin.users')", $layout);
         $this->assertStringContainsString("route('superadmin.reports')", $layout);
         $this->assertStringContainsString("route('superadmin.events')", $layout);

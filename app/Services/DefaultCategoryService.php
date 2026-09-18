@@ -36,6 +36,7 @@ class DefaultCategoryService
                 'Door' => ['Broken lock', 'Damaged handle', 'Hard to open/close', 'Loose hinge', 'Misaligned door'],
                 'Window' => ['Broken glass', 'Stuck window', 'Loose frame', 'Leaking', 'Lock issue'],
             ],
+            'Cleaning' => [],
             'Technology/Internet' => [
                 'Internet Connection' => ['No connection', 'Slow connection', 'Intermittent connection', 'Wi-Fi not showing', 'Router/access point issue'],
                 'Computer' => ['Not turning on', 'No display', 'Slow performance', 'Keyboard/mouse issue', 'Software issue'],

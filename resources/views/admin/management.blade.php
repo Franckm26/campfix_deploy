@@ -108,13 +108,15 @@
 
 @section('page_title')
 <h2><i class="fas fa-tools"></i> Management</h2>
-<p>Maintenance staff & facility management</p>
+<p>{{ ($isMisManagement ?? false) ? 'Technology/Internet, facilities, and event setup management' : 'Maintenance staff, facilities, categories, and event setup' }}</p>
 @endsection
 
 @section('content')
 @php
-    $managementIndexRoute = auth()->user()->isSystemAdministrator() ? 'superadmin.management' : 'admin.management';
-    $managementEventsRoute = auth()->user()->isSystemAdministrator() ? 'superadmin.events' : 'admin.events';
+    $managementIndexRoute = auth()->user()->isSystemAdministrator() ? 'superadmin.management' : (auth()->user()->role === 'mis' ? 'mis.management' : 'building-admin.management');
+    $managementEventsRoute = auth()->user()->isSystemAdministrator()
+        ? 'superadmin.events'
+        : (auth()->user()->role === 'mis' ? 'mis.events' : 'building-admin.events');
 @endphp
 <div class="container-fluid px-3">
 
@@ -122,6 +124,7 @@
     <div class="card mb-4">
         <div class="card-body py-3">
             <ul class="nav nav-pills mb-0 flex-wrap">
+                @unless($isMisManagement ?? false)
                 <li class="nav-item">
                     <a class="nav-link {{ $tab === 'staff' ? 'active' : '' }}"
                        href="{{ route($managementIndexRoute, ['tab' => 'staff']) }}">
@@ -129,10 +132,11 @@
                         <span class="badge bg-secondary ms-1">{{ $staff->total() }}</span>
                     </a>
                 </li>
+                @endunless
                 <li class="nav-item">
                     <a class="nav-link {{ $tab === 'events' ? 'active' : '' }}"
                        href="{{ route($managementIndexRoute, ['tab' => 'events']) }}">
-                        <i class="fas fa-calendar-check"></i> Event Requests
+                        <i class="fas fa-calendar-check"></i> Event Setup
                         <span class="badge bg-secondary ms-1">{{ $events->total() }}</span>
                     </a>
                 </li>
@@ -400,9 +404,11 @@
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0"><i class="fas fa-tags text-primary"></i> Categories</h5>
+            @if(auth()->user()->isSystemAdministrator())
             <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
                 <i class="fas fa-plus"></i> Add Category
             </button>
+            @endif
         </div>
         <div class="card-body">
             @if($categories->count() > 0)
@@ -432,6 +438,7 @@
                                             title="Edit" onclick="openEditCategoryModal({{ $category->id }}, @js($category->name), @js($category->issues ?? []))">
                                         <i class="fas fa-edit"></i>
                                     </button>
+                                    @if(auth()->user()->isSystemAdministrator())
                                     <form action="{{ route('admin.management.categories.destroy', $category->id) }}" method="POST" class="d-inline">
                                         @csrf @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-danger bg-transparent border-0"
@@ -440,6 +447,7 @@
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </form>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -465,12 +473,14 @@
                             <button type="button" class="btn btn-sm btn-primary" onclick="openEditCategoryModal({{ $category->id }}, @js($category->name), @js($category->issues ?? []))">
                                 <i class="fas fa-edit"></i> Edit
                             </button>
+                            @if(auth()->user()->isSystemAdministrator())
                             <form action="{{ route('admin.management.categories.destroy', $category->id) }}" method="POST" style="flex: 1;">
                                 @csrf @method('DELETE')
                                 <button type="submit" class="btn btn-sm btn-danger w-100" onclick="return confirm('Delete category \'{{ $category->name }}\'?')">
                                     <i class="fas fa-trash"></i> Delete
                                 </button>
                             </form>
+                            @endif
                         </div>
                     </div>
                 @endforeach
@@ -482,9 +492,11 @@
                 <i class="fas fa-tags fa-3x text-muted mb-3"></i>
                 <h5 class="text-muted">No categories found</h5>
                 <p class="text-muted">Add your first category.</p>
+                @if(auth()->user()->isSystemAdministrator())
                 <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
                     <i class="fas fa-plus"></i> Add Category
                 </button>
+                @endif
             </div>
             @endif
         </div>
@@ -1311,7 +1323,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Category Name *</label>
-                        <input type="text" name="name" id="editCategoryName" class="form-control" required>
+                        <input type="text" name="name" id="editCategoryName" class="form-control" {{ auth()->user()->isSystemAdministrator() ? '' : 'readonly' }} required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Issues</label>

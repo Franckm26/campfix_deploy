@@ -31,12 +31,69 @@ class ManagementController extends Controller
         }
     }
 
+    private function guardManagementAccess(): void
+    {
+        $user = auth()->user();
+
+        if (! $user || (! $user->isSystemAdministrator() && ! in_array($user->role, ['building_admin', 'mis'], true))) {
+            abort(403, 'Access denied.');
+        }
+    }
+
+    private function visibleCategoryNames(): ?array
+    {
+        $user = auth()->user();
+
+        if ($user->isSystemAdministrator()) {
+            return null;
+        }
+
+        return $user->role === 'mis'
+            ? ['technology/internet']
+            : ['maintenance', 'cleaning'];
+    }
+
+    private function guardVisibleCategory(?Category $category = null, ?string $requestedName = null): void
+    {
+        $this->guardManagementAccess();
+        $allowedNames = $this->visibleCategoryNames();
+
+        if ($allowedNames === null) {
+            return;
+        }
+
+        if ($category !== null && ! in_array(strtolower(trim($category->name)), $allowedNames, true)) {
+            abort(403, 'You cannot manage this category.');
+        }
+
+        if ($requestedName !== null && ! in_array(strtolower(trim($requestedName)), $allowedNames, true)) {
+            abort(422, 'You cannot create or rename a category outside your assigned operational scope.');
+        }
+    }
+
+    private function managementRouteName(): string
+    {
+        $user = auth()->user();
+
+        return match (true) {
+            $user->isSystemAdministrator() => 'superadmin.management',
+            $user->role === 'mis' => 'mis.management',
+            $user->role === 'building_admin' => 'building-admin.management',
+            default => 'admin.management',
+        };
+    }
+
     // ─── Main management page ────────────────────────────────────────────────
     public function index(Request $request)
     {
-        $this->guardBuildingAdmin();
+        $this->guardManagementAccess();
 
-        $tab = $request->get('tab', 'staff');
+        $isMisManagement = auth()->user()->role === 'mis' && ! auth()->user()->isSystemAdministrator();
+        $tab = $request->get('tab', $isMisManagement ? 'categories' : 'staff');
+
+        if ($isMisManagement && ! in_array($tab, ['categories', 'facilities', 'events'], true)) {
+            $tab = 'categories';
+        }
         DefaultCategoryService::ensureDefaults();
 
         // Maintenance staff
@@ -62,7 +119,11 @@ class ManagementController extends Controller
         $facilities = $facilityQuery->orderBy('name')->paginate(10, ['*'], 'facility_page')->withQueryString();
 
         // Categories
-        $categories = Category::orderBy('name')->paginate(10, ['*'], 'category_page')->withQueryString();
+        $categoryQuery = Category::query();
+        if (($visibleCategoryNames = $this->visibleCategoryNames()) !== null) {
+            $categoryQuery->whereIn(\DB::raw('LOWER(TRIM(name))'), $visibleCategoryNames);
+        }
+        $categories = $categoryQuery->orderBy('name')->paginate(10, ['*'], 'category_page')->withQueryString();
 
         $eventSetupReady = false;
         $approvalConfigurationReady = false;
@@ -120,12 +181,12 @@ class ManagementController extends Controller
         $eventApprovalChainOptions = $eventApprovalChains->map(fn ($chain) => ['intended_user_id' => $chain->event_intended_user_id, 'request_type_id' => $chain->event_request_type_id, 'roles' => $chain->approval_roles])->values()->all();
         $eventRequestTypeDefaults = $eventRequestTypes->mapWithKeys(fn ($type) => [(string) $type->id => $type->approval_roles])->all();
 
-        return view('admin.management', compact('tab', 'staff', 'facilities', 'categories', 'eventSetupReady', 'approvalConfigurationReady', 'eventRequestTypes', 'eventIntendedUsers', 'eventDepartments', 'eventApprovalChains', 'events', 'approvalRoles', 'eventRequestTypeOptions', 'eventIntendedUserOptions', 'eventApprovalChainOptions', 'eventRequestTypeDefaults'));
+        return view('admin.management', compact('tab', 'isMisManagement', 'staff', 'facilities', 'categories', 'eventSetupReady', 'approvalConfigurationReady', 'eventRequestTypes', 'eventIntendedUsers', 'eventDepartments', 'eventApprovalChains', 'events', 'approvalRoles', 'eventRequestTypeOptions', 'eventIntendedUserOptions', 'eventApprovalChainOptions', 'eventRequestTypeDefaults'));
     }
 
     public function storeEventApprovalChain(Request $request)
     {
-        $this->guardBuildingAdmin();
+        $this->guardManagementAccess();
         $allowedRoles = ['principal_assistant', 'program_head', 'academic_head', 'building_admin', 'school_admin'];
         $data = $request->validate([
             'event_intended_user_id' => 'required|exists:event_intended_users,id',
@@ -142,7 +203,7 @@ class ManagementController extends Controller
 
     public function destroyEventApprovalChain(EventApprovalChain $eventApprovalChain)
     {
-        $this->guardBuildingAdmin();
+        $this->guardManagementAccess();
         $eventApprovalChain->delete();
 
         return back()->with('success', 'Approval chain deleted. New event requests will use the request type default until another chain is configured.');
@@ -150,7 +211,7 @@ class ManagementController extends Controller
 
     public function storeEventRequestType(Request $request)
     {
-        $this->guardBuildingAdmin();
+        $this->guardManagementAccess();
         $allowedRoles = 'principal_assistant,program_head,academic_head,building_admin,school_admin';
         $data = $request->validate(['name' => 'required|string|max:100|unique:event_request_types,name', 'approval_roles' => 'required|array|min:1', 'approval_roles.*' => 'required|string|in:'.$allowedRoles]);
         $roles = array_values($data['approval_roles']);
@@ -160,7 +221,7 @@ class ManagementController extends Controller
 
     public function updateEventRequestType(Request $request, EventRequestType $eventRequestType)
     {
-        $this->guardBuildingAdmin();
+        $this->guardManagementAccess();
         $allowedRoles = 'principal_assistant,program_head,academic_head,building_admin,school_admin';
         $data = $request->validate(['name' => 'required|string|max:100|unique:event_request_types,name,'.$eventRequestType->id, 'approval_roles' => 'required|array|min:1', 'approval_roles.*' => 'required|string|in:'.$allowedRoles, 'is_active' => 'nullable|boolean']);
         $roles = array_values($data['approval_roles']);
@@ -170,7 +231,7 @@ class ManagementController extends Controller
 
     public function storeEventIntendedUser(Request $request)
     {
-        $this->guardBuildingAdmin();
+        $this->guardManagementAccess();
         $allowedRoles = 'principal_assistant,program_head,academic_head,building_admin,school_admin';
         $data = $request->validate(['name' => 'required|string|max:100|unique:event_intended_users,name', 'approval_roles' => 'nullable|array', 'approval_roles.*' => 'required|string|in:'.$allowedRoles]);
         $baseCode = Str::slug($data['name'], '_');
@@ -183,7 +244,7 @@ class ManagementController extends Controller
 
     public function updateEventIntendedUser(Request $request, EventIntendedUser $eventIntendedUser)
     {
-        $this->guardBuildingAdmin();
+        $this->guardManagementAccess();
         $allowedRoles = 'principal_assistant,program_head,academic_head,building_admin,school_admin';
         $data = $request->validate(['name' => 'required|string|max:100|unique:event_intended_users,name,'.$eventIntendedUser->id, 'approval_roles' => 'nullable|array', 'approval_roles.*' => 'required|string|in:'.$allowedRoles]);
         $eventIntendedUser->update(['name' => trim($data['name']), 'approval_roles' => !empty($data['approval_roles']) ? array_values($data['approval_roles']) : null]);
@@ -192,7 +253,7 @@ class ManagementController extends Controller
 
     public function storeEventDepartment(Request $request)
     {
-        $this->guardBuildingAdmin();
+        $this->guardManagementAccess();
         $data = $request->validate(['name' => 'required|string|max:100|unique:event_departments,name']);
         EventDepartment::create(['name' => trim($data['name']), 'is_active' => true]);
         return back()->with('success', 'Department added.');
@@ -205,7 +266,7 @@ class ManagementController extends Controller
 
     public function renameEventSetup(Request $request, string $type, int $id)
     {
-        $this->guardBuildingAdmin();
+        $this->guardManagementAccess();
         $models = ['request-type' => [EventRequestType::class, 'event_request_types'], 'intended-user' => [EventIntendedUser::class, 'event_intended_users'], 'department' => [EventDepartment::class, 'event_departments']];
         abort_unless(isset($models[$type]), 404);
         [$model, $table] = $models[$type];
@@ -217,7 +278,7 @@ class ManagementController extends Controller
 
     public function destroyEventSetup(string $type, int $id)
     {
-        $this->guardBuildingAdmin();
+        $this->guardManagementAccess();
         $model = match ($type) { 'request-type' => EventRequestType::class, 'intended-user' => EventIntendedUser::class, 'department' => EventDepartment::class, default => abort(404) };
         $item = $model::findOrFail($id);
         $item->delete();
@@ -243,7 +304,7 @@ class ManagementController extends Controller
 
         ActivityLog::log('maintenance_staff_created', "Created maintenance staff: {$staff->name}", $staff->id, 'maintenance_staff');
 
-        return redirect()->route('admin.management', ['tab' => 'staff'])
+        return redirect()->route($this->managementRouteName(), ['tab' => 'staff'])
             ->with('success', "Maintenance staff '{$staff->name}' added successfully.");
     }
 
@@ -264,7 +325,7 @@ class ManagementController extends Controller
 
         ActivityLog::log('maintenance_staff_updated', "Updated maintenance staff: {$staff->name}", $staff->id, 'maintenance_staff');
 
-        return redirect()->route('admin.management', ['tab' => 'staff'])
+        return redirect()->route($this->managementRouteName(), ['tab' => 'staff'])
             ->with('success', "Staff '{$staff->name}' updated successfully.");
     }
 
@@ -279,7 +340,7 @@ class ManagementController extends Controller
 
         ActivityLog::log('maintenance_staff_deleted', "Deleted maintenance staff: {$name}", $staff->id, 'maintenance_staff');
 
-        return redirect()->route('admin.management', ['tab' => 'staff'])
+        return redirect()->route($this->managementRouteName(), ['tab' => 'staff'])
             ->with('success', "Staff '{$name}' removed successfully.");
     }
 
@@ -287,7 +348,7 @@ class ManagementController extends Controller
 
     public function storeFacility(Request $request)
     {
-        $this->guardBuildingAdmin();
+        $this->guardManagementAccess();
 
         $request->validate([
             'name'     => 'required|string|max:255',
@@ -309,13 +370,13 @@ class ManagementController extends Controller
 
         ActivityLog::log('facility_created', "Created facility: {$facility->name}");
 
-        return redirect()->route('admin.management', ['tab' => 'facilities'])
+        return redirect()->route($this->managementRouteName(), ['tab' => 'facilities'])
             ->with('success', "Facility '{$facility->name}' added successfully.");
     }
 
     public function updateFacility(Request $request, $id)
     {
-        $this->guardBuildingAdmin();
+        $this->guardManagementAccess();
 
         $facility = Facility::findOrFail($id);
 
@@ -331,13 +392,13 @@ class ManagementController extends Controller
 
         ActivityLog::log('facility_updated', "Updated facility: {$facility->name}");
 
-        return redirect()->route('admin.management', ['tab' => 'facilities'])
+        return redirect()->route($this->managementRouteName(), ['tab' => 'facilities'])
             ->with('success', "Facility '{$facility->name}' updated successfully.");
     }
 
     public function destroyFacility($id)
     {
-        $this->guardBuildingAdmin();
+        $this->guardManagementAccess();
 
         $facility = Facility::findOrFail($id);
         $name = $facility->name;
@@ -345,14 +406,14 @@ class ManagementController extends Controller
 
         ActivityLog::log('facility_deleted', "Deleted facility: {$name}");
 
-        return redirect()->route('admin.management', ['tab' => 'facilities'])
+        return redirect()->route($this->managementRouteName(), ['tab' => 'facilities'])
             ->with('success', "Facility '{$name}' deleted successfully.");
     }
 
     // ─── Quick status toggle for facilities ──────────────────────────────────
     public function updateFacilityStatus(Request $request, $id)
     {
-        $this->guardBuildingAdmin();
+        $this->guardManagementAccess();
 
         $facility = Facility::findOrFail($id);
         $request->validate(['status' => 'required|in:available,unavailable,under_maintenance']);
@@ -365,7 +426,7 @@ class ManagementController extends Controller
 
     public function storeCategory(Request $request)
     {
-        $this->guardBuildingAdmin();
+        $this->guardVisibleCategory(requestedName: $request->input('name'));
 
         $request->validate([
             'name'     => 'required|string|max:255|unique:categories,name',
@@ -400,15 +461,14 @@ class ManagementController extends Controller
 
         Category::create(['name' => $request->name, 'issues' => $issues ?: null]);
 
-        return redirect()->route('admin.management', ['tab' => 'categories'])
+        return redirect()->route($this->managementRouteName(), ['tab' => 'categories'])
             ->with('success', "Category '{$request->name}' added successfully.");
     }
 
     public function updateCategory(Request $request, $id)
     {
-        $this->guardBuildingAdmin();
-
         $category = Category::findOrFail($id);
+        $this->guardVisibleCategory($category, $request->input('name'));
 
         $request->validate([
             'name'     => 'required|string|max:255|unique:categories,name,'.$id,
@@ -443,25 +503,28 @@ class ManagementController extends Controller
 
         $category->update(['name' => $request->name, 'issues' => $issues ?: null]);
 
-        return redirect()->route('admin.management', ['tab' => 'categories'])
+        return redirect()->route($this->managementRouteName(), ['tab' => 'categories'])
             ->with('success', "Category updated successfully.");
     }
 
     public function destroyCategory($id)
     {
-        $this->guardBuildingAdmin();
-
         $category = Category::findOrFail($id);
+        $this->guardVisibleCategory($category);
+
+        if (! auth()->user()->isSystemAdministrator()) {
+            abort(403, 'Operational default categories cannot be deleted.');
+        }
 
         if ($category->concerns()->count() > 0) {
-            return redirect()->route('admin.management', ['tab' => 'categories'])
+            return redirect()->route($this->managementRouteName(), ['tab' => 'categories'])
                 ->with('error', "Cannot delete '{$category->name}' — it has existing concerns.");
         }
 
         $name = $category->name;
         $category->delete();
 
-        return redirect()->route('admin.management', ['tab' => 'categories'])
+        return redirect()->route($this->managementRouteName(), ['tab' => 'categories'])
             ->with('success', "Category '{$name}' deleted successfully.");
     }
 }

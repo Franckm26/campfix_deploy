@@ -378,6 +378,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 <i class="fas fa-tasks"></i> {{ app()->getLocale() === 'tl' ? 'Gawain' : 'Task' }}
             </a>
 
+            <a href="{{ route('mis.management', ['tab' => 'categories']) }}" class="{{ Request::is('mis/management*') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
+                <i class="fas fa-tools"></i> Management
+            </a>
+
             <a href="{{ route('role.analytics') }}" class="{{ Request::is('role-analytics') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
                 <i class="fas fa-chart-line"></i> Analytics
             </a>
