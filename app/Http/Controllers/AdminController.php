@@ -5008,7 +5008,7 @@ class AdminController extends Controller
     // Analytics - Location-based repair/damage analytics
     public function analytics(Request $request)
     {
-        if (in_array($request->user()->role, ['mis', 'school_admin'], true)) {
+        if (! $request->user()->isSystemAdministrator() && in_array($request->user()->role, ['mis', 'school_admin'], true)) {
             return redirect()->route('role.analytics', $request->only(['date_from', 'date_to']));
         }
 

@@ -162,6 +162,13 @@ class RoleScopedAnalyticsTest extends TestCase
             ['Broken desk'],
             Report::query()->forOperationalRole($buildingAdmin)->pluck('title')->all()
         );
+
+        $legacySystemAdministrator = $this->user('Legacy System Administrator', 'mis');
+        $legacySystemAdministrator->forceFill(['is_superadmin' => true])->save();
+        $this->assertSame(
+            ['Router issue', 'Broken desk'],
+            Report::query()->forOperationalRole($legacySystemAdministrator)->orderBy('id')->pluck('title')->all()
+        );
     }
 
     public function test_system_administrator_analytics_combines_user_health_and_daily_operations(): void

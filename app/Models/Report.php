@@ -120,6 +120,12 @@ class Report extends Model
             return $query;
         }
 
+        // System Administrator access takes precedence over any legacy role
+        // value retained on an upgraded account (for example, `mis`).
+        if ($user->isSystemAdministrator()) {
+            return $query;
+        }
+
         if ($user->role === 'mis') {
             return $query->whereHas('category', function (Builder $category) {
                 $category->whereRaw('LOWER(TRIM(name)) = ?', ['technology/internet']);

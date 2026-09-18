@@ -53,6 +53,8 @@ class SystemAdministratorAccessTest extends TestCase
         $this->assertSame(\App\Http\Controllers\AdminController::class.'@analytics', $route->getActionName());
         $this->assertStringContainsString("isSystemAdministrator() ? 'superadmin.analytics'", $analytics);
         $this->assertStringContainsString("isSystemAdministrator() ? 'superadmin.reports'", $analytics);
+        $controller = file_get_contents(app_path('Http/Controllers/AdminController.php'));
+        $this->assertStringContainsString("! \$request->user()->isSystemAdministrator() && in_array(\$request->user()->role, ['mis', 'school_admin'], true)", $controller);
         $this->assertStringContainsString('class="risk-table"', $analytics);
         $this->assertStringContainsString('id="executiveSummaryModal"', $analytics);
         $this->assertStringContainsString('CampFix: A Web-Based Platform for Campus Facility Requests', $analytics);
