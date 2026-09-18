@@ -456,16 +456,64 @@ class SuperadminController extends Controller
 
         $operationsOverview = collect([
             ['label' => 'Open concerns', 'count' => $openConcerns, 'url' => route('superadmin.concerns')],
-            ['label' => 'Open reports', 'count' => $openReports, 'url' => route('admin.reports', ['status' => 'Pending'])],
-            ['label' => 'Pending event requests', 'count' => $pendingEvents, 'url' => route('admin.events', ['view' => 'pending'])],
-            ['label' => 'Locked accounts', 'count' => $lockedUsers, 'url' => route('admin.users', ['view' => 'locked'])],
-            ['label' => 'Archived users', 'count' => $archivedUsers, 'url' => route('admin.users', ['view' => 'archives'])],
-            ['label' => 'Deleted users', 'count' => $deletedUsers, 'url' => route('admin.users', ['view' => 'deleted'])],
+            ['label' => 'Open reports', 'count' => $openReports, 'url' => route('superadmin.reports', ['status' => 'Pending'])],
+            ['label' => 'Pending event requests', 'count' => $pendingEvents, 'url' => route('superadmin.events', ['view' => 'pending'])],
+            ['label' => 'Locked accounts', 'count' => $lockedUsers, 'url' => route('superadmin.users', ['view' => 'locked'])],
+            ['label' => 'Archived users', 'count' => $archivedUsers, 'url' => route('superadmin.users', ['view' => 'archives'])],
+            ['label' => 'Deleted users', 'count' => $deletedUsers, 'url' => route('superadmin.users', ['view' => 'deleted'])],
         ]);
 
         $executiveSummary = $lockedUsers + $openConcerns + $openReports + $pendingEvents > 0
             ? "Daily operations currently include {$openConcerns} open concern(s), {$openReports} open report(s), {$pendingEvents} pending event request(s), and {$lockedUsers} locked account(s)."
             : 'No open operational or account-access exceptions currently require administrator action.';
+
+        $executivePriorities = collect([
+            $lockedUsers > 0 ? [
+                'level' => 'critical',
+                'title' => 'Review locked accounts',
+                'detail' => "{$lockedUsers} account(s) are currently locked and may require access restoration or a security review.",
+                'url' => route('superadmin.users', ['view' => 'locked']),
+            ] : null,
+            $openReports > 0 ? [
+                'level' => 'warning',
+                'title' => 'Prioritize open reports',
+                'detail' => "{$openReports} operational report(s) still require assignment, action, or resolution.",
+                'url' => route('superadmin.reports', ['status' => 'Pending']),
+            ] : null,
+            $pendingEvents > 0 ? [
+                'level' => 'warning',
+                'title' => 'Decide pending event requests',
+                'detail' => "{$pendingEvents} event request(s) are waiting for an administrative decision.",
+                'url' => route('superadmin.events', ['view' => 'pending']),
+            ] : null,
+            $openConcerns > 0 ? [
+                'level' => 'info',
+                'title' => 'Monitor unresolved concerns',
+                'detail' => "{$openConcerns} concern(s) remain open across day-to-day operations.",
+                'url' => route('superadmin.concerns'),
+            ] : null,
+        ])->filter()->values();
+
+        if ($executivePriorities->isEmpty()) {
+            $executivePriorities->push([
+                'level' => 'success',
+                'title' => 'Maintain current operations',
+                'detail' => 'No immediate account-access or operational exceptions require escalation.',
+                'url' => route('superadmin.dashboard'),
+            ]);
+        }
+
+        $executiveBrief = [
+            'generated_at' => now()->format('F j, Y \a\t g:i A'),
+            'assessment' => $executiveSummary,
+            'metrics' => [
+                ['label' => 'Active users', 'value' => $activeUsers, 'context' => 'Available accounts'],
+                ['label' => 'Account exceptions', 'value' => $lockedUsers, 'context' => 'Currently locked'],
+                ['label' => 'Open work items', 'value' => $openConcerns + $openReports, 'context' => 'Concerns and reports'],
+                ['label' => 'Pending decisions', 'value' => $pendingEvents, 'context' => 'Event requests'],
+            ],
+            'priorities' => $executivePriorities,
+        ];
 
         // Monthly concerns for the past 12 months
         $monthlyConcerns = collect(range(11, 0))->map(function ($i) {
@@ -522,7 +570,8 @@ class SuperadminController extends Controller
             'topReporters',
             'systemMetrics',
             'operationsOverview',
-            'executiveSummary'
+            'executiveSummary',
+            'executiveBrief'
         ));
     }
 

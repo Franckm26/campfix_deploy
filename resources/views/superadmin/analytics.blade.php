@@ -9,17 +9,23 @@
 @section('content')
 
 <style>
-    .sa-analytics-intro{margin-bottom:18px;padding:18px 20px;border-left:4px solid var(--sa-accent);border-radius:8px;background:var(--sa-card);color:var(--sa-text)}
+    .sa-analytics-intro{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:18px;padding:18px 20px;border-left:4px solid var(--sa-accent);border-radius:8px;background:var(--sa-card);color:var(--sa-text)}
     .sa-analytics-intro h2{margin:0 0 5px;font-size:20px}.sa-analytics-intro p{margin:0;color:var(--sa-muted);font-size:13px}
     .sa-analytics-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:20px}.sa-analytics-kpi{position:relative;padding:16px 18px;border-left:4px solid var(--metric-color)}
     .sa-analytics-kpi header{display:flex;align-items:center;justify-content:space-between;color:var(--sa-muted);font-size:11px;font-weight:700;text-transform:uppercase}.sa-analytics-kpi header i{color:var(--metric-color);font-size:17px}.sa-analytics-kpi strong{display:block;margin-top:7px;color:var(--sa-text);font-size:28px}.sa-analytics-kpi p{margin:4px 0 0;color:var(--sa-muted);font-size:11px}
     .sa-operations-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.sa-operation-link{display:flex;align-items:center;justify-content:space-between;padding:11px 13px;border:1px solid var(--sa-border);border-radius:7px;color:var(--sa-text);text-decoration:none}.sa-operation-link:hover{border-color:var(--sa-accent);color:var(--sa-accent)}.sa-operation-link strong{font-size:18px}
-    @media(max-width:1000px){.sa-analytics-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:620px){.sa-analytics-kpis,.sa-operations-grid{grid-template-columns:1fr}}
+    .sa-summary-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:18px 0}.sa-summary-metric{padding:12px;border:1px solid var(--sa-border);border-radius:7px;background:var(--sa-hover)}.sa-summary-metric span,.sa-summary-metric small{display:block;color:var(--sa-muted);font-size:11px}.sa-summary-metric strong{display:block;margin:4px 0;color:var(--sa-text);font-size:24px}.sa-summary-assessment{padding:14px 16px;border-left:4px solid var(--sa-accent);border-radius:6px;background:var(--sa-hover);color:var(--sa-text);line-height:1.55}.sa-summary-priority{display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:start;gap:10px;padding:12px 0;border-bottom:1px solid var(--sa-border);color:var(--sa-text)}.sa-summary-priority:last-child{border-bottom:0}.sa-summary-priority>i{margin-top:3px}.sa-summary-priority strong,.sa-summary-priority span{display:block}.sa-summary-priority span{margin-top:2px;color:var(--sa-muted);font-size:12px}.sa-summary-priority.critical>i{color:#ef4444}.sa-summary-priority.warning>i{color:#f59e0b}.sa-summary-priority.info>i{color:#3b82f6}.sa-summary-priority.success>i{color:#22c55e}
+    @media(max-width:1000px){.sa-analytics-kpis,.sa-summary-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:620px){.sa-analytics-intro{align-items:flex-start;flex-direction:column}.sa-analytics-kpis,.sa-operations-grid,.sa-summary-metrics{grid-template-columns:1fr}.sa-summary-priority{grid-template-columns:28px minmax(0,1fr)}.sa-summary-priority a{grid-column:2}}
 </style>
 
 <div class="sa-analytics-intro">
-    <h2>Daily Operations Overview</h2>
-    <p>{{ $executiveSummary }}</p>
+    <div>
+        <h2>Daily Operations Overview</h2>
+        <p>{{ $executiveSummary }}</p>
+    </div>
+    <button class="sa-btn sa-btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#systemExecutiveSummaryModal">
+        <i class="fas fa-file-lines"></i> Executive Summary
+    </button>
 </div>
 
 <div class="sa-analytics-kpis">
@@ -101,6 +107,63 @@
             @empty
             <p style="color:var(--sa-muted);font-size:13px">No data.</p>
             @endforelse
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="systemExecutiveSummaryModal" tabindex="-1" aria-labelledby="systemExecutiveSummaryLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h3 class="modal-title fs-5" id="systemExecutiveSummaryLabel"><i class="fas fa-wand-magic-sparkles text-primary me-2"></i>System Administrator Executive Summary</h3>
+                    <small class="text-muted">Generated {{ $executiveBrief['generated_at'] }}</small>
+                </div>
+                <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="systemExecutiveSummaryContent">
+                <div class="sa-summary-assessment">
+                    <strong>Executive assessment</strong>
+                    <div>{{ $executiveBrief['assessment'] }}</div>
+                </div>
+
+                <div class="sa-summary-metrics">
+                    @foreach($executiveBrief['metrics'] as $metric)
+                        <div class="sa-summary-metric">
+                            <span>{{ $metric['label'] }}</span>
+                            <strong>{{ number_format($metric['value']) }}</strong>
+                            <small>{{ $metric['context'] }}</small>
+                        </div>
+                    @endforeach
+                </div>
+
+                <h4 class="fs-6 mb-2">Recommended priorities</h4>
+                <div>
+                    @foreach($executiveBrief['priorities'] as $priority)
+                        <div class="sa-summary-priority {{ $priority['level'] }}">
+                            <i class="fas {{ $priority['level'] === 'critical' ? 'fa-circle-exclamation' : ($priority['level'] === 'warning' ? 'fa-triangle-exclamation' : ($priority['level'] === 'success' ? 'fa-circle-check' : 'fa-circle-info')) }}"></i>
+                            <div><strong>{{ $priority['title'] }}</strong><span>{{ $priority['detail'] }}</span></div>
+                            <a class="sa-btn sa-btn-ghost sa-btn-sm" href="{{ $priority['url'] }}">Review</a>
+                        </div>
+                    @endforeach
+                </div>
+
+                <h4 class="fs-6 mt-4 mb-2">Operational workload</h4>
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead><tr><th>Queue</th><th class="text-end">Current count</th></tr></thead>
+                        <tbody>
+                            @foreach($operationsOverview as $operation)
+                                <tr><td>{{ $operation['label'] }}</td><td class="text-end fw-semibold">{{ number_format($operation['count']) }}</td></tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                <button class="btn btn-primary" type="button" id="printSystemExecutiveSummary"><i class="fas fa-file-pdf me-1"></i> Print / Save PDF</button>
+            </div>
         </div>
     </div>
 </div>
@@ -190,5 +253,20 @@ const c4 = new Chart(document.getElementById('catChart'), {
 });
 
 window.saCharts = [c1, c2, c3, c4];
+
+document.getElementById('printSystemExecutiveSummary')?.addEventListener('click', function () {
+    const content = document.getElementById('systemExecutiveSummaryContent');
+    if (!content) return;
+
+    const printWindow = window.open('', '_blank', 'width=1000,height=760');
+    if (!printWindow) return;
+
+    printWindow.document.write(`<!doctype html><html><head><title>System Administrator Executive Summary</title><style>
+        body{font-family:Arial,sans-serif;color:#172033;padding:36px;line-height:1.5}h1{font-size:24px;margin-bottom:4px}p{color:#5f6b7a}.sa-summary-assessment{padding:14px 16px;border-left:4px solid #6f42c1;background:#f6f3ff}.sa-summary-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0}.sa-summary-metric{padding:12px;border:1px solid #dce2ea}.sa-summary-metric span,.sa-summary-metric small{display:block;color:#66758a;font-size:11px}.sa-summary-metric strong{display:block;font-size:23px}.sa-summary-priority{display:grid;grid-template-columns:24px 1fr;gap:8px;padding:11px 0;border-bottom:1px solid #dce2ea}.sa-summary-priority span{display:block;color:#66758a;font-size:12px}.sa-summary-priority a{display:none}table{width:100%;border-collapse:collapse}th,td{padding:8px;border:1px solid #dce2ea;text-align:left}.text-end{text-align:right!important}@media print{body{padding:0}}
+    </style></head><body><h1>System Administrator Executive Summary</h1><p>Generated {{ $executiveBrief['generated_at'] }}</p>${content.innerHTML}</body></html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+});
 </script>
 @endsection

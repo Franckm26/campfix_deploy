@@ -189,6 +189,22 @@ class RoleScopedAnalyticsTest extends TestCase
             $data['operationsOverview']->pluck('label')->all()
         );
         $this->assertStringContainsString('Daily operations currently include', $data['executiveSummary']);
+        $this->assertSame(
+            ['Active users', 'Account exceptions', 'Open work items', 'Pending decisions'],
+            collect($data['executiveBrief']['metrics'])->pluck('label')->all()
+        );
+        $this->assertSame(2, collect($data['executiveBrief']['metrics'])->firstWhere('label', 'Open work items')['value']);
+        $this->assertSame(1, collect($data['executiveBrief']['metrics'])->firstWhere('label', 'Pending decisions')['value']);
+        $this->assertSame(
+            ['Prioritize open reports', 'Decide pending event requests', 'Monitor unresolved concerns'],
+            $data['executiveBrief']['priorities']->pluck('title')->all()
+        );
+        $this->assertSame('/system-admin/reports', parse_url(collect($data['operationsOverview'])->firstWhere('label', 'Open reports')['url'], PHP_URL_PATH));
+        $this->assertSame('/system-admin/events', parse_url(collect($data['operationsOverview'])->firstWhere('label', 'Pending event requests')['url'], PHP_URL_PATH));
+
+        $analyticsTemplate = file_get_contents(resource_path('views/superadmin/analytics.blade.php'));
+        $this->assertStringContainsString('id="systemExecutiveSummaryModal"', $analyticsTemplate);
+        $this->assertStringContainsString('Print / Save PDF', $analyticsTemplate);
     }
 
     public function test_program_head_analytics_is_limited_to_its_department_and_approval_route(): void
