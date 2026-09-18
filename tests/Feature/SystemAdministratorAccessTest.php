@@ -26,6 +26,16 @@ class SystemAdministratorAccessTest extends TestCase
         $this->assertStringNotContainsString("localStorage.getItem('sa_theme')", $layout);
     }
 
+    public function test_system_administrator_sidebar_uses_registered_modules_without_mis_duplicates(): void
+    {
+        $layout = file_get_contents(resource_path('views/layouts/app.blade.php'));
+
+        $this->assertStringContainsString("role === 'mis' && ! auth()->user()->isSystemAdministrator()", $layout);
+        $this->assertStringContainsString('$registeredModules = \\App\\Models\\User::allModules()', $layout);
+        $this->assertStringContainsString('auth()->user()->canAccess($moduleKey)', $layout);
+        $this->assertStringContainsString("'module_access' => ['route' => 'admin.management'", $layout);
+    }
+
     public function test_mis_cannot_retain_admin_privileges_from_old_permissions(): void
     {
         $user = new User;
