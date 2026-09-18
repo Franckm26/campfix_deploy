@@ -21,9 +21,15 @@ class AdminMiddleware
 
         $user = auth()->user();
 
-        // Allow MIS, School Admin, and Building Admin to access admin routes
-        // School Administrator, Academic Head, and Program Head should use the principal dashboard
-        if (! $user->isSystemAdministrator() && ! in_array($user->role, ['mis', 'school_admin', 'building_admin'])) {
+        // Allow operational roles to use their role-prefixed admin pages.
+        if (! $user->isSystemAdministrator() && ! in_array($user->role, [
+            'mis',
+            'school_admin',
+            'building_admin',
+            'academic_head',
+            'program_head',
+            'principal_assistant',
+        ], true)) {
             SecurityLogger::logUnauthorizedAccess([
                 'user_id' => $user->id,
                 'reason' => 'Insufficient role for admin access',

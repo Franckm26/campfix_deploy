@@ -5,10 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Concern;
 use App\Models\EventRequest;
 use App\Models\Report;
+use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $user = auth()->user();
         EventRequestController::rejectExpiredPendingRequests();
@@ -29,7 +30,11 @@ class DashboardController extends Controller
             'admin'               => '/system-admin',
         ];
 
-        if (isset($rolePrefixMap[$user->role])) {
+        $roleHomePath = isset($rolePrefixMap[$user->role])
+            ? ltrim($rolePrefixMap[$user->role], '/')
+            : null;
+
+        if ($roleHomePath && ! $request->is($roleHomePath)) {
             return redirect($rolePrefixMap[$user->role]);
         }
 

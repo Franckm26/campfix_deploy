@@ -558,7 +558,8 @@ Route::middleware(['auth', 'admin', 'throttle:admin'])->group(function () {
         'program-head'        => 'program_head',
         'principal-assistant' => 'principal_assistant',
     ] as $prefix => $role) {
-        Route::get("/{$prefix}",              [AdminController::class, 'index'])->name("{$prefix}.dashboard");
+        $dashboardController = $role === 'mis' ? AdminController::class : DashboardController::class;
+        Route::get("/{$prefix}",              [$dashboardController, 'index'])->name("{$prefix}.dashboard");
         Route::get("/{$prefix}/reports",      [AdminController::class, 'reports'])->name("{$prefix}.reports");
         Route::get("/{$prefix}/analytics",    [AdminController::class, 'analytics'])->name("{$prefix}.analytics");
         Route::get("/{$prefix}/management",   [\App\Http\Controllers\ManagementController::class, 'index'])->name("{$prefix}.management");
