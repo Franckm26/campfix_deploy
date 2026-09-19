@@ -400,7 +400,24 @@ document.addEventListener('DOMContentLoaded', function() {
         @if(auth()->user()->isSystemAdministrator())
             <a href="{{ route('superadmin.users') }}" class="{{ Request::is('admin/users*') || Request::is('system-admin/users*') ? 'active' : '' }}"><i class="fas fa-users"></i> User Management</a>
             <a href="{{ route('superadmin.reports') }}" class="{{ Request::is('admin/reports*') || Request::is('system-admin/reports*') ? 'active' : '' }}"><i class="fas fa-file-alt"></i> Reports</a>
-            <a href="{{ route('superadmin.events') }}" class="{{ Request::is('admin/events*') || Request::is('system-admin/events*') ? 'active' : '' }}"><i class="fas fa-calendar-alt"></i> Events</a>
+            <div class="nav-dropdown {{ Request::is('my-events') || Request::is('events-calendar*') || Request::is('admin/events*') || Request::is('system-admin/events*') ? 'open' : '' }}">
+                <a href="#" class="nav-dropdown-toggle {{ Request::is('my-events') || Request::is('events-calendar*') || Request::is('admin/events*') || Request::is('system-admin/events*') ? 'active' : '' }}"
+                   data-nav-toggle style="padding-top:8px;padding-bottom:8px;">
+                    <i class="fas fa-calendar-alt"></i> Events
+                    <i class="fas fa-chevron-down nav-dropdown-arrow ms-auto"></i>
+                </a>
+                <div class="nav-dropdown-menu">
+                    <a href="{{ route('superadmin.events') }}" class="{{ Request::is('admin/events*') || Request::is('system-admin/events*') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
+                        <i class="fas fa-calendar-alt me-1"></i> Pending Approval
+                    </a>
+                    <a href="{{ route('events.my') }}" class="{{ Request::is('my-events') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
+                        <i class="fas fa-calendar me-1"></i> My Events
+                    </a>
+                    <a href="{{ route('events.calendar') }}" class="{{ Request::is('events-calendar*') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
+                        <i class="fas fa-calendar-check me-1"></i> Upcoming Events
+                    </a>
+                </div>
+            </div>
             <a href="{{ route('superadmin.management') }}" class="{{ Request::is('admin/management*') || Request::is('system-admin/management*') ? 'active' : '' }}"><i class="fas fa-tools"></i> Management</a>
             <a href="{{ route('superadmin.analytics') }}" class="{{ Request::is('system-admin/analytics*') ? 'active' : '' }}"><i class="fas fa-chart-line"></i> Analytics</a>
             <a href="{{ route('superadmin.activity-logs') }}" class="{{ Request::is('admin/logs*') || Request::is('system-admin/activity-logs*') ? 'active' : '' }}"><i class="fas fa-history"></i> Audit Logs</a>

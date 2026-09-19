@@ -134,14 +134,17 @@ class SystemAdministratorAccessTest extends TestCase
         $this->assertTrue($user->canApproveRequests());
     }
 
-    public function test_system_administrator_events_page_exposes_request_and_tracking_actions(): void
+    public function test_system_administrator_events_are_grouped_in_the_sidebar_dropdown(): void
     {
+        $layout = file_get_contents(resource_path('views/layouts/app.blade.php'));
         $events = file_get_contents(resource_path('views/admin/events.blade.php'));
 
-        $this->assertStringContainsString("route('events.create')", $events);
-        $this->assertStringContainsString('Request Facility', $events);
-        $this->assertStringContainsString("route('events.my')", $events);
-        $this->assertStringContainsString('My Requests', $events);
+        $this->assertMatchesRegularExpression(
+            "/System Administrator navigation.*?nav-dropdown.*?route\('superadmin\.events'\).*?Pending Approval.*?route\('events\.my'\).*?My Events.*?route\('events\.calendar'\).*?Upcoming Events/s",
+            $layout
+        );
+        $this->assertStringNotContainsString('Request Facility', $events);
+        $this->assertStringNotContainsString('My Requests', $events);
     }
 
     public function test_system_administrator_actions_are_written_to_the_forensic_audit_trail(): void
