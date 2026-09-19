@@ -375,7 +375,8 @@ class User extends Authenticatable implements JWTSubject
 
     public function canApproveRequests()
     {
-        return in_array($this->role, ['mis', 'school_admin', 'academic_head', 'program_head', 'building_admin', 'principal_assistant']);
+        return $this->isSystemAdministrator()
+            || in_array($this->role, ['mis', 'school_admin', 'academic_head', 'program_head', 'building_admin', 'principal_assistant']);
     }
 
     // Role constants

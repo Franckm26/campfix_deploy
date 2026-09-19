@@ -271,7 +271,15 @@
                         </a>
                     </li>
                 </ul>
-                <div>
+                <div class="d-flex gap-2 flex-wrap">
+                    @if(auth()->user()->isSystemAdministrator())
+                    <a href="{{ route('events.my') }}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-list"></i> My Requests
+                    </a>
+                    <a href="{{ route('events.create') }}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus"></i> Request Facility
+                    </a>
+                    @endif
                     <a href="{{ route('events.calendar') }}" class="btn btn-info btn-sm">
                         <i class="fas fa-calendar"></i> Calendar View
                     </a>
@@ -1899,4 +1907,3 @@ function executeEventAction(type, id) {
 @endif
 
 @endsection
-

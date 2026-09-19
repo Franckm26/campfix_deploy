@@ -92,7 +92,7 @@ class EventRequestController extends Controller
     // Show form to create event request - Only for faculty
     public function create()
     {
-        if (auth()->user()->role !== 'faculty') {
+        if (auth()->user()->role !== 'faculty' && ! auth()->user()->isSystemAdministrator()) {
             return redirect('/dashboard')->with('error', 'You do not have permission to create event requests.');
         }
 
@@ -557,14 +557,14 @@ class EventRequestController extends Controller
             return redirect('/dashboard')->with('error', 'You do not have permission to view event requests.');
         }
 
-        if (!in_array(auth()->user()->role, $allowedRoles)) {
+        if (!in_array(auth()->user()->role, $allowedRoles) && ! auth()->user()->isSystemAdministrator()) {
             return redirect('/dashboard')->with('error', 'You do not have permission to view event requests.');
         }
 
         $viewType = $request->get('view', 'active'); // 'active', 'approved', 'finished', 'rejected', 'archives', or 'deleted'
 
         $user = auth()->user();
-        $archiveColumn = $user->role.'_archived';
+        $archiveColumn = ($user->isSystemAdministrator() ? 'admin' : $user->role).'_archived';
         
         // Get facilities for the modal dropdown
         $facilities = \App\Models\Facility::orderBy('type')->orderBy('name')->get();
@@ -787,6 +787,42 @@ class EventRequestController extends Controller
     {
         $eventRequest = EventRequest::findOrFail($id);
         $user = auth()->user();
+
+        if ($user->isSystemAdministrator()) {
+            if ($eventRequest->status !== EventRequest::STATUS_PENDING) {
+                return back()->with('error', 'Only pending event requests can be approved.');
+            }
+
+            $history = $eventRequest->approval_history ?? [];
+            $history[] = [
+                'level' => EventRequest::LEVEL_APPROVED,
+                'role' => 'System Administrator',
+                'approver' => $user->name,
+                'approver_id' => $user->id,
+                'at' => now()->toDateTimeString(),
+                'notes' => $request->notes,
+                'action' => 'approved',
+            ];
+
+            $eventRequest->status = EventRequest::STATUS_APPROVED;
+            $eventRequest->approved_by = $user->id;
+            $eventRequest->approved_at = now();
+            $eventRequest->approval_level = EventRequest::LEVEL_APPROVED;
+            $eventRequest->approval_history = $history;
+            $eventRequest->notes = $request->notes;
+            $eventRequest->save();
+
+            ActivityLog::log(
+                'event_approved_by_system_administrator',
+                "Event request ID {$eventRequest->id} approved by System Administrator {$user->name}.",
+                $eventRequest->id,
+                'event_request'
+            );
+            $this->sendApprovalNotification($eventRequest, EventRequest::LEVEL_APPROVED, 'Approved');
+
+            return back()->with('success', 'Event request approved by the System Administrator.');
+        }
+
         if ($eventRequest->hasConfiguredApprovalRoute()) {
             return $this->approveConfiguredRoute($request, $eventRequest, $user);
         }
