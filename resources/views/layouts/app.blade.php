@@ -1193,7 +1193,7 @@ document.addEventListener('DOMContentLoaded', function() {
             currentMessage.className = 'alert alert-danger mt-2';
             var conflicts = Array.isArray(data.conflicting_events)
                 ? data.conflicting_events.map(function(event) {
-                    return event.start_time + ' - ' + event.end_time + ' (' + event.user + ')';
+                    return event.start_time + ' - ' + event.end_time;
                 }).join('; ')
                 : '';
             currentMessage.textContent = data.reason || (location + ' is not available for the selected time.');

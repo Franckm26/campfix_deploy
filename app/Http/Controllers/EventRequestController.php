@@ -2632,7 +2632,11 @@ class EventRequestController extends Controller
             ? 'Warning: this facility is currently under maintenance, but you may still request to use it.'
             : null;
 
-        $conflictingEvents = EventRequest::with('user')
+        // Availability only needs booking fields. Do not load the related user here:
+        // older production user schemas/scopes can make an otherwise valid room
+        // check fail, and requester identity is not needed for this response.
+        $conflictingEvents = EventRequest::query()
+            ->select(['id', 'location', 'event_date', 'start_time', 'end_time'])
             ->when(
                 $locationPrefix,
                 fn ($query) => $query->where('location', 'LIKE', $location.'%'),
@@ -2653,7 +2657,6 @@ class EventRequestController extends Controller
                 'title' => $event->location,
                 'start_time' => $event->start_time,
                 'end_time' => $event->end_time,
-                'user' => $event->user?->name ?? 'Unknown',
             ])->values(),
         ];
     }

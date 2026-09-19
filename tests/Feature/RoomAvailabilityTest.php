@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Http\Controllers\EventRequestController;
 use App\Models\Facility;
+use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -68,7 +69,7 @@ class RoomAvailabilityTest extends TestCase
         $payload = $response->getData(true);
         $this->assertFalse($payload['available']);
         $this->assertCount(1, $payload['conflicting_events']);
-        $this->assertSame('Event Owner', $payload['conflicting_events'][0]['user']);
+        $this->assertArrayNotHasKey('user', $payload['conflicting_events'][0]);
     }
 
     public function test_adjacent_booking_is_available(): void
@@ -82,6 +83,21 @@ class RoomAvailabilityTest extends TestCase
         ]));
 
         $this->assertTrue($response->getData(true)['available']);
+    }
+
+    public function test_authenticated_get_route_returns_an_availability_result(): void
+    {
+        $user = User::withoutGlobalScopes()->findOrFail(1);
+
+        $this->actingAs($user)
+            ->getJson('/api/check-room-availability?'.http_build_query([
+                'location' => 'Room 301',
+                'event_date' => '2026-10-01',
+                'start_time' => '11:00',
+                'end_time' => '12:00',
+            ]))
+            ->assertOk()
+            ->assertJsonPath('available', true);
     }
 
     public function test_room_under_maintenance_is_available_with_a_warning(): void
@@ -123,6 +139,20 @@ class RoomAvailabilityTest extends TestCase
         $payload = $response->getData(true);
         $this->assertFalse($payload['available']);
         $this->assertSame('This facility is currently unavailable.', $payload['reason']);
+    }
+
+    public function test_availability_does_not_depend_on_loading_the_requester(): void
+    {
+        $this->approvedEvent('Room 304', '09:00', '11:00');
+        Schema::drop('users');
+
+        $response = app(EventRequestController::class)->checkRoomAvailability($this->availabilityRequest([
+            'location' => 'Room 304',
+            'start_time' => '10:00',
+            'end_time' => '10:30',
+        ]));
+
+        $this->assertFalse($response->getData(true)['available']);
     }
 
     private function availabilityRequest(array $input): Request
