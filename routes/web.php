@@ -311,7 +311,7 @@ Route::middleware(['auth', 'throttle:web'])->group(function () {
     Route::delete('/discussions/{discussion}', [EventDiscussionController::class, 'destroy']);
 
     // API: Check room availability
-    Route::post('/api/check-room-availability', [EventRequestController::class, 'checkRoomAvailability']);
+    Route::match(['get', 'post'], '/api/check-room-availability', [EventRequestController::class, 'checkRoomAvailability']);
 
     // API: Check court availability
     Route::post('/api/check-court-availability', [EventRequestController::class, 'checkCourtAvailability']);

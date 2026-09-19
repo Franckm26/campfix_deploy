@@ -1162,20 +1162,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Keep this URL relative so the request uses the exact same scheme and host
         // as the signed-in page (apex/www production domains may differ).
-        fetch('/api/check-room-availability', {
-            method: 'POST',
+        var availabilityParams = new URLSearchParams({
+            location: location,
+            event_date: eventDate,
+            start_time: startTime,
+            end_time: endTime
+        });
+
+        fetch('/api/check-room-availability?' + availabilityParams.toString(), {
+            method: 'GET',
             headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                'Accept': 'application/json'
             },
-            credentials: 'same-origin',
-            body: JSON.stringify({
-                location: location,
-                event_date: eventDate,
-                start_time: startTime,
-                end_time: endTime
-            })
+            credentials: 'same-origin'
         })
         .then(function(response) {
             if (!response.ok) throw new Error('Availability request failed with status ' + response.status);
@@ -1447,6 +1446,10 @@ document.addEventListener('DOMContentLoaded', function() {
             isValid = false;
         }
         
+        if (!isValid && errors.length) {
+            showErrorAlert(errors[0]);
+        }
+
         return isValid;
     }
     
@@ -1609,11 +1612,11 @@ document.addEventListener('DOMContentLoaded', function() {
             var previewModalEl = document.getElementById('eventPreviewModal');
 
             if (requestModalEl && previewModalEl) {
-                bootstrap.Modal.getOrCreateInstance(requestModalEl).hide();
-                previewModalEl.addEventListener('hidden.bs.modal', function reopenRequestModalOnce() {
-                    previewModalEl.removeEventListener('hidden.bs.modal', reopenRequestModalOnce);
-                });
-                bootstrap.Modal.getOrCreateInstance(previewModalEl).show();
+                var requestModal = bootstrap.Modal.getOrCreateInstance(requestModalEl);
+                requestModalEl.addEventListener('hidden.bs.modal', function showPreviewOnce() {
+                    bootstrap.Modal.getOrCreateInstance(previewModalEl).show();
+                }, { once: true });
+                requestModal.hide();
             }
         });
     }

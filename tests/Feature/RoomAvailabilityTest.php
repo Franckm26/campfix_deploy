@@ -127,7 +127,7 @@ class RoomAvailabilityTest extends TestCase
 
     private function availabilityRequest(array $input): Request
     {
-        return Request::create('/api/check-room-availability', 'POST', array_merge([
+        return Request::create('/api/check-room-availability', 'GET', array_merge([
             'event_date' => '2026-10-01',
         ], $input));
     }
