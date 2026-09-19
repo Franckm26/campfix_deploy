@@ -1160,7 +1160,9 @@ document.addEventListener('DOMContentLoaded', function() {
             areaOfUseContainer.parentNode.insertBefore(messageDiv, areaOfUseContainer.nextSibling);
         }
 
-        fetch(@json(url('/api/check-room-availability')), {
+        // Keep this URL relative so the request uses the exact same scheme and host
+        // as the signed-in page (apex/www production domains may differ).
+        fetch('/api/check-room-availability', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
