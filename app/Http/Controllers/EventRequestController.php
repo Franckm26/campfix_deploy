@@ -568,6 +568,19 @@ class EventRequestController extends Controller
         
         // Get facilities for the modal dropdown
         $facilities = \App\Models\Facility::orderBy('type')->orderBy('name')->get();
+        $eventAvailabilityBookings = EventRequest::query()
+            ->where('status', EventRequest::STATUS_APPROVED)
+            ->whereDate('event_date', '>=', now()->toDateString())
+            ->orderBy('event_date')
+            ->orderBy('start_time')
+            ->get(['location', 'event_date', 'start_time', 'end_time'])
+            ->map(fn (EventRequest $event) => [
+                'location' => $event->location,
+                'event_date' => $event->event_date->format('Y-m-d'),
+                'start_time' => substr((string) $event->start_time, 0, 5),
+                'end_time' => substr((string) $event->end_time, 0, 5),
+            ])
+            ->values();
 
         // ========== APPROVED VIEW ==========
         if ($viewType === 'approved') {
@@ -587,6 +600,7 @@ class EventRequestController extends Controller
                 'archivedRequests' => collect(),
                 'deletedRequests' => collect(),
                 'facilities' => $facilities,
+                'eventAvailabilityBookings' => $eventAvailabilityBookings,
             ]);
         }
 
@@ -608,6 +622,7 @@ class EventRequestController extends Controller
                 'archivedRequests' => collect(),
                 'deletedRequests' => collect(),
                 'facilities' => $facilities,
+                'eventAvailabilityBookings' => $eventAvailabilityBookings,
             ]);
         }
 
@@ -628,6 +643,7 @@ class EventRequestController extends Controller
                 'archivedRequests' => collect(),
                 'deletedRequests' => collect(),
                 'facilities' => $facilities,
+                'eventAvailabilityBookings' => $eventAvailabilityBookings,
             ]);
         }
 
@@ -665,6 +681,7 @@ class EventRequestController extends Controller
                 'rejectedRequests' => collect(),
                 'deletedRequests' => collect(),
                 'facilities' => $facilities,
+                'eventAvailabilityBookings' => $eventAvailabilityBookings,
             ]);
         }
 
@@ -701,6 +718,7 @@ class EventRequestController extends Controller
                 'rejectedRequests' => collect(),
                 'archivedRequests' => collect(),
                 'facilities' => $facilities,
+                'eventAvailabilityBookings' => $eventAvailabilityBookings,
             ]);
         }
 
@@ -761,7 +779,7 @@ class EventRequestController extends Controller
             ->orderBy('updated_at', 'desc')
             ->get();
 
-        return view('events.my', compact('requests', 'viewType', 'approvedRequests', 'finishedRequests', 'rejectedRequests', 'archivedRequests', 'deletedRequests', 'facilities'));
+        return view('events.my', compact('requests', 'viewType', 'approvedRequests', 'finishedRequests', 'rejectedRequests', 'archivedRequests', 'deletedRequests', 'facilities', 'eventAvailabilityBookings'));
     }
 
     // Approve request - handles multi-level approval (ALL approvers must approve at each level)

@@ -876,6 +876,9 @@ document.addEventListener('DOMContentLoaded', function() {
     var approvalChainMap = @json($eventApprovalChains->mapWithKeys(fn ($chain) => [($chain->intendedUser->code ?? '').'|'.($chain->requestType->name ?? '') => $chain->approval_roles]));
     var intendedRouteMap = @json($eventUsers->mapWithKeys(fn ($item) => [(is_array($item) ? $item['code'] : $item->code) => (is_array($item) ? [] : ($item->approval_roles ?: []))]));
     var approvalRoleLabels = { principal_assistant: 'Principal Assistant', program_head: 'Program Head', academic_head: 'Academic Head', building_admin: 'Building Admin', school_admin: 'School Administrator' };
+    var availabilitySnapshotProvided = @json(isset($eventAvailabilityBookings));
+    var eventAvailabilityBookings = @json($eventAvailabilityBookings ?? []);
+    var facilityAvailabilityStatuses = @json(isset($facilities) ? collect($facilities)->mapWithKeys(fn ($facility) => [$facility->name => $facility->status])->all() : []);
 
     function selectedApprovalRoute(requestTypeValue, intendedUserValue) {
         var intendedUser = document.getElementById('modal_intended_user');
@@ -1160,6 +1163,48 @@ document.addEventListener('DOMContentLoaded', function() {
             areaOfUseContainer.parentNode.insertBefore(messageDiv, areaOfUseContainer.nextSibling);
         }
 
+        function renderAvailabilityResult(data) {
+            var currentMessage = document.getElementById('modal_facility_availability_message');
+            if (!currentMessage) return;
+
+            if (data.available) {
+                currentMessage.className = data.warning ? 'alert alert-warning mt-2' : 'alert alert-success mt-2';
+                currentMessage.textContent = data.warning || (location + ' is available for the selected time.');
+                return;
+            }
+
+            currentMessage.className = 'alert alert-danger mt-2';
+            var conflicts = Array.isArray(data.conflicting_events)
+                ? data.conflicting_events.map(function(event) {
+                    return event.start_time + ' - ' + event.end_time;
+                }).join('; ')
+                : '';
+            currentMessage.textContent = data.reason || (location + ' is not available for the selected time.');
+            if (conflicts) currentMessage.textContent += ' Conflicts: ' + conflicts;
+        }
+
+        if (availabilitySnapshotProvided) {
+            var facilityStatus = facilityAvailabilityStatuses[location] || 'available';
+            var conflicts = eventAvailabilityBookings.filter(function(booking) {
+                return booking.location === location
+                    && booking.event_date === eventDate
+                    && booking.start_time < endTime
+                    && booking.end_time > startTime;
+            });
+
+            renderAvailabilityResult({
+                available: facilityStatus !== 'unavailable' && conflicts.length === 0,
+                reason: facilityStatus === 'unavailable'
+                    ? 'This facility is currently unavailable.'
+                    : (conflicts.length ? 'This facility is already reserved during the selected time.' : null),
+                warning: facilityStatus === 'under_maintenance'
+                    ? 'Warning: this facility is currently under maintenance, but you may still request to use it.'
+                    : null,
+                conflicting_events: conflicts
+            });
+            return;
+        }
+
         // Keep this URL relative so the request uses the exact same scheme and host
         // as the signed-in page (apex/www production domains may differ).
         var availabilityParams = new URLSearchParams({
@@ -1180,25 +1225,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!response.ok) throw new Error('Availability request failed with status ' + response.status);
             return response.json();
         })
-        .then(function(data) {
-            var currentMessage = document.getElementById('modal_facility_availability_message');
-            if (!currentMessage) return;
-
-            if (data.available) {
-                currentMessage.className = data.warning ? 'alert alert-warning mt-2' : 'alert alert-success mt-2';
-                currentMessage.textContent = data.warning || (location + ' is available for the selected time.');
-                return;
-            }
-
-            currentMessage.className = 'alert alert-danger mt-2';
-            var conflicts = Array.isArray(data.conflicting_events)
-                ? data.conflicting_events.map(function(event) {
-                    return event.start_time + ' - ' + event.end_time;
-                }).join('; ')
-                : '';
-            currentMessage.textContent = data.reason || (location + ' is not available for the selected time.');
-            if (conflicts) currentMessage.textContent += ' Conflicts: ' + conflicts;
-        })
+        .then(renderAvailabilityResult)
         .catch(function(error) {
             console.error('Error checking facility availability:', error);
             var currentMessage = document.getElementById('modal_facility_availability_message');
