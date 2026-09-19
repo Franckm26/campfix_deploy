@@ -2619,15 +2619,18 @@ class EventRequestController extends Controller
     private function facilityAvailability(string $location, string $eventDate, string $startTime, string $endTime, bool $locationPrefix = false): array
     {
         $facility = Facility::where('name', $location)->first();
-        if ($facility && $facility->status !== 'available') {
+        if ($facility && $facility->status === 'unavailable') {
             return [
                 'available' => false,
-                'reason' => $facility->status === 'under_maintenance'
-                    ? 'This facility is currently under maintenance.'
-                    : 'This facility is currently unavailable.',
+                'reason' => 'This facility is currently unavailable.',
+                'warning' => null,
                 'conflicting_events' => [],
             ];
         }
+
+        $warning = $facility?->status === 'under_maintenance'
+            ? 'Warning: this facility is currently under maintenance, but you may still request to use it.'
+            : null;
 
         $conflictingEvents = EventRequest::with('user')
             ->when(
@@ -2645,6 +2648,7 @@ class EventRequestController extends Controller
         return [
             'available' => $conflictingEvents->isEmpty(),
             'reason' => $conflictingEvents->isEmpty() ? null : 'This facility is already reserved during the selected time.',
+            'warning' => $warning,
             'conflicting_events' => $conflictingEvents->map(fn ($event) => [
                 'title' => $event->location,
                 'start_time' => $event->start_time,

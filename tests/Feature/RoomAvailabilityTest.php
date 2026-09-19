@@ -84,7 +84,7 @@ class RoomAvailabilityTest extends TestCase
         $this->assertTrue($response->getData(true)['available']);
     }
 
-    public function test_room_under_maintenance_is_unavailable_without_a_booking(): void
+    public function test_room_under_maintenance_is_available_with_a_warning(): void
     {
         Facility::create([
             'name' => 'Room 302',
@@ -99,8 +99,30 @@ class RoomAvailabilityTest extends TestCase
         ]));
 
         $payload = $response->getData(true);
+        $this->assertTrue($payload['available']);
+        $this->assertSame(
+            'Warning: this facility is currently under maintenance, but you may still request to use it.',
+            $payload['warning']
+        );
+    }
+
+    public function test_explicitly_unavailable_room_remains_blocked(): void
+    {
+        Facility::create([
+            'name' => 'Room 303',
+            'type' => 'room',
+            'status' => 'unavailable',
+        ]);
+
+        $response = app(EventRequestController::class)->checkRoomAvailability($this->availabilityRequest([
+            'location' => 'Room 303',
+            'start_time' => '09:00',
+            'end_time' => '10:00',
+        ]));
+
+        $payload = $response->getData(true);
         $this->assertFalse($payload['available']);
-        $this->assertSame('This facility is currently under maintenance.', $payload['reason']);
+        $this->assertSame('This facility is currently unavailable.', $payload['reason']);
     }
 
     private function availabilityRequest(array $input): Request

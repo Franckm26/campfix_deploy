@@ -1184,8 +1184,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!currentMessage) return;
 
             if (data.available) {
-                currentMessage.className = 'alert alert-success mt-2';
-                currentMessage.textContent = location + ' is available for the selected time.';
+                currentMessage.className = data.warning ? 'alert alert-warning mt-2' : 'alert alert-success mt-2';
+                currentMessage.textContent = data.warning || (location + ' is available for the selected time.');
                 return;
             }
 
