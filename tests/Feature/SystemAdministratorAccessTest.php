@@ -147,6 +147,17 @@ class SystemAdministratorAccessTest extends TestCase
         $this->assertStringNotContainsString('My Requests', $events);
     }
 
+    public function test_system_administrator_receives_the_shared_event_request_modal(): void
+    {
+        $provider = file_get_contents(app_path('Providers/AppServiceProvider.php'));
+        $myEvents = file_get_contents(resource_path('views/events/my.blade.php'));
+
+        $this->assertStringContainsString("\$showEventRequestModal = in_array(\$user->role, [", $provider);
+        $this->assertStringContainsString("'superadmin',", $provider);
+        $this->assertStringContainsString("getElementById('eventRequestModal')", $myEvents);
+        $this->assertStringContainsString('Modal.getOrCreateInstance(modalElement)', $myEvents);
+    }
+
     public function test_system_administrator_actions_are_written_to_the_forensic_audit_trail(): void
     {
         Schema::dropIfExists('activity_logs');

@@ -2381,8 +2381,12 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('[Open Modal] Full URL before:', window.location.href);
     
     if (urlParams.get('open_modal') === 'true') {
-        const modal = new bootstrap.Modal(document.getElementById('eventRequestModal'));
-        modal.show();
+        const modalElement = document.getElementById('eventRequestModal');
+        if (modalElement) {
+            bootstrap.Modal.getOrCreateInstance(modalElement).show();
+        } else {
+            console.error('[Open Modal] eventRequestModal is not available on this page.');
+        }
 
         // Clean up URL by removing ONLY the open_modal parameter
         urlParams.delete('open_modal');
@@ -2394,8 +2398,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Reopen modal if there are validation errors
     @if($errors->any())
-        const modal = new bootstrap.Modal(document.getElementById('eventRequestModal'));
-        modal.show();
+        const validationModalElement = document.getElementById('eventRequestModal');
+        if (validationModalElement) {
+            bootstrap.Modal.getOrCreateInstance(validationModalElement).show();
+        }
     @endif
 
     // Auto-refresh after delete/restore operations

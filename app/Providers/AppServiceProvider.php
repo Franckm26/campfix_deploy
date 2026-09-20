@@ -75,6 +75,7 @@ class AppServiceProvider extends ServiceProvider
 
                 $perPage = (int) ($user->items_per_page ?: 10);
                 $showEventRequestModal = in_array($user->role, [
+                    'superadmin',
                     'faculty',
                     'building_admin',
                     'school_admin',
