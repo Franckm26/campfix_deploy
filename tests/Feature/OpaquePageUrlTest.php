@@ -36,15 +36,19 @@ class OpaquePageUrlTest extends TestCase
         );
 
         $this->assertTrue($response->isRedirect());
-        $this->assertStringStartsWith('/hash/', $response->headers->get('Location'));
+        $this->assertMatchesRegularExpression(
+            '#^/[A-Za-z0-9_-]{80,}$#',
+            $response->headers->get('Location')
+        );
 
         $path = parse_url($response->headers->get('Location'), PHP_URL_PATH);
         $this->assertIsString($path);
-        $this->assertStringStartsWith('/hash/', $path);
+        $this->assertSame(1, substr_count(trim($path, '/'), '/') + 1);
+        $this->assertStringNotContainsString('/hash/', $path);
         $this->assertStringNotContainsString('building-admin', $path);
         $this->assertStringNotContainsString('analytics', $path);
 
-        $token = substr($path, strlen('/hash/'));
+        $token = ltrim($path, '/');
         $this->assertSame(
             '/building-admin/analytics?period=month',
             app(OpaquePageUrl::class)->decode($token)
@@ -121,7 +125,7 @@ class OpaquePageUrlTest extends TestCase
 
         $location = $redirect->headers->get('Location');
         $this->assertIsString($location);
-        $this->assertStringContainsString('/hash/', $location);
+        $this->assertMatchesRegularExpression('#^/[A-Za-z0-9_-]{80,}$#', $location);
 
         $this->get($location)
             ->assertOk()

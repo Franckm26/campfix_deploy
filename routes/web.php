@@ -109,12 +109,6 @@ Route::get('/login', function () {
     return redirect('/');
 })->name('login');
 
-/* OPAQUE AUTHENTICATED PAGE URLS */
-Route::get('/hash/{token}', OpaquePageController::class)
-    ->middleware('auth')
-    ->where('token', '[A-Za-z0-9_-]+')
-    ->name('opaque.page');
-
 /* WELCOME CREDENTIALS PAGE - Temporary page for users to get their login credentials */
 Route::middleware(['auth', 'superadmin'])->group(function () {
 Route::get('/welcome-credentials', [WelcomeCredentialsController::class, 'index'])->name('welcome.credentials');
@@ -686,3 +680,9 @@ Route::get('/test-welcome-email-9632', function () {
         ], 500);
     }
 });
+
+/* OPAQUE AUTHENTICATED PAGE URLS - keep last to avoid shadowing named pages */
+Route::get('/{token}', OpaquePageController::class)
+    ->middleware('auth')
+    ->where('token', '[A-Za-z0-9_-]{80,}')
+    ->name('opaque.page');

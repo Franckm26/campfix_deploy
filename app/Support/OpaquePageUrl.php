@@ -10,7 +10,7 @@ class OpaquePageUrl
 {
     public function path(string $uri): string
     {
-        return '/hash/'.$this->encode($uri);
+        return '/'.$this->encode($uri);
     }
 
     public function encode(string $uri): string
@@ -53,7 +53,9 @@ class OpaquePageUrl
             return false;
         }
 
-        if (Str::startsWith($uri, ['//', '/hash/', '/api/']) || str_contains($uri, '\\')) {
+        if (Str::startsWith($uri, ['//', '/api/'])
+            || preg_match('#^/[A-Za-z0-9_-]{80,}(?:\?|$)#', $uri)
+            || str_contains($uri, '\\')) {
             return false;
         }
 

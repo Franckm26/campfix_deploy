@@ -32,6 +32,7 @@ class UseOpaquePageUrls
         if (! $request->isMethod('GET')
             || ! $request->user()
             || $request->attributes->getBoolean('opaque.internal')
+            || $request->routeIs('opaque.page')
             || $request->ajax()
             || $request->expectsJson()
             || ! $request->acceptsHtml()) {
@@ -40,7 +41,6 @@ class UseOpaquePageUrls
 
         return ! $request->is([
             '/',
-            'hash/*',
             'api/*',
             'auth/*',
             'login',

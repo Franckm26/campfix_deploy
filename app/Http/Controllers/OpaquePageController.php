@@ -45,7 +45,7 @@ class OpaquePageController extends Controller
         $hadExcludedMiddleware = array_key_exists('excluded_middleware', $destinationRoute->action);
         $excludedMiddleware = $destinationRoute->action['excluded_middleware'] ?? [];
 
-        // The outer /hash request has already completed the web middleware
+        // The outer opaque request has already completed the web middleware
         // stack. Replaying it would decrypt cookies and start the session a
         // second time. Exclude that stack except destination model binding;
         // route-specific auth, role and throttling middleware still run.
