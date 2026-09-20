@@ -5,7 +5,7 @@
 @section('content')
 
 <div class="sa-card mb-4">
-    <form method="GET" action="{{ route('superadmin.events') }}" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
+    <form method="GET" action="{{ \App\Support\ProtectedRoute::url('superadmin.events') }}" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
         <div style="flex:1;min-width:200px">
             <label class="sa-label">Search</label>
             <input type="text" name="search" value="{{ $search }}" class="sa-input" placeholder="Title, description…" enterkeyhint="search" inputmode="search" onkeypress="if(event.key==='Enter'){this.form.submit();}">
@@ -22,7 +22,7 @@
         </div>
         <div style="display:flex;gap:8px">
             <button type="submit" class="sa-btn sa-btn-primary"><i class="fas fa-search"></i> Filter</button>
-            <a href="{{ route('superadmin.events') }}" class="sa-btn sa-btn-ghost">Reset</a>
+            <a href="{{ \App\Support\ProtectedRoute::url('superadmin.events') }}" class="sa-btn sa-btn-ghost">Reset</a>
         </div>
         <button type="button" class="sa-btn sa-btn-primary" style="margin-left:auto" onclick="openNewRequestModal()">
             <i class="fas fa-plus"></i> New Request
@@ -74,7 +74,7 @@
                     <td><span class="sa-badge {{ $statusColors[$event->status] ?? 'sa-badge-gray' }}">{{ $event->status }}</span></td>
                     <td style="color:var(--sa-muted);font-size:12px">{{ $event->created_at->format('m/d/Y') }}</td>
                     <td>
-                        <form method="POST" action="{{ route('superadmin.events.force-delete', $event->id) }}"
+                        <form method="POST" action="{{ \App\Support\ProtectedRoute::url('superadmin.events.force-delete', $event->id) }}"
                               onsubmit="return confirm('Permanently delete this event request? Cannot be undone.')">
                             @csrf @method('DELETE')
                             <button type="submit" class="sa-btn sa-btn-danger sa-btn-sm" title="Force Delete">

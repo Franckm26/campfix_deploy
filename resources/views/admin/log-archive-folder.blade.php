@@ -30,7 +30,7 @@
                     <i class="fas fa-trash me-1"></i> Delete Folder
                 </button>
             </form>
-            <a href="{{ route(auth()->user()->isSystemAdministrator() ? 'superadmin.activity-logs' : 'admin.logs', ['view' => 'archived']) }}" class="btn btn-secondary btn-sm">
+            <a href="{{ \App\Support\ProtectedRoute::url(auth()->user()->isSystemAdministrator() ? 'superadmin.activity-logs' : 'admin.logs', ['view' => 'archived']) }}" class="btn btn-secondary btn-sm">
                 <i class="fas fa-arrow-left me-1"></i> Back to Folders
             </a>
         </div>

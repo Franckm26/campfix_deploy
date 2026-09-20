@@ -5,15 +5,15 @@
 @section('content')
 
 <div class="sa-card mb-4" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
-    <form method="GET" action="{{ route('superadmin.activity-logs') }}" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;flex:1">
+    <form method="GET" action="{{ \App\Support\ProtectedRoute::url('superadmin.activity-logs') }}" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;flex:1">
         <div style="flex:1;min-width:200px">
             <label class="sa-label">Search</label>
             <input type="text" name="search" value="{{ $search }}" class="sa-input" placeholder="Action, description…" enterkeyhint="search" inputmode="search" onkeypress="if(event.key==='Enter'){this.form.submit();}">
         </div>
         <button type="submit" class="sa-btn sa-btn-primary"><i class="fas fa-search"></i> Filter</button>
-        <a href="{{ route('superadmin.activity-logs') }}" class="sa-btn sa-btn-ghost">Reset</a>
+        <a href="{{ \App\Support\ProtectedRoute::url('superadmin.activity-logs') }}" class="sa-btn sa-btn-ghost">Reset</a>
     </form>
-    <form method="POST" action="{{ route('superadmin.activity-logs.clear') }}"
+    <form method="POST" action="{{ \App\Support\ProtectedRoute::url('superadmin.activity-logs.clear') }}"
           onsubmit="return confirm('Clear ALL activity logs? This cannot be undone.')">
         @csrf @method('DELETE')
         <button type="submit" class="sa-btn sa-btn-danger">
@@ -60,7 +60,7 @@
                         {{ $log->created_at->format('M d, Y g:i A') }}
                     </td>
                     <td>
-                        <form method="POST" action="{{ route('superadmin.activity-logs.delete', $log->id) }}"
+                        <form method="POST" action="{{ \App\Support\ProtectedRoute::url('superadmin.activity-logs.delete', $log->id) }}"
                               onsubmit="return confirm('Delete this log entry?')">
                             @csrf @method('DELETE')
                             <button type="submit" class="sa-btn sa-btn-danger sa-btn-sm">

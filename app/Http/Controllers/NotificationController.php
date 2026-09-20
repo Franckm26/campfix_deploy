@@ -167,7 +167,7 @@ class NotificationController extends Controller
                 }
                 return redirect('/my-events');
             } elseif (str_contains($notification->type, 'NewEventRequest')) {
-                return redirect()->route('admin.events');
+                return \App\Support\ProtectedRoute::redirect('admin.events');
             } else {
                 return redirect('/dashboard');
             }

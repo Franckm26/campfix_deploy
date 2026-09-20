@@ -234,11 +234,11 @@ class AuthController extends Controller
             }
 
             if ($user->is_superadmin || $user->role === 'superadmin') {
-                return redirect()->route('superadmin.dashboard');
+                return redirect()->to(\App\Support\ProtectedRoute::url('superadmin.dashboard'));
             }
 
             if ($user->isSystemAdministrator()) {
-                return redirect('/system-admin');
+                return redirect()->to(\App\Support\ProtectedRoute::url('superadmin.dashboard'));
             }
 
             if ($user->role == 'mis') {
@@ -1051,10 +1051,10 @@ class AuthController extends Controller
             
             if ($user->is_superadmin || $user->role === 'superadmin') {
                 \Log::info('Redirecting superadmin to dashboard', ['user_id' => $user->id]);
-                $redirectUrl = route('superadmin.dashboard');
+                $redirectUrl = \App\Support\ProtectedRoute::url('superadmin.dashboard');
             } elseif ($user->isSystemAdministrator()) {
                 \Log::info('Redirecting System Admin to dashboard', ['user_id' => $user->id]);
-                $redirectUrl = '/system-admin';
+                $redirectUrl = \App\Support\ProtectedRoute::url('superadmin.dashboard');
             } elseif ($user->role == 'mis') {
                 \Log::info('Redirecting MIS to dashboard', ['user_id' => $user->id]);
                 $redirectUrl = '/mis';

@@ -42,7 +42,7 @@ class AdminController extends Controller
             if (request()->expectsJson()) {
                 return response()->json(['error' => 'You do not have permission to perform this action.'], 403);
             }
-            return redirect()->route('admin.users')->with('error', 'You do not have permission to perform this action.');
+            return \App\Support\ProtectedRoute::redirect('admin.users')->with('error', 'You do not have permission to perform this action.');
         }
 
         // Use withoutGlobalScopes to allow unlocking superadmin accounts
@@ -60,7 +60,7 @@ class AdminController extends Controller
             return response()->json(['success' => true]);
         }
 
-        return redirect()->route('admin.users')->with('success', "Account '{$user->name}' has been unlocked.");
+        return \App\Support\ProtectedRoute::redirect('admin.users')->with('success', "Account '{$user->name}' has been unlocked.");
     }
 
     // Unlock user by email (for emergency access)
@@ -2344,7 +2344,7 @@ class AdminController extends Controller
             if (request()->expectsJson()) {
                 return response()->json(['error' => 'You do not have permission to perform this action.'], 403);
             }
-            return redirect()->route('admin.users')->with('error', 'You do not have permission to perform this action.');
+            return \App\Support\ProtectedRoute::redirect('admin.users')->with('error', 'You do not have permission to perform this action.');
         }
 
         \Log::info('[storeUser] Request received', [
@@ -2443,7 +2443,7 @@ class AdminController extends Controller
             ], 201);
         }
 
-        return redirect()->route('admin.users')->with('success', 'User created successfully! A welcome email with login credentials has been sent to ' . $user->email);
+        return \App\Support\ProtectedRoute::redirect('admin.users')->with('success', 'User created successfully! A welcome email with login credentials has been sent to ' . $user->email);
     }
 
     // Show edit user form
@@ -2489,7 +2489,7 @@ class AdminController extends Controller
             if (request()->expectsJson()) {
                 return response()->json(['error' => 'You do not have permission to perform this action.'], 403);
             }
-            return redirect()->route('admin.users')->with('error', 'You do not have permission to perform this action.');
+            return \App\Support\ProtectedRoute::redirect('admin.users')->with('error', 'You do not have permission to perform this action.');
         }
 
         $user = User::hideSuperadmin()
@@ -2506,7 +2506,7 @@ class AdminController extends Controller
             if (request()->expectsJson()) {
                 return response()->json(['error' => 'You cannot edit a user that was created by another administrator.'], 403);
             }
-            return redirect()->route('admin.users')->with('error', 'You cannot edit a user that was created by another administrator.');
+            return \App\Support\ProtectedRoute::redirect('admin.users')->with('error', 'You cannot edit a user that was created by another administrator.');
         }
 
         $request->validate([
@@ -2729,7 +2729,7 @@ class AdminController extends Controller
             ]);
         }
 
-        return redirect()->route('admin.users')->with('success', 'User updated successfully!');
+        return \App\Support\ProtectedRoute::redirect('admin.users')->with('success', 'User updated successfully!');
     }
 
     // Delete user - moves to Deleted Users folder for potential restore
@@ -2739,7 +2739,7 @@ class AdminController extends Controller
             if (request()->expectsJson()) {
                 return response()->json(['error' => 'You do not have permission to perform this action.'], 403);
             }
-            return redirect()->route('admin.users')->with('error', 'You do not have permission to perform this action.');
+            return \App\Support\ProtectedRoute::redirect('admin.users')->with('error', 'You do not have permission to perform this action.');
         }
 
         $user = User::hideSuperadmin()->where('uuid', $uuid)->firstOrFail();
@@ -2750,7 +2750,7 @@ class AdminController extends Controller
                 return response()->json(['error' => 'You cannot delete your own account!'], 403);
             }
 
-            return redirect()->route('admin.users')->with('error', 'You cannot delete your own account!');
+            return \App\Support\ProtectedRoute::redirect('admin.users')->with('error', 'You cannot delete your own account!');
         }
 
         // Prevent deleting a user created by another administrator
@@ -2758,7 +2758,7 @@ class AdminController extends Controller
             if (request()->ajax()) {
                 return response()->json(['error' => 'You cannot delete a user that was created by another administrator.'], 403);
             }
-            return redirect()->route('admin.users')->with('error', 'You cannot delete a user that was created by another administrator.');
+            return \App\Support\ProtectedRoute::redirect('admin.users')->with('error', 'You cannot delete a user that was created by another administrator.');
         }
 
         $userName = $user->name;
@@ -2793,7 +2793,7 @@ class AdminController extends Controller
             return response()->json(['success' => 'User deleted successfully!']);
         }
 
-        return redirect()->route('admin.users')->with('success', 'User deleted successfully!');
+        return \App\Support\ProtectedRoute::redirect('admin.users')->with('success', 'User deleted successfully!');
     }
 
     // View deleted users
@@ -2803,7 +2803,7 @@ class AdminController extends Controller
         $deletedFolder = UserArchiveFolder::where('name', 'Deleted Users')->first();
 
         if (! $deletedFolder) {
-            return redirect()->route('admin.users')->with('error', 'Deleted Users folder not found.');
+            return \App\Support\ProtectedRoute::redirect('admin.users')->with('error', 'Deleted Users folder not found.');
         }
 
         $user = auth()->user();
@@ -2825,7 +2825,7 @@ class AdminController extends Controller
         $user = User::hideSuperadmin()->withoutGlobalScope('not_deleted')->findOrFail($id);
 
         if (! $user->is_deleted) {
-            return redirect()->route('admin.users', ['view' => 'deleted'])->with('error', 'User is not in the Deleted Users folder.');
+            return \App\Support\ProtectedRoute::redirect('admin.users', ['view' => 'deleted'])->with('error', 'User is not in the Deleted Users folder.');
         }
 
         $userName = $user->name;
@@ -2847,7 +2847,7 @@ class AdminController extends Controller
 
         ActivityLog::log('user_restored', "Restored deleted user: {$userName}");
 
-        return redirect()->route('admin.users', ['view' => 'deleted'])->with('success', "User '{$userName}' has been restored successfully!");
+        return \App\Support\ProtectedRoute::redirect('admin.users', ['view' => 'deleted'])->with('success', "User '{$userName}' has been restored successfully!");
     }
 
     // Restore all deleted users
@@ -2858,7 +2858,7 @@ class AdminController extends Controller
             ->get();
 
         if ($deletedUsers->isEmpty()) {
-            return redirect()->route('admin.users', ['view' => 'deleted'])->with('error', 'No deleted users to restore.');
+            return \App\Support\ProtectedRoute::redirect('admin.users', ['view' => 'deleted'])->with('error', 'No deleted users to restore.');
         }
 
         $count = 0;
@@ -2884,7 +2884,7 @@ class AdminController extends Controller
             $count++;
         }
 
-        return redirect()->route('admin.users', ['view' => 'deleted'])->with('success', "All {$count} deleted user(s) have been restored successfully!");
+        return \App\Support\ProtectedRoute::redirect('admin.users', ['view' => 'deleted'])->with('success', "All {$count} deleted user(s) have been restored successfully!");
     }
 
     // Restore selected deleted users
@@ -2893,7 +2893,7 @@ class AdminController extends Controller
         $userIds = $request->input('user_ids', []);
 
         if (empty($userIds)) {
-            return redirect()->route('admin.users', ['view' => 'deleted'])->with('error', 'No users selected.');
+            return \App\Support\ProtectedRoute::redirect('admin.users', ['view' => 'deleted'])->with('error', 'No users selected.');
         }
 
         $count = 0;
@@ -2920,7 +2920,7 @@ class AdminController extends Controller
             }
         }
 
-        return redirect()->route('admin.users', ['view' => 'deleted'])->with('success', "{$count} user(s) have been restored successfully!");
+        return \App\Support\ProtectedRoute::redirect('admin.users', ['view' => 'deleted'])->with('success', "{$count} user(s) have been restored successfully!");
     }
 
     // Permanently delete a user from Deleted Users folder
@@ -2929,7 +2929,7 @@ class AdminController extends Controller
         $user = User::hideSuperadmin()->withoutGlobalScope('not_deleted')->findOrFail($id);
 
         if (! $user->is_deleted) {
-            return redirect()->route('admin.users', ['view' => 'deleted'])->with('error', 'User is not in the Deleted Users folder.');
+            return \App\Support\ProtectedRoute::redirect('admin.users', ['view' => 'deleted'])->with('error', 'User is not in the Deleted Users folder.');
         }
 
         $userName = $user->name;
@@ -2950,7 +2950,7 @@ class AdminController extends Controller
             }
         });
 
-        return redirect()->route('admin.users', ['view' => 'deleted'])->with('success', "User '{$userName}' has been permanently deleted!");
+        return \App\Support\ProtectedRoute::redirect('admin.users', ['view' => 'deleted'])->with('success', "User '{$userName}' has been permanently deleted!");
     }
 
     // Permanently delete all users in Deleted Users folder
@@ -2959,7 +2959,7 @@ class AdminController extends Controller
         $deletedFolder = UserArchiveFolder::where('name', 'Deleted Users')->first();
 
         if (! $deletedFolder) {
-            return redirect()->route('admin.users', ['view' => 'deleted'])->with('error', 'Deleted Users folder not found.');
+            return \App\Support\ProtectedRoute::redirect('admin.users', ['view' => 'deleted'])->with('error', 'Deleted Users folder not found.');
         }
 
         $users = User::hideSuperadmin()->withoutGlobalScope('not_deleted')
@@ -2980,7 +2980,7 @@ class AdminController extends Controller
             $deletedFolder->save();
         });
 
-        return redirect()->route('admin.users', ['view' => 'deleted'])->with('success', "{$count} user(s) have been permanently deleted!");
+        return \App\Support\ProtectedRoute::redirect('admin.users', ['view' => 'deleted'])->with('success', "{$count} user(s) have been permanently deleted!");
     }
 
     /**
@@ -3069,7 +3069,7 @@ class AdminController extends Controller
         $deletedFolder = ArchiveFolder::where('name', 'Deleted Reports')->first();
 
         if (! $deletedFolder) {
-            return redirect()->route('admin.reports')->with('error', 'Deleted Reports folder not found.');
+            return \App\Support\ProtectedRoute::redirect('admin.reports')->with('error', 'Deleted Reports folder not found.');
         }
 
         $user = auth()->user();
@@ -3112,7 +3112,7 @@ class AdminController extends Controller
 
         ActivityLog::log('report_restored', "Restored deleted report: {$reportTitle}");
 
-        return redirect()->route('admin.reports', ['view' => 'active'])->with('success', "Report '{$reportTitle}' has been restored successfully!");
+        return \App\Support\ProtectedRoute::redirect('admin.reports', ['view' => 'active'])->with('success', "Report '{$reportTitle}' has been restored successfully!");
     }
 
     // Restore selected deleted reports
@@ -3148,7 +3148,7 @@ class AdminController extends Controller
             }
         }
 
-        return redirect()->route('admin.reports', ['view' => 'active'])->with('success', "{$count} report(s) have been restored successfully!");
+        return \App\Support\ProtectedRoute::redirect('admin.reports', ['view' => 'active'])->with('success', "{$count} report(s) have been restored successfully!");
     }
 
     // Permanently delete a report from Deleted Reports folder
@@ -3213,7 +3213,7 @@ class AdminController extends Controller
         $deletedFolder = ArchiveFolder::where('name', 'Deleted Events')->first();
 
         if (! $deletedFolder) {
-            return redirect()->route('admin.events')->with('error', 'Deleted Events folder not found.');
+            return \App\Support\ProtectedRoute::redirect('admin.events')->with('error', 'Deleted Events folder not found.');
         }
 
         $user = auth()->user();
@@ -3374,7 +3374,7 @@ class AdminController extends Controller
             if (request()->expectsJson()) {
                 return response()->json(['error' => 'You do not have permission to perform this action.'], 403);
             }
-            return redirect()->route('admin.users')->with('error', 'You do not have permission to perform this action.');
+            return \App\Support\ProtectedRoute::redirect('admin.users')->with('error', 'You do not have permission to perform this action.');
         }
 
         $user = User::hideSuperadmin()->where('uuid', $uuid)->firstOrFail();
@@ -3385,7 +3385,7 @@ class AdminController extends Controller
                 return response()->json(['error' => 'You cannot archive your own account!'], 403);
             }
 
-            return redirect()->route('admin.users')->with('error', 'You cannot archive your own account!');
+            return \App\Support\ProtectedRoute::redirect('admin.users')->with('error', 'You cannot archive your own account!');
         }
 
         // Prevent archiving a user created by another administrator
@@ -3393,7 +3393,7 @@ class AdminController extends Controller
             if (request()->ajax()) {
                 return response()->json(['error' => 'You cannot archive a user that was created by another administrator.'], 403);
             }
-            return redirect()->route('admin.users')->with('error', 'You cannot archive a user that was created by another administrator.');
+            return \App\Support\ProtectedRoute::redirect('admin.users')->with('error', 'You cannot archive a user that was created by another administrator.');
         }
 
         // Get or create the 2025-2026 archive folder
@@ -3422,7 +3422,7 @@ class AdminController extends Controller
             return response()->json(['success' => "User archived successfully to folder '{$folderName}'!"]);
         }
 
-        return redirect()->route('admin.users')->with('success', "User archived successfully to folder '{$folderName}'!");
+        return \App\Support\ProtectedRoute::redirect('admin.users')->with('success', "User archived successfully to folder '{$folderName}'!");
     }
 
     // Restore user
@@ -3456,7 +3456,7 @@ class AdminController extends Controller
                     $folderName = $folder->name;
                     $folder->delete();
                     ActivityLog::log('archive_folder_deleted', "Deleted empty archive folder: {$folderName}");
-                    return redirect()->route('admin.users', ['view' => 'archives'])
+                    return \App\Support\ProtectedRoute::redirect('admin.users', ['view' => 'archives'])
                         ->with('success', 'User restored successfully! The folder is now empty and has been removed.');
                 } else {
                     // Still users in folder — stay in the folder view
@@ -3468,7 +3468,7 @@ class AdminController extends Controller
             }
         }
 
-        return redirect()->route('admin.users', ['view' => 'archives'])
+        return \App\Support\ProtectedRoute::redirect('admin.users', ['view' => 'archives'])
             ->with('success', 'User restored successfully!');
     }
 
@@ -3575,7 +3575,7 @@ class AdminController extends Controller
             $message .= ' The empty folder was removed.';
         }
 
-        return redirect()->route('admin.users', ['view' => 'archives'])->with('success', $message);
+        return \App\Support\ProtectedRoute::redirect('admin.users', ['view' => 'archives'])->with('success', $message);
     }
 
     // Restore every non-deleted user from all user archive folders.
@@ -3613,7 +3613,7 @@ class AdminController extends Controller
             ]);
         }
 
-        return redirect()->route('admin.users', ['view' => 'archives'])
+        return \App\Support\ProtectedRoute::redirect('admin.users', ['view' => 'archives'])
             ->with('success', "Successfully restored {$count} archived user(s)!");
     }
 
@@ -3659,7 +3659,7 @@ class AdminController extends Controller
             return response()->json(['success' => true, 'message' => $message, 'count' => $count]);
         }
 
-        return redirect()->route('admin.users')->with('success', $message);
+        return \App\Support\ProtectedRoute::redirect('admin.users')->with('success', $message);
     }
 
     // Delete all users (soft delete - move to Deleted Users folder)
@@ -3696,7 +3696,7 @@ class AdminController extends Controller
 
         ActivityLog::log('users_deleted_all', "Soft deleted {$count} users to Deleted Users folder");
 
-        return redirect()->route('admin.users')->with('success', "Successfully deleted {$count} users!");
+        return \App\Support\ProtectedRoute::redirect('admin.users')->with('success', "Successfully deleted {$count} users!");
     }
 
     // Batch archive users (JSON API)
@@ -3841,7 +3841,7 @@ class AdminController extends Controller
 
         // Validate that user_ids contains valid IDs
         if (empty($userIds)) {
-            return redirect()->route('admin.users')->with('error', 'No users selected for archiving!');
+            return \App\Support\ProtectedRoute::redirect('admin.users')->with('error', 'No users selected for archiving!');
         }
 
         $folderName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $request->folder_name);
@@ -3922,7 +3922,7 @@ class AdminController extends Controller
 
         ActivityLog::log('users_archived_selected', "Archived {$count} selected users to folder: {$folderName}");
 
-        return redirect()->route('admin.users')->with('success', "Successfully archived {$count} selected users to folder '{$folderName}'!");
+        return \App\Support\ProtectedRoute::redirect('admin.users')->with('success', "Successfully archived {$count} selected users to folder '{$folderName}'!");
     }
 
     // View archive folders (combined for users and items)
@@ -4032,7 +4032,7 @@ class AdminController extends Controller
         // Delete the folder if it's now empty
         if ($folder->user_count == 0 && !$folder->is_system) {
             $folder->delete();
-            return redirect()->route('admin.users', ['view' => 'archives'])
+            return \App\Support\ProtectedRoute::redirect('admin.users', ['view' => 'archives'])
                 ->with('success', "Successfully deleted all {$count} users from folder '{$folderName}'. The empty folder has been removed.");
         }
 
@@ -4120,7 +4120,7 @@ class AdminController extends Controller
 
         ActivityLog::log('users_archived_deleted', "Deleted {$archivedCount} archived users");
 
-        return redirect()->route('admin.users')->with('success', "Successfully deleted {$archivedCount} archived users!");
+        return \App\Support\ProtectedRoute::redirect('admin.users')->with('success', "Successfully deleted {$archivedCount} archived users!");
     }
 
     // Import users from CSV / XLSX
@@ -4135,7 +4135,7 @@ class AdminController extends Controller
             if (request()->expectsJson()) {
                 return response()->json(['error' => 'You do not have permission to perform this action.'], 403);
             }
-            return redirect()->route('admin.users')->with('error', 'You do not have permission to perform this action.');
+            return \App\Support\ProtectedRoute::redirect('admin.users')->with('error', 'You do not have permission to perform this action.');
         }
 
         set_time_limit(300);
@@ -4475,7 +4475,7 @@ class AdminController extends Controller
             : '';
 
         $updatedProfiles = count($studentProfileUpdates);
-        return redirect()->route('admin.users')->with('success', "Imported {$rowCount} new users, restored {$restoredCount} returning students, updated {$updatedProfiles} student profiles, and queued {$queuedEmailCount} welcome email(s) for automatic daily Brevo delivery!{$debugMsg}");
+        return \App\Support\ProtectedRoute::redirect('admin.users')->with('success', "Imported {$rowCount} new users, restored {$restoredCount} returning students, updated {$updatedProfiles} student profiles, and queued {$queuedEmailCount} welcome email(s) for automatic daily Brevo delivery!{$debugMsg}");
     }
 
     // Activity logs
@@ -4543,7 +4543,7 @@ class AdminController extends Controller
                 $remaining = ActivityLog::where('log_archive_folder_id', $folderId)->count();
                 if ($remaining === 0) {
                     $folder->delete();
-                    return redirect()->route('admin.logs', ['view' => 'archived'])
+                    return \App\Support\ProtectedRoute::redirect('admin.logs', ['view' => 'archived'])
                         ->with('success', 'Log restored successfully. Folder was empty and has been removed.');
                 }
                 $folder->log_count = $remaining;
@@ -4551,7 +4551,7 @@ class AdminController extends Controller
             }
         }
 
-        return redirect()->route('admin.logs.folder', $folderId)
+        return \App\Support\ProtectedRoute::redirect('admin.logs.folder', $folderId)
             ->with('success', 'Log restored successfully.');
     }
 
@@ -4608,7 +4608,7 @@ class AdminController extends Controller
         // Delete the folder
         $folder->delete();
 
-        return redirect()->route('admin.logs', ['view' => 'archived'])
+        return \App\Support\ProtectedRoute::redirect('admin.logs', ['view' => 'archived'])
             ->with('success', "Folder '{$folder->name}' restored. {$count} log(s) moved back to active logs.");
     }
 
@@ -4622,7 +4622,7 @@ class AdminController extends Controller
 
         ActivityLog::log('log_folder_deleted', "Deleted log archive folder '{$folder->name}' with {$count} logs.");
 
-        return redirect()->route('admin.logs', ['view' => 'archived'])
+        return \App\Support\ProtectedRoute::redirect('admin.logs', ['view' => 'archived'])
             ->with('success', "Folder '{$folder->name}' and {$count} log(s) permanently deleted.");
     }
 

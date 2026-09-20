@@ -65,7 +65,7 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Close</button>
-                <a class="btn btn-primary" id="locationDetailReportsLink" href="{{ route($analyticsReportsRoute) }}"><i class="fas fa-list"></i> View Open Reports</a>
+                <a class="btn btn-primary" id="locationDetailReportsLink" href="{{ \App\Support\ProtectedRoute::url($analyticsReportsRoute) }}"><i class="fas fa-list"></i> View Open Reports</a>
             </div>
         </div>
     </div>

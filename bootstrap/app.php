@@ -85,6 +85,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin'       => AdminMiddleware::class,
             'superadmin'  => SuperadminMiddleware::class,
+            'system.signed' => \App\Http\Middleware\ValidateSystemAdminSignature::class,
             'role.prefix' => \App\Http\Middleware\RolePrefixMiddleware::class,
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'security' => SecurityHeaders::class,

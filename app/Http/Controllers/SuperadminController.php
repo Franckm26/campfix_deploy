@@ -111,7 +111,7 @@ class SuperadminController extends Controller
             default => 'active',
         };
 
-        return redirect()->route('admin.users', array_merge(
+        return \App\Support\ProtectedRoute::redirect('admin.users', array_merge(
             $request->only(['search', 'role', 'per_page']),
             ['view' => $view]
         ));
@@ -119,7 +119,7 @@ class SuperadminController extends Controller
 
     public function createUser()
     {
-        return redirect()->route('admin.users', ['create' => 1]);
+        return \App\Support\ProtectedRoute::redirect('admin.users', ['create' => 1]);
     }
 
     public function storeUser(Request $request)
@@ -155,7 +155,7 @@ class SuperadminController extends Controller
             ['id' => $user->id, 'name' => $user->name, 'email' => $user->email, 'role' => $user->role]
         );
 
-        return redirect()->route('superadmin.users')->with('success', "User '{$user->name}' created successfully.");
+        return redirect()->to(\App\Support\ProtectedRoute::url('superadmin.users'))->with('success', "User '{$user->name}' created successfully.");
     }
 
     public function editUser($uuid)
@@ -204,7 +204,7 @@ class SuperadminController extends Controller
             $user->only(['name', 'email', 'role', 'department', 'phone'])
         );
 
-        return redirect()->route('superadmin.users')->with('success', "User '{$user->name}' updated successfully.");
+        return redirect()->to(\App\Support\ProtectedRoute::url('superadmin.users'))->with('success', "User '{$user->name}' updated successfully.");
     }
 
     public function deleteUser(Request $request, $uuid)
@@ -226,7 +226,7 @@ class SuperadminController extends Controller
             "Permanently deleted user: {$userName} (UUID: {$uuid})"
         );
 
-        return redirect()->route('superadmin.users')->with('success', "User '{$userName}' permanently deleted.");
+        return redirect()->to(\App\Support\ProtectedRoute::url('superadmin.users'))->with('success', "User '{$userName}' permanently deleted.");
     }
 
     public function restoreUser($uuid)
@@ -455,12 +455,12 @@ class SuperadminController extends Controller
         ];
 
         $operationsOverview = collect([
-            ['label' => 'Open concerns', 'count' => $openConcerns, 'url' => route('superadmin.concerns')],
-            ['label' => 'Open reports', 'count' => $openReports, 'url' => route('superadmin.reports', ['status' => 'Pending'])],
-            ['label' => 'Pending event requests', 'count' => $pendingEvents, 'url' => route('superadmin.events', ['view' => 'pending'])],
-            ['label' => 'Locked accounts', 'count' => $lockedUsers, 'url' => route('superadmin.users', ['view' => 'locked'])],
-            ['label' => 'Archived users', 'count' => $archivedUsers, 'url' => route('superadmin.users', ['view' => 'archives'])],
-            ['label' => 'Deleted users', 'count' => $deletedUsers, 'url' => route('superadmin.users', ['view' => 'deleted'])],
+            ['label' => 'Open concerns', 'count' => $openConcerns, 'url' => \App\Support\ProtectedRoute::url('superadmin.concerns')],
+            ['label' => 'Open reports', 'count' => $openReports, 'url' => \App\Support\ProtectedRoute::url('superadmin.reports', ['status' => 'Pending'])],
+            ['label' => 'Pending event requests', 'count' => $pendingEvents, 'url' => \App\Support\ProtectedRoute::url('superadmin.events', ['view' => 'pending'])],
+            ['label' => 'Locked accounts', 'count' => $lockedUsers, 'url' => \App\Support\ProtectedRoute::url('superadmin.users', ['view' => 'locked'])],
+            ['label' => 'Archived users', 'count' => $archivedUsers, 'url' => \App\Support\ProtectedRoute::url('superadmin.users', ['view' => 'archives'])],
+            ['label' => 'Deleted users', 'count' => $deletedUsers, 'url' => \App\Support\ProtectedRoute::url('superadmin.users', ['view' => 'deleted'])],
         ]);
 
         $executiveSummary = $lockedUsers + $openConcerns + $openReports + $pendingEvents > 0
@@ -472,25 +472,25 @@ class SuperadminController extends Controller
                 'level' => 'critical',
                 'title' => 'Review locked accounts',
                 'detail' => "{$lockedUsers} account(s) are currently locked and may require access restoration or a security review.",
-                'url' => route('superadmin.users', ['view' => 'locked']),
+                'url' => \App\Support\ProtectedRoute::url('superadmin.users', ['view' => 'locked']),
             ] : null,
             $openReports > 0 ? [
                 'level' => 'warning',
                 'title' => 'Prioritize open reports',
                 'detail' => "{$openReports} operational report(s) still require assignment, action, or resolution.",
-                'url' => route('superadmin.reports', ['status' => 'Pending']),
+                'url' => \App\Support\ProtectedRoute::url('superadmin.reports', ['status' => 'Pending']),
             ] : null,
             $pendingEvents > 0 ? [
                 'level' => 'warning',
                 'title' => 'Decide pending event requests',
                 'detail' => "{$pendingEvents} event request(s) are waiting for an administrative decision.",
-                'url' => route('superadmin.events', ['view' => 'pending']),
+                'url' => \App\Support\ProtectedRoute::url('superadmin.events', ['view' => 'pending']),
             ] : null,
             $openConcerns > 0 ? [
                 'level' => 'info',
                 'title' => 'Monitor unresolved concerns',
                 'detail' => "{$openConcerns} concern(s) remain open across day-to-day operations.",
-                'url' => route('superadmin.concerns'),
+                'url' => \App\Support\ProtectedRoute::url('superadmin.concerns'),
             ] : null,
         ])->filter()->values();
 
@@ -499,7 +499,7 @@ class SuperadminController extends Controller
                 'level' => 'success',
                 'title' => 'Maintain current operations',
                 'detail' => 'No immediate account-access or operational exceptions require escalation.',
-                'url' => route('superadmin.dashboard'),
+                'url' => \App\Support\ProtectedRoute::url('superadmin.dashboard'),
             ]);
         }
 

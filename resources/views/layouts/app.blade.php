@@ -398,8 +398,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         {{-- System Administrator navigation --}}
         @if(auth()->user()->isSystemAdministrator())
-            <a href="{{ route('superadmin.users') }}" class="{{ Request::is('admin/users*') || Request::is('system-admin/users*') ? 'active' : '' }}"><i class="fas fa-users"></i> User Management</a>
-            <a href="{{ route('superadmin.reports') }}" class="{{ Request::is('admin/reports*') || Request::is('system-admin/reports*') ? 'active' : '' }}"><i class="fas fa-file-alt"></i> Reports</a>
+            <a href="{{ \App\Support\ProtectedRoute::url('superadmin.users') }}" class="{{ Request::is('admin/users*') || Request::is('system-admin/users*') ? 'active' : '' }}"><i class="fas fa-users"></i> User Management</a>
+            <a href="{{ \App\Support\ProtectedRoute::url('superadmin.reports') }}" class="{{ Request::is('admin/reports*') || Request::is('system-admin/reports*') ? 'active' : '' }}"><i class="fas fa-file-alt"></i> Reports</a>
             <div class="nav-dropdown {{ Request::is('my-events') || Request::is('events-calendar*') || Request::is('admin/events*') || Request::is('system-admin/events*') ? 'open' : '' }}">
                 <a href="#" class="nav-dropdown-toggle {{ Request::is('my-events') || Request::is('events-calendar*') || Request::is('admin/events*') || Request::is('system-admin/events*') ? 'active' : '' }}"
                    data-nav-toggle style="padding-top:8px;padding-bottom:8px;">
@@ -407,7 +407,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <i class="fas fa-chevron-down nav-dropdown-arrow ms-auto"></i>
                 </a>
                 <div class="nav-dropdown-menu">
-                    <a href="{{ route('superadmin.events') }}" class="{{ Request::is('admin/events*') || Request::is('system-admin/events*') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
+                    <a href="{{ \App\Support\ProtectedRoute::url('superadmin.events') }}" class="{{ Request::is('admin/events*') || Request::is('system-admin/events*') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
                         <i class="fas fa-calendar-alt me-1"></i> Pending Approval
                     </a>
                     <a href="{{ route('events.my') }}" class="{{ Request::is('my-events') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
@@ -418,10 +418,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     </a>
                 </div>
             </div>
-            <a href="{{ route('superadmin.management') }}" class="{{ Request::is('admin/management*') || Request::is('system-admin/management*') ? 'active' : '' }}"><i class="fas fa-tools"></i> Management</a>
-            <a href="{{ route('superadmin.analytics') }}" class="{{ Request::is('system-admin/analytics*') ? 'active' : '' }}"><i class="fas fa-chart-line"></i> Analytics</a>
-            <a href="{{ route('superadmin.activity-logs') }}" class="{{ Request::is('admin/logs*') || Request::is('system-admin/activity-logs*') ? 'active' : '' }}"><i class="fas fa-history"></i> Audit Logs</a>
-            <a href="{{ route('superadmin.settings') }}" class="{{ Request::is('settings') || Request::is('system-admin/settings') ? 'active' : '' }}"><i class="fas fa-cog"></i> Settings</a>
+            <a href="{{ \App\Support\ProtectedRoute::url('superadmin.management') }}" class="{{ Request::is('admin/management*') || Request::is('system-admin/management*') ? 'active' : '' }}"><i class="fas fa-tools"></i> Management</a>
+            <a href="{{ \App\Support\ProtectedRoute::url('superadmin.analytics') }}" class="{{ Request::is('system-admin/analytics*') ? 'active' : '' }}"><i class="fas fa-chart-line"></i> Analytics</a>
+            <a href="{{ \App\Support\ProtectedRoute::url('superadmin.activity-logs') }}" class="{{ Request::is('admin/logs*') || Request::is('system-admin/activity-logs*') ? 'active' : '' }}"><i class="fas fa-history"></i> Audit Logs</a>
+            <a href="{{ \App\Support\ProtectedRoute::url('superadmin.settings') }}" class="{{ Request::is('settings') || Request::is('system-admin/settings') ? 'active' : '' }}"><i class="fas fa-cog"></i> Settings</a>
         @endif
         @if(auth()->user()->role === 'building_admin')
             {{-- Reports dropdown for building admin --}}
@@ -1807,6 +1807,34 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" defer></script>
 
 <script>
+// Browsers rebuild the query string when a GET form is submitted. Preserve the
+// signature embedded in protected System Administrator form actions.
+document.addEventListener('submit', function (event) {
+    const form = event.target;
+    if (!(form instanceof HTMLFormElement) || form.method.toLowerCase() !== 'get') {
+        return;
+    }
+
+    const actionUrl = new URL(form.action, window.location.origin);
+    if (!actionUrl.pathname.startsWith('/system-admin/')) {
+        return;
+    }
+
+    ['signature', 'expires'].forEach(function (name) {
+        const value = actionUrl.searchParams.get(name);
+        if (!value) return;
+
+        let input = form.querySelector('input[name="' + name + '"]');
+        if (!input) {
+            input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = name;
+            form.appendChild(input);
+        }
+        input.value = value;
+    });
+}, true);
+
 // Critical JavaScript functions for navigation and dropdowns
 function toggleSidebar() {
     const sidebar = document.querySelector('.sidebar');

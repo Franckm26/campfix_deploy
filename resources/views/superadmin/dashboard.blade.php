@@ -87,7 +87,7 @@
 <div class="section-title"><i class="fas fa-users"></i> Users</div>
 <div class="row g-3 mb-2">
     <div class="col-6 col-md-3 col-xl-2">
-        <a href="{{ route('superadmin.users') }}" class="module-card blue">
+        <a href="{{ \App\Support\ProtectedRoute::url('superadmin.users') }}" class="module-card blue">
             <div class="module-icon" style="background:rgba(59,130,246,.15);color:#60a5fa"><i class="fas fa-users"></i></div>
             <div class="module-title">Total Users</div>
             <div class="module-count">{{ number_format($stats['total_users']) }}</div>
@@ -95,7 +95,7 @@
         </a>
     </div>
     <div class="col-6 col-md-3 col-xl-2">
-        <a href="{{ route('superadmin.users', ['view'=>'active']) }}" class="module-card green">
+        <a href="{{ \App\Support\ProtectedRoute::url('superadmin.users', ['view'=>'active']) }}" class="module-card green">
             <div class="module-icon" style="background:rgba(34,197,94,.15);color:#4ade80"><i class="fas fa-user-check"></i></div>
             <div class="module-title">Active</div>
             <div class="module-count">{{ number_format($stats['active_users']) }}</div>
@@ -103,7 +103,7 @@
         </a>
     </div>
     <div class="col-6 col-md-3 col-xl-2">
-        <a href="{{ route('superadmin.users', ['view'=>'archives']) }}" class="module-card yellow">
+        <a href="{{ \App\Support\ProtectedRoute::url('superadmin.users', ['view'=>'archives']) }}" class="module-card yellow">
             <div class="module-icon" style="background:rgba(245,158,11,.15);color:#fbbf24"><i class="fas fa-box-archive"></i></div>
             <div class="module-title">Archived</div>
             <div class="module-count">{{ number_format($stats['archived_users']) }}</div>
@@ -111,7 +111,7 @@
         </a>
     </div>
     <div class="col-6 col-md-3 col-xl-2">
-        <a href="{{ route('superadmin.users', ['view'=>'deleted']) }}" class="module-card red">
+        <a href="{{ \App\Support\ProtectedRoute::url('superadmin.users', ['view'=>'deleted']) }}" class="module-card red">
             <div class="module-icon" style="background:rgba(239,68,68,.15);color:#f87171"><i class="fas fa-user-slash"></i></div>
             <div class="module-title">Deleted</div>
             <div class="module-count">{{ number_format($stats['deleted_users']) }}</div>
@@ -119,7 +119,7 @@
         </a>
     </div>
     <div class="col-6 col-md-3 col-xl-2">
-        <a href="{{ route('superadmin.users', ['view'=>'locked']) }}" class="module-card red">
+        <a href="{{ \App\Support\ProtectedRoute::url('superadmin.users', ['view'=>'locked']) }}" class="module-card red">
             <div class="module-icon" style="background:rgba(239,68,68,.15);color:#f87171"><i class="fas fa-lock"></i></div>
             <div class="module-title">Locked</div>
             <div class="module-count" style="{{ $stats['locked_users'] > 0 ? 'color:#f87171' : '' }}">{{ number_format($stats['locked_users']) }}</div>
@@ -127,7 +127,7 @@
         </a>
     </div>
     <div class="col-6 col-md-3 col-xl-2">
-        <a href="{{ route('superadmin.users', ['create'=>1]) }}" class="module-card purple">
+        <a href="{{ \App\Support\ProtectedRoute::url('superadmin.users', ['create'=>1]) }}" class="module-card purple">
             <div class="module-icon" style="background:rgba(124,58,237,.15);color:#a855f7"><i class="fas fa-user-plus"></i></div>
             <div class="module-title">Create User</div>
             <div class="module-count" style="font-size:20px;padding-top:4px"><i class="fas fa-plus"></i></div>
@@ -139,43 +139,43 @@
 {{-- ── DAILY OPERATIONS ── --}}
 <div class="section-title"><i class="fas fa-clipboard-list"></i> Daily Operations</div>
 <div class="operations-grid">
-    <a href="{{ route('superadmin.concerns') }}" class="module-card purple">
+    <a href="{{ \App\Support\ProtectedRoute::url('superadmin.concerns') }}" class="module-card purple">
         <div class="module-icon" style="background:rgba(124,58,237,.15);color:#a855f7"><i class="fas fa-triangle-exclamation"></i></div>
         <div class="module-title">All Concerns</div>
         <div class="module-count">{{ number_format($stats['total_concerns']) }}</div>
         <div class="module-sub">System-wide total</div>
     </a>
-    <a href="{{ route('superadmin.concerns', ['status'=>'Pending']) }}" class="module-card yellow">
+    <a href="{{ \App\Support\ProtectedRoute::url('superadmin.concerns', ['status'=>'Pending']) }}" class="module-card yellow">
         <div class="module-icon" style="background:rgba(245,158,11,.15);color:#fbbf24"><i class="fas fa-clock"></i></div>
         <div class="module-title">Open Concerns</div>
         <div class="module-count">{{ number_format($stats['open_concerns']) }}</div>
         <div class="module-sub">Unresolved</div>
     </a>
-    <a href="{{ route('superadmin.concerns', ['status'=>'Resolved']) }}" class="module-card green">
+    <a href="{{ \App\Support\ProtectedRoute::url('superadmin.concerns', ['status'=>'Resolved']) }}" class="module-card green">
         <div class="module-icon" style="background:rgba(34,197,94,.15);color:#4ade80"><i class="fas fa-circle-check"></i></div>
         <div class="module-title">Resolved Concerns</div>
         <div class="module-count">{{ number_format($stats['resolved_concerns']) }}</div>
         <div class="module-sub">All time</div>
     </a>
-    <a href="{{ route('superadmin.reports') }}" class="module-card blue">
+    <a href="{{ \App\Support\ProtectedRoute::url('superadmin.reports') }}" class="module-card blue">
         <div class="module-icon" style="background:rgba(59,130,246,.15);color:#60a5fa"><i class="fas fa-file-lines"></i></div>
         <div class="module-title">All Reports</div>
         <div class="module-count">{{ number_format($stats['total_reports']) }}</div>
         <div class="module-sub">System-wide total</div>
     </a>
-    <a href="{{ route('superadmin.reports', ['status'=>'Pending']) }}" class="module-card yellow">
+    <a href="{{ \App\Support\ProtectedRoute::url('superadmin.reports', ['status'=>'Pending']) }}" class="module-card yellow">
         <div class="module-icon" style="background:rgba(245,158,11,.15);color:#fbbf24"><i class="fas fa-hourglass-half"></i></div>
         <div class="module-title">Open Reports</div>
         <div class="module-count">{{ number_format($stats['open_reports']) }}</div>
         <div class="module-sub">Unresolved</div>
     </a>
-    <a href="{{ route('superadmin.events') }}" class="module-card teal">
+    <a href="{{ \App\Support\ProtectedRoute::url('superadmin.events') }}" class="module-card teal">
         <div class="module-icon" style="background:rgba(20,184,166,.15);color:#2dd4bf"><i class="fas fa-calendar-days"></i></div>
         <div class="module-title">All Events</div>
         <div class="module-count">{{ number_format($stats['total_events']) }}</div>
         <div class="module-sub">System-wide total</div>
     </a>
-    <a href="{{ route('superadmin.events', ['view'=>'pending']) }}" class="module-card yellow">
+    <a href="{{ \App\Support\ProtectedRoute::url('superadmin.events', ['view'=>'pending']) }}" class="module-card yellow">
         <div class="module-icon" style="background:rgba(245,158,11,.15);color:#fbbf24"><i class="fas fa-calendar-clock"></i></div>
         <div class="module-title">Pending Events</div>
         <div class="module-count">{{ number_format($stats['pending_events']) }}</div>
@@ -255,7 +255,7 @@
                     @if($admin->is_superadmin || $admin->role === 'superadmin')
                         <span class="sa-badge sa-badge-purple" style="font-size:10px">SA</span>
                     @endif
-                    <a href="{{ route('superadmin.users.edit', $admin->uuid) }}" style="color:var(--sa-muted);font-size:12px;text-decoration:none" title="Edit">
+                    <a href="{{ \App\Support\ProtectedRoute::url('superadmin.users.edit', $admin->uuid) }}" style="color:var(--sa-muted);font-size:12px;text-decoration:none" title="Edit">
                         <i class="fas fa-pen"></i>
                     </a>
                 </div>
@@ -286,7 +286,7 @@
                 <p style="color:var(--sa-muted);font-size:13px">No activity yet.</p>
                 @endforelse
             </div>
-            <a href="{{ route('superadmin.superadmin-logs') }}" class="sa-btn sa-btn-ghost sa-btn-sm mt-3" style="width:100%;justify-content:center">
+            <a href="{{ \App\Support\ProtectedRoute::url('superadmin.superadmin-logs') }}" class="sa-btn sa-btn-ghost sa-btn-sm mt-3" style="width:100%;justify-content:center">
                 View All SA Logs
             </a>
         </div>
