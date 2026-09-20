@@ -152,8 +152,10 @@ class SystemAdministratorAccessTest extends TestCase
         $provider = file_get_contents(app_path('Providers/AppServiceProvider.php'));
         $myEvents = file_get_contents(resource_path('views/events/my.blade.php'));
 
-        $this->assertStringContainsString("\$showEventRequestModal = in_array(\$user->role, [", $provider);
-        $this->assertStringContainsString("'superadmin',", $provider);
+        $this->assertStringContainsString(
+            "\$showEventRequestModal = (\$user->isSystemAdministrator() || in_array(\$user->role, [",
+            $provider
+        );
         $this->assertStringContainsString("getElementById('eventRequestModal')", $myEvents);
         $this->assertStringContainsString('Modal.getOrCreateInstance(modalElement)', $myEvents);
     }

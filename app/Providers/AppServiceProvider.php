@@ -74,15 +74,14 @@ class AppServiceProvider extends ServiceProvider
                 Carbon::setLocale($user->language ?: config('app.locale', 'en'));
 
                 $perPage = (int) ($user->items_per_page ?: 10);
-                $showEventRequestModal = in_array($user->role, [
-                    'superadmin',
+                $showEventRequestModal = ($user->isSystemAdministrator() || in_array($user->role, [
                     'faculty',
                     'building_admin',
                     'school_admin',
                     'academic_head',
                     'program_head',
                     'principal_assistant',
-                ], true) && (
+                ], true)) && (
                     $request->routeIs('dashboard')
                     || $request->routeIs('events.my')
                     || $request->routeIs('events.calendar')
