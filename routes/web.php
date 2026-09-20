@@ -9,6 +9,7 @@ use App\Http\Controllers\EventDiscussionController;
 use App\Http\Controllers\EventRequestController;
 use App\Http\Controllers\HistoryController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\OpaquePageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingsController;
@@ -107,6 +108,12 @@ Route::get('/test-email-debug-8521', function () {
 Route::get('/login', function () {
     return redirect('/');
 })->name('login');
+
+/* OPAQUE AUTHENTICATED PAGE URLS */
+Route::get('/hash/{token}', OpaquePageController::class)
+    ->middleware('auth')
+    ->where('token', '[A-Za-z0-9_-]+')
+    ->name('opaque.page');
 
 /* WELCOME CREDENTIALS PAGE - Temporary page for users to get their login credentials */
 Route::middleware(['auth', 'superadmin'])->group(function () {

@@ -16,6 +16,7 @@ use App\Http\Middleware\SanitizeInput;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetUserLocale;
 use App\Http\Middleware\SsrfProtection;
+use App\Http\Middleware\UseOpaquePageUrls;
 use App\Http\Middleware\ValidateRedirect;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -75,6 +76,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Ensure users complete first-login password setup
         $middleware->appendToGroup('web', EnsurePasswordChanged::class);
+
+        // Hide descriptive page paths for every authenticated role. The
+        // destination route still runs its original authorization middleware.
+        $middleware->appendToGroup('web', UseOpaquePageUrls::class);
 
         $middleware->prependToGroup('api', ApiRequestContext::class);
         $middleware->appendToGroup('api', DatabaseTransaction::class);
