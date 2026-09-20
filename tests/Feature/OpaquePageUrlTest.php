@@ -99,19 +99,24 @@ class OpaquePageUrlTest extends TestCase
 
     public function test_an_opaque_url_dispatches_the_original_route_with_its_middleware(): void
     {
-        Route::middleware(['web', 'auth'])
-            ->get('/opaque-test-page', fn () => response('protected page'))
+        Route::middleware(['web', 'auth', 'superadmin'])
+            ->get('/opaque-test-page', function () {
+                abort_unless(auth()->check(), 418);
+
+                return response('protected page');
+            })
             ->name('test.opaque-page');
 
         $user = new User;
         $user->forceFill([
             'id' => 987654,
-            'role' => 'student',
+            'role' => 'admin',
             'active_session_id' => null,
             'force_password_change' => false,
         ]);
 
-        $redirect = $this->actingAs($user)->get('/opaque-test-page');
+        $this->actingAs($user);
+        $redirect = $this->get('/opaque-test-page');
         $redirect->assertRedirect();
 
         $location = $redirect->headers->get('Location');
