@@ -15,8 +15,8 @@ class DashboardController extends Controller
         EventRequestController::rejectExpiredPendingRequests();
 
         // Redirect based on role
-        if ($user->isSystemAdministrator()) {
-            return redirect()->to(\App\Support\ProtectedRoute::url('superadmin.dashboard'));
+        if ($user->is_superadmin || $user->role === 'superadmin') {
+            return redirect()->route('superadmin.dashboard');
         }
 
         // Role-based URL prefix redirects — each role gets their own URL
@@ -27,6 +27,7 @@ class DashboardController extends Controller
             'academic_head'       => '/academic-head',
             'program_head'        => '/program-head',
             'principal_assistant' => '/principal-assistant',
+            'admin'               => '/system-admin',
         ];
 
         $roleHomePath = isset($rolePrefixMap[$user->role])

@@ -15,7 +15,7 @@
                 <div class="summary-callout"><strong>Estimated impact:</strong> <span id="alertEvidenceImpact"></span><br><strong>Priority:</strong> <span id="alertEvidencePriority"></span></div>
                 <section class="location-reports"><h4>Related Reports and Assigned Personnel</h4><table class="location-report-table"><thead><tr><th>Report</th><th>Location</th><th>Status</th><th>Priority</th><th>Age</th><th>Assigned To</th></tr></thead><tbody id="alertEvidenceReports"></tbody></table></section>
             </div>
-            <div class="modal-footer"><button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Close</button><a class="btn btn-primary" href="{{ \App\Support\ProtectedRoute::url($analyticsReportsRoute) }}"><i class="fas fa-list"></i> Open Reports</a></div>
+            <div class="modal-footer"><button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Close</button><a class="btn btn-primary" href="{{ route($analyticsReportsRoute) }}"><i class="fas fa-list"></i> Open Reports</a></div>
         </div>
     </div>
 </div>

@@ -9,7 +9,7 @@
     <div class="col-md-4">
         <div class="sa-card">
             <h2 style="font-size:15px;font-weight:600;color:var(--sa-text);margin:0 0 16px">Add Category</h2>
-            <form method="POST" action="{{ \App\Support\ProtectedRoute::url('superadmin.categories.store') }}">
+            <form method="POST" action="{{ route('superadmin.categories.store') }}">
                 @csrf
                 <div class="mb-3">
                     <label class="sa-label">Name *</label>
@@ -48,7 +48,7 @@
                             class="sa-btn sa-btn-ghost sa-btn-sm">
                         <i class="fas fa-pen"></i>
                     </button>
-                    <form method="POST" action="{{ \App\Support\ProtectedRoute::url('superadmin.categories.delete', $cat->id) }}"
+                    <form method="POST" action="{{ route('superadmin.categories.delete', $cat->id) }}"
                           onsubmit="return confirm('Delete category \'{{ addslashes($cat->name) }}\'?')">
                         @csrf @method('DELETE')
                         <button type="submit" class="sa-btn sa-btn-danger sa-btn-sm">

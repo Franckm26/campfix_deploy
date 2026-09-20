@@ -4,7 +4,7 @@
 
 @section('content')
 <div style="max-width:600px">
-    <a href="{{ \App\Support\ProtectedRoute::url('superadmin.users') }}" class="sa-btn sa-btn-ghost sa-btn-sm mb-4">
+    <a href="{{ route('superadmin.users') }}" class="sa-btn sa-btn-ghost sa-btn-sm mb-4">
         <i class="fas fa-arrow-left"></i> Back to Users
     </a>
 
@@ -19,7 +19,7 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ \App\Support\ProtectedRoute::url('superadmin.users.store') }}">
+        <form method="POST" action="{{ route('superadmin.users.store') }}">
             @csrf
             <div class="row g-3">
                 <div class="col-md-6">
@@ -129,7 +129,7 @@
 
                 <div class="col-12" style="display:flex;gap:10px;margin-top:8px">
                     <button type="submit" class="sa-btn sa-btn-primary"><i class="fas fa-plus"></i> Create User</button>
-                    <a href="{{ \App\Support\ProtectedRoute::url('superadmin.users') }}" class="sa-btn sa-btn-ghost">Cancel</a>
+                    <a href="{{ route('superadmin.users') }}" class="sa-btn sa-btn-ghost">Cancel</a>
                 </div>
             </div>
         </form>

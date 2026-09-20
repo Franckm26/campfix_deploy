@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('styles')
 <link href="{{ asset('css/admin.css') }}" rel="stylesheet">
@@ -197,22 +197,22 @@
                 <div class="col-md-5">
                     <ul class="nav nav-pills mb-0">
                         <li class="nav-item">
-                            <a class="nav-link {{ ($viewType ?? 'active') == 'active' ? 'active' : '' }}" href="{{ \App\Support\ProtectedRoute::url($usersIndexRoute, ['view' => 'active']) }}">
+                            <a class="nav-link {{ ($viewType ?? 'active') == 'active' ? 'active' : '' }}" href="{{ route($usersIndexRoute, ['view' => 'active']) }}">
                                 <i class="fas fa-users"></i> Active Users
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {{ ($viewType ?? '') == 'archives' ? 'active' : '' }}" href="{{ \App\Support\ProtectedRoute::url($usersIndexRoute, ['view' => 'archives']) }}">
+                            <a class="nav-link {{ ($viewType ?? '') == 'archives' ? 'active' : '' }}" href="{{ route($usersIndexRoute, ['view' => 'archives']) }}">
                                 <i class="fas fa-folder"></i> Archive Folders
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {{ ($viewType ?? '') == 'deleted' ? 'active' : '' }}" href="{{ \App\Support\ProtectedRoute::url($usersIndexRoute, ['view' => 'deleted']) }}" style="color: #dc3545;">
+                            <a class="nav-link {{ ($viewType ?? '') == 'deleted' ? 'active' : '' }}" href="{{ route($usersIndexRoute, ['view' => 'deleted']) }}" style="color: #dc3545;">
                                 <i class="fas fa-trash-alt"></i> Deleted Users
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {{ ($viewType ?? '') == 'locked' ? 'active' : '' }}" href="{{ \App\Support\ProtectedRoute::url($usersIndexRoute, ['view' => 'locked']) }}" style="color: #fd7e14;">
+                            <a class="nav-link {{ ($viewType ?? '') == 'locked' ? 'active' : '' }}" href="{{ route($usersIndexRoute, ['view' => 'locked']) }}" style="color: #fd7e14;">
                                 <i class="fas fa-lock"></i> Locked Users
                                 @if(isset($lockedCount) && $lockedCount > 0)
                                     <span class="badge bg-danger ms-1">{{ $lockedCount }}</span>
@@ -222,7 +222,7 @@
                     </ul>
                 </div>
                 <div class="col-md-7">
-                    <form method="GET" action="{{ \App\Support\ProtectedRoute::url($usersIndexRoute) }}" class="row g-2 align-items-center" id="userFilterForm">
+                    <form method="GET" action="{{ route($usersIndexRoute) }}" class="row g-2 align-items-center" id="userFilterForm">
                         <input type="hidden" name="view" value="{{ $viewType ?? 'active' }}">
                         <div class="col-auto position-relative">
                             <input type="text" name="search" id="searchInput" class="form-control form-control-sm" placeholder="Search Name, Email, ID, Mobile, Dept..." 
@@ -254,7 +254,7 @@
                             </select>
                         </div>
                         <div class="col-auto">
-                            <a href="{{ \App\Support\ProtectedRoute::url($usersIndexRoute, ['view' => $viewType ?? 'active']) }}" class="btn btn-secondary btn-sm"><i class="fas fa-times"></i></a>
+                            <a href="{{ route($usersIndexRoute, ['view' => $viewType ?? 'active']) }}" class="btn btn-secondary btn-sm"><i class="fas fa-times"></i></a>
                         </div>
                     </form>
                 </div>
@@ -292,25 +292,25 @@
             {{-- Role Tabs --}}
             <ul class="nav nav-tabs mb-3" id="roleTabNav">
                 <li class="nav-item">
-                    <a class="nav-link {{ !request('role_filter') ? 'active' : '' }}" href="{{ \App\Support\ProtectedRoute::url($usersIndexRoute, array_merge(request()->except('role_filter'), ['view' => $viewType ?? 'active'])) }}">
+                    <a class="nav-link {{ !request('role_filter') ? 'active' : '' }}" href="{{ route($usersIndexRoute, array_merge(request()->except('role_filter'), ['view' => $viewType ?? 'active'])) }}">
                         All
                         <span class="badge bg-secondary ms-1">{{ $totalAll ?? 0 }}</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link {{ request('role_filter') == 'student' ? 'active' : '' }}" href="{{ \App\Support\ProtectedRoute::url($usersIndexRoute, array_merge(request()->except('role_filter'), ['view' => $viewType ?? 'active', 'role_filter' => 'student'])) }}">
+                    <a class="nav-link {{ request('role_filter') == 'student' ? 'active' : '' }}" href="{{ route($usersIndexRoute, array_merge(request()->except('role_filter'), ['view' => $viewType ?? 'active', 'role_filter' => 'student'])) }}">
                         Student
                         <span class="badge bg-primary ms-1">{{ $totalStudent ?? 0 }}</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link {{ request('role_filter') == 'faculty' ? 'active' : '' }}" href="{{ \App\Support\ProtectedRoute::url($usersIndexRoute, array_merge(request()->except('role_filter'), ['view' => $viewType ?? 'active', 'role_filter' => 'faculty'])) }}">
+                    <a class="nav-link {{ request('role_filter') == 'faculty' ? 'active' : '' }}" href="{{ route($usersIndexRoute, array_merge(request()->except('role_filter'), ['view' => $viewType ?? 'active', 'role_filter' => 'faculty'])) }}">
                         Faculty
                         <span class="badge bg-info ms-1">{{ $totalFaculty ?? 0 }}</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link {{ request('role_filter') == 'staff' ? 'active' : '' }}" href="{{ \App\Support\ProtectedRoute::url($usersIndexRoute, array_merge(request()->except('role_filter'), ['view' => $viewType ?? 'active', 'role_filter' => 'staff'])) }}">
+                    <a class="nav-link {{ request('role_filter') == 'staff' ? 'active' : '' }}" href="{{ route($usersIndexRoute, array_merge(request()->except('role_filter'), ['view' => $viewType ?? 'active', 'role_filter' => 'staff'])) }}">
                         Staff
                         <span class="badge bg-warning ms-1">{{ $totalStaff ?? 0 }}</span>
                     </a>
@@ -490,7 +490,7 @@
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <form method="GET" action="{{ \App\Support\ProtectedRoute::url($usersIndexRoute, ['view' => 'archives']) }}" class="d-inline">
+                    <form method="GET" action="{{ route($usersIndexRoute, ['view' => 'archives']) }}" class="d-inline">
                         <input type="hidden" name="view" value="archives">
                         <label class="form-label me-2 mb-0">Show:</label>
                         <select name="per_page" class="form-select form-select-sm d-inline-block w-auto" onchange="this.form.submit()">
@@ -848,7 +848,7 @@
                                             <i class="fas fa-check-circle fa-2x d-block mb-3"></i>
                                             <h5>No Deleted Users</h5>
                                             <p class="mb-0">Deleted users will appear here. You can delete users from the User Management page.</p>
-                                            <a href="{{ \App\Support\ProtectedRoute::url($usersIndexRoute) }}" class="btn btn-primary mt-3">
+                                            <a href="{{ route($usersIndexRoute) }}" class="btn btn-primary mt-3">
                                                 <i class="fas fa-users"></i> Go to User Management
                                             </a>
                                         </div>
@@ -921,7 +921,7 @@
                                 <i class="fas fa-check-circle fa-2x d-block mb-3"></i>
                                 <h5>No Deleted Users</h5>
                                 <p class="mb-0">Deleted users will appear here. You can delete users from the User Management page.</p>
-                                <a href="{{ \App\Support\ProtectedRoute::url($usersIndexRoute) }}" class="btn btn-primary mt-3">
+                                <a href="{{ route($usersIndexRoute) }}" class="btn btn-primary mt-3">
                                     <i class="fas fa-users"></i> Go to User Management
                                 </a>
                             </div>
@@ -944,7 +944,7 @@
                         <i class="fas fa-check-circle fa-2x d-block mb-3 text-success"></i>
                         <h5>No Deleted Users</h5>
                         <p class="mb-0 text-muted">Deleted users will appear here. You can delete users from the User Management page.</p>
-                        <a href="{{ \App\Support\ProtectedRoute::url($usersIndexRoute) }}" class="btn btn-primary mt-3">
+                        <a href="{{ route($usersIndexRoute) }}" class="btn btn-primary mt-3">
                             <i class="fas fa-users"></i> Go to User Management
                         </a>
                     </div>

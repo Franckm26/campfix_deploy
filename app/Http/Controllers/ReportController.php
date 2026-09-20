@@ -26,7 +26,7 @@ class ReportController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        return \App\Support\ProtectedRoute::redirect('admin.reports');
+        return redirect()->route('admin.reports');
     }
 
     /**
@@ -99,7 +99,7 @@ class ReportController extends Controller
         }
 
         if ($isAdmin && ! request()->ajax()) {
-            return \App\Support\ProtectedRoute::redirect('admin.reports', [
+            return redirect()->route('admin.reports', [
                 'view' => $report->status === 'Resolved' ? 'resolved' : 'active',
                 'open_report' => $report->id,
             ]);

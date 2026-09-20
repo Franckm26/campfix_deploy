@@ -1026,7 +1026,7 @@
 @endphp
 
 <main class="analytics-shell">
-    <form class="analytics-panel analytics-filter" method="GET" action="{{ \App\Support\ProtectedRoute::url($analyticsIndexRoute) }}">
+    <form class="analytics-panel analytics-filter" method="GET" action="{{ route($analyticsIndexRoute) }}">
         <div class="analytics-field">
             <label for="location">Location</label>
             <select class="form-select" id="location" name="location">
@@ -1045,7 +1045,7 @@
             <input class="form-control" id="date_to" name="date_to" type="date" value="{{ request('date_to') }}">
         </div>
         <button class="btn btn-primary" type="submit"><i class="fas fa-filter"></i> Apply</button>
-        <a class="btn btn-outline-secondary" href="{{ \App\Support\ProtectedRoute::url($analyticsIndexRoute) }}" title="Clear filters"><i class="fas fa-rotate-left"></i> Reset</a>
+        <a class="btn btn-outline-secondary" href="{{ route($analyticsIndexRoute) }}" title="Clear filters"><i class="fas fa-rotate-left"></i> Reset</a>
     </form>
 
     <section class="analytics-kpis" aria-label="Key performance indicators">
@@ -1238,7 +1238,7 @@
                         </div>
                         <div class="category-workflow-actions">
                             <button class="btn btn-primary" type="button" id="categoryPrimaryAction"></button>
-                            <a class="btn btn-outline-secondary" id="categoryOpenReport" href="{{ \App\Support\ProtectedRoute::url($analyticsReportsRoute) }}"><i class="fas fa-arrow-up-right-from-square"></i> Full Report</a>
+                            <a class="btn btn-outline-secondary" id="categoryOpenReport" href="{{ route($analyticsReportsRoute) }}"><i class="fas fa-arrow-up-right-from-square"></i> Full Report</a>
                         </div>
                         <div class="category-action-message" id="categoryActionMessage" role="status"></div>
                     </div>
@@ -1271,7 +1271,7 @@
         @if($issueCostStats->isNotEmpty())
             <div class="location-tools" style="grid-template-columns: minmax(0, 1fr) auto;">
                 <input class="form-control" id="issueCostSearch" type="search" placeholder="Search issue or room..." aria-label="Search issues or rooms">
-                <a class="btn btn-outline-primary" href="{{ \App\Support\ProtectedRoute::url($analyticsReportsRoute) }}"><i class="fas fa-list"></i> Open Reports</a>
+                <a class="btn btn-outline-primary" href="{{ route($analyticsReportsRoute) }}"><i class="fas fa-list"></i> Open Reports</a>
             </div>
             <div class="risk-table-wrap">
                 <table class="risk-table" id="issueCostTable">
@@ -1323,7 +1323,7 @@
     <div class="modal-dialog modal-dialog-scrollable analytics-responsive-modal"><div class="modal-content">
         <div class="modal-header"><div><h5 class="modal-title" id="distributionReportsTitle">Matching Reports</h5><small class="text-muted" id="distributionReportsSubtitle"></small></div><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         <div class="modal-body p-0"><div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>Ticket</th><th>Issue</th><th>Location</th><th>Status</th><th>Priority</th><th>Category</th><th>Assigned to</th><th>Submitted</th></tr></thead><tbody id="distributionReportsBody"></tbody></table></div></div>
-        <div class="modal-footer"><a class="btn btn-primary" id="distributionReportsOpenLink" href="{{ \App\Support\ProtectedRoute::url($analyticsReportsRoute) }}"><i class="fas fa-list"></i> Open Reports</a><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button></div>
+        <div class="modal-footer"><a class="btn btn-primary" id="distributionReportsOpenLink" href="{{ route($analyticsReportsRoute) }}"><i class="fas fa-list"></i> Open Reports</a><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button></div>
     </div></div>
 </div>
 @endsection
@@ -1338,7 +1338,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const reportValues = @json($trendStats->pluck('reports')->values());
     const resolvedValues = @json($trendStats->pluck('resolved')->values());
     const totalReportCount = {{ (int) $totalReports }};
-    const reportsUrl = @json(\App\Support\ProtectedRoute::url($analyticsReportsRoute));
+    const reportsUrl = @json(route($analyticsReportsRoute));
     const analyticsChartReports = @json($analyticsChartReports);
     const locationDetails = @json($locationStats->keyBy('location')->all());
     const decisionAlertDetails = @json($decisionAlerts->keyBy('key')->all());

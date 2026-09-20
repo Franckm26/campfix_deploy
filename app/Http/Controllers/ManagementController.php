@@ -304,7 +304,7 @@ class ManagementController extends Controller
 
         ActivityLog::log('maintenance_staff_created', "Created maintenance staff: {$staff->name}", $staff->id, 'maintenance_staff');
 
-        return redirect()->to(\App\Support\ProtectedRoute::url($this->managementRouteName(), ['tab' => 'staff']))
+        return redirect()->route($this->managementRouteName(), ['tab' => 'staff'])
             ->with('success', "Maintenance staff '{$staff->name}' added successfully.");
     }
 
@@ -325,7 +325,7 @@ class ManagementController extends Controller
 
         ActivityLog::log('maintenance_staff_updated', "Updated maintenance staff: {$staff->name}", $staff->id, 'maintenance_staff');
 
-        return redirect()->to(\App\Support\ProtectedRoute::url($this->managementRouteName(), ['tab' => 'staff']))
+        return redirect()->route($this->managementRouteName(), ['tab' => 'staff'])
             ->with('success', "Staff '{$staff->name}' updated successfully.");
     }
 
@@ -340,7 +340,7 @@ class ManagementController extends Controller
 
         ActivityLog::log('maintenance_staff_deleted', "Deleted maintenance staff: {$name}", $staff->id, 'maintenance_staff');
 
-        return redirect()->to(\App\Support\ProtectedRoute::url($this->managementRouteName(), ['tab' => 'staff']))
+        return redirect()->route($this->managementRouteName(), ['tab' => 'staff'])
             ->with('success', "Staff '{$name}' removed successfully.");
     }
 
@@ -370,7 +370,7 @@ class ManagementController extends Controller
 
         ActivityLog::log('facility_created', "Created facility: {$facility->name}");
 
-        return redirect()->to(\App\Support\ProtectedRoute::url($this->managementRouteName(), ['tab' => 'facilities']))
+        return redirect()->route($this->managementRouteName(), ['tab' => 'facilities'])
             ->with('success', "Facility '{$facility->name}' added successfully.");
     }
 
@@ -392,7 +392,7 @@ class ManagementController extends Controller
 
         ActivityLog::log('facility_updated', "Updated facility: {$facility->name}");
 
-        return redirect()->to(\App\Support\ProtectedRoute::url($this->managementRouteName(), ['tab' => 'facilities']))
+        return redirect()->route($this->managementRouteName(), ['tab' => 'facilities'])
             ->with('success', "Facility '{$facility->name}' updated successfully.");
     }
 
@@ -406,7 +406,7 @@ class ManagementController extends Controller
 
         ActivityLog::log('facility_deleted', "Deleted facility: {$name}");
 
-        return redirect()->to(\App\Support\ProtectedRoute::url($this->managementRouteName(), ['tab' => 'facilities']))
+        return redirect()->route($this->managementRouteName(), ['tab' => 'facilities'])
             ->with('success', "Facility '{$name}' deleted successfully.");
     }
 
@@ -461,7 +461,7 @@ class ManagementController extends Controller
 
         Category::create(['name' => $request->name, 'issues' => $issues ?: null]);
 
-        return redirect()->to(\App\Support\ProtectedRoute::url($this->managementRouteName(), ['tab' => 'categories']))
+        return redirect()->route($this->managementRouteName(), ['tab' => 'categories'])
             ->with('success', "Category '{$request->name}' added successfully.");
     }
 
@@ -503,7 +503,7 @@ class ManagementController extends Controller
 
         $category->update(['name' => $request->name, 'issues' => $issues ?: null]);
 
-        return redirect()->to(\App\Support\ProtectedRoute::url($this->managementRouteName(), ['tab' => 'categories']))
+        return redirect()->route($this->managementRouteName(), ['tab' => 'categories'])
             ->with('success', "Category updated successfully.");
     }
 
@@ -517,14 +517,14 @@ class ManagementController extends Controller
         }
 
         if ($category->concerns()->count() > 0) {
-            return redirect()->to(\App\Support\ProtectedRoute::url($this->managementRouteName(), ['tab' => 'categories']))
+            return redirect()->route($this->managementRouteName(), ['tab' => 'categories'])
                 ->with('error', "Cannot delete '{$category->name}' — it has existing concerns.");
         }
 
         $name = $category->name;
         $category->delete();
 
-        return redirect()->to(\App\Support\ProtectedRoute::url($this->managementRouteName(), ['tab' => 'categories']))
+        return redirect()->route($this->managementRouteName(), ['tab' => 'categories'])
             ->with('success', "Category '{$name}' deleted successfully.");
     }
 }

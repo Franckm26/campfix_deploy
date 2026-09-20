@@ -6,7 +6,7 @@
 
 {{-- Filters --}}
 <div class="sa-card mb-4">
-    <form method="GET" action="{{ \App\Support\ProtectedRoute::url('superadmin.users') }}" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
+    <form method="GET" action="{{ route('superadmin.users') }}" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
         <div style="flex:1;min-width:180px">
             <label class="sa-label">Search</label>
             <input type="text" name="search" value="{{ $search }}" class="sa-input" placeholder="Name, email, department…" enterkeyhint="search" inputmode="search" onkeypress="if(event.key==='Enter'){this.form.submit();}">
@@ -44,9 +44,9 @@
         </div>
         <div style="display:flex;gap:8px">
             <button type="submit" class="sa-btn sa-btn-primary"><i class="fas fa-search"></i> Filter</button>
-            <a href="{{ \App\Support\ProtectedRoute::url('superadmin.users') }}" class="sa-btn sa-btn-ghost">Reset</a>
+            <a href="{{ route('superadmin.users') }}" class="sa-btn sa-btn-ghost">Reset</a>
         </div>
-        <a href="{{ \App\Support\ProtectedRoute::url('superadmin.users.create') }}" class="sa-btn sa-btn-primary" style="margin-left:auto">
+        <a href="{{ route('superadmin.users.create') }}" class="sa-btn sa-btn-primary" style="margin-left:auto">
             <i class="fas fa-plus"></i> New User
         </a>
     </form>
@@ -103,11 +103,11 @@
                     <td style="color:var(--sa-muted);font-size:12px">{{ $user->created_at->format('m/d/Y') }}</td>
                     <td>
                         <div style="display:flex;gap:4px;flex-wrap:wrap">
-                            <a href="{{ \App\Support\ProtectedRoute::url('superadmin.users.edit', $user->uuid) }}" class="sa-btn sa-btn-ghost sa-btn-sm" title="Edit">
+                            <a href="{{ route('superadmin.users.edit', $user->uuid) }}" class="sa-btn sa-btn-ghost sa-btn-sm" title="Edit">
                                 <i class="fas fa-pen"></i>
                             </a>
                             @if($user->is_deleted)
-                                <form method="POST" action="{{ \App\Support\ProtectedRoute::url('superadmin.users.restore', $user->uuid) }}" style="display:inline">
+                                <form method="POST" action="{{ route('superadmin.users.restore', $user->uuid) }}" style="display:inline">
                                     @csrf
                                     <button type="submit" class="sa-btn sa-btn-ghost sa-btn-sm" title="Restore" style="color:#4ade80">
                                         <i class="fas fa-rotate-left"></i>
@@ -115,7 +115,7 @@
                                 </form>
                             @endif
                             @if($user->locked_until && $user->locked_until > now())
-                                <form method="POST" action="{{ \App\Support\ProtectedRoute::url('superadmin.users.unlock', $user->uuid) }}" style="display:inline">
+                                <form method="POST" action="{{ route('superadmin.users.unlock', $user->uuid) }}" style="display:inline">
                                     @csrf
                                     <button type="submit" class="sa-btn sa-btn-ghost sa-btn-sm" title="Unlock" style="color:#fbbf24">
                                         <i class="fas fa-lock-open"></i>
@@ -123,7 +123,7 @@
                                 </form>
                             @endif
                             @if(!$user->is_superadmin && $user->id !== auth()->id())
-                                <form method="POST" action="{{ \App\Support\ProtectedRoute::url('superadmin.users.delete', $user->uuid) }}" style="display:inline"
+                                <form method="POST" action="{{ route('superadmin.users.delete', $user->uuid) }}" style="display:inline"
                                       onsubmit="return confirm('Permanently delete {{ addslashes($user->name) }}? This cannot be undone.')">
                                     @csrf @method('DELETE')
                                     <button type="submit" class="sa-btn sa-btn-danger sa-btn-sm" title="Delete">

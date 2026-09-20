@@ -21,14 +21,14 @@
                 @if($sa->id === auth()->id())
                     <span class="sa-badge sa-badge-green" style="font-size:10px">You</span>
                 @endif
-                <a href="{{ \App\Support\ProtectedRoute::url('superadmin.users.edit', $sa->uuid) }}" class="sa-btn sa-btn-ghost sa-btn-sm">
+                <a href="{{ route('superadmin.users.edit', $sa->uuid) }}" class="sa-btn sa-btn-ghost sa-btn-sm">
                     <i class="fas fa-pen"></i>
                 </a>
             </div>
             @empty
             <p style="color:var(--sa-muted);font-size:13px">No superadmin accounts found.</p>
             @endforelse
-            <a href="{{ \App\Support\ProtectedRoute::url('superadmin.users.create') }}" class="sa-btn sa-btn-primary mt-3" style="width:100%;justify-content:center">
+            <a href="{{ route('superadmin.users.create') }}" class="sa-btn sa-btn-primary mt-3" style="width:100%;justify-content:center">
                 <i class="fas fa-plus"></i> Add System Administrator
             </a>
         </div>
@@ -41,19 +41,19 @@
                 <i class="fas fa-bolt me-2" style="color:var(--sa-warning)"></i>Quick Actions
             </h2>
             <div style="display:flex;flex-direction:column;gap:10px">
-                <a href="{{ \App\Support\ProtectedRoute::url('superadmin.users', ['status' => 'locked']) }}" class="sa-btn sa-btn-ghost" style="justify-content:flex-start">
+                <a href="{{ route('superadmin.users', ['status' => 'locked']) }}" class="sa-btn sa-btn-ghost" style="justify-content:flex-start">
                     <i class="fas fa-lock" style="color:var(--sa-danger)"></i> View Locked Accounts
                 </a>
-                <a href="{{ \App\Support\ProtectedRoute::url('superadmin.users', ['status' => 'deleted']) }}" class="sa-btn sa-btn-ghost" style="justify-content:flex-start">
+                <a href="{{ route('superadmin.users', ['status' => 'deleted']) }}" class="sa-btn sa-btn-ghost" style="justify-content:flex-start">
                     <i class="fas fa-trash" style="color:var(--sa-danger)"></i> View Deleted Users
                 </a>
-                <a href="{{ \App\Support\ProtectedRoute::url('superadmin.activity-logs') }}" class="sa-btn sa-btn-ghost" style="justify-content:flex-start">
+                <a href="{{ route('superadmin.activity-logs') }}" class="sa-btn sa-btn-ghost" style="justify-content:flex-start">
                     <i class="fas fa-list-check" style="color:var(--sa-info)"></i> View All Audit Logs
                 </a>
-                <a href="{{ \App\Support\ProtectedRoute::url('superadmin.superadmin-logs') }}" class="sa-btn sa-btn-ghost" style="justify-content:flex-start">
+                <a href="{{ route('superadmin.superadmin-logs') }}" class="sa-btn sa-btn-ghost" style="justify-content:flex-start">
                     <i class="fas fa-eye-slash" style="color:var(--sa-accent2)"></i> View Administrator Logs
                 </a>
-                <a href="{{ \App\Support\ProtectedRoute::url('superadmin.analytics') }}" class="sa-btn sa-btn-ghost" style="justify-content:flex-start">
+                <a href="{{ route('superadmin.analytics') }}" class="sa-btn sa-btn-ghost" style="justify-content:flex-start">
                     <i class="fas fa-chart-line" style="color:var(--sa-success)"></i> System Analytics
                 </a>
             </div>

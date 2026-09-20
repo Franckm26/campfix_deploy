@@ -67,12 +67,12 @@ class SystemAdministratorAccessTest extends TestCase
         $this->assertStringContainsString("role === 'mis' && ! auth()->user()->isSystemAdministrator()", $layout);
         $this->assertStringContainsString("route('history.index')", $layout);
         $this->assertStringContainsString("route('mis.management', ['tab' => 'categories'])", $layout);
-        $this->assertStringContainsString("ProtectedRoute::url('superadmin.users')", $layout);
-        $this->assertStringContainsString("ProtectedRoute::url('superadmin.reports')", $layout);
-        $this->assertStringContainsString("ProtectedRoute::url('superadmin.events')", $layout);
-        $this->assertStringContainsString("ProtectedRoute::url('superadmin.management')", $layout);
-        $this->assertStringContainsString("ProtectedRoute::url('superadmin.activity-logs')", $layout);
-        $this->assertStringContainsString("ProtectedRoute::url('superadmin.settings')", $layout);
+        $this->assertStringContainsString("route('superadmin.users')", $layout);
+        $this->assertStringContainsString("route('superadmin.reports')", $layout);
+        $this->assertStringContainsString("route('superadmin.events')", $layout);
+        $this->assertStringContainsString("route('superadmin.management')", $layout);
+        $this->assertStringContainsString("route('superadmin.activity-logs')", $layout);
+        $this->assertStringContainsString("route('superadmin.settings')", $layout);
         $this->assertStringNotContainsString('Module Access Control</a>', $layout);
     }
 
@@ -140,7 +140,7 @@ class SystemAdministratorAccessTest extends TestCase
         $events = file_get_contents(resource_path('views/admin/events.blade.php'));
 
         $this->assertMatchesRegularExpression(
-            "/System Administrator navigation.*?nav-dropdown.*?ProtectedRoute::url\('superadmin\.events'\).*?Pending Approval.*?route\('events\.my'\).*?My Events.*?route\('events\.calendar'\).*?Upcoming Events/s",
+            "/System Administrator navigation.*?nav-dropdown.*?route\('superadmin\.events'\).*?Pending Approval.*?route\('events\.my'\).*?My Events.*?route\('events\.calendar'\).*?Upcoming Events/s",
             $layout
         );
         $this->assertStringNotContainsString('Request Facility', $events);

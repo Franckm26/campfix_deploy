@@ -36,7 +36,7 @@ class SettingsController extends Controller
         $user->push_notifications = $request->has('push_notifications');
         $user->save();
 
-        return redirect()->to(\App\Support\ProtectedRoute::url($this->settingsIndexRoute()))->with('success', 'Notification settings updated successfully!');
+        return redirect()->route($this->settingsIndexRoute())->with('success', 'Notification settings updated successfully!');
     }
 
     /**
@@ -59,7 +59,7 @@ class SettingsController extends Controller
         $user->items_per_page = $request->items_per_page ?? 10;
         $user->save();
 
-        return redirect()->to(\App\Support\ProtectedRoute::url($this->settingsIndexRoute()))->with('success', 'Display preferences updated successfully!');
+        return redirect()->route($this->settingsIndexRoute())->with('success', 'Display preferences updated successfully!');
     }
 
     /**
@@ -90,7 +90,7 @@ class SettingsController extends Controller
         $user->allow_messages = $request->has('allow_messages');
         $user->save();
 
-        return redirect()->to(\App\Support\ProtectedRoute::url($this->settingsIndexRoute()))->with('success', 'Privacy settings updated successfully!');
+        return redirect()->route($this->settingsIndexRoute())->with('success', 'Privacy settings updated successfully!');
     }
 
     /**
@@ -112,7 +112,7 @@ class SettingsController extends Controller
         $user->two_factor_enabled = $request->has('two_factor_enabled');
         $user->save();
 
-        return redirect()->to(\App\Support\ProtectedRoute::url($this->settingsIndexRoute()))->with('success', 'Security settings updated successfully!');
+        return redirect()->route($this->settingsIndexRoute())->with('success', 'Security settings updated successfully!');
     }
 
     /**
@@ -140,7 +140,7 @@ class SettingsController extends Controller
         $user->file_security_enabled = $request->has('file_security_enabled');
         $user->save();
 
-        return redirect()->to(\App\Support\ProtectedRoute::url($this->settingsIndexRoute()))->with('success', 'Security misconfiguration settings updated successfully!');
+        return redirect()->route($this->settingsIndexRoute())->with('success', 'Security misconfiguration settings updated successfully!');
     }
 
     private function settingsIndexRoute(): string
