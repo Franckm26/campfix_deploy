@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Support\OpaquePageUrl;
 use Closure;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 
 class UseOpaquePageUrls
@@ -14,7 +15,13 @@ class UseOpaquePageUrls
     public function handle(Request $request, Closure $next): Response
     {
         if ($this->shouldRedirect($request)) {
-            return redirect()->to($this->opaquePageUrl->url($request->getRequestUri()));
+            // Keep this redirect relative so an APP_URL/www mismatch cannot
+            // move the browser to another host and discard the login session.
+            return new RedirectResponse(
+                $this->opaquePageUrl->path($request->getRequestUri()),
+                Response::HTTP_FOUND,
+                ['Cache-Control' => 'no-store']
+            );
         }
 
         return $next($request);

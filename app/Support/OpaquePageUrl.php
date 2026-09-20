@@ -8,9 +8,9 @@ use Illuminate\Support\Str;
 
 class OpaquePageUrl
 {
-    public function url(string $uri): string
+    public function path(string $uri): string
     {
-        return url('/hash/'.$this->encode($uri));
+        return '/hash/'.$this->encode($uri);
     }
 
     public function encode(string $uri): string

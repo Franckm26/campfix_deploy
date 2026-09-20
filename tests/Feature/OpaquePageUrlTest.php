@@ -24,6 +24,8 @@ class OpaquePageUrlTest extends TestCase
 
     public function test_an_authenticated_html_page_is_redirected_to_an_opaque_path(): void
     {
+        config(['app.url' => 'https://different-host.example']);
+
         $request = Request::create('/building-admin/analytics?period=month', 'GET');
         $request->headers->set('Accept', 'text/html');
         $request->setUserResolver(fn () => new User);
@@ -34,6 +36,7 @@ class OpaquePageUrlTest extends TestCase
         );
 
         $this->assertTrue($response->isRedirect());
+        $this->assertStringStartsWith('/hash/', $response->headers->get('Location'));
 
         $path = parse_url($response->headers->get('Location'), PHP_URL_PATH);
         $this->assertIsString($path);
