@@ -6,6 +6,7 @@ use App\Models\ActivityLog;
 use App\Models\Report;
 use App\Models\User;
 use App\Notifications\BudgetApprovalNotification;
+use App\Support\BudgetApprovalSchema;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +15,8 @@ class BudgetApprovalController extends Controller
 {
     public function request(Request $request, Report $report): JsonResponse
     {
+        BudgetApprovalSchema::ensure();
+
         $validated = $request->validate([
             'budget_amount' => ['required', 'numeric', 'min:0', 'max:9999999999.99'],
         ]);
@@ -61,6 +64,7 @@ class BudgetApprovalController extends Controller
 
     public function approve(Report $report): JsonResponse
     {
+        BudgetApprovalSchema::ensure();
         $this->authorizeSchoolAdministrator();
 
         if ($report->budget_status !== Report::BUDGET_PENDING) {
@@ -77,6 +81,7 @@ class BudgetApprovalController extends Controller
 
     public function reject(Request $request, Report $report): JsonResponse
     {
+        BudgetApprovalSchema::ensure();
         $this->authorizeSchoolAdministrator();
         $validated = $request->validate([
             'reason' => ['required', 'string', 'max:1000'],

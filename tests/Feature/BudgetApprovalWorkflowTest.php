@@ -70,8 +70,6 @@ class BudgetApprovalWorkflowTest extends TestCase
             $table->timestamps();
         });
 
-        $migration = require database_path('migrations/2026_09_27_000001_add_budget_approval_to_reports_and_concerns.php');
-        $migration->up();
     }
 
     public function test_school_administrator_approval_is_required_before_progress(): void
@@ -117,6 +115,8 @@ class BudgetApprovalWorkflowTest extends TestCase
             $report
         );
         $this->assertSame(200, $requested->getStatusCode());
+        $this->assertTrue(Schema::hasColumns('reports', ['budget_amount', 'budget_status', 'budget_requested_by']));
+        $this->assertTrue(Schema::hasColumns('concerns', ['budget_amount', 'budget_status', 'budget_requested_by']));
         $this->assertSame(Report::BUDGET_PENDING, $report->refresh()->budget_status);
         $this->assertSame(Report::BUDGET_PENDING, $concern->refresh()->budget_status);
 
