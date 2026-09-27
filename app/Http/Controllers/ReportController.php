@@ -393,6 +393,8 @@ class ReportController extends Controller
         $reportData['assigned_at'] = $report->assigned_at ? $report->assigned_at->copy()->timezone('Asia/Manila')->format('M d, Y h:i A') : null;
         $reportData['in_progress_at'] = $report->in_progress_at ? $report->in_progress_at->copy()->timezone('Asia/Manila')->format('M d, Y h:i A') : null;
         $reportData['resolved_at'] = $report->resolved_at ? $report->resolved_at->copy()->timezone('Asia/Manila')->format('M d, Y h:i A') : null;
+        $reportData['budget_requested_at'] = $report->budget_requested_at ? $report->budget_requested_at->copy()->timezone('Asia/Manila')->format('M d, Y h:i A') : null;
+        $reportData['budget_reviewed_at'] = $report->budget_reviewed_at ? $report->budget_reviewed_at->copy()->timezone('Asia/Manila')->format('M d, Y h:i A') : null;
 
         // Remove sensitive fields for unauthorized users
         if (! $canSeeSensitiveFields) {
@@ -503,6 +505,14 @@ class ReportController extends Controller
             return back()->with('error', 'This report is not assigned to you.');
         }
 
+        if (! $report->hasApprovedBudget()) {
+            $message = 'School Administrator budget approval is required before work can start.';
+
+            return $request->expectsJson()
+                ? response()->json(['success' => false, 'error' => $message, 'requires_budget_approval' => true], 422)
+                : back()->with('error', $message);
+        }
+
         $oldStatus = $report->status;
 
         // Update status to In Progress
@@ -577,6 +587,17 @@ class ReportController extends Controller
 
         $oldStatus = $report->status;
         $newStatus = $request->status;
+
+        if (in_array($newStatus, ['In Progress', 'Resolved'], true)
+            && ! in_array($oldStatus, ['In Progress', 'Resolved'], true)
+            && ! $report->hasApprovedBudget()) {
+            return response()->json([
+                'success' => false,
+                'error' => 'School Administrator budget approval is required before work can start.',
+                'requires_budget_approval' => true,
+                'budget_status' => $report->budget_status,
+            ], 422);
+        }
 
         // Update status
         $report->status = $newStatus;

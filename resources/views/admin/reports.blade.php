@@ -338,6 +338,7 @@
                             <th>Location</th>
                             <th>Priority</th>
                             <th>Status</th>
+                            <th>Budget</th>
                             <th>Reported By</th>
                             <th>Created</th>
                             <th>Resolved</th>
@@ -375,6 +376,16 @@
                                             }}">
                                                 {{ $report->status }}
                                             </span>
+                                        </td>
+                                        <td>
+                                            @if($report->budget_status)
+                                                <span class="badge bg-{{ $report->budget_status === 'approved' ? 'success' : ($report->budget_status === 'rejected' ? 'danger' : 'warning') }}">
+                                                    {{ ucfirst($report->budget_status) }}
+                                                </span>
+                                                <div class="small text-muted">PHP {{ number_format((float) $report->budget_amount, 2) }}</div>
+                                            @else
+                                                <span class="badge bg-secondary">Not requested</span>
+                                            @endif
                                         </td>
                                         <td>
                                             {{ $report->reporter_display_name }}
@@ -424,7 +435,7 @@
                                     </tr>
                         @empty
                             <tr>
-                                <td colspan="11" class="text-center">No reports found</td>
+                                <td colspan="12" class="text-center">No reports found</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -1144,6 +1155,10 @@
 
 @section('scripts')
 <script>
+const currentReportUserRole = @json(auth()->user()->role);
+const escapeReportHtml = value => String(value ?? '').replace(/[&<>'"]/g, character => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#039;', '"': '&quot;'
+})[character]);
 @if(isset($groupedReports))
 window.groupedReports = {!! json_encode($groupedReports, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) !!};
 @else
@@ -2302,6 +2317,8 @@ window.viewReportProgress = async function(id) {
         }
 
         const r = data.report;
+        const budgetStatus = (r.budget_status || '').toLowerCase();
+        const budgetAmount = Number(r.budget_amount || 0);
 
         const statusColor = r.status === 'Resolved'    ? '#198754' :
                             r.status === 'In Progress'  ? '#ffc107' :
@@ -2310,6 +2327,7 @@ window.viewReportProgress = async function(id) {
         const steps = [
             { label: 'Submitted',    done: true,                          icon: 'fa-file-alt',    date: r.created_at },
             { label: 'Assigned',     done: !!r.assigned_to,               icon: 'fa-user-plus',   date: r.assigned_at || null, detail: r.assigned_user_name || null },
+            { label: 'Budget Approved', done: budgetStatus === 'approved', icon: 'fa-coins', date: r.budget_reviewed_at || null, detail: r.budget_amount !== null ? `PHP ${budgetAmount.toLocaleString('en-PH', {minimumFractionDigits: 2})}` : null },
             { label: 'In Progress',  done: ['In Progress','Resolved'].includes(r.status), icon: 'fa-spinner', date: null },
             { label: 'Resolved',     done: r.status === 'Resolved',       icon: 'fa-check-circle', date: r.resolved_at || null },
         ];
@@ -2341,8 +2359,13 @@ window.viewReportProgress = async function(id) {
         let showProceedButton = false;
         
         if (r.status === 'Assigned') {
-            nextAction = { status: 'In Progress', label: 'Start Working', icon: 'fa-play', color: '#ffc107' };
-            showProceedButton = true;
+            if (budgetStatus === 'approved') {
+                nextAction = { status: 'In Progress', label: 'Start Working', icon: 'fa-play', color: '#ffc107' };
+                showProceedButton = true;
+            } else if (budgetStatus !== 'pending') {
+                nextAction = { action: 'request-budget', label: budgetStatus === 'rejected' ? 'Submit Revised Budget' : 'Request Budget Approval', icon: 'fa-coins', color: '#0d6efd' };
+                showProceedButton = true;
+            }
         } else if (r.status === 'In Progress') {
             nextAction = { status: 'Resolved', label: 'Mark as Resolved', icon: 'fa-check', color: '#198754' };
             showProceedButton = true;
@@ -2368,6 +2391,15 @@ window.viewReportProgress = async function(id) {
         }
 
         // Use queue to show progress
+        const budgetPanel = budgetStatus === 'pending'
+            ? `<div class="alert alert-warning mt-3 text-start"><strong><i class="fas fa-clock me-1"></i> Budget awaiting School Administrator approval</strong><br>PHP ${budgetAmount.toLocaleString('en-PH', {minimumFractionDigits: 2})}
+                ${currentReportUserRole === 'school_admin' ? `<div class="mt-2 d-flex gap-2"><button type="button" class="btn btn-success btn-sm" onclick="reviewReportBudget(${r.id}, 'approve')"><i class="fas fa-check me-1"></i>Approve</button><button type="button" class="btn btn-danger btn-sm" onclick="reviewReportBudget(${r.id}, 'reject')"><i class="fas fa-times me-1"></i>Reject</button></div>` : ''}</div>`
+            : budgetStatus === 'approved'
+                ? `<div class="alert alert-success mt-3 text-start"><strong><i class="fas fa-check-circle me-1"></i> Budget approved</strong><br>PHP ${budgetAmount.toLocaleString('en-PH', {minimumFractionDigits: 2})}</div>`
+                : budgetStatus === 'rejected'
+                    ? `<div class="alert alert-danger mt-3 text-start"><strong><i class="fas fa-times-circle me-1"></i> Budget rejected</strong><br>${escapeReportHtml(r.budget_rejection_reason || 'Submit a revised budget for approval.')}</div>`
+                    : `<div class="alert alert-light border mt-3 text-start"><i class="fas fa-coins me-1"></i> A budget must be approved before work can start.</div>`;
+
         const result = await getSwal().fire({
             title: `<span style="font-size:16px;color:#666;">Report #${r.id}</span><br><span style="font-size:20px;">${r.title || (r.description ? r.description.substring(0, 40) : 'No Title')}</span>`,
             html: `
@@ -2378,6 +2410,7 @@ window.viewReportProgress = async function(id) {
                 <div class="p-3 rounded" style="background:#f8f9fa;text-align:left;">
                     ${timeline}
                 </div>
+                ${budgetPanel}
                 ${r.notes ? `<div class="mt-3 text-start"><small class="text-muted"><strong>Notes:</strong> ${r.notes}</small></div>` : ''}`,
             showCancelButton: showProceedButton,
             confirmButtonText: showProceedButton ? `<i class="fas ${nextAction.icon} me-1"></i> ${nextAction.label}` : 'Close',
@@ -2389,7 +2422,11 @@ window.viewReportProgress = async function(id) {
 
         // Handle proceed action
         if (result.isConfirmed && showProceedButton && nextAction) {
-            await proceedReportToNextLevel(id, nextAction.status, r.title || (r.description ? r.description.substring(0, 40) : 'Report #' + r.id));
+            if (nextAction.action === 'request-budget') {
+                await requestReportBudget(id, r.title || `Report #${r.id}`);
+            } else {
+                await proceedReportToNextLevel(id, nextAction.status, r.title || (r.description ? r.description.substring(0, 40) : 'Report #' + r.id));
+            }
         } else if (result.isDismissed || !result.isConfirmed) {
             // Reload page when user clicks Close or dismisses the modal
             location.reload();
@@ -2404,6 +2441,65 @@ window.viewReportProgress = async function(id) {
         });
         console.error('Error loading report progress:', error);
     }
+};
+
+window.requestReportBudget = async function(reportId, reportTitle) {
+    const result = await getSwal().fire({
+        title: 'Request Budget Approval',
+        html: `<div class="text-start"><p>Enter the proposed budget for <strong>${escapeReportHtml(reportTitle)}</strong>.</p><label class="form-label fw-bold">Budget amount (PHP)</label><input type="number" id="budget-amount" class="form-control" min="0" step="0.01" placeholder="0.00"></div>`,
+        showCancelButton: true,
+        confirmButtonText: 'Submit for Approval',
+        confirmButtonColor: '#0d6efd',
+        preConfirm: () => {
+            const value = document.getElementById('budget-amount').value;
+            if (value === '' || Number(value) < 0) {
+                getSwal().showValidationMessage('Enter a valid budget amount.');
+                return false;
+            }
+            return Number(value);
+        }
+    });
+
+    if (!result.isConfirmed) return;
+
+    const response = await fetch(`/reports/${reportId}/budget/request`, {
+        method: 'POST',
+        headers: {'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Content-Type': 'application/json', 'Accept': 'application/json'},
+        body: JSON.stringify({budget_amount: result.value})
+    });
+    const data = await response.json();
+    await getSwal().fire({icon: response.ok ? 'success' : 'error', title: response.ok ? 'Budget Submitted' : 'Unable to Submit', text: data.message || data.error || 'Please try again.'});
+    if (response.ok) await viewReportProgress(reportId);
+};
+
+window.reviewReportBudget = async function(reportId, action) {
+    let reason = null;
+    if (action === 'reject') {
+        const result = await getSwal().fire({
+            title: 'Reject Budget',
+            input: 'textarea',
+            inputLabel: 'Reason for rejection',
+            inputPlaceholder: 'Explain what must be revised...',
+            inputValidator: value => !value.trim() ? 'A rejection reason is required.' : null,
+            showCancelButton: true,
+            confirmButtonText: 'Reject Budget',
+            confirmButtonColor: '#dc3545'
+        });
+        if (!result.isConfirmed) return;
+        reason = result.value.trim();
+    } else {
+        const result = await getSwal().fire({title: 'Approve this budget?', icon: 'question', showCancelButton: true, confirmButtonText: 'Approve Budget', confirmButtonColor: '#198754'});
+        if (!result.isConfirmed) return;
+    }
+
+    const response = await fetch(`/reports/${reportId}/budget/${action}`, {
+        method: 'POST',
+        headers: {'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Content-Type': 'application/json', 'Accept': 'application/json'},
+        body: JSON.stringify(reason ? {reason} : {})
+    });
+    const data = await response.json();
+    await getSwal().fire({icon: response.ok ? 'success' : 'error', title: response.ok ? 'Budget Updated' : 'Unable to Review', text: data.message || data.error || 'Please try again.'});
+    if (response.ok) await viewReportProgress(reportId);
 };
 
 // Function to proceed report to next level

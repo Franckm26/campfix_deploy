@@ -483,6 +483,16 @@ class AdminController extends Controller
         $oldStatus = $concern->status;
         $newStatus = $request->input('status');
 
+        if (in_array($newStatus, ['In Progress', 'Resolved'], true)
+            && ! in_array($oldStatus, ['In Progress', 'Resolved'], true)
+            && ! $concern->hasApprovedBudget()) {
+            return response()->json([
+                'error' => 'School Administrator budget approval is required before work can start.',
+                'requires_budget_approval' => true,
+                'budget_status' => $concern->budget_status,
+            ], 422);
+        }
+
         if ($user->role === 'mis'
             && in_array($newStatus, ['In Progress', 'Resolved'], true)
             && ! in_array($concern->priority, ['low', 'medium', 'high', 'urgent'], true)) {
@@ -613,6 +623,17 @@ class AdminController extends Controller
 
             $oldStatus = $report->status;
             $newStatus = $request->input('status');
+
+            if (in_array($newStatus, ['In Progress', 'Resolved'], true)
+                && ! in_array($oldStatus, ['In Progress', 'Resolved'], true)
+                && ! $report->hasApprovedBudget()) {
+                return response()->json([
+                    'error' => 'School Administrator budget approval is required before work can start.',
+                    'requires_budget_approval' => true,
+                    'budget_status' => $report->budget_status,
+                ], 422);
+            }
+
             $report->status = $newStatus;
 
             // Update maintenance fields based on status

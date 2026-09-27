@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BudgetApprovalController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ConcernController;
 use App\Http\Controllers\DashboardController;
@@ -272,6 +273,10 @@ Route::middleware(['auth', 'throttle:status-updates'])->group(function () {
     
     // Update report status (new route for progress tracking)
     Route::post('/reports/{id}/update-status', [ReportController::class, 'updateStatus'])->name('reports.updateStatus');
+
+    Route::post('/reports/{report}/budget/request', [BudgetApprovalController::class, 'request'])->name('reports.budget.request');
+    Route::post('/reports/{report}/budget/approve', [BudgetApprovalController::class, 'approve'])->name('reports.budget.approve');
+    Route::post('/reports/{report}/budget/reject', [BudgetApprovalController::class, 'reject'])->name('reports.budget.reject');
 
     Route::post('/resolution-notes/{id}', [AdminController::class, 'addResolutionNotes'])->name('admin.resolution');
     Route::post('/report-resolution-notes/{id}', [AdminController::class, 'addReportResolutionNotes'])->name('admin.report-resolution');

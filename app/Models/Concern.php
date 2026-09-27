@@ -61,6 +61,13 @@ class Concern extends Model
         'mis_deleted',
         'maintenance_deleted',
         'cost',
+        'budget_amount',
+        'budget_status',
+        'budget_requested_by',
+        'budget_requested_at',
+        'budget_reviewed_by',
+        'budget_reviewed_at',
+        'budget_rejection_reason',
         'damaged_part',
         'replaced_part',
         'archive_folder_id',
@@ -94,6 +101,9 @@ class Concern extends Model
         'follow_up_sent_at' => 'datetime',
         'archived_at' => 'datetime',
         'deleted_at' => 'datetime',
+        'budget_amount' => 'decimal:2',
+        'budget_requested_at' => 'datetime',
+        'budget_reviewed_at' => 'datetime',
     ];
 
     public function user()
@@ -152,6 +162,11 @@ class Concern extends Model
     public function activityLogs()
     {
         return $this->hasMany(ActivityLog::class);
+    }
+
+    public function hasApprovedBudget(): bool
+    {
+        return $this->budget_status === Report::BUDGET_APPROVED;
     }
 
     // Status constants

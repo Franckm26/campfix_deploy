@@ -36,6 +36,13 @@ class Report extends Model
         'resolution_notes',
         'resolved_at',
         'cost',
+        'budget_amount',
+        'budget_status',
+        'budget_requested_by',
+        'budget_requested_at',
+        'budget_reviewed_by',
+        'budget_reviewed_at',
+        'budget_rejection_reason',
         'damaged_part',
         'replaced_part',
         'is_archived',
@@ -89,6 +96,9 @@ class Report extends Model
         'resolved_at' => 'datetime',
         'auto_delete_at' => 'datetime',
         'cost' => 'decimal:2',
+        'budget_amount' => 'decimal:2',
+        'budget_requested_at' => 'datetime',
+        'budget_reviewed_at' => 'datetime',
         'assigned_to' => 'integer',
         'user_id' => 'integer',
         'report_count' => 'integer',
@@ -148,6 +158,27 @@ class Report extends Model
     public function concern()
     {
         return $this->belongsTo(Concern::class);
+    }
+
+    public const BUDGET_PENDING = 'pending';
+
+    public const BUDGET_APPROVED = 'approved';
+
+    public const BUDGET_REJECTED = 'rejected';
+
+    public function budgetRequester()
+    {
+        return $this->belongsTo(User::class, 'budget_requested_by');
+    }
+
+    public function budgetReviewer()
+    {
+        return $this->belongsTo(User::class, 'budget_reviewed_by');
+    }
+
+    public function hasApprovedBudget(): bool
+    {
+        return $this->budget_status === self::BUDGET_APPROVED;
     }
 
     public function assignedTo()
