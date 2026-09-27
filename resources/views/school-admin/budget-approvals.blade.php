@@ -1,61 +1,76 @@
 @extends('layouts.app')
 
-@section('page_title', 'Budget Approvals')
+@section('page_title')
+<h2><i class="fas fa-coins me-2"></i>Budget Approvals</h2>
+@endsection
 
 @section('styles')
+<link href="{{ asset('css/admin.css') }}" rel="stylesheet">
 <style>
-    .budget-page { padding: 28px 30px; }
-    .budget-card { background: #fff; border: 1px solid #dfe3e8; border-radius: 12px; overflow: hidden; }
-    .budget-toolbar { padding: 20px 24px; border-bottom: 1px solid #e5e7eb; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
-    .budget-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
-    .budget-tabs a { padding: 9px 15px; border-radius: 8px; color: #334155; text-decoration: none; border: 1px solid #dbe2ea; font-weight: 600; }
-    .budget-tabs a.active { background: #0d6efd; border-color: #0d6efd; color: #fff; }
-    .budget-search { margin-left: auto; display: flex; gap: 8px; }
-    .budget-search input { min-width: 260px; }
     .budget-table { margin: 0; }
-    .budget-table th { background: #f8fafc; color: #334155; font-weight: 700; white-space: nowrap; }
+    .budget-table th { white-space: nowrap; }
     .budget-table td { vertical-align: middle; }
     .budget-amount { font-size: 17px; font-weight: 700; color: #0f172a; white-space: nowrap; }
     .budget-empty { padding: 70px 20px; text-align: center; color: #64748b; }
     .budget-empty i { font-size: 48px; margin-bottom: 14px; color: #94a3b8; }
-    @media (max-width: 768px) {
-        .budget-page { padding: 16px; }
-        .budget-search { margin-left: 0; width: 100%; }
-        .budget-search input { min-width: 0; flex: 1; }
-    }
 </style>
 @endsection
 
 @section('content')
-<div class="budget-page">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="fw-bold mb-1"><i class="fas fa-coins text-primary me-2"></i>Budget Approvals</h2>
-            <p class="text-muted mb-0">Review budget requests submitted for concerns already in progress.</p>
+<div class="container-fluid px-3">
+    <div class="card mb-4">
+        <div class="card-body py-3">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                <ul class="nav nav-pills mb-0 flex-wrap">
+                    <li class="nav-item">
+                        <a href="{{ route('school-admin.budget-approvals') }}" class="nav-link {{ $status === '' ? 'active' : '' }}">
+                            <i class="fas fa-list"></i> All
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ route('school-admin.budget-approvals', ['status' => 'pending']) }}" class="nav-link {{ $status === 'pending' ? 'active' : '' }}">
+                            <i class="fas fa-clock"></i> Pending
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ route('school-admin.budget-approvals', ['status' => 'approved']) }}" class="nav-link {{ $status === 'approved' ? 'active' : '' }}">
+                            <i class="fas fa-check-circle"></i> Approved
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ route('school-admin.budget-approvals', ['status' => 'rejected']) }}" class="nav-link {{ $status === 'rejected' ? 'active' : '' }}" style="color: {{ $status === 'rejected' ? '#fff' : '#dc3545' }};">
+                            <i class="fas fa-times-circle"></i> Rejected
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            <form method="GET" action="{{ route('school-admin.budget-approvals') }}">
+                @if($status !== '')
+                    <input type="hidden" name="status" value="{{ $status }}">
+                @endif
+                <div class="row g-2">
+                    <div class="col-12 col-md">
+                        <input type="search" name="search" class="form-control form-control-sm" value="{{ $search }}" placeholder="Search issue, location, requester..." enterkeyhint="search">
+                    </div>
+                    <div class="col-auto">
+                        <button class="btn btn-primary btn-sm" type="submit">Filter</button>
+                        <a href="{{ route('school-admin.budget-approvals', array_filter(['status' => $status])) }}" class="btn btn-secondary btn-sm ms-1" aria-label="Clear search">
+                            <i class="fas fa-times"></i>
+                        </a>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 
-    <div class="budget-card">
-        <div class="budget-toolbar">
-            <div class="budget-tabs">
-                <a href="{{ route('school-admin.budget-approvals') }}" class="{{ $status === '' ? 'active' : '' }}">All</a>
-                <a href="{{ route('school-admin.budget-approvals', ['status' => 'pending']) }}" class="{{ $status === 'pending' ? 'active' : '' }}">Pending</a>
-                <a href="{{ route('school-admin.budget-approvals', ['status' => 'approved']) }}" class="{{ $status === 'approved' ? 'active' : '' }}">Approved</a>
-                <a href="{{ route('school-admin.budget-approvals', ['status' => 'rejected']) }}" class="{{ $status === 'rejected' ? 'active' : '' }}">Rejected</a>
-            </div>
-            <form method="GET" action="{{ route('school-admin.budget-approvals') }}" class="budget-search">
-                @if($status !== '')<input type="hidden" name="status" value="{{ $status }}">@endif
-                <input type="search" name="search" class="form-control" value="{{ $search }}" placeholder="Search issue, location, requester...">
-                <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i></button>
-            </form>
-        </div>
-
+    <div class="card" style="display: block !important;">
+        <div class="card-body" style="display: block !important;">
         @if($budgets->count())
-            <div class="table-responsive">
-                <table class="table table-hover budget-table">
+            <div class="table-responsive" style="display: block !important; visibility: visible !important; opacity: 1 !important;">
+                <table class="table table-hover budget-table" style="display: table !important;">
                     <thead>
                         <tr>
-                            <th>Ticket</th>
+                            <th style="width: 80px; min-width: 80px; text-align: center;">Ticket</th>
                             <th>Issue</th>
                             <th>Location</th>
                             <th>Requested By</th>
@@ -68,7 +83,7 @@
                     <tbody>
                         @foreach($budgets as $budget)
                             <tr>
-                                <td>#{{ str_pad($budget->id, 4, '0', STR_PAD_LEFT) }}</td>
+                                <td style="width: 80px; min-width: 80px; text-align: center; white-space: nowrap;">#{{ str_pad($budget->id, 4, '0', STR_PAD_LEFT) }}</td>
                                 <td>
                                     <div class="fw-semibold">{{ $budget->title ?: 'Untitled concern' }}</div>
                                     <small class="text-muted">{{ optional($budget->category)->name ?: 'Uncategorized' }}</small>
@@ -114,6 +129,7 @@
                 <p class="mb-0">Submitted concern budgets will appear here for review.</p>
             </div>
         @endif
+        </div>
     </div>
 </div>
 @endsection
