@@ -766,9 +766,9 @@ class AdminController extends Controller
 
         $concern = Concern::findOrFail($id);
 
-        // Check if user is building_admin, school_admin, academic_head, or mis
+        // School Administrators review budgets; operational roles assign work.
         $user = auth()->user();
-        if (!in_array($user->role, ['admin', 'building_admin', 'school_admin', 'academic_head', 'mis'])) {
+        if (!in_array($user->role, ['admin', 'building_admin', 'academic_head', 'mis'])) {
             if ($request->expectsJson()) {
                 return response()->json(['error' => 'You do not have permission to assign concerns.'], 403);
             }
@@ -818,9 +818,9 @@ class AdminController extends Controller
         try {
             $report = Report::findOrFail($id);
 
-            // Check if user is building_admin, school_admin, academic_head, or mis
+            // School Administrators review budgets; operational roles assign work.
             $user = auth()->user();
-            if (!in_array($user->role, ['admin', 'building_admin', 'school_admin', 'academic_head', 'mis'])) {
+            if (!in_array($user->role, ['admin', 'building_admin', 'academic_head', 'mis'])) {
                 if ($request->expectsJson()) {
                     return response()->json(['error' => 'You do not have permission to assign reports.'], 403);
                 }

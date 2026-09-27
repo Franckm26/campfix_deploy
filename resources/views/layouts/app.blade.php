@@ -475,7 +475,7 @@ document.addEventListener('DOMContentLoaded', function() {
             $roleSlug = str_replace('_', '-', auth()->user()->role);
         @endphp
             @if(auth()->user()->role === 'school_admin')
-                <a href="{{ route('school-admin.reports') }}" class="{{ Request::is('school-admin/reports*') || Request::is('admin/reports*') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
+                <a href="{{ route('school-admin.budget-approvals') }}" class="{{ Request::is('school-admin/budget-approvals*') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
                     <i class="fas fa-coins"></i> Budget Approvals
                 </a>
             @endif

@@ -131,9 +131,17 @@ class BudgetApprovalWorkflowTest extends TestCase
 
         $layout = file_get_contents(resource_path('views/layouts/app.blade.php'));
         $reportsView = file_get_contents(resource_path('views/admin/reports.blade.php'));
-        $this->assertStringContainsString("route('school-admin.reports')", $layout);
+        $approvalView = file_get_contents(resource_path('views/school-admin/budget-approvals.blade.php'));
+        $adminController = file_get_contents(app_path('Http/Controllers/AdminController.php'));
+        $route = app('router')->getRoutes()->match(Request::create('/school-admin/budget-approvals', 'GET'));
+        $this->assertSame(BudgetApprovalController::class.'@index', $route->getActionName());
+        $this->assertStringContainsString("route('school-admin.budget-approvals')", $layout);
         $this->assertStringContainsString('Budget Approvals', $layout);
         $this->assertStringContainsString('Approve budget', $reportsView);
+        $this->assertStringContainsString('No budget requests found', $approvalView);
+        $this->assertStringNotContainsString('assignReport(', $approvalView);
+        $this->assertStringNotContainsString('Archive', $approvalView);
+        $this->assertStringContainsString("['admin', 'building_admin', 'academic_head', 'mis']", $adminController);
     }
 
     private function jsonRequest(array $data): Request

@@ -291,6 +291,10 @@ Route::middleware(['auth', 'throttle:status-updates'])->group(function () {
     Route::get('/admin/mis-users', [AdminController::class, 'getMisUsers']);
 });
 
+Route::get('/school-admin/budget-approvals', [BudgetApprovalController::class, 'index'])
+    ->middleware(['auth', 'admin', 'throttle:admin'])
+    ->name('school-admin.budget-approvals');
+
 /* FACULTY - Event Requests */
 Route::middleware(['auth', 'throttle:web'])->group(function () {
     // Event requests

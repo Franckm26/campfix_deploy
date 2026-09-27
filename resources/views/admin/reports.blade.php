@@ -407,14 +407,16 @@
                                                 <button type="button" class="btn btn-sm btn-info" onclick="viewReport({{ $report->id }})" title="View">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
-                                                @if(strtolower(trim((string) optional($report->category)->name)) === 'technology/internet')
-                                                <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="MIS staff claim Technology/Internet tasks from the MIS Task page">
-                                                    <i class="fas fa-user-check"></i>
-                                                </button>
-                                                @else
-                                                <button type="button" class="btn btn-sm btn-primary" onclick="assignReport({{ $report->id }})" title="{{ $report->assigned_to ? 'Reassign' : 'Assign' }}">
-                                                    <i class="fas fa-user-plus"></i>
-                                                </button>
+                                                @if(auth()->user()->role !== 'school_admin')
+                                                    @if(strtolower(trim((string) optional($report->category)->name)) === 'technology/internet')
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="MIS staff claim Technology/Internet tasks from the MIS Task page">
+                                                        <i class="fas fa-user-check"></i>
+                                                    </button>
+                                                    @else
+                                                    <button type="button" class="btn btn-sm btn-primary" onclick="assignReport({{ $report->id }})" title="{{ $report->assigned_to ? 'Reassign' : 'Assign' }}">
+                                                        <i class="fas fa-user-plus"></i>
+                                                    </button>
+                                                    @endif
                                                 @endif
                                                 <button type="button" class="btn btn-sm btn-info bg-transparent border-0" onclick="viewReportProgress({{ $report->id }})" title="View Progress">
                                                     <i class="fas fa-tasks"></i>

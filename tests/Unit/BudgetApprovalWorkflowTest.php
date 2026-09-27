@@ -56,5 +56,6 @@ class BudgetApprovalWorkflowTest extends TestCase
         $this->assertSame(42, $payload['report_id']);
         $this->assertSame(24, $payload['concern_id']);
         $this->assertStringContainsString('PHP 12,500.00', $payload['message']);
+        $this->assertSame('/school-admin/budget-approvals?status=pending', $payload['url']);
     }
 }

@@ -10,9 +10,37 @@ use App\Support\BudgetApprovalSchema;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\View\View;
 
 class BudgetApprovalController extends Controller
 {
+    public function index(Request $request): View
+    {
+        BudgetApprovalSchema::ensure();
+        $this->authorizeSchoolAdministrator();
+
+        $status = $request->string('status')->toString();
+        $search = trim($request->string('search')->toString());
+
+        $budgets = Report::with(['category', 'user', 'budgetRequester', 'budgetReviewer'])
+            ->whereNotNull('budget_status')
+            ->when(in_array($status, [Report::BUDGET_PENDING, Report::BUDGET_APPROVED, Report::BUDGET_REJECTED], true), fn ($query) => $query->where('budget_status', $status))
+            ->when($search !== '', function ($query) use ($search) {
+                $term = '%'.mb_strtolower($search).'%';
+                $query->where(function ($query) use ($term) {
+                    $query->whereRaw("LOWER(COALESCE(title, '')) LIKE ?", [$term])
+                        ->orWhereRaw("LOWER(COALESCE(location, '')) LIKE ?", [$term])
+                        ->orWhereHas('budgetRequester', fn ($requester) => $requester->whereRaw('LOWER(name) LIKE ?', [$term]));
+                });
+            })
+            ->orderByRaw("CASE budget_status WHEN 'pending' THEN 1 WHEN 'rejected' THEN 2 ELSE 3 END")
+            ->orderByDesc('budget_requested_at')
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('school-admin.budget-approvals', compact('budgets', 'status', 'search'));
+    }
+
     public function request(Request $request, Report $report): JsonResponse
     {
         BudgetApprovalSchema::ensure();

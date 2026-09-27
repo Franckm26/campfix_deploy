@@ -41,7 +41,9 @@ class BudgetApprovalNotification extends Notification
             'message' => $message,
             'report_id' => $this->report->id,
             'concern_id' => $this->report->concern_id,
-            'url' => '/admin/reports?open_report='.$this->report->id,
+            'url' => $this->action === 'requested'
+                ? '/school-admin/budget-approvals?status=pending'
+                : '/admin/reports?open_report='.$this->report->id,
         ];
     }
 }
