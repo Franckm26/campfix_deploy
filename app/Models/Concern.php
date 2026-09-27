@@ -169,6 +169,11 @@ class Concern extends Model
         return $this->budget_status === Report::BUDGET_APPROVED;
     }
 
+    public function hasUnapprovedBudgetRequest(): bool
+    {
+        return in_array($this->budget_status, [Report::BUDGET_PENDING, Report::BUDGET_REJECTED], true);
+    }
+
     // Status constants
     const STATUS_PENDING = 'Pending';
 

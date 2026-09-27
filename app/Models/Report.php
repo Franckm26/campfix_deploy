@@ -181,6 +181,11 @@ class Report extends Model
         return $this->budget_status === self::BUDGET_APPROVED;
     }
 
+    public function hasUnapprovedBudgetRequest(): bool
+    {
+        return in_array($this->budget_status, [self::BUDGET_PENDING, self::BUDGET_REJECTED], true);
+    }
+
     public function assignedTo()
     {
         return $this->belongsTo(\App\Models\MaintenanceStaff::class, 'assigned_to');

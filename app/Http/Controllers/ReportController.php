@@ -505,14 +505,6 @@ class ReportController extends Controller
             return back()->with('error', 'This report is not assigned to you.');
         }
 
-        if (! $report->hasApprovedBudget()) {
-            $message = 'School Administrator budget approval is required before work can start.';
-
-            return $request->expectsJson()
-                ? response()->json(['success' => false, 'error' => $message, 'requires_budget_approval' => true], 422)
-                : back()->with('error', $message);
-        }
-
         $oldStatus = $report->status;
 
         // Update status to In Progress
@@ -588,12 +580,12 @@ class ReportController extends Controller
         $oldStatus = $report->status;
         $newStatus = $request->status;
 
-        if (in_array($newStatus, ['In Progress', 'Resolved'], true)
-            && ! in_array($oldStatus, ['In Progress', 'Resolved'], true)
-            && ! $report->hasApprovedBudget()) {
+        if ($newStatus === 'Resolved'
+            && $oldStatus !== 'Resolved'
+            && $report->hasUnapprovedBudgetRequest()) {
             return response()->json([
                 'success' => false,
-                'error' => 'School Administrator budget approval is required before work can start.',
+                'error' => 'The requested budget must be approved by the School Administrator before this report can be resolved.',
                 'requires_budget_approval' => true,
                 'budget_status' => $report->budget_status,
             ], 422);

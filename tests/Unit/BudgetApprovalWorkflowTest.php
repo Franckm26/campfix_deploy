@@ -10,23 +10,34 @@ use PHPUnit\Framework\TestCase;
 
 class BudgetApprovalWorkflowTest extends TestCase
 {
-    public function test_work_cannot_progress_until_the_budget_is_approved(): void
+    public function test_only_an_existing_unapproved_budget_blocks_completion(): void
     {
         $report = new Report(['budget_status' => Report::BUDGET_PENDING]);
         $concern = new Concern(['budget_status' => Report::BUDGET_PENDING]);
 
         $this->assertFalse($report->hasApprovedBudget());
         $this->assertFalse($concern->hasApprovedBudget());
+        $this->assertTrue($report->hasUnapprovedBudgetRequest());
+        $this->assertTrue($concern->hasUnapprovedBudgetRequest());
 
         $report->budget_status = Report::BUDGET_REJECTED;
         $concern->budget_status = Report::BUDGET_REJECTED;
         $this->assertFalse($report->hasApprovedBudget());
         $this->assertFalse($concern->hasApprovedBudget());
+        $this->assertTrue($report->hasUnapprovedBudgetRequest());
+        $this->assertTrue($concern->hasUnapprovedBudgetRequest());
 
         $report->budget_status = Report::BUDGET_APPROVED;
         $concern->budget_status = Report::BUDGET_APPROVED;
         $this->assertTrue($report->hasApprovedBudget());
         $this->assertTrue($concern->hasApprovedBudget());
+        $this->assertFalse($report->hasUnapprovedBudgetRequest());
+        $this->assertFalse($concern->hasUnapprovedBudgetRequest());
+
+        $report->budget_status = null;
+        $concern->budget_status = null;
+        $this->assertFalse($report->hasUnapprovedBudgetRequest());
+        $this->assertFalse($concern->hasUnapprovedBudgetRequest());
     }
 
     public function test_budget_notification_identifies_the_report_and_amount(): void

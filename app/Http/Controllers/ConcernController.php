@@ -851,10 +851,10 @@ class ConcernController extends Controller
             'cost' => 'nullable|numeric|min:0',
         ]);
 
-        if (in_array($request->input('status'), ['In Progress', 'Resolved'], true)
-            && ! in_array($concern->status, ['In Progress', 'Resolved'], true)
-            && ! $concern->hasApprovedBudget()) {
-            $message = 'School Administrator budget approval is required before work can start.';
+        if ($request->input('status') === 'Resolved'
+            && $concern->status !== 'Resolved'
+            && $concern->hasUnapprovedBudgetRequest()) {
+            $message = 'The requested budget must be approved by the School Administrator before this concern can be resolved.';
 
             return $request->expectsJson()
                 ? response()->json(['error' => $message, 'requires_budget_approval' => true], 422)
@@ -2101,14 +2101,6 @@ class ConcernController extends Controller
             return back()->with('error', 'This concern is not assigned to the MIS department.');
         }
 
-        if (! $concern->hasApprovedBudget()) {
-            $message = 'School Administrator budget approval is required before work can start.';
-
-            return $request->expectsJson()
-                ? response()->json(['error' => $message, 'requires_budget_approval' => true], 422)
-                : back()->with('error', $message);
-        }
-
         // Update status to In Progress
         $concern->status = 'In Progress';
         $concern->save();
@@ -2149,10 +2141,6 @@ class ConcernController extends Controller
         // Verify the concern is assigned to this maintenance user
         if ($concern->assigned_to !== auth()->id()) {
             return back()->with('error', 'This concern is not assigned to you.');
-        }
-
-        if (! $concern->hasApprovedBudget()) {
-            return back()->with('error', 'School Administrator budget approval is required before work can start.');
         }
 
         $oldStatus = $concern->status;
@@ -2213,13 +2201,6 @@ class ConcernController extends Controller
         // Verify the concern is assigned to this maintenance user
         if ($concern->assigned_to !== auth()->id()) {
             return response()->json(['error' => 'This concern is not assigned to you.'], 403);
-        }
-
-        if (! $concern->hasApprovedBudget()) {
-            return response()->json([
-                'error' => 'School Administrator budget approval is required before work can start.',
-                'requires_budget_approval' => true,
-            ], 422);
         }
 
         // Update status to In Progress

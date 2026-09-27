@@ -474,6 +474,11 @@ document.addEventListener('DOMContentLoaded', function() {
         @php
             $roleSlug = str_replace('_', '-', auth()->user()->role);
         @endphp
+            @if(auth()->user()->role === 'school_admin')
+                <a href="{{ route('school-admin.reports') }}" class="{{ Request::is('school-admin/reports*') || Request::is('admin/reports*') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;">
+                    <i class="fas fa-coins"></i> Budget Approvals
+                </a>
+            @endif
             <div class="nav-dropdown {{ Request::is('my-events') || Request::is('events-calendar') || Request::is("{$roleSlug}/events") ? 'open' : '' }}">
                 <a href="#" class="nav-dropdown-toggle {{ Request::is('my-events') || Request::is('events-calendar') || Request::is("{$roleSlug}/events") ? 'active' : '' }}"
                    data-nav-toggle style="padding-top:8px;padding-bottom:8px;">

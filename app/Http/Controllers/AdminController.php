@@ -483,11 +483,11 @@ class AdminController extends Controller
         $oldStatus = $concern->status;
         $newStatus = $request->input('status');
 
-        if (in_array($newStatus, ['In Progress', 'Resolved'], true)
-            && ! in_array($oldStatus, ['In Progress', 'Resolved'], true)
-            && ! $concern->hasApprovedBudget()) {
+        if ($newStatus === 'Resolved'
+            && $oldStatus !== 'Resolved'
+            && $concern->hasUnapprovedBudgetRequest()) {
             return response()->json([
-                'error' => 'School Administrator budget approval is required before work can start.',
+                'error' => 'The requested budget must be approved by the School Administrator before this concern can be resolved.',
                 'requires_budget_approval' => true,
                 'budget_status' => $concern->budget_status,
             ], 422);
@@ -624,11 +624,11 @@ class AdminController extends Controller
             $oldStatus = $report->status;
             $newStatus = $request->input('status');
 
-            if (in_array($newStatus, ['In Progress', 'Resolved'], true)
-                && ! in_array($oldStatus, ['In Progress', 'Resolved'], true)
-                && ! $report->hasApprovedBudget()) {
+            if ($newStatus === 'Resolved'
+                && $oldStatus !== 'Resolved'
+                && $report->hasUnapprovedBudgetRequest()) {
                 return response()->json([
-                    'error' => 'School Administrator budget approval is required before work can start.',
+                    'error' => 'The requested budget must be approved by the School Administrator before this report can be resolved.',
                     'requires_budget_approval' => true,
                     'budget_status' => $report->budget_status,
                 ], 422);

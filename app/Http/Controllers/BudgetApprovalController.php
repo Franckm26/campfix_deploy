@@ -18,13 +18,13 @@ class BudgetApprovalController extends Controller
         BudgetApprovalSchema::ensure();
 
         $validated = $request->validate([
-            'budget_amount' => ['required', 'numeric', 'min:0', 'max:9999999999.99'],
+            'budget_amount' => ['required', 'numeric', 'min:0.01', 'max:9999999999.99'],
         ]);
 
         abort_unless($this->canRequest(auth()->user(), $report), 403, 'You cannot request a budget for this concern.');
 
-        if (in_array($report->status, ['In Progress', 'Resolved'], true)) {
-            return response()->json(['success' => false, 'error' => 'A budget cannot be requested after work has started.'], 422);
+        if ($report->status === 'Resolved') {
+            return response()->json(['success' => false, 'error' => 'A budget cannot be requested after work has been resolved.'], 422);
         }
 
         DB::transaction(function () use ($report, $validated) {
