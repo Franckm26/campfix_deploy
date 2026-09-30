@@ -41,10 +41,13 @@ class RateLimitServiceProvider extends ServiceProvider
             return Limit::perMinute(5)
                 ->by($request->input('email') ?: $request->ip())
                 ->response(function (Request $request, array $headers) {
-                    return response()->json([
-                        'error' => 'Too many login attempts. Please try again later.',
-                        'retry_after' => $headers['Retry-After'] ?? 60
-                    ], 429);
+                    if ($request->expectsJson() || $request->ajax()) {
+                        return response()->json([
+                            'error' => 'Too many login attempts. Please try again later.',
+                            'retry_after' => $headers['Retry-After'] ?? 60
+                        ], 429);
+                    }
+                    return back()->with('error', 'Too many login attempts. Please wait ' . ($headers['Retry-After'] ?? 60) . ' seconds before trying again.');
                 });
         });
 
