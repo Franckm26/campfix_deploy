@@ -77,18 +77,11 @@ class AuthController extends Controller
         \Log::info('Login attempt for: ' . $request->email);
 
         $user = User::where('email', $request->email)->first();
-        $attemptSessionKey = 'login_failed_attempts_' . hash('sha256', $request->email);
 
-        // Check if account is locked
-        if ($user && $this->isAccountLocked($user)) {
+        // A non-null lock is only cleared by MIS. This is intentionally not
+        // time-based so every lock is visible in Locked Users until it is unlocked.
+        if ($user && $user->locked_until) {
             return back()->with('error', 'Your account has been locked due to too many failed login attempts. Please contact the MIS administrator to unlock your account.');
-        }
-
-        // The session counter protects the account even if a deployment's database
-        // read is briefly stale after the third failed attempt. Check it before
-        // Auth::attempt(), otherwise a correct fourth password could bypass lockout.
-        if ($user && (int) session($attemptSessionKey, 0) >= 3) {
-            return back()->with('error', 'Your account has been locked after 3 failed login attempts. Please contact the MIS administrator to unlock your account.');
         }
 
         try {
@@ -108,7 +101,6 @@ class AuthController extends Controller
                     'locked_until' => null,
                     'login_lockout_level' => 0,
                 ]);
-                session()->forget($attemptSessionKey);
 
                 // Generate secure OTP
                 $otp = (string) random_int(100000, 999999);
@@ -138,46 +130,15 @@ class AuthController extends Controller
 
         // Handle failed login attempts — lock after 3 failures
         if ($user) {
-            // Lock and reload the row before incrementing. This prevents repeated
-            // requests from reading a stale value and continually showing attempt 1.
-            $attempts = \DB::transaction(function () use ($user) {
-                $account = User::withoutGlobalScopes()
-                    ->whereKey($user->id)
-                    ->lockForUpdate()
-                    ->first();
-
-                if (! $account) {
-                    return 0;
-                }
-
-                $nextAttempts = max(0, (int) $account->failed_login_attempts) + 1;
-
-                \DB::table('users')->where('id', $account->id)->update([
-                    'failed_login_attempts' => $nextAttempts,
-                    'updated_at' => now(),
-                ]);
-
-                return $nextAttempts;
-            });
-
-            // Keep a session copy as a safeguard for deployments with a read replica
-            // or delayed database writes. The database value remains the source used
-            // by MIS to view and unlock accounts.
-            $sessionAttempts = (int) session($attemptSessionKey, 0) + 1;
-            session([$attemptSessionKey => $sessionAttempts]);
-            $attempts = max($attempts, $sessionAttempts);
+            // Use the model update path used by User Management so the same
+            // persisted account state is shown in the MIS Locked Users tab.
+            $attempts = max(0, (int) $user->failed_login_attempts) + 1;
 
             if ($attempts >= 3) {
-                // MySQL TIMESTAMP cannot store dates later than January 2038.
-                // A ten-year lock is long-term but stays within that limit, and MIS
-                // can always remove it immediately from Locked Users.
-                $lockUntil = now()->addYears(10);
-
-                \DB::table('users')->where('id', $user->id)->update([
+                $user->update([
                     'failed_login_attempts' => $attempts,
-                    'locked_until' => $lockUntil,
+                    'locked_until' => now()->addYears(100),
                     'login_lockout_level' => 1,
-                    'updated_at' => now(),
                 ]);
 
                 ActivityLog::log(
@@ -203,6 +164,7 @@ class AuthController extends Controller
                 return back()->with('error', 'Your account has been locked after ' . $attempts . ' failed login attempts. Please contact the MIS administrator to unlock your account.');
             }
 
+            $user->update(['failed_login_attempts' => $attempts]);
             $remaining = 3 - $attempts;
             return back()->with('error', 'Invalid email or password. You have ' . $remaining . ' attempt' . ($remaining === 1 ? '' : 's') . ' remaining before your account is locked. Current attempts: ' . $attempts);
         }
