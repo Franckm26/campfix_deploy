@@ -101,7 +101,7 @@ class OpaquePageUrlTest extends TestCase
         $this->assertFalse($response->isRedirect());
     }
 
-    public function test_first_login_password_page_keeps_its_required_security_path(): void
+    public function test_first_login_password_page_uses_an_opaque_path(): void
     {
         $request = Request::create('/first-login-password', 'GET');
         $request->headers->set('Accept', 'text/html');
@@ -112,8 +112,30 @@ class OpaquePageUrlTest extends TestCase
             fn () => response('first login password page')
         );
 
-        $this->assertFalse($response->isRedirect());
-        $this->assertSame('first login password page', $response->getContent());
+        $this->assertTrue($response->isRedirect());
+        $token = ltrim((string) parse_url($response->headers->get('Location'), PHP_URL_PATH), '/');
+        $this->assertSame('/first-login-password', app(OpaquePageUrl::class)->decode($token));
+    }
+
+    public function test_forced_password_user_can_open_only_the_opaque_password_setup_page(): void
+    {
+        $user = new User;
+        $user->forceFill([
+            'id' => 987655,
+            'role' => 'student',
+            'force_password_change' => true,
+            'active_session_id' => null,
+        ]);
+        $this->actingAs($user);
+
+        $redirect = $this->get('/first-login-password');
+        $redirect->assertRedirect();
+        $location = $redirect->headers->get('Location');
+        $this->assertSame('/first-login-password', app(OpaquePageUrl::class)->decode(ltrim((string) parse_url($location, PHP_URL_PATH), '/')));
+
+        $this->get($location)
+            ->assertOk()
+            ->assertSeeText('Please set your new password and mobile number');
     }
 
     public function test_an_opaque_url_dispatches_the_original_route_with_its_middleware(): void

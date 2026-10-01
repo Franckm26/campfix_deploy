@@ -2,12 +2,15 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\OpaquePageUrl;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class EnsurePasswordChanged
 {
+    public function __construct(private readonly OpaquePageUrl $opaquePageUrl) {}
+
     /**
      * Handle an incoming request.
      *
@@ -25,9 +28,6 @@ class EnsurePasswordChanged
                 $allowedRoutes = [
                     'auth.first-login-password',
                     'auth.first-login-password.update',
-                    // A previously-issued opaque URL will internally dispatch
-                    // the real first-login route after this outer route passes.
-                    'opaque.page',
                     'logout',
                 ];
                 
@@ -42,7 +42,12 @@ class EnsurePasswordChanged
                 $currentPath = $request->path();
                 
                 // If not on allowed route/path, redirect to first-login-password
-                if (!in_array($currentRoute, $allowedRoutes) && !in_array('/' . $currentPath, $allowedPaths)) {
+                $isFirstLoginOpaqueUrl = $currentRoute === 'opaque.page'
+                    && $this->opaquePageUrl->decode((string) $request->route('token')) === '/first-login-password';
+
+                if (!in_array($currentRoute, $allowedRoutes)
+                    && !in_array('/' . $currentPath, $allowedPaths)
+                    && ! $isFirstLoginOpaqueUrl) {
                     return redirect()->route('auth.first-login-password')
                         ->with('warning', 'Please complete your profile setup before continuing.');
                 }
