@@ -103,6 +103,12 @@ class WebLoginLockoutTest extends TestCase
         $this->assertSame(3, (int) $user->failed_login_attempts);
         $this->assertSame(1, (int) $user->login_lockout_level);
         $this->assertNotNull($user->locked_until);
+
+        $this->assertTrue(User::query()->where(function ($query) {
+            $query->where('failed_login_attempts', '>=', 3)
+                ->orWhere('login_lockout_level', '>=', 1)
+                ->orWhereNotNull('locked_until');
+        })->whereKey($user->id)->exists());
     }
 
     private function failedLoginRequest(string $email): Request

@@ -98,7 +98,9 @@ class AdminController extends Controller
             }
 
             // Check if user is actually locked
-            if (is_null($user->locked_until) && (int) $user->login_lockout_level < 1) {
+            if (is_null($user->locked_until)
+                && (int) $user->login_lockout_level < 1
+                && (int) $user->failed_login_attempts < 3) {
                 return response()->json([
                     'status' => 'warning',
                     'message' => "Account '{$user->name}' is not currently locked.",
@@ -254,7 +256,8 @@ class AdminController extends Controller
         $activeUsers       = User::hideSuperadmin()->where('is_deleted', false)->where('is_archived', false)->whereNull('locked_until')->count();
         $archivedUsers     = User::hideSuperadmin()->where('is_archived', true)->where('is_deleted', false)->count();
         $lockedUsers       = User::hideSuperadmin()->useWritePdo()->where('is_deleted', false)->where(function ($query) {
-            $query->where('login_lockout_level', '>=', 1)
+            $query->where('failed_login_attempts', '>=', 3)
+                ->orWhere('login_lockout_level', '>=', 1)
                 ->orWhereNotNull('locked_until')
                 ->orWhereIn('id', $this->auditLockedUserIds());
         })->count();
@@ -263,7 +266,8 @@ class AdminController extends Controller
         // Locked users list for dashboard modal
             $lockedUsersList = User::hideSuperadmin()->useWritePdo()->where('is_deleted', false)
                 ->where(function ($query) {
-                    $query->where('login_lockout_level', '>=', 1)
+                    $query->where('failed_login_attempts', '>=', 3)
+                    ->orWhere('login_lockout_level', '>=', 1)
                     ->orWhereNotNull('locked_until')
                     ->orWhereIn('id', $this->auditLockedUserIds());
             })
@@ -2246,7 +2250,8 @@ class AdminController extends Controller
 
         $lockedUsersList = User::hideSuperadmin()->useWritePdo()->where('is_deleted', false)
             ->where(function ($query) {
-                $query->where('login_lockout_level', '>=', 1)
+                $query->where('failed_login_attempts', '>=', 3)
+                    ->orWhere('login_lockout_level', '>=', 1)
                     ->orWhereNotNull('locked_until')
                     ->orWhereIn('id', $this->auditLockedUserIds());
                 })
@@ -2385,7 +2390,8 @@ class AdminController extends Controller
         })->whereIn('role', $staffRoles)->count();
 
         $lockedCount = User::hideSuperadmin()->useWritePdo()->where('is_deleted', false)->where(function ($query) {
-            $query->where('login_lockout_level', '>=', 1)
+            $query->where('failed_login_attempts', '>=', 3)
+                ->orWhere('login_lockout_level', '>=', 1)
                 ->orWhereNotNull('locked_until')
                 ->orWhereIn('id', $this->auditLockedUserIds());
         })->count();
