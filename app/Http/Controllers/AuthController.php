@@ -77,6 +77,7 @@ class AuthController extends Controller
         \Log::info('Login attempt for: ' . $request->email);
 
         $user = User::where('email', $request->email)->first();
+        $attemptSessionKey = 'login_failed_attempts_' . hash('sha256', $request->email);
 
         // Check if account is locked
         if ($user && $this->isAccountLocked($user)) {
@@ -100,6 +101,7 @@ class AuthController extends Controller
                     'locked_until' => null,
                     'login_lockout_level' => 0,
                 ]);
+                session()->forget($attemptSessionKey);
 
                 // Generate secure OTP
                 $otp = (string) random_int(100000, 999999);
@@ -150,6 +152,13 @@ class AuthController extends Controller
 
                 return $nextAttempts;
             });
+
+            // Keep a session copy as a safeguard for deployments with a read replica
+            // or delayed database writes. The database value remains the source used
+            // by MIS to view and unlock accounts.
+            $sessionAttempts = (int) session($attemptSessionKey, 0) + 1;
+            session([$attemptSessionKey => $sessionAttempts]);
+            $attempts = max($attempts, $sessionAttempts);
 
             if ($attempts >= 3) {
                 \DB::table('users')->where('id', $user->id)->update([
