@@ -66,10 +66,12 @@ class WebLoginLockoutTest extends TestCase
         $controller->login($this->failedLoginRequest('LOCKOUT@EXAMPLE.TEST'));
         $this->assertSame(1, (int) $user->refresh()->failed_login_attempts);
         $this->assertNull($user->locked_until);
+        $this->assertSame(1, (int) session('web_login_attempts_' . hash('sha256', 'lockout@example.test')));
 
         $controller->login($this->failedLoginRequest('lockout@example.test'));
         $this->assertSame(2, (int) $user->refresh()->failed_login_attempts);
         $this->assertNull($user->locked_until);
+        $this->assertSame(2, (int) session('web_login_attempts_' . hash('sha256', 'lockout@example.test')));
 
         $controller->login($this->failedLoginRequest('lockout@example.test'));
         $user->refresh();

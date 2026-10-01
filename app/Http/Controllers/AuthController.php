@@ -82,6 +82,7 @@ class AuthController extends Controller
         // as attempt 1.
         $user = User::query()->useWritePdo()->where('email', $request->email)->first();
         $lockoutKey = 'web-login-lockout:' . hash('sha256', $request->email);
+        $attemptSessionKey = 'web_login_attempts_' . hash('sha256', $request->email);
 
         // A persisted lock is only cleared by MIS. The lockout level is included
         // because it remains reliable even on databases with timestamp limits.
@@ -119,6 +120,7 @@ class AuthController extends Controller
                     'login_lockout_level' => 0,
                 ]);
                 RateLimiter::clear($lockoutKey);
+                session()->forget($attemptSessionKey);
 
                 // Generate secure OTP
                 $otp = (string) random_int(100000, 999999);
@@ -155,7 +157,9 @@ class AuthController extends Controller
                 ->where('id', $user->id)
                 ->value('failed_login_attempts');
             RateLimiter::hit($lockoutKey, 86400);
-            $attempts = max($attempts, RateLimiter::attempts($lockoutKey));
+            $sessionAttempts = (int) session($attemptSessionKey, 0) + 1;
+            session([$attemptSessionKey => $sessionAttempts]);
+            $attempts = max($attempts, RateLimiter::attempts($lockoutKey), $sessionAttempts);
 
             if ($attempts >= 3) {
                 $user->update([
