@@ -1053,6 +1053,7 @@ class ConcernController extends Controller
                 'id' => $concern->id,
                 'title' => $concern->title,
                 'description' => $concern->description,
+                'details' => $concern->details,
                 'location' => $concern->location,
                 'category_id' => $concern->category_id,
                 'priority' => $concern->priority,

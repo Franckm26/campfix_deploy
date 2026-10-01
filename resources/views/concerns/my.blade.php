@@ -2417,6 +2417,7 @@ function viewConcernWithBack(id, duplicateData = null) {
                     <div class="col-12">
                         <p><strong>Problem Type:</strong></p>
                         <p style="white-space: pre-wrap;">${concern.description || 'No description provided'}</p>
+                        ${concern.details ? '<p><strong>Additional Description:</strong></p><p style="white-space: pre-wrap;">' + concern.details + '</p>' : ''}
                         ${imageHtml}
                         ${resolutionHtml}
                     </div>
@@ -3471,6 +3472,7 @@ function viewConcern(id) {
                     <div class="col-12">
                         <p><strong>Problem Type:</strong></p>
                         <p style="white-space: pre-wrap;">${concern.description || 'No description provided'}</p>
+                        ${concern.details ? '<p><strong>Additional Description:</strong></p><p style="white-space: pre-wrap;">' + concern.details + '</p>' : ''}
                         ${imageHtml}
                         ${resolutionHtml}
                     </div>
