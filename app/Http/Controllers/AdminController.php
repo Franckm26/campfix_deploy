@@ -846,9 +846,9 @@ class AdminController extends Controller
         try {
             $report = Report::findOrFail($id);
 
-            // School Administrators review budgets. System Administrators route work
-            // by category; Building Administrators route maintenance work only; MIS
-            // staff can claim Technology/Internet work for themselves.
+            // School Administrators review budgets. System Administrators assign only
+            // Technology/Internet work to MIS; Building Administrators assign all
+            // non-technology work to maintenance; MIS staff can claim their own work.
             $user = auth()->user();
             $isSystemAdministrator = $user->isSystemAdministrator();
             if (! $isSystemAdministrator && !in_array($user->role, ['building_admin', 'mis'], true)) {
@@ -898,8 +898,12 @@ class AdminController extends Controller
                     return back()->with('error', 'Only the System Administrator can assign Technology/Internet reports to MIS users.');
                 }
             } else {
-                if (! $isSystemAdministrator && $user->role !== 'building_admin') {
-                    return response()->json(['error' => 'Only System and Building Administrators can assign maintenance reports.'], 403);
+                if ($isSystemAdministrator) {
+                    return response()->json(['error' => 'System Administrators can only assign Technology/Internet reports to MIS users.'], 403);
+                }
+
+                if ($user->role !== 'building_admin') {
+                    return response()->json(['error' => 'Only Building Administrators can assign maintenance reports.'], 403);
                 }
 
                 // Validate for Maintenance staff (from maintenance_staff table)

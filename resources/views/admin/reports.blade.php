@@ -414,8 +414,16 @@
                                                     <button type="button" class="btn btn-sm btn-primary" onclick="assignReportToMe({{ $report->id }})" title="Assign to me">
                                                         <i class="fas fa-user-check"></i>
                                                     </button>
-                                                @elseif(auth()->user()->isSystemAdministrator() || (auth()->user()->role === 'building_admin' && !$isTechnologyReport))
+                                                @elseif(auth()->user()->isSystemAdministrator() && $isTechnologyReport)
                                                     <button type="button" class="btn btn-sm btn-primary" onclick="assignReport({{ $report->id }})" title="{{ $report->assigned_to ? 'Reassign' : 'Assign' }}">
+                                                        <i class="fas fa-user-plus"></i>
+                                                    </button>
+                                                @elseif(auth()->user()->role === 'building_admin' && !$isTechnologyReport)
+                                                    <button type="button" class="btn btn-sm btn-primary" onclick="assignReport({{ $report->id }})" title="{{ $report->assigned_to ? 'Reassign' : 'Assign' }}">
+                                                        <i class="fas fa-user-plus"></i>
+                                                    </button>
+                                                @elseif(auth()->user()->isSystemAdministrator() || auth()->user()->role === 'building_admin')
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="{{ auth()->user()->isSystemAdministrator() ? 'Only Technology/Internet reports can be assigned to MIS users.' : 'Technology/Internet reports are assigned by MIS staff or the System Administrator.' }}">
                                                         <i class="fas fa-user-plus"></i>
                                                     </button>
                                                 @endif
@@ -523,9 +531,17 @@
                             <button type="button" class="btn btn-sm btn-primary" onclick="assignReportToMe({{ $report->id }})">
                                 <i class="fas fa-user-check"></i> Assign to Me
                             </button>
-                            @elseif(auth()->user()->isSystemAdministrator() || (auth()->user()->role === 'building_admin' && !$isTechnologyReport))
+                            @elseif(auth()->user()->isSystemAdministrator() && $isTechnologyReport)
                             <button type="button" class="btn btn-sm btn-primary" onclick="assignReport({{ $report->id }})">
                                 <i class="fas fa-user-plus"></i> {{ $report->assigned_to ? 'Reassign' : 'Assign' }}
+                            </button>
+                            @elseif(auth()->user()->role === 'building_admin' && !$isTechnologyReport)
+                            <button type="button" class="btn btn-sm btn-primary" onclick="assignReport({{ $report->id }})">
+                                <i class="fas fa-user-plus"></i> {{ $report->assigned_to ? 'Reassign' : 'Assign' }}
+                            </button>
+                            @elseif(auth()->user()->isSystemAdministrator() || auth()->user()->role === 'building_admin')
+                            <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="{{ auth()->user()->isSystemAdministrator() ? 'Only Technology/Internet reports can be assigned to MIS users.' : 'Technology/Internet reports are assigned by MIS staff or the System Administrator.' }}">
+                                <i class="fas fa-user-plus"></i> Assign
                             </button>
                             @endif
                             @if(!$report->isArchivedByUser(auth()->id()))
