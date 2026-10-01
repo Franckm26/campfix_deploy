@@ -168,9 +168,14 @@ class AuthController extends Controller
             $attempts = max($attempts, $sessionAttempts);
 
             if ($attempts >= 3) {
+                // MySQL TIMESTAMP cannot store dates later than January 2038.
+                // A ten-year lock is long-term but stays within that limit, and MIS
+                // can always remove it immediately from Locked Users.
+                $lockUntil = now()->addYears(10);
+
                 \DB::table('users')->where('id', $user->id)->update([
                     'failed_login_attempts' => $attempts,
-                    'locked_until' => now()->addYears(100),
+                    'locked_until' => $lockUntil,
                     'login_lockout_level' => 1,
                     'updated_at' => now(),
                 ]);
@@ -188,7 +193,7 @@ class AuthController extends Controller
                     $user->notify(new LoginLockedNotification(
                         $attempts,
                         $request->ip(),
-                        'indefinitely',
+                        'until unlocked by MIS',
                         'until unlocked by MIS'
                     ));
                 } catch (\Exception $e) {
