@@ -2209,6 +2209,10 @@ class AdminController extends Controller
     // User management
     public function users(Request $request)
     {
+        if (! $request->user()?->isSystemAdministrator()) {
+            abort(403, 'User Management is restricted to the System Administrator.');
+        }
+
         $viewType = $request->get('view', 'active'); // 'active', 'archives', or 'deleted'
 
         // Handle locked users view

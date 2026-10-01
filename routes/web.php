@@ -575,8 +575,11 @@ Route::middleware(['auth', 'admin', 'throttle:admin'])->group(function () {
         Route::get("/{$prefix}/management",   [\App\Http\Controllers\ManagementController::class, 'index'])->name("{$prefix}.management");
         Route::get("/{$prefix}/events",       [EventRequestController::class, 'adminIndex'])->name("{$prefix}.events");
         Route::get("/{$prefix}/mis-tasks",    [AdminController::class, 'misTasks'])->name("{$prefix}.mis-tasks");
-        Route::get("/{$prefix}/users",        [AdminController::class, 'users'])->name("{$prefix}.users");
-        Route::get("/{$prefix}/users/{uuid}/edit", [AdminController::class, 'editUser'])->name("{$prefix}.users.edit");
+        // User Management belongs exclusively to the System Administrator.
+        if ($role !== 'mis') {
+            Route::get("/{$prefix}/users", [AdminController::class, 'users'])->name("{$prefix}.users");
+            Route::get("/{$prefix}/users/{uuid}/edit", [AdminController::class, 'editUser'])->name("{$prefix}.users.edit");
+        }
         Route::get("/{$prefix}/logs",         [AdminController::class, 'logs'])->name("{$prefix}.logs");
     }
 });

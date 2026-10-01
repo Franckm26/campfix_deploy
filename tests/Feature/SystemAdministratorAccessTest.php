@@ -122,6 +122,13 @@ class SystemAdministratorAccessTest extends TestCase
         $this->assertFalse($user->isAdmin());
     }
 
+    public function test_mis_has_no_user_management_route(): void
+    {
+        $this->assertFalse(app('router')->getRoutes()->hasNamedRoute('mis.users'));
+        $this->assertFalse(app('router')->getRoutes()->hasNamedRoute('mis.users.edit'));
+        $this->assertTrue(app('router')->getRoutes()->hasNamedRoute('superadmin.users'));
+    }
+
     public function test_system_administrator_keeps_full_module_access(): void
     {
         $user = new User;
