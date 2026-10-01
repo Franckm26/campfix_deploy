@@ -123,13 +123,18 @@ class AuthController extends Controller
 
         // Handle failed login attempts — lock after 3 failures
         if ($user) {
-            $attempts = (int) $user->failed_login_attempts + 1;
+            // Use atomic increment to avoid stale reads in serverless environment
+            $attempts = \DB::table('users')->where('id', $user->id)->increment('failed_login_attempts');
+            
+            // Get fresh count after increment
+            $attempts = \DB::table('users')->where('id', $user->id)->value('failed_login_attempts');
 
             if ($attempts >= 3) {
-                $user->update([
+                \DB::table('users')->where('id', $user->id)->update([
                     'failed_login_attempts' => $attempts,
                     'locked_until' => now()->addYears(100),
                     'login_lockout_level' => 1,
+                    'updated_at' => now(),
                 ]);
 
                 ActivityLog::log(
@@ -155,10 +160,8 @@ class AuthController extends Controller
                 return back()->with('error', 'Your account has been locked after ' . $attempts . ' failed login attempts. Please contact the MIS administrator to unlock your account.');
             }
 
-            $user->update(['failed_login_attempts' => $attempts]);
-
             $remaining = 3 - $attempts;
-            return back()->with('error', 'Invalid email or password. ' . $remaining . ' attempt' . ($remaining === 1 ? '' : 's') . ' remaining before your account is locked.');
+            return back()->with('error', 'Invalid email or password. You have ' . $remaining . ' attempt' . ($remaining === 1 ? '' : 's') . ' remaining before your account is locked. Current attempts: ' . $attempts);
         }
 
         return back()->with('error', 'Invalid email or password.');
