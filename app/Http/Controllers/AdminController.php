@@ -35,6 +35,21 @@ use Illuminate\Validation\Rule;
 
 class AdminController extends Controller
 {
+    private function auditLockedUserIds()
+    {
+        return DB::table('activity_logs as locks')
+            ->select('locks.item_user_id')
+            ->where('locks.action', 'account_locked')
+            ->whereNotNull('locks.item_user_id')
+            ->whereNotExists(function ($query) {
+                $query->selectRaw('1')
+                    ->from('activity_logs as unlocks')
+                    ->whereColumn('unlocks.item_user_id', 'locks.item_user_id')
+                    ->where('unlocks.action', 'account_unlocked')
+                    ->whereColumn('unlocks.id', '>', 'locks.id');
+            });
+    }
+
     // Unlock a locked user account
     public function unlockUser($uuid)
     {
@@ -240,15 +255,17 @@ class AdminController extends Controller
         $archivedUsers     = User::hideSuperadmin()->where('is_archived', true)->where('is_deleted', false)->count();
         $lockedUsers       = User::hideSuperadmin()->useWritePdo()->where('is_deleted', false)->where(function ($query) {
             $query->where('login_lockout_level', '>=', 1)
-                ->orWhere('locked_until', '>', now());
+                ->orWhere('locked_until', '>', now())
+                ->orWhereIn('id', $this->auditLockedUserIds());
         })->count();
         $forceChangeUsers  = User::hideSuperadmin()->where('is_deleted', false)->where('force_password_change', true)->count();
 
         // Locked users list for dashboard modal
-        $lockedUsersList = User::hideSuperadmin()->useWritePdo()->where('is_deleted', false)
-            ->where(function ($query) {
-                $query->where('login_lockout_level', '>=', 1)
-                    ->orWhere('locked_until', '>', now());
+            $lockedUsersList = User::hideSuperadmin()->useWritePdo()->where('is_deleted', false)
+                ->where(function ($query) {
+                    $query->where('login_lockout_level', '>=', 1)
+                    ->orWhere('locked_until', '>', now())
+                    ->orWhereIn('id', $this->auditLockedUserIds());
             })
             ->orderBy('updated_at', 'desc')
             ->get();
@@ -2227,10 +2244,11 @@ class AdminController extends Controller
             $perPage = $request->get('per_page', 20);
             $perPage = in_array($perPage, [20, 50, 100]) ? $perPage : 20;
 
-            $lockedUsersList = User::hideSuperadmin()->useWritePdo()->where('is_deleted', false)
-                ->where(function ($query) {
-                    $query->where('login_lockout_level', '>=', 1)
-                        ->orWhere('locked_until', '>', now());
+        $lockedUsersList = User::hideSuperadmin()->useWritePdo()->where('is_deleted', false)
+            ->where(function ($query) {
+                $query->where('login_lockout_level', '>=', 1)
+                    ->orWhere('locked_until', '>', now())
+                    ->orWhereIn('id', $this->auditLockedUserIds());
                 })
                 ->orderBy('updated_at', 'desc')
                 ->paginate($perPage);
@@ -2368,7 +2386,8 @@ class AdminController extends Controller
 
         $lockedCount = User::hideSuperadmin()->useWritePdo()->where('is_deleted', false)->where(function ($query) {
             $query->where('login_lockout_level', '>=', 1)
-                ->orWhereNotNull('locked_until');
+                ->orWhereNotNull('locked_until')
+                ->orWhereIn('id', $this->auditLockedUserIds());
         })->count();
 
         return view('admin.users', compact('users', 'editUser', 'viewType', 'archiveFolders', 'totalAll', 'totalStudent', 'totalFaculty', 'totalStaff', 'lockedCount'));

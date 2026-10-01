@@ -257,6 +257,7 @@ class SuperadminController extends Controller
             'login_lockout_level'   => 0,
         ]);
         \Illuminate\Support\Facades\RateLimiter::clear('web-login-lockout:' . hash('sha256', strtolower(trim($user->email))));
+        ActivityLog::log('account_unlocked', "Unlocked account: {$user->name} ({$user->email})", $user->id, 'user');
 
         SuperadminActivityLog::log(
             'user_unlocked',

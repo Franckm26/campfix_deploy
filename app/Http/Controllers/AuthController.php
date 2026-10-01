@@ -90,6 +90,19 @@ class AuthController extends Controller
             return back()->with('error', 'Your account has been locked due to too many failed login attempts. Please contact the MIS administrator to unlock your account.');
         }
 
+        // The session is part of the same browser login flow. Check it before
+        // verifying a password so a correct fourth password cannot bypass the
+        // lock message produced after the third failed password.
+        if ($user && (int) session($attemptSessionKey, 0) >= 3) {
+            return back()->with('error', 'Your account has been locked due to too many failed login attempts. Please contact the MIS administrator to unlock your account.');
+        }
+
+        // Activity logs are a durable fallback for deployments where a replica can
+        // delay the user lock fields. The latest security action decides the state.
+        if ($user && $this->isLockedByAuditTrail($user->id)) {
+            return back()->with('error', 'Your account has been locked due to too many failed login attempts. Please contact the MIS administrator to unlock your account.');
+        }
+
         // Keep the sequence in Laravel's server-side limiter as well as the user
         // record. This prevents a stale database read from restarting at attempt 1.
         if ($user && RateLimiter::attempts($lockoutKey) >= 3) {
@@ -865,6 +878,15 @@ class AuthController extends Controller
     protected function isAccountLocked(User $user): bool
     {
         return ! empty($user->locked_until) && now()->lessThan($user->locked_until);
+    }
+
+    protected function isLockedByAuditTrail(int $userId): bool
+    {
+        return ActivityLog::query()
+            ->where('item_user_id', $userId)
+            ->whereIn('action', ['account_locked', 'account_unlocked'])
+            ->latest('id')
+            ->value('action') === 'account_locked';
     }
 
     protected function transformApiUser(User $user): array
