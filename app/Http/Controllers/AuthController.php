@@ -84,38 +84,20 @@ class AuthController extends Controller
         $lockoutKey = 'web-login-lockout:' . hash('sha256', $request->email);
         $attemptSessionKey = 'web_login_attempts_' . hash('sha256', $request->email);
 
-        // A persisted lock is only cleared by MIS. The lockout level is included
-        // because it remains reliable even on databases with timestamp limits.
-        if ($user && ($user->locked_until || (int) $user->login_lockout_level >= 1)) {
+        // The database row is the single source of truth for a web login lock.
+        // Never let an old browser session, cache entry, or audit record block an
+        // account after an administrator has cleared its persistent lock fields.
+        if ($user && ($user->locked_until
+            || (int) $user->login_lockout_level >= 1
+            || (int) $user->failed_login_attempts >= 3)) {
             return back()->with('error', 'Your account has been locked due to too many failed login attempts. Please contact the MIS administrator to unlock your account.');
         }
 
-        // The session is part of the same browser login flow. Check it before
-        // verifying a password so a correct fourth password cannot bypass the
-        // lock message produced after the third failed password.
-        if ($user && (int) session($attemptSessionKey, 0) >= 3) {
-            // Older browser-session lockouts were not necessarily written to the
-            // users table. Persist them before returning so MIS can see and unlock
-            // the same account from User Management.
-            $this->persistWebAccountLock($user, (int) session($attemptSessionKey, 3));
-
-            return back()->with('error', 'Your account has been locked due to too many failed login attempts. Please contact the MIS administrator to unlock your account.');
-        }
-
-        // Activity logs are a durable fallback for deployments where a replica can
-        // delay the user lock fields. The latest security action decides the state.
-        if ($user && $this->isLockedByAuditTrail($user->id)) {
-            $this->persistWebAccountLock($user);
-
-            return back()->with('error', 'Your account has been locked due to too many failed login attempts. Please contact the MIS administrator to unlock your account.');
-        }
-
-        // Keep the sequence in Laravel's server-side limiter as well as the user
-        // record. This prevents a stale database read from restarting at attempt 1.
-        if ($user && RateLimiter::attempts($lockoutKey) >= 3) {
-            $this->persistWebAccountLock($user, max(3, (int) $user->failed_login_attempts));
-
-            return back()->with('error', 'Your account has been locked due to too many failed login attempts. Please contact the MIS administrator to unlock your account.');
+        // Discard stale transient state once the database confirms the account is
+        // not locked. This fixes old login sessions that showed a false lock banner.
+        if ($user) {
+            session()->forget($attemptSessionKey);
+            RateLimiter::clear($lockoutKey);
         }
 
         try {
@@ -172,10 +154,6 @@ class AuthController extends Controller
             $attempts = (int) \DB::table('users')->useWritePdo()
                 ->where('id', $user->id)
                 ->value('failed_login_attempts');
-            RateLimiter::hit($lockoutKey, 86400);
-            $sessionAttempts = (int) session($attemptSessionKey, 0) + 1;
-            session([$attemptSessionKey => $sessionAttempts]);
-            $attempts = max($attempts, RateLimiter::attempts($lockoutKey), $sessionAttempts);
 
             if ($attempts >= 3) {
                 // Write the permanent lock directly to the primary database. This

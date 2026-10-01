@@ -66,12 +66,10 @@ class WebLoginLockoutTest extends TestCase
         $controller->login($this->failedLoginRequest('LOCKOUT@EXAMPLE.TEST'));
         $this->assertSame(1, (int) $user->refresh()->failed_login_attempts);
         $this->assertNull($user->locked_until);
-        $this->assertSame(1, (int) session('web_login_attempts_' . hash('sha256', 'lockout@example.test')));
 
         $controller->login($this->failedLoginRequest('lockout@example.test'));
         $this->assertSame(2, (int) $user->refresh()->failed_login_attempts);
         $this->assertNull($user->locked_until);
-        $this->assertSame(2, (int) session('web_login_attempts_' . hash('sha256', 'lockout@example.test')));
 
         $controller->login($this->failedLoginRequest('lockout@example.test'));
         $user->refresh();
@@ -87,7 +85,7 @@ class WebLoginLockoutTest extends TestCase
         $this->assertNotNull($user->locked_until);
     }
 
-    public function test_existing_session_lock_is_persisted_for_administrator_unlocking(): void
+    public function test_stale_browser_session_does_not_create_a_false_database_lock(): void
     {
         $user = User::create([
             'name' => 'Session Lock User',
@@ -97,18 +95,12 @@ class WebLoginLockoutTest extends TestCase
 
         session(['web_login_attempts_' . hash('sha256', 'session-lock@example.test') => 3]);
 
-        app(AuthController::class)->login($this->validLoginRequest('session-lock@example.test'));
+        app(AuthController::class)->login($this->failedLoginRequest('session-lock@example.test'));
 
         $user->refresh();
-        $this->assertSame(3, (int) $user->failed_login_attempts);
-        $this->assertSame(1, (int) $user->login_lockout_level);
-        $this->assertNotNull($user->locked_until);
-
-        $this->assertTrue(User::query()->where(function ($query) {
-            $query->where('failed_login_attempts', '>=', 3)
-                ->orWhere('login_lockout_level', '>=', 1)
-                ->orWhereNotNull('locked_until');
-        })->whereKey($user->id)->exists());
+        $this->assertSame(1, (int) $user->failed_login_attempts);
+        $this->assertSame(0, (int) $user->login_lockout_level);
+        $this->assertNull($user->locked_until);
     }
 
     private function failedLoginRequest(string $email): Request
