@@ -49,7 +49,6 @@
                             <th style="width:14%">Action</th>
                             <th>Description</th>
                             <th style="width:16%">Performed By</th>
-                            <th style="width:12%">IP Address</th>
                             <th style="width:14%">Date / Time</th>
                             <th style="width:6%"></th>
                         </tr>
@@ -98,7 +97,6 @@
                                         <small class="text-muted">{{ ucfirst(str_replace('_', ' ', $log->user->role ?? '')) }}</small>
                                     @endif
                                 </td>
-                                <td class="text-muted font-monospace" style="font-size:11px">{{ $log->ip_address ?? '—' }}</td>
                                 <td class="text-muted">
                                     {{ $log->created_at->format('m/d/Y') }}<br>
                                     <small>{{ $log->created_at->format('h:i:s A') }}</small>

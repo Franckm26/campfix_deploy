@@ -195,14 +195,12 @@
                     <colgroup>
                         <col style="width: 20%">
                         <col style="width: 50%">
-                        <col style="width: 13%">
                         <col style="width: 17%">
                     </colgroup>
                     <thead class="table-light">
                         <tr>
                             <th scope="col">Action</th>
                             <th scope="col">Description</th>
-                            <th scope="col">IP Address</th>
                             <th scope="col">Date / Time</th>
                         </tr>
                     </thead>
@@ -211,7 +209,6 @@
                             <tr>
                                 <td class="history-action fw-semibold"><span class="history-action-text">{{ str($entry->action)->replace('_', ' ')->title() }}</span></td>
                                 <td class="history-description"><span class="history-description-text">{{ $entry->description ?: 'No additional details recorded.' }}</span></td>
-                                <td class="history-ip">{{ $entry->ip_address ?: 'N/A' }}</td>
                                 <td class="history-date">
                                     {{ optional($entry->created_at)->timezone('Asia/Manila')->format('m/d/Y') }}<br>
                                     <span class="text-muted">{{ optional($entry->created_at)->timezone('Asia/Manila')->format('g:i:s A') }} PHT</span>
@@ -219,7 +216,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="text-center py-4 text-muted">
+                                <td colspan="3" class="text-center py-4 text-muted">
                                     No activity matches the selected filters.
                                 </td>
                             </tr>

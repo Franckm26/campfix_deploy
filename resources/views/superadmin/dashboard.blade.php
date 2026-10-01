@@ -279,7 +279,6 @@
                     <div style="font-size:12px;color:var(--sa-text)">{{ Str::limit($log->description, 65) }}</div>
                     <div style="font-size:11px;color:var(--sa-muted);margin-top:2px">
                         {{ $log->created_at->diffForHumans() }}
-                        @if($log->ip_address) · {{ $log->ip_address }} @endif
                     </div>
                 </div>
                 @empty

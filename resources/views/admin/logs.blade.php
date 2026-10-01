@@ -293,7 +293,6 @@
                             <th style="width:14%">Action</th>
                             <th>Description</th>
                             <th style="width:16%">Performed By</th>
-                            <th style="width:12%">IP Address</th>
                             <th style="width:14%">Date / Time</th>
                         </tr>
                     </thead>
@@ -412,7 +411,6 @@
                                         <small class="text-muted">{{ ucfirst(str_replace('_', ' ', $log->user->role ?? '')) }}</small>
                                     @endif
                                 </td>
-                                <td class="text-muted font-monospace" style="font-size:11px">{{ $log->ip_address ?? '—' }}</td>
                                 <td class="text-muted">
                                     {{ $log->created_at->format('m/d/Y') }}<br>
                                     <small>{{ $log->created_at->format('h:i:s A') }}</small>
@@ -420,7 +418,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="text-center py-4 text-muted">No activity logs found</td>
+                                <td colspan="4" class="text-center py-4 text-muted">No activity logs found</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -443,10 +441,6 @@
                             <div class="log-card-field">
                                 <span class="log-card-label">Performed By:</span>
                                 <span class="log-card-value">{{ $log->user ? $log->user->name : 'System' }}</span>
-                            </div>
-                            <div class="log-card-field">
-                                <span class="log-card-label">IP Address:</span>
-                                <span class="log-card-value">{{ $log->ip_address ?? '—' }}</span>
                             </div>
                             <div class="log-card-field">
                                 <span class="log-card-label">Time:</span>

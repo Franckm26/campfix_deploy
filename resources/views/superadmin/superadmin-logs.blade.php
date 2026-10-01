@@ -31,7 +31,6 @@
                     <th>System Administrator</th>
                     <th>Action</th>
                     <th>Description</th>
-                    <th>IP Address</th>
                     <th>Date & Time</th>
                 </tr>
             </thead>
@@ -65,7 +64,6 @@
                             </details>
                         @endif
                     </td>
-                    <td style="color:var(--sa-muted);font-size:12px">{{ $log->ip_address ?? '—' }}</td>
                     <td style="color:var(--sa-muted);font-size:12px;white-space:nowrap">
                         {{ $log->created_at->format('M d, Y g:i:s A') }}
                         <div style="font-size:10px;color:var(--sa-muted)">{{ $log->created_at->diffForHumans() }}</div>

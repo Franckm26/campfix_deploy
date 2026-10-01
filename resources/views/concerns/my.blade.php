@@ -1563,6 +1563,10 @@
                     <label class="form-label fw-bold">Problem Type:</label>
                     <p id="review_description" class="mb-0" style="white-space: pre-wrap;"></p>
                 </div>
+                <div class="mb-3" id="review_details_container">
+                    <label class="form-label fw-bold">Additional Description:</label>
+                    <p id="review_details" class="mb-0" style="white-space: pre-wrap;"></p>
+                </div>
                 <div class="mb-3" id="review_image_container" style="display: none;">
                     <label class="form-label fw-bold">Photo:</label>
                     <div>
@@ -1676,6 +1680,7 @@ function showReviewModal() {
     const description = problemTypeSelect && !problemTypeSelect.disabled
         ? (problemTypeSelect.options[problemTypeSelect.selectedIndex]?.text || '')
         : '';
+    const details = document.getElementById('new_details')?.value.trim() || '';
     
     const imageInput = document.getElementById('new_image');
     const imageFile = imageInput.files[0];
@@ -1705,6 +1710,9 @@ function showReviewModal() {
         document.getElementById('review_description').textContent = '';
         if (reviewProblemTypeContainer) reviewProblemTypeContainer.style.display = 'none';
     }
+
+    // Show the optional free-form description in the submission preview too.
+    document.getElementById('review_details').textContent = details || 'No additional description provided.';
     
     // Handle image preview
     if (imageFile) {
@@ -2417,7 +2425,8 @@ function viewConcernWithBack(id, duplicateData = null) {
                     <div class="col-12">
                         <p><strong>Problem Type:</strong></p>
                         <p style="white-space: pre-wrap;">${concern.description || 'No description provided'}</p>
-                        ${concern.details ? '<p><strong>Additional Description:</strong></p><p style="white-space: pre-wrap;">' + concern.details + '</p>' : ''}
+                        <p><strong>Additional Description:</strong></p>
+                        <p style="white-space: pre-wrap;">${concern.details || 'No additional description provided.'}</p>
                         ${imageHtml}
                         ${resolutionHtml}
                     </div>
@@ -3472,7 +3481,8 @@ function viewConcern(id) {
                     <div class="col-12">
                         <p><strong>Problem Type:</strong></p>
                         <p style="white-space: pre-wrap;">${concern.description || 'No description provided'}</p>
-                        ${concern.details ? '<p><strong>Additional Description:</strong></p><p style="white-space: pre-wrap;">' + concern.details + '</p>' : ''}
+                        <p><strong>Additional Description:</strong></p>
+                        <p style="white-space: pre-wrap;">${concern.details || 'No additional description provided.'}</p>
                         ${imageHtml}
                         ${resolutionHtml}
                     </div>

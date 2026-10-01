@@ -33,7 +33,6 @@
                     <th>User</th>
                     <th>Action</th>
                     <th>Description</th>
-                    <th>IP</th>
                     <th>Date</th>
                     <th></th>
                 </tr>
@@ -55,7 +54,6 @@
                     <td style="color:var(--sa-muted);font-size:12px;max-width:300px">
                         {{ Str::limit($log->description, 80) }}
                     </td>
-                    <td style="color:var(--sa-muted);font-size:12px">{{ $log->ip_address ?? '—' }}</td>
                     <td style="color:var(--sa-muted);font-size:12px;white-space:nowrap">
                         {{ $log->created_at->format('M d, Y g:i A') }}
                     </td>
