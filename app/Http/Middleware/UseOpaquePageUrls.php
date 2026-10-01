@@ -44,6 +44,10 @@ class UseOpaquePageUrls
             'api/*',
             'auth/*',
             'login',
+            // This forced-password setup page must retain its real path. Turning
+            // it into an opaque URL makes EnsurePasswordChanged redirect back to
+            // this path before the opaque route can be decoded.
+            'first-login-password',
             'otp-choice',
             'otp-delivery',
             'resend-otp',

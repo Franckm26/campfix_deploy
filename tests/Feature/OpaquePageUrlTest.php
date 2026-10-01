@@ -101,6 +101,21 @@ class OpaquePageUrlTest extends TestCase
         $this->assertFalse($response->isRedirect());
     }
 
+    public function test_first_login_password_page_keeps_its_required_security_path(): void
+    {
+        $request = Request::create('/first-login-password', 'GET');
+        $request->headers->set('Accept', 'text/html');
+        $request->setUserResolver(fn () => new User);
+
+        $response = app(UseOpaquePageUrls::class)->handle(
+            $request,
+            fn () => response('first login password page')
+        );
+
+        $this->assertFalse($response->isRedirect());
+        $this->assertSame('first login password page', $response->getContent());
+    }
+
     public function test_an_opaque_url_dispatches_the_original_route_with_its_middleware(): void
     {
         Route::middleware(['web', 'auth', 'superadmin'])

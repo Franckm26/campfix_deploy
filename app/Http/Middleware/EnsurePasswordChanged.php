@@ -25,6 +25,9 @@ class EnsurePasswordChanged
                 $allowedRoutes = [
                     'auth.first-login-password',
                     'auth.first-login-password.update',
+                    // A previously-issued opaque URL will internally dispatch
+                    // the real first-login route after this outer route passes.
+                    'opaque.page',
                     'logout',
                 ];
                 
