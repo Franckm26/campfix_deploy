@@ -407,16 +407,15 @@
                                                 <button type="button" class="btn btn-sm btn-info" onclick="viewReport({{ $report->id }})" title="View">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
-                                                @if(auth()->user()->role !== 'school_admin')
-                                                    @if(strtolower(trim((string) optional($report->category)->name)) === 'technology/internet')
-                                                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="MIS staff claim Technology/Internet tasks from the MIS Task page">
+                                                @php($isTechnologyReport = strtolower(trim((string) optional($report->category)->name)) === 'technology/internet')
+                                                @if(auth()->user()->role === 'mis' && $isTechnologyReport && (!$report->assigned_to || $report->assigned_to === auth()->id()))
+                                                    <button type="button" class="btn btn-sm btn-primary" onclick="assignReportToMe({{ $report->id }})" title="Assign to me">
                                                         <i class="fas fa-user-check"></i>
                                                     </button>
-                                                    @else
+                                                @elseif(auth()->user()->isSystemAdministrator() || (auth()->user()->role === 'building_admin' && !$isTechnologyReport))
                                                     <button type="button" class="btn btn-sm btn-primary" onclick="assignReport({{ $report->id }})" title="{{ $report->assigned_to ? 'Reassign' : 'Assign' }}">
                                                         <i class="fas fa-user-plus"></i>
                                                     </button>
-                                                    @endif
                                                 @endif
                                                 <button type="button" class="btn btn-sm btn-info bg-transparent border-0" onclick="viewReportProgress({{ $report->id }})" title="View Progress">
                                                     <i class="fas fa-tasks"></i>
@@ -515,11 +514,12 @@
                             <button type="button" class="btn btn-sm btn-info" onclick="viewReport({{ $report->id }})">
                                 <i class="fas fa-eye"></i> View
                             </button>
-                            @if(strtolower(trim((string) optional($report->category)->name)) === 'technology/internet')
-                            <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="MIS staff assign this from their MIS Task page">
-                                <i class="fas fa-user-check"></i> MIS Self-Assign
+                            @php($isTechnologyReport = strtolower(trim((string) optional($report->category)->name)) === 'technology/internet')
+                            @if(auth()->user()->role === 'mis' && $isTechnologyReport && (!$report->assigned_to || $report->assigned_to === auth()->id()))
+                            <button type="button" class="btn btn-sm btn-primary" onclick="assignReportToMe({{ $report->id }})">
+                                <i class="fas fa-user-check"></i> Assign to Me
                             </button>
-                            @else
+                            @elseif(auth()->user()->isSystemAdministrator() || (auth()->user()->role === 'building_admin' && !$isTechnologyReport))
                             <button type="button" class="btn btn-sm btn-primary" onclick="assignReport({{ $report->id }})">
                                 <i class="fas fa-user-plus"></i> {{ $report->assigned_to ? 'Reassign' : 'Assign' }}
                             </button>
@@ -2096,6 +2096,75 @@ window.assignReport = function(id) {
     window.currentReportId = id;
     window.currentConcernId = null;
     window.startAssignWizard();
+}
+
+// MIS users claim only their own Technology/Internet reports. They never see
+// or select another MIS account from the assignment dropdown.
+window.assignReportToMe = async function(id) {
+    const result = await getSwal().fire({
+        title: 'Assign this report to me?',
+        html: `
+            <div class="text-start">
+                <p>This Technology/Internet report will be assigned to your MIS account.</p>
+                <label class="form-label fw-bold">Set Priority <span class="text-danger">*</span></label>
+                <select id="swal-priority-select" class="form-select">
+                    <option value="">-- Select priority --</option>
+                    <option value="safety_hazard" style="background-color: #dc3545; color: white;">🚨 Safety Hazard</option>
+                    <option value="urgent">⚠️ Urgent</option>
+                    <option value="high">🔴 High</option>
+                    <option value="medium">🟡 Medium</option>
+                    <option value="low">🟢 Low</option>
+                </select>
+            </div>`,
+        confirmButtonText: '<i class="fas fa-user-check me-1"></i> Assign to Me',
+        cancelButtonText: 'Cancel',
+        showCancelButton: true,
+        confirmButtonColor: '#0d6efd',
+        preConfirm: () => {
+            const priority = document.getElementById('swal-priority-select').value;
+            if (!priority) {
+                Swal.showValidationMessage('Please select a priority');
+                return false;
+            }
+            return priority;
+        }
+    });
+
+    if (!result.isConfirmed) return;
+
+    const formData = new FormData();
+    formData.append('priority', result.value);
+    formData.append('notes', '');
+    formData.append('_token', '{{ csrf_token() }}');
+
+    try {
+        const response = await fetch('/admin/report/' + id + '/assign', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Accept': 'application/json' },
+            body: formData
+        });
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || 'Unable to assign this report to you.');
+        }
+
+        await getSwal().fire({
+            icon: 'success',
+            title: 'Assigned to you',
+            text: data.message,
+            timer: 1600,
+            showConfirmButton: false
+        });
+        location.reload();
+    } catch (error) {
+        await getSwal().fire({
+            icon: 'error',
+            title: 'Unable to assign',
+            text: error.message || 'Unable to assign this report to you.'
+        });
+    }
 }
 
 // Single-step assign wizard

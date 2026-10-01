@@ -846,9 +846,12 @@ class AdminController extends Controller
         try {
             $report = Report::findOrFail($id);
 
-            // School Administrators review budgets; operational roles assign work.
+            // School Administrators review budgets. System Administrators route work
+            // by category; Building Administrators route maintenance work only; MIS
+            // staff can claim Technology/Internet work for themselves.
             $user = auth()->user();
-            if (!in_array($user->role, ['admin', 'building_admin', 'academic_head', 'mis'])) {
+            $isSystemAdministrator = $user->isSystemAdministrator();
+            if (! $isSystemAdministrator && !in_array($user->role, ['building_admin', 'mis'], true)) {
                 if ($request->expectsJson()) {
                     return response()->json(['error' => 'You do not have permission to assign reports.'], 403);
                 }
@@ -864,18 +867,41 @@ class AdminController extends Controller
             $isTechnologyCategory = $report->category && strtolower(trim($report->category->name)) === 'technology/internet';
             
             if ($isTechnologyCategory) {
-                if ($user->role !== 'mis') {
-                    if ($request->expectsJson()) {
-                        return response()->json(['error' => 'Technology/Internet tasks must be claimed by MIS staff from the MIS Task page.'], 403);
+                if ($isSystemAdministrator) {
+                    $request->validate([
+                        'assigned_to' => 'required|exists:users,id',
+                        'notes' => 'nullable|string|max:1000',
+                    ]);
+
+                    $assignedUser = User::where('id', $request->input('assigned_to'))
+                        ->where('role', 'mis')
+                        ->first();
+
+                    if (! $assignedUser) {
+                        return response()->json(['error' => 'Technology/Internet reports can only be assigned to an MIS user.'], 422);
                     }
-                    return back()->with('error', 'Technology/Internet tasks must be claimed by MIS staff from the MIS Task page.');
+
+                    $assignedUserId = $assignedUser->id;
+                    $assignedName = $assignedUser->name;
+                } elseif ($user->role === 'mis') {
+                    if ($report->assigned_to && (int) $report->assigned_to !== (int) $user->id) {
+                        return response()->json(['error' => 'This Technology/Internet report is already assigned to another MIS user.'], 409);
+                    }
+
+                    $request->validate(['notes' => 'nullable|string|max:1000']);
+                    $assignedUserId = $user->id;
+                    $assignedName = $user->name;
+                } else {
+                    if ($request->expectsJson()) {
+                        return response()->json(['error' => 'Only the System Administrator can assign Technology/Internet reports to MIS users.'], 403);
+                    }
+                    return back()->with('error', 'Only the System Administrator can assign Technology/Internet reports to MIS users.');
+                }
+            } else {
+                if (! $isSystemAdministrator && $user->role !== 'building_admin') {
+                    return response()->json(['error' => 'Only System and Building Administrators can assign maintenance reports.'], 403);
                 }
 
-                $request->merge(['assigned_to' => $user->id]);
-                $request->validate(['notes' => 'nullable|string|max:1000']);
-                $assignedUser = $user;
-                $assignedName = $assignedUser->name;
-            } else {
                 // Validate for Maintenance staff (from maintenance_staff table)
                 $request->validate([
                     'assigned_to' => 'required|exists:maintenance_staff,id',
@@ -891,7 +917,7 @@ class AdminController extends Controller
             $oldAssignedTo = $report->assigned_to;
 
             // Update the report - use user_id for the foreign key
-            $finalAssignedUserId = $isTechnologyCategory ? $user->id : $assignedUserId;
+            $finalAssignedUserId = $assignedUserId;
             $report->assigned_to = $finalAssignedUserId;
             $report->assigned_at = now();
             $report->status      = 'Assigned';
@@ -1066,6 +1092,8 @@ class AdminController extends Controller
      */
     public function getMaintenanceUsers()
     {
+        abort_unless(auth()->user()?->isSystemAdministrator() || auth()->user()?->role === 'building_admin', 403);
+
         $maintenanceStaff = \App\Models\MaintenanceStaff::where('is_active', true)
             ->select('id', 'name')
             ->orderBy('name')
@@ -1079,6 +1107,8 @@ class AdminController extends Controller
      */
     public function getMisUsers()
     {
+        abort_unless(auth()->user()?->isSystemAdministrator(), 403);
+
         $misUsers = User::where('role', 'mis')
             ->select('id', 'name')
             ->orderBy('name')
