@@ -415,7 +415,7 @@
                                                         <i class="fas fa-user-check"></i>
                                                     </button>
                                                 @elseif(auth()->user()->isSystemAdministrator() && $isTechnologyReport)
-                                                    <button type="button" class="btn btn-sm btn-primary" onclick="assignReport({{ $report->id }})" title="{{ $report->assigned_to ? 'Reassign' : 'Assign' }}">
+                                                    <button type="button" class="btn btn-sm btn-primary" onclick="assignReportToMisUser({{ $report->id }})" title="{{ $report->assigned_to ? 'Reassign to MIS user' : 'Assign to MIS user' }}">
                                                         <i class="fas fa-user-plus"></i>
                                                     </button>
                                                 @elseif(auth()->user()->role === 'building_admin' && !$isTechnologyReport)
@@ -532,8 +532,8 @@
                                 <i class="fas fa-user-check"></i> Assign to Me
                             </button>
                             @elseif(auth()->user()->isSystemAdministrator() && $isTechnologyReport)
-                            <button type="button" class="btn btn-sm btn-primary" onclick="assignReport({{ $report->id }})">
-                                <i class="fas fa-user-plus"></i> {{ $report->assigned_to ? 'Reassign' : 'Assign' }}
+                            <button type="button" class="btn btn-sm btn-primary" onclick="assignReportToMisUser({{ $report->id }})">
+                                <i class="fas fa-user-plus"></i> {{ $report->assigned_to ? 'Reassign to MIS' : 'Assign to MIS' }}
                             </button>
                             @elseif(auth()->user()->role === 'building_admin' && !$isTechnologyReport)
                             <button type="button" class="btn btn-sm btn-primary" onclick="assignReport({{ $report->id }})">
@@ -2113,6 +2113,14 @@ let currentConcernId = null;
 
 // Assign Report directly from table button
 window.assignReport = function(id) {
+    window.currentReportId = id;
+    window.currentConcernId = null;
+    window.startAssignWizard();
+}
+
+// System Administrators choose an MIS user for Technology/Internet reports.
+// This is intentionally separate from the MIS-only self-assignment action.
+window.assignReportToMisUser = function(id) {
     window.currentReportId = id;
     window.currentConcernId = null;
     window.startAssignWizard();
