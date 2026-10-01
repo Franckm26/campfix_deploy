@@ -58,6 +58,14 @@ class DatabaseTransaction
             return true;
         }
 
+        // An invalid web login is an expected authentication outcome, not a
+        // failed unit of work. AuthController deliberately flashes an error
+        // while incrementing failed_login_attempts. Rolling back this redirect
+        // discarded that increment on every attempt and made lockouts impossible.
+        if ($request->isMethod('post') && $request->is('login')) {
+            return false;
+        }
+
         // A number of existing controllers intentionally convert caught
         // exceptions into redirects with a flashed error message. Treat those
         // as failed units of work too, so earlier writes are not committed.
