@@ -84,6 +84,13 @@ class AuthController extends Controller
             return back()->with('error', 'Your account has been locked due to too many failed login attempts. Please contact the MIS administrator to unlock your account.');
         }
 
+        // The session counter protects the account even if a deployment's database
+        // read is briefly stale after the third failed attempt. Check it before
+        // Auth::attempt(), otherwise a correct fourth password could bypass lockout.
+        if ($user && (int) session($attemptSessionKey, 0) >= 3) {
+            return back()->with('error', 'Your account has been locked after 3 failed login attempts. Please contact the MIS administrator to unlock your account.');
+        }
+
         try {
             if (Auth::attempt($request->only('email', 'password'))) {
                 $user = Auth::user();

@@ -74,6 +74,11 @@ class WebLoginLockoutTest extends TestCase
         $this->assertSame(3, (int) $user->failed_login_attempts);
         $this->assertNotNull($user->locked_until);
         $this->assertTrue($user->locked_until->isFuture());
+
+        // A correct password must not bypass the lock created by the third failure.
+        $controller->login($this->validLoginRequest('lockout@example.test'));
+        $this->assertSame(3, (int) $user->refresh()->failed_login_attempts);
+        $this->assertNotNull($user->locked_until);
     }
 
     private function failedLoginRequest(string $email): Request
@@ -81,6 +86,14 @@ class WebLoginLockoutTest extends TestCase
         return Request::create('/login', 'POST', [
             'email' => $email,
             'password' => 'incorrect-password',
+        ]);
+    }
+
+    private function validLoginRequest(string $email): Request
+    {
+        return Request::create('/login', 'POST', [
+            'email' => $email,
+            'password' => 'CorrectPassword1!',
         ]);
     }
 }
