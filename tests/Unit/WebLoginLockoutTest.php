@@ -79,6 +79,7 @@ class WebLoginLockoutTest extends TestCase
         $this->assertSame(3, (int) $user->failed_login_attempts);
         $this->assertNotNull($user->locked_until);
         $this->assertTrue($user->locked_until->isFuture());
+        $this->assertSame(1, (int) $user->login_lockout_level);
 
         // A correct password must not bypass the lock created by the third failure.
         $controller->login($this->validLoginRequest('lockout@example.test'));

@@ -106,10 +106,11 @@ class AuthController extends Controller
         // Keep the sequence in Laravel's server-side limiter as well as the user
         // record. This prevents a stale database read from restarting at attempt 1.
         if ($user && RateLimiter::attempts($lockoutKey) >= 3) {
-            $user->update([
+            \DB::table('users')->useWritePdo()->where('id', $user->id)->update([
                 'failed_login_attempts' => max(3, (int) $user->failed_login_attempts),
                 'locked_until' => now()->addYear(),
                 'login_lockout_level' => 1,
+                'updated_at' => now(),
             ]);
 
             return back()->with('error', 'Your account has been locked due to too many failed login attempts. Please contact the MIS administrator to unlock your account.');
@@ -175,11 +176,16 @@ class AuthController extends Controller
             $attempts = max($attempts, RateLimiter::attempts($lockoutKey), $sessionAttempts);
 
             if ($attempts >= 3) {
-                $user->update([
+                // Write the permanent lock directly to the primary database. This
+                // keeps the login gate and the System Administrator's Locked Users
+                // page in sync even if an Eloquent model contains stale attributes.
+                \DB::table('users')->useWritePdo()->where('id', $user->id)->update([
                     'failed_login_attempts' => $attempts,
                     'locked_until' => now()->addYear(),
                     'login_lockout_level' => 1,
+                    'updated_at' => now(),
                 ]);
+                $user->refresh();
 
                 ActivityLog::log(
                     'account_locked',

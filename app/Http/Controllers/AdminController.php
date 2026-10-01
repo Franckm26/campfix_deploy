@@ -255,7 +255,7 @@ class AdminController extends Controller
         $archivedUsers     = User::hideSuperadmin()->where('is_archived', true)->where('is_deleted', false)->count();
         $lockedUsers       = User::hideSuperadmin()->useWritePdo()->where('is_deleted', false)->where(function ($query) {
             $query->where('login_lockout_level', '>=', 1)
-                ->orWhere('locked_until', '>', now())
+                ->orWhereNotNull('locked_until')
                 ->orWhereIn('id', $this->auditLockedUserIds());
         })->count();
         $forceChangeUsers  = User::hideSuperadmin()->where('is_deleted', false)->where('force_password_change', true)->count();
@@ -264,7 +264,7 @@ class AdminController extends Controller
             $lockedUsersList = User::hideSuperadmin()->useWritePdo()->where('is_deleted', false)
                 ->where(function ($query) {
                     $query->where('login_lockout_level', '>=', 1)
-                    ->orWhere('locked_until', '>', now())
+                    ->orWhereNotNull('locked_until')
                     ->orWhereIn('id', $this->auditLockedUserIds());
             })
             ->orderBy('updated_at', 'desc')
@@ -2247,7 +2247,7 @@ class AdminController extends Controller
         $lockedUsersList = User::hideSuperadmin()->useWritePdo()->where('is_deleted', false)
             ->where(function ($query) {
                 $query->where('login_lockout_level', '>=', 1)
-                    ->orWhere('locked_until', '>', now())
+                    ->orWhereNotNull('locked_until')
                     ->orWhereIn('id', $this->auditLockedUserIds());
                 })
                 ->orderBy('updated_at', 'desc')

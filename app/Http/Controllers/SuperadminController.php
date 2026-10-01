@@ -32,7 +32,7 @@ class SuperadminController extends Controller
             'active_users'        => User::hideSuperadmin()->where(fn ($q) => $q->where('is_archived', false)->orWhereNull('is_archived'))->count(),
             'archived_users'      => User::hideSuperadmin()->where('is_archived', true)->count(),
             'deleted_users'       => $noScopes()->hideSuperadmin()->where('is_deleted', true)->count(),
-            'locked_users'        => User::hideSuperadmin()->whereNotNull('locked_until')->where('locked_until', '>', now())->count(),
+            'locked_users'        => User::hideSuperadmin()->whereNotNull('locked_until')->count(),
             'total_concerns'      => Concern::withoutGlobalScopes()->count(),
             'open_concerns'       => Concern::where('is_deleted', false)->whereNotIn('status', ['Resolved', 'Closed'])->count(),
             'resolved_concerns'   => Concern::where('status', 'Resolved')->count(),
@@ -442,7 +442,7 @@ class SuperadminController extends Controller
         $archivedUsers = User::withoutGlobalScopes()->where('is_deleted', false)->where('is_archived', true)->count();
         $deletedUsers = User::withoutGlobalScopes()->where('is_deleted', true)->count();
         $lockedUsers = Schema::hasColumn('users', 'locked_until')
-            ? User::withoutGlobalScopes()->where('is_deleted', false)->where('locked_until', '>', now())->count()
+            ? User::withoutGlobalScopes()->where('is_deleted', false)->whereNotNull('locked_until')->count()
             : 0;
 
         $openConcerns = Concern::withoutGlobalScopes()->where('is_deleted', false)->whereNotIn('status', ['Resolved', 'Closed'])->count();

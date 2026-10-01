@@ -56,6 +56,7 @@ class User extends Authenticatable implements JWTSubject
         // OWASP A2: Account Lockout fields
         'failed_login_attempts',
         'locked_until',
+        'login_lockout_level',
         // OTP
         'otp_attempts',
         // Theme
