@@ -94,24 +94,26 @@ class AuthController extends Controller
         // verifying a password so a correct fourth password cannot bypass the
         // lock message produced after the third failed password.
         if ($user && (int) session($attemptSessionKey, 0) >= 3) {
+            // Older browser-session lockouts were not necessarily written to the
+            // users table. Persist them before returning so MIS can see and unlock
+            // the same account from User Management.
+            $this->persistWebAccountLock($user, (int) session($attemptSessionKey, 3));
+
             return back()->with('error', 'Your account has been locked due to too many failed login attempts. Please contact the MIS administrator to unlock your account.');
         }
 
         // Activity logs are a durable fallback for deployments where a replica can
         // delay the user lock fields. The latest security action decides the state.
         if ($user && $this->isLockedByAuditTrail($user->id)) {
+            $this->persistWebAccountLock($user);
+
             return back()->with('error', 'Your account has been locked due to too many failed login attempts. Please contact the MIS administrator to unlock your account.');
         }
 
         // Keep the sequence in Laravel's server-side limiter as well as the user
         // record. This prevents a stale database read from restarting at attempt 1.
         if ($user && RateLimiter::attempts($lockoutKey) >= 3) {
-            \DB::table('users')->useWritePdo()->where('id', $user->id)->update([
-                'failed_login_attempts' => max(3, (int) $user->failed_login_attempts),
-                'locked_until' => now()->addYear(),
-                'login_lockout_level' => 1,
-                'updated_at' => now(),
-            ]);
+            $this->persistWebAccountLock($user, max(3, (int) $user->failed_login_attempts));
 
             return back()->with('error', 'Your account has been locked due to too many failed login attempts. Please contact the MIS administrator to unlock your account.');
         }
@@ -179,13 +181,7 @@ class AuthController extends Controller
                 // Write the permanent lock directly to the primary database. This
                 // keeps the login gate and the System Administrator's Locked Users
                 // page in sync even if an Eloquent model contains stale attributes.
-                \DB::table('users')->useWritePdo()->where('id', $user->id)->update([
-                    'failed_login_attempts' => $attempts,
-                    'locked_until' => now()->addYear(),
-                    'login_lockout_level' => 1,
-                    'updated_at' => now(),
-                ]);
-                $user->refresh();
+                $this->persistWebAccountLock($user, $attempts);
 
                 ActivityLog::log(
                     'account_locked',
@@ -884,6 +880,21 @@ class AuthController extends Controller
     protected function isAccountLocked(User $user): bool
     {
         return ! empty($user->locked_until) && now()->lessThan($user->locked_until);
+    }
+
+    /**
+     * Make a browser login lock durable and immediately visible to User Management.
+     */
+    protected function persistWebAccountLock(User $user, int $attempts = 3): void
+    {
+        \DB::table('users')->useWritePdo()->where('id', $user->id)->update([
+            'failed_login_attempts' => max(3, $attempts),
+            'locked_until' => now()->addYear(),
+            'login_lockout_level' => 1,
+            'updated_at' => now(),
+        ]);
+
+        $user->refresh();
     }
 
     protected function isLockedByAuditTrail(int $userId): bool

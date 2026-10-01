@@ -87,6 +87,24 @@ class WebLoginLockoutTest extends TestCase
         $this->assertNotNull($user->locked_until);
     }
 
+    public function test_existing_session_lock_is_persisted_for_administrator_unlocking(): void
+    {
+        $user = User::create([
+            'name' => 'Session Lock User',
+            'email' => 'session-lock@example.test',
+            'password' => Hash::make('CorrectPassword1!'),
+        ]);
+
+        session(['web_login_attempts_' . hash('sha256', 'session-lock@example.test') => 3]);
+
+        app(AuthController::class)->login($this->validLoginRequest('session-lock@example.test'));
+
+        $user->refresh();
+        $this->assertSame(3, (int) $user->failed_login_attempts);
+        $this->assertSame(1, (int) $user->login_lockout_level);
+        $this->assertNotNull($user->locked_until);
+    }
+
     private function failedLoginRequest(string $email): Request
     {
         return Request::create('/login', 'POST', [
