@@ -76,7 +76,10 @@ class AuthController extends Controller
 
         \Log::info('Login attempt for: ' . $request->email);
 
-        $user = User::where('email', $request->email)->first();
+        // Authentication state must be read from the primary connection. A replica
+        // can briefly return the pre-increment value and make every failure appear
+        // as attempt 1.
+        $user = User::query()->useWritePdo()->where('email', $request->email)->first();
 
         // A non-null lock is only cleared by MIS. This is intentionally not
         // time-based so every lock is visible in Locked Users until it is unlocked.
@@ -130,15 +133,19 @@ class AuthController extends Controller
 
         // Handle failed login attempts — lock after 3 failures
         if ($user) {
-            // Use the model update path used by User Management so the same
-            // persisted account state is shown in the MIS Locked Users tab.
-            $attempts = max(0, (int) $user->failed_login_attempts) + 1;
+            // Increment and read from the primary connection so a stale read replica
+            // cannot reset the displayed counter to 1 on the next request.
+            \DB::table('users')->useWritePdo()->where('id', $user->id)->increment('failed_login_attempts');
+            $attempts = (int) \DB::table('users')->useWritePdo()
+                ->where('id', $user->id)
+                ->value('failed_login_attempts');
 
             if ($attempts >= 3) {
-                $user->update([
+                \DB::table('users')->useWritePdo()->where('id', $user->id)->update([
                     'failed_login_attempts' => $attempts,
                     'locked_until' => now()->addYears(100),
                     'login_lockout_level' => 1,
+                    'updated_at' => now(),
                 ]);
 
                 ActivityLog::log(
@@ -164,7 +171,6 @@ class AuthController extends Controller
                 return back()->with('error', 'Your account has been locked after ' . $attempts . ' failed login attempts. Please contact the MIS administrator to unlock your account.');
             }
 
-            $user->update(['failed_login_attempts' => $attempts]);
             $remaining = 3 - $attempts;
             return back()->with('error', 'Invalid email or password. You have ' . $remaining . ' attempt' . ($remaining === 1 ? '' : 's') . ' remaining before your account is locked. Current attempts: ' . $attempts);
         }

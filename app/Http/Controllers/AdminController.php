@@ -236,11 +236,11 @@ class AdminController extends Controller
         $totalUsers        = User::hideSuperadmin()->where('is_deleted', false)->count();
         $activeUsers       = User::hideSuperadmin()->where('is_deleted', false)->where('is_archived', false)->whereNull('locked_until')->count();
         $archivedUsers     = User::hideSuperadmin()->where('is_archived', true)->where('is_deleted', false)->count();
-        $lockedUsers       = User::hideSuperadmin()->where('is_deleted', false)->whereNotNull('locked_until')->where('locked_until', '>', now())->count();
+        $lockedUsers       = User::hideSuperadmin()->useWritePdo()->where('is_deleted', false)->whereNotNull('locked_until')->where('locked_until', '>', now())->count();
         $forceChangeUsers  = User::hideSuperadmin()->where('is_deleted', false)->where('force_password_change', true)->count();
 
         // Locked users list for dashboard modal
-        $lockedUsersList = User::hideSuperadmin()->where('is_deleted', false)
+        $lockedUsersList = User::hideSuperadmin()->useWritePdo()->where('is_deleted', false)
             ->whereNotNull('locked_until')
             ->where('locked_until', '>', now())
             ->orderBy('updated_at', 'desc')
@@ -2216,7 +2216,7 @@ class AdminController extends Controller
             $perPage = $request->get('per_page', 20);
             $perPage = in_array($perPage, [20, 50, 100]) ? $perPage : 20;
 
-            $lockedUsersList = User::hideSuperadmin()->where('is_deleted', false)
+            $lockedUsersList = User::hideSuperadmin()->useWritePdo()->where('is_deleted', false)
                 ->whereNotNull('locked_until')
                 ->where('locked_until', '>', now())
                 ->orderBy('updated_at', 'desc')
@@ -2353,7 +2353,7 @@ class AdminController extends Controller
             $q->where('is_archived', false)->orWhereNull('is_archived');
         })->whereIn('role', $staffRoles)->count();
 
-        $lockedCount = User::hideSuperadmin()->where('is_deleted', false)->whereNotNull('locked_until')->count();
+        $lockedCount = User::hideSuperadmin()->useWritePdo()->where('is_deleted', false)->whereNotNull('locked_until')->count();
 
         return view('admin.users', compact('users', 'editUser', 'viewType', 'archiveFolders', 'totalAll', 'totalStudent', 'totalFaculty', 'totalStaff', 'lockedCount'));
     }
