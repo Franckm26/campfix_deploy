@@ -407,7 +407,9 @@
                                                 <button type="button" class="btn btn-sm btn-info" onclick="viewReport({{ $report->id }})" title="View">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
-                                                @php($isTechnologyReport = strtolower(trim((string) optional($report->category)->name)) === 'technology/internet')
+                                                @php
+                                                    $isTechnologyReport = strtolower(trim((string) optional($report->category)->name)) === 'technology/internet';
+                                                @endphp
                                                 @if(auth()->user()->role === 'mis' && $isTechnologyReport && (!$report->assigned_to || $report->assigned_to === auth()->id()))
                                                     <button type="button" class="btn btn-sm btn-primary" onclick="assignReportToMe({{ $report->id }})" title="Assign to me">
                                                         <i class="fas fa-user-check"></i>
@@ -514,7 +516,9 @@
                             <button type="button" class="btn btn-sm btn-info" onclick="viewReport({{ $report->id }})">
                                 <i class="fas fa-eye"></i> View
                             </button>
-                            @php($isTechnologyReport = strtolower(trim((string) optional($report->category)->name)) === 'technology/internet')
+                            @php
+                                $isTechnologyReport = strtolower(trim((string) optional($report->category)->name)) === 'technology/internet';
+                            @endphp
                             @if(auth()->user()->role === 'mis' && $isTechnologyReport && (!$report->assigned_to || $report->assigned_to === auth()->id()))
                             <button type="button" class="btn btn-sm btn-primary" onclick="assignReportToMe({{ $report->id }})">
                                 <i class="fas fa-user-check"></i> Assign to Me
