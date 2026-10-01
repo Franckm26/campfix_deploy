@@ -53,6 +53,7 @@ class AdminController extends Controller
             'failed_login_attempts' => 0,
             'login_lockout_level' => 0,
         ]);
+        \Illuminate\Support\Facades\RateLimiter::clear('web-login-lockout:' . hash('sha256', strtolower(trim($user->email))));
 
         ActivityLog::log('account_unlocked', "Unlocked account: {$user->name} ({$user->email})", $user->id, 'user');
 
@@ -82,7 +83,7 @@ class AdminController extends Controller
             }
 
             // Check if user is actually locked
-            if (is_null($user->locked_until) || $user->locked_until <= now()) {
+            if (is_null($user->locked_until) && (int) $user->login_lockout_level < 1) {
                 return response()->json([
                     'status' => 'warning',
                     'message' => "Account '{$user->name}' is not currently locked.",
@@ -100,6 +101,7 @@ class AdminController extends Controller
                 'failed_login_attempts' => 0,
                 'login_lockout_level' => 0,
             ]);
+            \Illuminate\Support\Facades\RateLimiter::clear('web-login-lockout:' . hash('sha256', strtolower(trim($user->email))));
 
             ActivityLog::log('account_unlocked', "Unlocked account via email: {$user->name} ({$user->email})", $user->id, 'user');
 
@@ -236,13 +238,18 @@ class AdminController extends Controller
         $totalUsers        = User::hideSuperadmin()->where('is_deleted', false)->count();
         $activeUsers       = User::hideSuperadmin()->where('is_deleted', false)->where('is_archived', false)->whereNull('locked_until')->count();
         $archivedUsers     = User::hideSuperadmin()->where('is_archived', true)->where('is_deleted', false)->count();
-        $lockedUsers       = User::hideSuperadmin()->useWritePdo()->where('is_deleted', false)->whereNotNull('locked_until')->where('locked_until', '>', now())->count();
+        $lockedUsers       = User::hideSuperadmin()->useWritePdo()->where('is_deleted', false)->where(function ($query) {
+            $query->where('login_lockout_level', '>=', 1)
+                ->orWhere('locked_until', '>', now());
+        })->count();
         $forceChangeUsers  = User::hideSuperadmin()->where('is_deleted', false)->where('force_password_change', true)->count();
 
         // Locked users list for dashboard modal
         $lockedUsersList = User::hideSuperadmin()->useWritePdo()->where('is_deleted', false)
-            ->whereNotNull('locked_until')
-            ->where('locked_until', '>', now())
+            ->where(function ($query) {
+                $query->where('login_lockout_level', '>=', 1)
+                    ->orWhere('locked_until', '>', now());
+            })
             ->orderBy('updated_at', 'desc')
             ->get();
 
@@ -2221,8 +2228,10 @@ class AdminController extends Controller
             $perPage = in_array($perPage, [20, 50, 100]) ? $perPage : 20;
 
             $lockedUsersList = User::hideSuperadmin()->useWritePdo()->where('is_deleted', false)
-                ->whereNotNull('locked_until')
-                ->where('locked_until', '>', now())
+                ->where(function ($query) {
+                    $query->where('login_lockout_level', '>=', 1)
+                        ->orWhere('locked_until', '>', now());
+                })
                 ->orderBy('updated_at', 'desc')
                 ->paginate($perPage);
 
@@ -2357,7 +2366,10 @@ class AdminController extends Controller
             $q->where('is_archived', false)->orWhereNull('is_archived');
         })->whereIn('role', $staffRoles)->count();
 
-        $lockedCount = User::hideSuperadmin()->useWritePdo()->where('is_deleted', false)->whereNotNull('locked_until')->count();
+        $lockedCount = User::hideSuperadmin()->useWritePdo()->where('is_deleted', false)->where(function ($query) {
+            $query->where('login_lockout_level', '>=', 1)
+                ->orWhereNotNull('locked_until');
+        })->count();
 
         return view('admin.users', compact('users', 'editUser', 'viewType', 'archiveFolders', 'totalAll', 'totalStudent', 'totalFaculty', 'totalStaff', 'lockedCount'));
     }

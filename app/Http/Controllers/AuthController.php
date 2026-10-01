@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\RateLimiter;
 use Tymon\JWTAuth\Exceptions\JWTException;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Laravel\Socialite\Facades\Socialite;
@@ -80,10 +81,23 @@ class AuthController extends Controller
         // can briefly return the pre-increment value and make every failure appear
         // as attempt 1.
         $user = User::query()->useWritePdo()->where('email', $request->email)->first();
+        $lockoutKey = 'web-login-lockout:' . hash('sha256', $request->email);
 
-        // A non-null lock is only cleared by MIS. This is intentionally not
-        // time-based so every lock is visible in Locked Users until it is unlocked.
-        if ($user && $user->locked_until) {
+        // A persisted lock is only cleared by MIS. The lockout level is included
+        // because it remains reliable even on databases with timestamp limits.
+        if ($user && ($user->locked_until || (int) $user->login_lockout_level >= 1)) {
+            return back()->with('error', 'Your account has been locked due to too many failed login attempts. Please contact the MIS administrator to unlock your account.');
+        }
+
+        // Keep the sequence in Laravel's server-side limiter as well as the user
+        // record. This prevents a stale database read from restarting at attempt 1.
+        if ($user && RateLimiter::attempts($lockoutKey) >= 3) {
+            $user->update([
+                'failed_login_attempts' => max(3, (int) $user->failed_login_attempts),
+                'locked_until' => now()->addYear(),
+                'login_lockout_level' => 1,
+            ]);
+
             return back()->with('error', 'Your account has been locked due to too many failed login attempts. Please contact the MIS administrator to unlock your account.');
         }
 
@@ -104,6 +118,7 @@ class AuthController extends Controller
                     'locked_until' => null,
                     'login_lockout_level' => 0,
                 ]);
+                RateLimiter::clear($lockoutKey);
 
                 // Generate secure OTP
                 $otp = (string) random_int(100000, 999999);
@@ -139,13 +154,14 @@ class AuthController extends Controller
             $attempts = (int) \DB::table('users')->useWritePdo()
                 ->where('id', $user->id)
                 ->value('failed_login_attempts');
+            RateLimiter::hit($lockoutKey, 86400);
+            $attempts = max($attempts, RateLimiter::attempts($lockoutKey));
 
             if ($attempts >= 3) {
-                \DB::table('users')->useWritePdo()->where('id', $user->id)->update([
+                $user->update([
                     'failed_login_attempts' => $attempts,
-                    'locked_until' => now()->addYears(100),
+                    'locked_until' => now()->addYear(),
                     'login_lockout_level' => 1,
-                    'updated_at' => now(),
                 ]);
 
                 ActivityLog::log(

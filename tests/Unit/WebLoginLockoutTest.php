@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
@@ -48,6 +49,8 @@ class WebLoginLockoutTest extends TestCase
             $table->text('metadata')->nullable();
             $table->timestamps();
         });
+
+        RateLimiter::clear('web-login-lockout:' . hash('sha256', 'lockout@example.test'));
     }
 
     public function test_web_login_counts_each_failure_and_locks_on_the_third_attempt(): void

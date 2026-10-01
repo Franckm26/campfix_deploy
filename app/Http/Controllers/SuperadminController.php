@@ -256,6 +256,7 @@ class SuperadminController extends Controller
             'failed_login_attempts' => 0,
             'login_lockout_level'   => 0,
         ]);
+        \Illuminate\Support\Facades\RateLimiter::clear('web-login-lockout:' . hash('sha256', strtolower(trim($user->email))));
 
         SuperadminActivityLog::log(
             'user_unlocked',
