@@ -2536,8 +2536,11 @@ window.viewReportProgress = async function(id) {
                 await proceedReportToNextLevel(id, nextAction.status, r.title || (r.description ? r.description.substring(0, 40) : 'Report #' + r.id));
             }
         } else if (result.isDismissed || !result.isConfirmed) {
-            // Reload page when user clicks Close or dismisses the modal
-            location.reload();
+            // Opening the budget form replaces this SweetAlert popup. Do not reload
+            // during that handoff or the new form closes before it can be completed.
+            if (!window.reportBudgetModalOpening) {
+                location.reload();
+            }
         }
     } catch (error) {
         // Use queue to show error
@@ -2552,6 +2555,9 @@ window.viewReportProgress = async function(id) {
 };
 
 window.requestReportBudget = async function(reportId, reportTitle) {
+    // The Request Budget button lives inside the progress popup. Set this before
+    // replacing that popup so its dismiss handler does not reload the page.
+    window.reportBudgetModalOpening = true;
     const result = await getSwal().fire({
         title: 'Request Budget Approval',
         html: `<div class="text-start"><p>Enter the proposed budget for <strong>${escapeReportHtml(reportTitle)}</strong>.</p><label class="form-label fw-bold">Proposed budget (PHP)</label><input type="number" id="budget-amount" class="form-control" min="0.01" step="0.01" placeholder="Enter amount"></div>`,
@@ -2567,6 +2573,8 @@ window.requestReportBudget = async function(reportId, reportTitle) {
             return Number(value);
         }
     });
+
+    window.reportBudgetModalOpening = false;
 
     if (!result.isConfirmed) return;
 
