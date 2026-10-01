@@ -62,6 +62,12 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
+        // Email addresses are case-insensitive. Normalizing before lookup keeps all
+        // failed attempts attached to the same account.
+        $request->merge([
+            'email' => strtolower(trim((string) $request->input('email'))),
+        ]);
+
         // Validate login input
         $request->validate([
             'email' => 'required|email|max:255',
@@ -123,11 +129,27 @@ class AuthController extends Controller
 
         // Handle failed login attempts — lock after 3 failures
         if ($user) {
-            // Use atomic increment to avoid stale reads in serverless environment
-            $attempts = \DB::table('users')->where('id', $user->id)->increment('failed_login_attempts');
-            
-            // Get fresh count after increment
-            $attempts = \DB::table('users')->where('id', $user->id)->value('failed_login_attempts');
+            // Lock and reload the row before incrementing. This prevents repeated
+            // requests from reading a stale value and continually showing attempt 1.
+            $attempts = \DB::transaction(function () use ($user) {
+                $account = User::withoutGlobalScopes()
+                    ->whereKey($user->id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $account) {
+                    return 0;
+                }
+
+                $nextAttempts = max(0, (int) $account->failed_login_attempts) + 1;
+
+                \DB::table('users')->where('id', $account->id)->update([
+                    'failed_login_attempts' => $nextAttempts,
+                    'updated_at' => now(),
+                ]);
+
+                return $nextAttempts;
+            });
 
             if ($attempts >= 3) {
                 \DB::table('users')->where('id', $user->id)->update([
