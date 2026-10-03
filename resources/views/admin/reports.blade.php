@@ -410,7 +410,11 @@
                                                 @php
                                                     $isTechnologyReport = strtolower(trim((string) optional($report->category)->name)) === 'technology/internet';
                                                 @endphp
-                                                @if(auth()->user()->role === 'mis' && !auth()->user()->isSystemAdministrator() && $isTechnologyReport && (!$report->assigned_to || $report->assigned_to === auth()->id()))
+                                                @if($report->status === 'Resolved')
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="Resolved reports cannot be assigned or reassigned">
+                                                        <i class="fas fa-user-plus"></i>
+                                                    </button>
+                                                @elseif(auth()->user()->role === 'mis' && !auth()->user()->isSystemAdministrator() && $isTechnologyReport && (!$report->assigned_to || $report->assigned_to === auth()->id()))
                                                     <button type="button" class="btn btn-sm btn-primary" onclick="assignReportToMe({{ $report->id }})" title="Assign to me">
                                                         <i class="fas fa-user-check"></i>
                                                     </button>
