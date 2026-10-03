@@ -137,20 +137,9 @@
 </div>
 
 {{-- ── DAILY OPERATIONS ── --}}
+{{-- The All Concerns and Open Concerns cards are temporarily removed as requested. --}}
 <div class="section-title"><i class="fas fa-clipboard-list"></i> Daily Operations</div>
 <div class="operations-grid">
-    <a href="{{ route('superadmin.concerns') }}" class="module-card purple">
-        <div class="module-icon" style="background:rgba(124,58,237,.15);color:#a855f7"><i class="fas fa-triangle-exclamation"></i></div>
-        <div class="module-title">All Concerns</div>
-        <div class="module-count">{{ number_format($stats['total_concerns']) }}</div>
-        <div class="module-sub">System-wide total</div>
-    </a>
-    <a href="{{ route('superadmin.concerns', ['status'=>'Pending']) }}" class="module-card yellow">
-        <div class="module-icon" style="background:rgba(245,158,11,.15);color:#fbbf24"><i class="fas fa-clock"></i></div>
-        <div class="module-title">Open Concerns</div>
-        <div class="module-count">{{ number_format($stats['open_concerns']) }}</div>
-        <div class="module-sub">Unresolved</div>
-    </a>
     <a href="{{ route('superadmin.concerns', ['status'=>'Resolved']) }}" class="module-card green">
         <div class="module-icon" style="background:rgba(34,197,94,.15);color:#4ade80"><i class="fas fa-circle-check"></i></div>
         <div class="module-title">Resolved Concerns</div>
