@@ -74,6 +74,12 @@ class AuthController extends Controller
             'email' => 'required|email|max:255',
             'password' => 'required|min:1',
         ]);
+        if (! $this->hasAllowedEmailDomain($request->email)) {
+            return back()->withErrors([
+                'email' => 'Only @novaliches.sti.edu.ph accounts can sign in.',
+            ])->withInput($request->only('email'));
+        }
+
 
         \Log::info('Login attempt for: ' . $request->email);
 

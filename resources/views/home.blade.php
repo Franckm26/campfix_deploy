@@ -291,8 +291,9 @@
                 @csrf
                 <div style="margin-bottom: 18px;">
                     <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1e293b;">Email</label>
-                    <input type="email" name="email" id="login-email" required style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px;" placeholder="Enter your email">
+                    <input type="email" name="email" id="login-email" required style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px;" placeholder="name@novaliches.sti.edu.ph">
                     <small id="login-email-error" style="color: #dc2626; font-size: 12px; display: none;"></small>
+                    <small style="color: #64748b; font-size: 12px;">Use your @novaliches.sti.edu.ph account.</small>
                 </div>
                 <div style="margin-bottom: 18px;">
                     <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1e293b;">Password</label>
@@ -388,6 +389,10 @@
             const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             return re.test(email);
         }
+
+        function hasAllowedLoginDomain(email) {
+            return email.toLowerCase().endsWith('@novaliches.sti.edu.ph');
+        }
         
         function showError(element, errorElement, message) {
             element.style.borderColor = '#dc2626';
@@ -407,13 +412,15 @@
                     showError(this, loginEmailError, 'Email is required');
                 } else if (!validateEmail(value)) {
                     showError(this, loginEmailError, 'Please enter a valid email address');
+                } else if (!hasAllowedLoginDomain(value)) {
+                    showError(this, loginEmailError, 'Use your @novaliches.sti.edu.ph account');
                 } else {
                     clearError(this, loginEmailError);
                 }
             });
             
             loginEmail.addEventListener('input', function() {
-                if (this.value.trim() && validateEmail(this.value.trim())) {
+                if (this.value.trim() && validateEmail(this.value.trim()) && hasAllowedLoginDomain(this.value.trim())) {
                     clearError(this, loginEmailError);
                 }
             });
@@ -447,6 +454,9 @@
                     isValid = false;
                 } else if (!validateEmail(emailValue)) {
                     showError(loginEmail, loginEmailError, 'Please enter a valid email address');
+                    isValid = false;
+                } else if (!hasAllowedLoginDomain(emailValue)) {
+                    showError(loginEmail, loginEmailError, 'Use your @novaliches.sti.edu.ph account');
                     isValid = false;
                 }
                 
