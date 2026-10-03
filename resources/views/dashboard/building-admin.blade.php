@@ -45,7 +45,14 @@
 .analytics-subtitle { margin: -5px 0 10px; color: #738198; font-size: 11px; }
 .analytics-interpretation { min-height: 50px; margin: 10px -16px -16px; padding: 10px 16px; border-top: 1px solid #e3e8ee; color: #51647d; background: #f8fafc; font-size: 11px; line-height: 1.45; }
 .analytics-interpretation strong { color: #172d4d; }
-.decision-snapshot { display: grid; }
+.new-reports-list { display: grid; max-height: 425px; overflow-y: auto; }
+.new-report-item { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 9px; padding: 10px 0; border-bottom: 1px solid #e4e9ef; color: inherit; text-decoration: none; }
+.new-report-item:last-child { border-bottom: 0; }
+.new-report-item:hover strong { color: #1769e0; }
+.new-report-item > i { display: grid; width: 26px; height: 26px; place-items: center; border-radius: 50%; color: #fff; background: #1769e0; font-size: 11px; }
+.new-report-item strong { display: block; color: #182f50; font-size: 12px; }
+.new-report-item span { display: block; margin-top: 2px; color: #6a7b91; font-size: 10px; line-height: 1.4; }
+.new-reports-empty { padding: 14px 0; color: #6a7b91; font-size: 12px; }
 .decision-snapshot-item { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 9px; padding: 11px 0; border-bottom: 1px solid #e4e9ef; color: inherit; text-decoration: none; }
 .decision-snapshot-item:last-child { border-bottom: 0; }
 .decision-snapshot-item:hover strong { color: #1769e0; }
@@ -160,25 +167,22 @@
         <div class="col-lg-3">
             <div class="analytics-card">
                 <div class="analytics-header">
-                    <div class="analytics-title"><i class="fas fa-list-check"></i> Decision Priorities</div>
+                    <div class="analytics-title"><i class="fas fa-inbox"></i> New Reports</div>
                 </div>
-                <div class="analytics-subtitle">Evidence requiring administrative attention</div>
-                <div class="decision-snapshot">
-                    @if($dashboardAnalytics['top_location'])
-                        <a class="decision-snapshot-item {{ $dashboardAnalytics['top_location']['risk'] >= 12 ? 'critical' : ($dashboardAnalytics['top_location']['risk'] >= 6 ? 'warning' : '') }}" href="{{ route('admin.analytics') }}#locationRiskTable"><i class="fas fa-location-dot"></i><div><strong>Prioritize {{ $dashboardAnalytics['top_location']['location'] }}</strong><span>Risk {{ $dashboardAnalytics['top_location']['risk'] }}: {{ $dashboardAnalytics['top_location']['open'] }} open and {{ $dashboardAnalytics['top_location']['hazards'] }} hazard report(s).</span></div></a>
-                    @endif
-                    @if($dashboardAnalytics['resolution_rate'] < $dashboardAnalytics['target_rate'])
-                        <a class="decision-snapshot-item warning" href="{{ route('admin.reports') }}"><i class="fas fa-gauge-high"></i><div><strong>Resolution is below target</strong><span>{{ number_format($dashboardAnalytics['resolution_rate'], 1) }}% resolved versus {{ $dashboardAnalytics['target_rate'] }}%. Review ageing open work.</span></div></a>
-                    @endif
-                    @if($dashboardAnalytics['top_category'])
-                        <a class="decision-snapshot-item" href="{{ route('admin.analytics') }}"><i class="fas fa-boxes-stacked"></i><div><strong>Plan for {{ $dashboardAnalytics['top_category']['category'] }}</strong><span>{{ $dashboardAnalytics['top_category']['total'] }} report(s), with {{ $dashboardAnalytics['top_category']['open'] }} still open.</span></div></a>
-                    @endif
-                    @if($dashboardAnalytics['hazards'] > 0)
-                        <a class="decision-snapshot-item critical" href="{{ route('admin.reports') }}"><i class="fas fa-shield-halved"></i><div><strong>Review safety hazards first</strong><span>{{ $dashboardAnalytics['hazards'] }} hazard-related report(s) require priority inspection.</span></div></a>
-                    @endif
-                    @if($dashboardAnalytics['total'] === 0)
-                        <div class="decision-snapshot-item"><i class="fas fa-circle-info"></i><div><strong>No report evidence yet</strong><span>Decision priorities will appear when reports are submitted.</span></div></div>
-                    @endif
+                <div class="analytics-subtitle">Latest reports waiting for assignment</div>
+                <div class="new-reports-list">
+                    @forelse($newReports as $report)
+                        <a class="new-report-item" href="{{ route('admin.reports', ['status' => 'Pending']) }}">
+                            <i class="fas {{ $report->is_safety_hazard ? 'fa-triangle-exclamation' : 'fa-screwdriver-wrench' }}"></i>
+                            <div>
+                                <strong>#{{ str_pad($report->id, 4, '0', STR_PAD_LEFT) }} · {{ $report->title ?: 'Untitled report' }}</strong>
+                                <span>{{ optional($report->category)->name ?: 'Uncategorized' }} · {{ $report->location ?: 'Location not specified' }}</span>
+                                <span>Reported {{ optional($report->created_at)->diffForHumans() }}</span>
+                            </div>
+                        </a>
+                    @empty
+                        <div class="new-reports-empty"><i class="fas fa-circle-check me-1"></i>No new reports waiting for assignment.</div>
+                    @endforelse
                 </div>
             </div>
         </div>

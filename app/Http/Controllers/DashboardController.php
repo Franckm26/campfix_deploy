@@ -64,6 +64,11 @@ class DashboardController extends Controller
             }
 
             $reports = $reportsQuery->get();
+            $newReports = $reports
+                ->filter(fn ($report) => strtolower((string) $report->status) === 'pending')
+                ->sortByDesc('created_at')
+                ->take(6)
+                ->values();
             $supportsReportCount = Report::supportsReportCount();
             $reportWeight = fn ($report) => $supportsReportCount ? max(1, (int) ($report->report_count ?? 1)) : 1;
             $totalReports = $reports->sum($reportWeight);
@@ -147,7 +152,8 @@ class DashboardController extends Controller
                 'user', 
                 'upcomingEventsList', 
                 'pendingEventsList',
-                'dashboardAnalytics'
+                'dashboardAnalytics',
+                'newReports'
             ));
         }
 
