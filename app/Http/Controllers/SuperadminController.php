@@ -49,12 +49,6 @@ class SuperadminController extends Controller
             ->groupBy('role')
             ->pluck('count', 'role');
 
-        // Recent superadmin activity
-        $recentActivity = SuperadminActivityLog::with('user')
-            ->orderBy('created_at', 'desc')
-            ->limit(15)
-            ->get();
-
         // Registration trend (last 6 months) — include superadmin
         $registrationTrend = collect(range(5, 0))->map(function ($i) use ($noScopes) {
             $date = now()->subMonths($i);
@@ -79,22 +73,13 @@ class SuperadminController extends Controller
             ];
         });
 
-        // All admins list (include superadmin)
-        $admins = $noScopes()
-            ->where('is_deleted', false)
-            ->whereIn('role', ['mis', 'school_admin', 'building_admin', 'academic_head', 'program_head', 'principal_assistant', 'superadmin'])
-            ->orderBy('role')
-            ->get();
-
         SuperadminActivityLog::log('dashboard_viewed', 'Superadmin dashboard accessed');
 
         return view('superadmin.dashboard', compact(
             'stats',
             'usersByRole',
-            'recentActivity',
             'registrationTrend',
-            'concernTrend',
-            'admins'
+            'concernTrend'
         ));
     }
 

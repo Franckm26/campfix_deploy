@@ -5,8 +5,10 @@
 @endsection
 
 @section('extra_styles')
+{{-- Load Chart.js because the dashboard creates charts in its scripts section. --}}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
+    /* Shared card rules keep dashboard summary tiles visually consistent. */
     .module-card {
         background: var(--sa-card);
         border: 1px solid var(--sa-border);
@@ -82,6 +84,7 @@
 @endsection
 
 @section('content')
+{{-- User, report, and event counts below are prepared by SuperadminController. --}}
 
 {{-- ── USERS MODULE ── --}}
 <div class="section-title"><i class="fas fa-users"></i> Users</div>
@@ -137,7 +140,7 @@
 </div>
 
 {{-- ── DAILY OPERATIONS ── --}}
-{{-- The All Concerns and Open Concerns cards are temporarily removed as requested. --}}
+{{-- All Concerns and Open Concerns are temporarily hidden; the remaining tiles still use $stats. --}}
 <div class="section-title"><i class="fas fa-clipboard-list"></i> Daily Operations</div>
 <div class="operations-grid">
     <a href="{{ route('superadmin.concerns', ['status'=>'Resolved']) }}" class="module-card green">
@@ -194,10 +197,10 @@
     </div>
 </div>
 
-{{-- ── Bottom Row: Role Breakdown + Admins + SA Activity ── --}}
+{{-- User distribution by role; fills the dashboard row now that the other panels are removed. --}}
 <div class="row g-3">
     {{-- Users by Role --}}
-    <div class="col-md-4">
+    <div class="col-12">
         <div class="sa-card h-100">
             <div style="font-size:13px;font-weight:600;color:var(--sa-text);margin-bottom:14px">
                 <i class="fas fa-chart-pie me-2" style="color:var(--sa-accent2)"></i>Users by Role
@@ -227,64 +230,14 @@
         </div>
     </div>
 
-    {{-- Admin Accounts --}}
-    <div class="col-md-4">
-        <div class="sa-card h-100">
-            <div style="font-size:13px;font-weight:600;color:var(--sa-text);margin-bottom:14px">
-                <i class="fas fa-user-shield me-2" style="color:var(--sa-warning)"></i>Admin Accounts
-            </div>
-            <div style="overflow-y:auto;max-height:300px">
-                @forelse($admins as $admin)
-                <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--sa-border)">
-                    <div class="sa-avatar" style="width:30px;height:30px;font-size:11px;flex-shrink:0">{{ strtoupper(substr($admin->name,0,1)) }}</div>
-                    <div style="flex:1;min-width:0">
-                        <div style="font-size:13px;font-weight:500;color:var(--sa-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ $admin->name }}</div>
-                        <div style="font-size:11px;color:var(--sa-muted)">{{ str_replace('_',' ',ucfirst($admin->role)) }}</div>
-                    </div>
-                    @if($admin->is_superadmin || $admin->role === 'superadmin')
-                        <span class="sa-badge sa-badge-purple" style="font-size:10px">SA</span>
-                    @endif
-                    <a href="{{ route('superadmin.users.edit', $admin->uuid) }}" style="color:var(--sa-muted);font-size:12px;text-decoration:none" title="Edit">
-                        <i class="fas fa-pen"></i>
-                    </a>
-                </div>
-                @empty
-                <p style="color:var(--sa-muted);font-size:13px">No admin accounts.</p>
-                @endforelse
-            </div>
-        </div>
-    </div>
 
-    {{-- Recent SA Activity --}}
-    <div class="col-md-4">
-        <div class="sa-card h-100">
-            <div style="font-size:13px;font-weight:600;color:var(--sa-text);margin-bottom:14px">
-                <i class="fas fa-eye-slash me-2" style="color:var(--sa-danger)"></i>Recent SA Activity
-                <span class="sa-badge sa-badge-red" style="font-size:10px;margin-left:6px">Private</span>
-            </div>
-            <div style="overflow-y:auto;max-height:280px">
-                @forelse($recentActivity as $log)
-                <div style="padding:8px 0;border-bottom:1px solid var(--sa-border)">
-                    <div style="font-size:12px;color:var(--sa-text)">{{ Str::limit($log->description, 65) }}</div>
-                    <div style="font-size:11px;color:var(--sa-muted);margin-top:2px">
-                        {{ $log->created_at->diffForHumans() }}
-                    </div>
-                </div>
-                @empty
-                <p style="color:var(--sa-muted);font-size:13px">No activity yet.</p>
-                @endforelse
-            </div>
-            <a href="{{ route('superadmin.superadmin-logs') }}" class="sa-btn sa-btn-ghost sa-btn-sm mt-3" style="width:100%;justify-content:center">
-                View All SA Logs
-            </a>
-        </div>
-    </div>
 </div>
 
 @endsection
 
 @section('scripts')
 <script>
+// Reuse common chart sizing and legend settings for both dashboard charts.
 const chartDefaults = {
     responsive: true,
     plugins: { legend: { display: false } },
@@ -295,6 +248,7 @@ const chartDefaults = {
 };
 
 function getChartColors() {
+    // Adjust grid and label contrast to match the active light/dark dashboard theme.
     const isLight = document.documentElement.getAttribute('data-theme') === 'light';
     return {
         grid: isLight ? 'rgba(0,0,0,.06)' : 'rgba(255,255,255,.05)',
@@ -303,6 +257,7 @@ function getChartColors() {
 }
 
 function makeOpts() {
+    // Build fresh options so each chart uses colors for the current theme.
     const c = getChartColors();
     return {
         responsive: true,
@@ -314,6 +269,7 @@ function makeOpts() {
     };
 }
 
+// Convert controller-provided monthly aggregates into the arrays Chart.js expects.
 const regData = @json($registrationTrend);
 const regChart = new Chart(document.getElementById('regChart'), {
     type: 'bar',
