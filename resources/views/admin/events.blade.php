@@ -139,8 +139,8 @@
 @endsection
 
 @section('page_title')
-<h2><i class="fas fa-calendar-alt"></i> Event Requests</h2>
-<p>Manage all event requests</p>
+<h2><i class="fas fa-calendar-alt"></i> Facility Requests</h2>
+<p>Manage all facility requests</p>
 @endsection
 
 @section('content')
@@ -382,7 +382,7 @@
                             <div class="modal-dialog modal-lg modal-dialog-centered">
                                 <div class="modal-content">
                                     <div class="modal-header">
-                                        <h5 class="modal-title">Event Request Details</h5>
+                                        <h5 class="modal-title">Facility Request Details</h5>
                                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                     </div>
                                     <div class="modal-body">
@@ -525,8 +525,8 @@
         <div class="card">
             <div class="card-body text-center py-5">
                 <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
-                <h4 class="text-muted">No event requests found</h4>
-                <p>There are no event requests matching your filters.</p>
+                <h4 class="text-muted">No facility requests found</h4>
+                <p>There are no facility requests matching your filters.</p>
                 <a href="{{ route($eventsIndexRoute) }}" class="btn btn-primary">View All Requests</a>
             </div>
         </div>
@@ -590,7 +590,7 @@
                                     <div class="modal-dialog modal-lg modal-dialog-centered">
                                         <div class="modal-content">
                                             <div class="modal-header">
-                                                <h5 class="modal-title">Event Request Details</h5>
+                                                <h5 class="modal-title">Facility Request Details</h5>
                                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                             </div>
                                             <div class="modal-body">
@@ -730,7 +730,7 @@
                                     <div class="modal-dialog modal-lg modal-dialog-centered">
                                         <div class="modal-content">
                                             <div class="modal-header">
-                                                <h5 class="modal-title">Event Request Details</h5>
+                                                <h5 class="modal-title">Facility Request Details</h5>
                                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                             </div>
                                             <div class="modal-body">
@@ -872,7 +872,7 @@
                                     <div class="modal-dialog modal-lg modal-dialog-centered">
                                         <div class="modal-content">
                                             <div class="modal-header">
-                                                <h5 class="modal-title">Event Request Details</h5>
+                                                <h5 class="modal-title">Facility Request Details</h5>
                                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                             </div>
                                             <div class="modal-body">
@@ -958,7 +958,7 @@
                 <div class="text-center py-5">
                     <i class="fas fa-times-circle fa-3x text-muted mb-3"></i>
                     <h5 class="text-muted">No rejected events</h5>
-                    <p class="text-muted">Rejected event requests will appear here.</p>
+                    <p class="text-muted">Rejected facility requests will appear here.</p>
                 </div>
             @endif
         </div>
@@ -1032,7 +1032,7 @@
                                             <div class="modal-dialog modal-lg modal-dialog-centered">
                                                 <div class="modal-content">
                                                     <div class="modal-header">
-                                                        <h5 class="modal-title">Event Request Details</h5>
+                                                        <h5 class="modal-title">Facility Request Details</h5>
                                                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                                     </div>
                                                     <div class="modal-body">
@@ -1333,7 +1333,7 @@
                                     <div class="modal-dialog modal-lg modal-dialog-centered">
                                         <div class="modal-content">
                                             <div class="modal-header">
-                                                <h5 class="modal-title">Event Request Details</h5>
+                                                <h5 class="modal-title">Facility Request Details</h5>
                                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                             </div>
                                             <div class="modal-body">
@@ -1567,7 +1567,7 @@ function showDeleteEventModal(eventId) {
 function approveEvent(eventId) {
     confirmApprove({
         title: 'Approve Event?',
-        text: 'This event request will be approved and the requestor will be notified.',
+        text: 'This facility request will be approved and the requestor will be notified.',
         confirmButtonText: '<i class="fas fa-check me-1"></i> Approve'
     }).then(result => {
         if (result.isConfirmed) {
@@ -1599,7 +1599,7 @@ function approveEvent(eventId) {
 function rejectEvent(eventId) {
     confirmReject({
         title: 'Reject Event?',
-        text: 'This event request will be rejected and the requestor will be notified.',
+        text: 'This facility request will be rejected and the requestor will be notified.',
         confirmButtonText: '<i class="fas fa-times me-1"></i> Reject'
     }).then(result => {
         if (result.isConfirmed) {

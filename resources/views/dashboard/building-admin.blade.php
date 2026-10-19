@@ -262,10 +262,10 @@
                             <i class="fas fa-chart-line me-2"></i> Analytics
                         </a>
                         <a href="{{ route('admin.events') }}" class="btn btn-outline-warning btn-sm text-start">
-                            <i class="fas fa-calendar-alt me-2"></i> Events
+                            <i class="fas fa-calendar-alt me-2"></i> Facilities
                         </a>
                         <a href="{{ route('events.my') }}" class="btn btn-outline-success btn-sm text-start">
-                            <i class="fas fa-calendar me-2"></i> My Events
+                            <i class="fas fa-calendar me-2"></i> Request
                         </a>
                         <a href="{{ route('events.calendar') }}" class="btn btn-outline-success btn-sm text-start">
                             <i class="fas fa-calendar-check me-2"></i> Upcoming Events
@@ -283,7 +283,7 @@
     </div>
 </div>
 
-<!-- Event Request Modal is defined in layouts/app.blade.php and reused here -->
+<!-- Facility Request Modal is defined in layouts/app.blade.php and reused here -->
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

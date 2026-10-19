@@ -344,18 +344,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 <i class="fas fa-clipboard-list"></i> {{ app()->getLocale() === 'tl' ? 'Aking Mga Concern' : 'My Concerns' }}
             </a>
 
-            {{-- Only show My Events for faculty users --}}
+            {{-- Only show Request for faculty users --}}
             @if(auth()->user()->role === 'faculty' && auth()->user()->canAccess('events'))
                 {{-- Events dropdown --}}
                 <div class="nav-dropdown {{ Request::is('my-events') || Request::is('events-calendar') ? 'open' : '' }}">
                     <a href="#" class="nav-dropdown-toggle {{ Request::is('my-events') || Request::is('events-calendar') ? 'active' : '' }}"
                        data-nav-toggle style="padding-top:8px;padding-bottom:8px;">
-                        <i class="fas fa-calendar-alt"></i> {{ app()->getLocale() === 'tl' ? 'Mga Event' : 'Events' }}
+                        <i class="fas fa-calendar-alt"></i> Facilities
                         <i class="fas fa-chevron-down nav-dropdown-arrow ms-auto"></i>
                     </a>
                     <div class="nav-dropdown-menu">
                         <a href="{{ route('events.my') }}" class="{{ Request::is('my-events') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
-                            <i class="fas fa-calendar me-1"></i> My Events
+                            <i class="fas fa-calendar me-1"></i> Request
                         </a>
                         <a href="{{ route('events.calendar') }}" class="{{ Request::is('events-calendar') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
                             <i class="fas fa-calendar-check me-1"></i> Upcoming Events
@@ -403,7 +403,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="nav-dropdown {{ Request::is('my-events') || Request::is('events-calendar*') || Request::is('admin/events*') || Request::is('system-admin/events*') ? 'open' : '' }}">
                 <a href="#" class="nav-dropdown-toggle {{ Request::is('my-events') || Request::is('events-calendar*') || Request::is('admin/events*') || Request::is('system-admin/events*') ? 'active' : '' }}"
                    data-nav-toggle style="padding-top:8px;padding-bottom:8px;">
-                    <i class="fas fa-calendar-alt"></i> Events
+                    <i class="fas fa-calendar-alt"></i> Facilities
                     <i class="fas fa-chevron-down nav-dropdown-arrow ms-auto"></i>
                 </a>
                 <div class="nav-dropdown-menu">
@@ -411,7 +411,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <i class="fas fa-calendar-alt me-1"></i> Pending Approval
                     </a>
                     <a href="{{ route('events.my') }}" class="{{ Request::is('my-events') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
-                        <i class="fas fa-calendar me-1"></i> My Events
+                        <i class="fas fa-calendar me-1"></i> Request
                     </a>
                     <a href="{{ route('events.calendar') }}" class="{{ Request::is('events-calendar*') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
                         <i class="fas fa-calendar-check me-1"></i> Upcoming Events
@@ -445,7 +445,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="nav-dropdown {{ Request::is('my-events') || Request::is('events-calendar') || Request::is('building-admin/events') ? 'open' : '' }}">
                 <a href="#" class="nav-dropdown-toggle {{ Request::is('my-events') || Request::is('events-calendar') || Request::is('building-admin/events') ? 'active' : '' }}"
                    data-nav-toggle style="padding-top:8px;padding-bottom:8px;">
-                    <i class="fas fa-calendar-alt"></i> {{ app()->getLocale() === 'tl' ? 'Mga Event' : 'Events' }}
+                    <i class="fas fa-calendar-alt"></i> Facilities
                     <i class="fas fa-chevron-down nav-dropdown-arrow ms-auto"></i>
                 </a>
                 <div class="nav-dropdown-menu">
@@ -454,7 +454,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </a>
                     @if(auth()->user()->canAccess('events'))
                         <a href="{{ route('events.my') }}" class="{{ Request::is('my-events') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
-                            <i class="fas fa-calendar me-1"></i> My Events
+                            <i class="fas fa-calendar me-1"></i> Request
                         </a>
                         <a href="{{ route('events.calendar') }}" class="{{ Request::is('events-calendar') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
                             <i class="fas fa-calendar-check me-1"></i> Upcoming Events
@@ -482,7 +482,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="nav-dropdown {{ Request::is('my-events') || Request::is('events-calendar') || Request::is("{$roleSlug}/events") ? 'open' : '' }}">
                 <a href="#" class="nav-dropdown-toggle {{ Request::is('my-events') || Request::is('events-calendar') || Request::is("{$roleSlug}/events") ? 'active' : '' }}"
                    data-nav-toggle style="padding-top:8px;padding-bottom:8px;">
-                    <i class="fas fa-calendar-alt"></i> {{ app()->getLocale() === 'tl' ? 'Mga Event' : 'Events' }}
+                    <i class="fas fa-calendar-alt"></i> Facilities
                     <i class="fas fa-chevron-down nav-dropdown-arrow ms-auto"></i>
                 </a>
                 <div class="nav-dropdown-menu">
@@ -491,7 +491,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </a>
                     @if(auth()->user()->canAccess('events'))
                         <a href="{{ route('events.my') }}" class="{{ Request::is('my-events') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
-                            <i class="fas fa-calendar me-1"></i> My Events
+                            <i class="fas fa-calendar me-1"></i> Request
                         </a>
                         <a href="{{ route('events.calendar') }}" class="{{ Request::is('events-calendar') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
                             <i class="fas fa-calendar-check me-1"></i> Upcoming Events
@@ -661,12 +661,12 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 @if($showEventRequestModal ?? false)
-<!-- Event Request Modal for Faculty -->
+<!-- Facility Request Modal for Faculty -->
 <div class="modal fade" id="eventRequestModal" tabindex="-1" aria-labelledby="eventRequestModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="eventRequestModalLabel"><i class="fas fa-calendar-plus"></i> {{ app()->getLocale() === 'tl' ? 'Magsumite ng Event Request' : 'Submit Event Request' }}</h5>
+                <h5 class="modal-title" id="eventRequestModalLabel"><i class="fas fa-calendar-plus"></i> {{ app()->getLocale() === 'tl' ? 'Magsumite ng Facility Request' : 'Submit Facility Request' }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="eventRequestForm" action="{{ route('events.store') }}" method="POST" enctype="multipart/form-data">
@@ -819,7 +819,7 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="eventPreviewModalLabel"><i class="fas fa-eye"></i> {{ app()->getLocale() === 'tl' ? 'Preview ng Event Request' : 'Event Request Preview' }}</h5>
+                <h5 class="modal-title" id="eventPreviewModalLabel"><i class="fas fa-eye"></i> {{ app()->getLocale() === 'tl' ? 'Preview ng Facility Request' : 'Facility Request Preview' }}</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -882,7 +882,7 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 <script>
-// Event Request Form Script v2.0 - Updated 2026-06-01
+// Facility Request Form Script v2.0 - Updated 2026-06-01
 // Define updateDescCount globally so it's available for inline oninput handlers
 window.updateDescCount = function() {
     var ta = document.getElementById('modal_description');
@@ -1387,7 +1387,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Validation function for event request form
+    // Validation function for facility request form
     function validateEventRequestForm() {
         // Clear previous errors
         clearValidationErrors();

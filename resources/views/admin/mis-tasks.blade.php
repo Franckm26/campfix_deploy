@@ -408,7 +408,7 @@ function viewConcern(id) {
         }
 
         const htmlContent = `
-            <div style="text-align: left; max-height: 70vh; overflow-y: auto; padding: 10px;">
+            <div style="text-align: left; max-height: 70vh; overflow-y: auto; overflow-x: hidden; overflow-wrap: anywhere; padding: 10px;">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="mb-0">${concern.title || 'No Title'}</h5>
                     <div>

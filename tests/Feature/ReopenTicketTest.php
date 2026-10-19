@@ -65,6 +65,19 @@ class ReopenTicketTest extends TestCase
                 }
                 $table->string('title');
                 $table->text('description')->nullable();
+                $table->text('details')->nullable();
+                $table->string('reporter_name')->nullable();
+                $table->boolean('is_anonymous')->default(false);
+                $table->unsignedInteger('report_count')->default(1);
+                $table->string('image_path')->nullable();
+                $table->string('photo_path')->nullable();
+                $table->decimal('budget_amount')->nullable();
+                $table->string('budget_status')->nullable();
+                $table->unsignedBigInteger('budget_requested_by')->nullable();
+                $table->unsignedBigInteger('budget_reviewed_by')->nullable();
+                $table->timestamp('budget_requested_at')->nullable();
+                $table->timestamp('budget_reviewed_at')->nullable();
+                $table->text('budget_rejection_reason')->nullable();
                 $table->string('location')->nullable();
                 $table->string('priority')->nullable();
                 $table->string('status');
@@ -316,7 +329,7 @@ class ReopenTicketTest extends TestCase
             foreach ([route('reports.api.show', $this->report), route('concerns.modalData', $this->concern->id)] as $url) {
                 $response = $this->actingAs($viewer)->getJson($url)->assertOk();
                 $ticket = $response->json('report') ?? $response->json('concern');
-                $this->assertStringContainsString('Past records', $ticket['history_html']);
+                $this->assertStringContainsString('>History</h5>', $ticket['history_html']);
                 $this->assertStringContainsString('Replaced cable', $ticket['history_html']);
                 $this->assertStringContainsString('Cable failed again', $ticket['history_html']);
                 $this->assertStringContainsString('PHP 150.00', $ticket['history_html']);
@@ -384,6 +397,77 @@ class ReopenTicketTest extends TestCase
         $this->assertStringContainsString('Latest resolution', $html);
         $this->assertStringContainsString('Replaced cable', $html);
         $this->assertStringNotContainsString('Reason for reopening:', $html);
+        $this->actingAs($this->mis)->getJson(route('reports.api.show', $this->report))->assertOk();
+        $this->getJson(route('concerns.modalData', $this->concern->id))->assertOk();
+    }
+
+    public function test_history_preserves_the_full_ticket_details_when_later_edits_change_them(): void
+    {
+        foreach ([$this->concern, $this->report] as $ticket) {
+            $ticket->update([
+                'description' => 'Original cable problem', 'details' => 'Desk 12 has no internet',
+                'priority' => 'high', 'report_count' => 3,
+                'budget_amount' => 150, 'budget_status' => 'approved',
+                'budget_requested_by' => $this->mis->id, 'budget_reviewed_by' => $this->mis->id,
+                'budget_requested_at' => now()->subDays(2), 'budget_reviewed_at' => now()->subDay(),
+                'damaged_part' => 'Old network cable', 'replaced_part' => 'CAT6 cable',
+            ]);
+        }
+        $this->concern->update(['image_path' => 'concerns/original-photo.jpg']);
+        $this->actingAs($this->reporter)->postJson(route('concerns.reopen', $this->concern), ['reason' => 'Connection failed again'])->assertOk();
+        foreach ([$this->concern, $this->report] as $ticket) {
+            $ticket->refresh()->update(['title' => 'Updated title', 'description' => 'New description', 'details' => 'New details', 'location' => 'Room 999', 'priority' => 'low']);
+        }
+        $this->mis->update(['name' => 'Renamed MIS account']);
+        foreach ([$this->concern, $this->report] as $ticket) {
+            $html = app(\App\Services\TicketHistoryService::class)->renderFor($ticket->fresh(), $this->mis);
+            foreach (['Internet unavailable', 'Original cable problem', 'Desk 12 has no internet', 'Room 301',
+                'Technology/Internet', 'CAT6 cable', 'Old network cable', 'High', 'Approved', 'PHP 150.00',
+                'Date submitted:', 'Work started:', 'Report count:', 'student', 'original-photo.jpg'] as $text) {
+                $this->assertStringContainsString($text, $html);
+            }
+            $this->assertStringNotContainsString('Updated title', $html);
+            $this->assertStringNotContainsString('New description', $html);
+            $this->assertStringNotContainsString('Room 999', $html);
+            $this->assertStringNotContainsString('Renamed MIS account', $html);
+            $this->assertStringNotContainsString('Original ticket details were not recorded', $html);
+        }
+    }
+
+    public function test_history_uses_the_report_assignment_and_supports_legacy_staff_assignments(): void
+    {
+        $this->concern->update(['assigned_to' => null]);
+        $html = app(\App\Services\TicketHistoryService::class)->renderFor($this->report->fresh(), $this->mis);
+        $this->assertStringContainsString('Assigned to:</strong> mis', $html);
+        \App\Models\MaintenanceStaff::create(['name' => 'Legacy technician', 'email' => 'tech@example.com']);
+        $staff = \App\Models\MaintenanceStaff::first();
+        $this->report->update(['assigned_to' => $staff->id + 100]);
+        $staff->id += 100;
+        $staff->save();
+        $html = app(\App\Services\TicketHistoryService::class)->renderFor($this->report->fresh(), $this->mis);
+        $this->assertStringContainsString('Legacy technician', $html);
+    }
+
+    public function test_older_history_entries_show_a_clear_notice_and_the_saved_repair_details(): void
+    {
+        ActivityLog::create([
+            'action' => 'concern_reopened', 'concern_id' => $this->concern->id,
+            'description' => 'Old reopening', 'old_values' => ['resolution_notes' => 'Earlier repair', 'assigned_to' => $this->mis->id],
+        ]);
+        $this->concern->update(['status' => 'Assigned', 'resolution_notes' => null]);
+        $html = app(\App\Services\TicketHistoryService::class)->renderFor($this->concern->fresh(), $this->mis);
+        $this->assertStringContainsString('Original ticket details were not recorded', $html);
+        $this->assertStringContainsString('Earlier repair', $html);
+        $this->assertStringContainsString('Internet unavailable', $html);
+    }
+
+    public function test_anonymous_reporter_identity_remains_hidden_in_full_history(): void
+    {
+        $this->concern->update(['is_anonymous' => true]);
+        $this->actingAs($this->reporter)->postJson(route('concerns.reopen', $this->concern), ['reason' => 'Still broken'])->assertOk();
+        $html = app(\App\Services\TicketHistoryService::class)->renderFor($this->concern->fresh(), $this->mis);
+        $this->assertStringContainsString('Reported by:</strong> Anonymous', $html);
+        $this->assertStringNotContainsString($this->reporter->email, $html);
     }
 
     private function user(string $role): User

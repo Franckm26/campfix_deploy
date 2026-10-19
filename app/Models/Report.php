@@ -93,6 +93,7 @@ class Report extends Model
         'mis_deleted' => 'boolean',
         'maintenance_deleted' => 'boolean',
         'assigned_at' => 'datetime',
+        'in_progress_at' => 'datetime',
         'resolved_at' => 'datetime',
         'auto_delete_at' => 'datetime',
         'cost' => 'decimal:2',

@@ -41,7 +41,7 @@ class ReopenTicketService
             $assignee = $primary->assigned_to ?: $reports->first()?->assigned_to;
             $status = $assignee ? 'Assigned' : 'Pending';
             foreach ($records as $record) {
-                $old = $record->only(['status', 'resolved_at', 'resolution_notes', 'cost', 'damaged_part', 'replaced_part', 'assigned_to', 'assigned_at', 'in_progress_at']);
+                $old = app(TicketHistoryService::class)->snapshot($record);
                 $record->status = $status;
                 $record->assigned_to = $assignee;
                 $record->assigned_at = $assignee ? now() : null;
@@ -66,7 +66,7 @@ class ReopenTicketService
 
                 $type = $record instanceof Concern ? 'concern' : 'report';
                 ActivityLog::log($type.'_reopened', 'Ticket reopened: '.$reason, $record->id, $type,
-                    $old, $record->only(array_keys($old)), ['reason' => $reason]);
+                    $old, app(TicketHistoryService::class)->snapshot($record), ['reason' => $reason]);
             }
 
             DB::afterCommit(function () use ($primary, $records, $actor, $reason) {

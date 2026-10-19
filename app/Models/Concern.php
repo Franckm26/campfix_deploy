@@ -98,6 +98,7 @@ class Concern extends Model
         'follow_up_sent' => 'boolean',
         'resolved_at' => 'datetime',
         'assigned_at' => 'datetime',
+        'in_progress_at' => 'datetime',
         'follow_up_sent_at' => 'datetime',
         'archived_at' => 'datetime',
         'deleted_at' => 'datetime',

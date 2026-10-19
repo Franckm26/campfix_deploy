@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Event Request - {{ $eventRequest->location }}</title>
+    <title>Facility Request - {{ $eventRequest->location }}</title>
     <style>
         * {
             margin: 0;
@@ -312,7 +312,7 @@
 
         <!-- Title -->
         <div class="header">
-            <h2>EVENT REQUEST FORM</h2>
+            <h2>FACILITY REQUEST FORM</h2>
         </div>
 
         <!-- Request Details Table -->

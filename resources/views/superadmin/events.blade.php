@@ -1,6 +1,6 @@
 @extends('superadmin.layout')
 
-@section('page_title', 'All Event Requests')
+@section('page_title', 'All Facility Requests')
 
 @section('content')
 
@@ -32,7 +32,7 @@
 
 <div class="sa-card">
     <div style="font-size:13px;color:var(--sa-muted);margin-bottom:12px">
-        Showing {{ $events->firstItem() }}–{{ $events->lastItem() }} of {{ $events->total() }} event requests
+        Showing {{ $events->firstItem() }}–{{ $events->lastItem() }} of {{ $events->total() }} facility requests
     </div>
     <div style="overflow-x:auto">
         <table class="sa-table">
@@ -75,7 +75,7 @@
                     <td style="color:var(--sa-muted);font-size:12px">{{ $event->created_at->format('m/d/Y') }}</td>
                     <td>
                         <form method="POST" action="{{ route('superadmin.events.force-delete', $event->id) }}"
-                              onsubmit="return confirm('Permanently delete this event request? Cannot be undone.')">
+                              onsubmit="return confirm('Permanently delete this facility request? Cannot be undone.')">
                             @csrf @method('DELETE')
                             <button type="submit" class="sa-btn sa-btn-danger sa-btn-sm" title="Force Delete">
                                 <i class="fas fa-trash"></i>
@@ -85,7 +85,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="7" style="text-align:center;color:var(--sa-muted);padding:32px">No event requests found.</td>
+                    <td colspan="7" style="text-align:center;color:var(--sa-muted);padding:32px">No facility requests found.</td>
                 </tr>
                 @endforelse
             </tbody>
@@ -114,7 +114,7 @@
     <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="newRequestModalLabel"><i class="fas fa-calendar-plus"></i> Submit Event Request</h5>
+                <h5 class="modal-title" id="newRequestModalLabel"><i class="fas fa-calendar-plus"></i> Submit Facility Request</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="newRequestForm" action="{{ route('events.store') }}" method="POST" enctype="multipart/form-data">
@@ -255,7 +255,7 @@
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title"><i class="fas fa-eye"></i> Event Request Preview</h5>
+                <h5 class="modal-title"><i class="fas fa-eye"></i> Facility Request Preview</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">

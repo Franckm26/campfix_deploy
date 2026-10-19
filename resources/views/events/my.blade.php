@@ -8,7 +8,7 @@
     display: none;
 }
 
-/* Mobile Card Layout for Event Requests */
+/* Mobile Card Layout for Facility Requests */
 @media screen and (max-width: 768px) {
     /* Hide table on mobile */
     .card-body .table-responsive {
@@ -115,7 +115,7 @@
 @endsection
 
 @section('page_title')
-<h2>My Event Requests</h2>
+<h2>Request</h2>
 @endsection
 
 @section('content')
@@ -462,9 +462,9 @@
 
                     @else
                         <div class="text-center py-5">
-                            <h4 class="text-muted">No active event requests</h4>
-                            <p>Submit your first event request</p>
-                            <a href="{{ route('events.create') }}" class="btn btn-primary">Create Event Request</a>
+                            <h4 class="text-muted">No active facility requests</h4>
+                            <p>Submit your first facility request</p>
+                            <a href="{{ route('events.create') }}" class="btn btn-primary">Create Facility Request</a>
                         </div>
                     @endif
                 </div>
@@ -1021,7 +1021,7 @@
 
                     @else
                         <div class="text-center py-5">
-                            <h4 class="text-muted">No archived event requests</h4>
+                            <h4 class="text-muted">No archived facility requests</h4>
                         </div>
                     @endif
                 </div>
@@ -1227,7 +1227,7 @@
 
                     @else
                         <div class="text-center py-5">
-                            <h4 class="text-muted">No deleted event requests</h4>
+                            <h4 class="text-muted">No deleted facility requests</h4>
                         </div>
                     @endif
                 </div>
@@ -1241,7 +1241,7 @@
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="viewEventModalLabel">Event Request Details</h5>
+                <h5 class="modal-title" id="viewEventModalLabel">Facility Request Details</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" id="viewEventContent">
@@ -1263,7 +1263,7 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="eventArchiveModalLabel">Archive Event Request</h5>
+                <h5 class="modal-title" id="eventArchiveModalLabel">Archive Facility Request</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="eventArchiveForm" method="POST">
@@ -1271,7 +1271,7 @@
                 <div class="modal-body">
                     <input type="hidden" id="archiveEventId" name="event_id" value="">
                     <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle"></i> This event request will be archived and hidden from your active list.
+                        <i class="fas fa-exclamation-triangle"></i> This facility request will be archived and hidden from your active list.
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -2040,7 +2040,7 @@ function updateDeletedBulkActions() {
 
 function cancelEventRequest(eventId) {
     Swal.fire({
-        title: 'Cancel event request?',
+        title: 'Cancel facility request?',
         input: 'textarea',
         inputLabel: 'Reason (optional)',
         inputPlaceholder: 'Tell the approvers why this request is being cancelled…',
@@ -2062,7 +2062,7 @@ function cancelEventRequest(eventId) {
 
 function rescheduleEventRequest(eventId) {
     Swal.fire({
-        title: 'Reschedule event request',
+        title: 'Reschedule facility request',
         html: `<input id="rescheduleDate" type="date" class="swal2-input" aria-label="New event date"><input id="rescheduleStart" type="time" class="swal2-input" aria-label="New start time"><input id="rescheduleEnd" type="time" class="swal2-input" aria-label="New end time"><textarea id="rescheduleReason" class="swal2-textarea" placeholder="Reason (optional)"></textarea>`,
         showCancelButton: true,
         confirmButtonText: 'Submit for approval',
