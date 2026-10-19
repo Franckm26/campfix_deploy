@@ -652,6 +652,10 @@ class AdminController extends Controller
             $oldStatus = $report->status;
             $newStatus = $request->input('status');
 
+            if ($oldStatus === 'Resolved' && $newStatus !== 'Resolved') {
+                return response()->json(['error' => 'The original reporter must use Reopen and provide a reason.'], 422);
+            }
+
             if ($newStatus === 'Resolved'
                 && $oldStatus !== 'Resolved'
                 && $report->hasUnapprovedBudgetRequest()) {
@@ -805,6 +809,12 @@ class AdminController extends Controller
         }
 
         // Get the maintenance staff member
+        if ($concern->status === 'Resolved') {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'status' => 'The original reporter must reopen this concern before it can be assigned.',
+            ]);
+        }
+
         $maintenanceStaff = \App\Models\MaintenanceStaff::findOrFail($request->input('assigned_to'));
 
         // Update the concern - use maintenance_staff.id directly
@@ -8509,7 +8519,7 @@ class AdminController extends Controller
             'Pending' => ['Assigned', 'In Progress', 'Resolved', 'Closed'],
             'Assigned' => ['In Progress', 'Resolved', 'Closed'],
             'In Progress' => ['Resolved', 'Closed'],
-            'Resolved' => ['Closed'], // Allow reopening if needed
+            'Resolved' => ['Closed'], // Reopening requires the original reporter and a reason.
             'Closed' => [], // Final state, no transitions allowed
         ];
 

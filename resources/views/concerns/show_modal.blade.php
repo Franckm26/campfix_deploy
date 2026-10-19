@@ -3,6 +3,7 @@
     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
 </div>
 <div class="modal-body">
+    @include('partials.reopen-ticket', ['ticket' => $concern, 'context' => 'modal'])
     <div class="card border-0">
         <div class="card-header bg-light">
             <div class="d-flex justify-content-between align-items-center">

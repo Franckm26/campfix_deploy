@@ -17,6 +17,7 @@
                     </div>
                 </div>
                 <div class="card-body">
+                    @include('partials.reopen-ticket', ['ticket' => $report])
                      <div class="row mb-3">
                         <div class="col-md-6">
                             <p><strong>Title:</strong> {{ $report->title }}</p>

@@ -861,6 +861,12 @@ class ConcernController extends Controller
                 : back()->with('error', $message);
         }
 
+        if ($concern->status === 'Resolved' && in_array($request->input('status'), ['Pending', 'Assigned', 'In Progress'], true)) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'status' => 'The original reporter must use Reopen and provide a reason.',
+            ]);
+        }
+
         // Handle image upload
         $imagePath = $concern->image_path;
         if ($request->hasFile('image')) {
@@ -2266,6 +2272,12 @@ class ConcernController extends Controller
         }
 
         // Get the maintenance staff member
+        if ($concern->status === 'Resolved') {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'status' => 'The original reporter must reopen this concern before it can be assigned.',
+            ]);
+        }
+
         $maintenanceStaff = \App\Models\MaintenanceStaff::findOrFail($request->assigned_to);
 
         // Update the concern

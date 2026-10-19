@@ -37,6 +37,12 @@ class AutoResolveRoomsConcerns extends Command
         })
             ->whereNotIn('status', [Concern::STATUS_RESOLVED, Concern::STATUS_CLOSED])
             ->where('created_at', '<=', $resolutionTime->copy()->subMinutes(10))
+            // A reporter disputed the resolution; staff must resolve the reopened issue.
+            ->whereNotExists(function ($query) {
+                $query->selectRaw('1')->from('activity_logs')
+                    ->whereColumn('activity_logs.concern_id', 'concerns.id')
+                    ->where('activity_logs.action', 'concern_reopened');
+            })
             ->get();
 
         foreach ($concerns as $concern) {

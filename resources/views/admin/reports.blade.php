@@ -403,6 +403,7 @@
                                         <td>{{ $report->created_at->format('m/d/Y') }}</td>
                                         <td>{{ $report->resolved_at ? $report->resolved_at->format('M d, Y g:i A') : '-' }}</td>
                                         <td>
+                                            @include('partials.reopen-ticket', ['ticket' => $report, 'context' => 'admin-table'])
                                             <div class="btn-group" role="group">
                                                 <button type="button" class="btn btn-sm btn-info" onclick="viewReport({{ $report->id }})" title="View">
                                                     <i class="fas fa-eye"></i>

@@ -674,6 +674,7 @@
                                                     </button>
                                                     @endif
                                                 </div>
+                                                @include('partials.reopen-ticket', ['ticket' => $concern, 'context' => 'table'])
                                             </td>
                                         </tr>
                                     @endforeach
@@ -754,6 +755,7 @@
                                         </button>
                                         @endif
                                     </div>
+                                    @include('partials.reopen-ticket', ['ticket' => $concern, 'context' => 'mobile'])
                                 </div>
                             @endforeach
                         </div>

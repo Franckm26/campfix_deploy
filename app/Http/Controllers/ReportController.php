@@ -94,11 +94,11 @@ class ReportController extends Controller
         $isSharedRoomsReport = $user->role === 'maintenance'
             && strtolower(trim($report->category->name ?? '')) === 'rooms';
 
-        if (! $isAdmin && ! $isAssigned && ! $isSharedRoomsReport) {
+        if (! $isAdmin && ! $isAssigned && ! $isSharedRoomsReport && $report->user_id !== $user->id) {
             abort(403, 'Unauthorized');
         }
 
-        if ($isAdmin && ! request()->ajax()) {
+        if ($isAdmin && $report->user_id !== $user->id && ! request()->ajax()) {
             return redirect()->route('admin.reports', [
                 'view' => $report->status === 'Resolved' ? 'resolved' : 'active',
                 'open_report' => $report->id,
@@ -579,6 +579,10 @@ class ReportController extends Controller
 
         $oldStatus = $report->status;
         $newStatus = $request->status;
+
+        if ($oldStatus === 'Resolved' && $newStatus !== 'Resolved') {
+            return response()->json(['error' => 'The original reporter must use Reopen and provide a reason.'], 422);
+        }
 
         if ($newStatus === 'Resolved'
             && $oldStatus !== 'Resolved'

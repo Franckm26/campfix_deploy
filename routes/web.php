@@ -265,6 +265,8 @@ Route::middleware(['auth', 'throttle:web'])->group(function () {
 
 /* MAINTENANCE - Update status routes */
 Route::middleware(['auth', 'throttle:status-updates'])->group(function () {
+    Route::post('/concerns/{concern}/reopen', [\App\Http\Controllers\ReopenTicketController::class, 'concern'])->name('concerns.reopen');
+    Route::post('/reports/{report}/reopen', [\App\Http\Controllers\ReopenTicketController::class, 'report'])->name('reports.reopen');
     // Update status for assigned concerns
     Route::post('/update-status/{id}', [AdminController::class, 'updateStatus'])->name('admin.updateStatus');
 
