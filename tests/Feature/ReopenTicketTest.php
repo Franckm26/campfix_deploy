@@ -29,7 +29,7 @@ class ReopenTicketTest extends TestCase
     {
         parent::setUp();
         // Match other workflow tests: isolate this feature from legacy migration ordering.
-        foreach (['users', 'categories', 'concerns', 'reports', 'activity_logs', 'concern_reporters', 'user_archived_reports', 'user_archived_concerns'] as $table) {
+        foreach (['users', 'categories', 'concerns', 'reports', 'activity_logs', 'concern_reporters', 'user_archived_reports', 'user_archived_concerns', 'maintenance_staff'] as $table) {
             Schema::dropIfExists($table);
         }
         Schema::create('users', function (Blueprint $table) {
@@ -46,6 +46,13 @@ class ReopenTicketTest extends TestCase
         Schema::create('categories', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            $table->timestamps();
+        });
+        Schema::create('maintenance_staff', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('email')->nullable();
+            $table->softDeletes();
             $table->timestamps();
         });
         foreach (['concerns', 'reports'] as $name) {
@@ -300,6 +307,83 @@ class ReopenTicketTest extends TestCase
         $this->assertNotNull($this->report->fresh()->resolved_at);
         $log = ActivityLog::where('action', 'report_reopened')->firstOrFail();
         $this->assertEquals(150, $log->old_values['cost']);
+    }
+
+    public function test_operational_roles_can_scroll_to_previous_records_from_both_detail_endpoints(): void
+    {
+        $this->actingAs($this->reporter)->postJson(route('concerns.reopen', $this->concern), ['reason' => 'Cable failed again'])->assertOk();
+        foreach ([$this->mis, $this->user('building_admin'), $this->user('admin'), $this->user('superadmin')] as $viewer) {
+            foreach ([route('reports.api.show', $this->report), route('concerns.modalData', $this->concern->id)] as $url) {
+                $response = $this->actingAs($viewer)->getJson($url)->assertOk();
+                $ticket = $response->json('report') ?? $response->json('concern');
+                $this->assertStringContainsString('Past records', $ticket['history_html']);
+                $this->assertStringContainsString('Replaced cable', $ticket['history_html']);
+                $this->assertStringContainsString('Cable failed again', $ticket['history_html']);
+                $this->assertStringContainsString('PHP 150.00', $ticket['history_html']);
+                $this->assertSame(1, substr_count($ticket['history_html'], 'Previous repair'));
+            }
+        }
+    }
+
+    public function test_assigned_fixer_can_see_history_but_unassigned_fixer_cannot_access_ticket(): void
+    {
+        $fixer = $this->user('maintenance');
+        $this->concern->update(['assigned_to' => $fixer->id]);
+        $this->report->update(['assigned_to' => $fixer->id]);
+        $this->actingAs($this->reporter)->postJson(route('concerns.reopen', $this->concern), ['reason' => 'Still broken'])->assertOk();
+        $response = $this->actingAs($fixer)->getJson(route('reports.api.show', $this->report))->assertOk();
+        $this->assertStringContainsString('Replaced cable', $response->json('report.history_html'));
+        $this->actingAs($this->user('maintenance'))->getJson(route('reports.api.show', $this->report))->assertForbidden();
+    }
+
+    public function test_reporter_does_not_receive_staff_repair_history(): void
+    {
+        $this->actingAs($this->reporter)->postJson(route('concerns.reopen', $this->concern), ['reason' => 'Still broken'])->assertOk();
+        $this->getJson(route('concerns.modalData', $this->concern->id))->assertOk()->assertJsonPath('concern.history_html', '');
+    }
+
+    public function test_history_escapes_user_content_and_excludes_other_tickets(): void
+    {
+        $this->concern->update(['resolution_notes' => '<script>alert("notes")</script>']);
+        $this->actingAs($this->reporter)->postJson(route('concerns.reopen', $this->concern), ['reason' => 'Still broken'])->assertOk();
+        ActivityLog::where('action', 'concern_reopened')->update(['metadata' => json_encode(['reason' => '<img src=x onerror=alert(1)>'])]);
+        ActivityLog::create(['action' => 'concern_reopened', 'concern_id' => 9999, 'description' => 'Another private ticket', 'old_values' => ['resolution_notes' => 'Unrelated repair']]);
+        $html = app(\App\Services\TicketHistoryService::class)->renderFor($this->concern->fresh(), $this->mis);
+        $this->assertStringNotContainsString('<script>', $html);
+        $this->assertStringContainsString('&lt;script&gt;', $html);
+        $this->assertStringNotContainsString('<img src=x', $html);
+        $this->assertStringNotContainsString('Unrelated repair', $html);
+    }
+
+    public function test_repeated_repairs_remain_in_history_instead_of_being_overwritten(): void
+    {
+        $this->actingAs($this->reporter)->postJson(route('concerns.reopen', $this->concern), ['reason' => 'First recurrence'])->assertOk();
+        foreach ([$this->concern, $this->report] as $ticket) {
+            $ticket->refresh()->update(['status' => 'Resolved', 'resolved_at' => now(), 'resolution_notes' => 'Replaced switch', 'cost' => 200]);
+        }
+        $this->postJson(route('concerns.reopen', $this->concern), ['reason' => 'Second recurrence'])->assertOk();
+        $html = app(\App\Services\TicketHistoryService::class)->renderFor($this->report->fresh(), $this->mis);
+        $this->assertStringContainsString('Replaced cable', $html);
+        $this->assertStringContainsString('Replaced switch', $html);
+        $this->assertSame(2, substr_count($html, 'Previous repair'));
+        $this->assertLessThan(strpos($html, 'First recurrence'), strpos($html, 'Second recurrence'));
+    }
+
+    public function test_standalone_report_history_uses_its_own_records(): void
+    {
+        $this->report->update(['concern_id' => null]);
+        $this->actingAs($this->reporter)->postJson(route('reports.reopen', $this->report), ['reason' => 'Standalone recurrence'])->assertOk();
+        $html = app(\App\Services\TicketHistoryService::class)->renderFor($this->report->fresh(), $this->mis);
+        $this->assertStringContainsString('Standalone recurrence', $html);
+        $this->assertStringContainsString('Replaced cable', $html);
+    }
+
+    public function test_resolved_ticket_shows_latest_repair_even_before_its_first_reopening(): void
+    {
+        $html = app(\App\Services\TicketHistoryService::class)->renderFor($this->concern, $this->mis);
+        $this->assertStringContainsString('Latest resolution', $html);
+        $this->assertStringContainsString('Replaced cable', $html);
+        $this->assertStringNotContainsString('Reason for reopening:', $html);
     }
 
     private function user(string $role): User

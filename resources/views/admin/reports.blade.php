@@ -2900,7 +2900,7 @@ function viewReport(id) {
                         <p><strong>Description:</strong></p>
                         <p style="white-space: pre-wrap;">${report.description || 'No description provided'}</p>
                         ${imageHtml}
-                        ${resolutionHtml}
+                        ${resolutionHtml}${report.history_html || ''}
                     </div>
                 </div>
             </div>
@@ -3412,7 +3412,7 @@ function viewReport(id) {
                         <p><strong>Description:</strong></p>
                         <p style="white-space: pre-wrap;">${report.description || 'No description provided'}</p>
                         ${imageHtml}
-                        ${resolutionHtml}
+                        ${resolutionHtml}${report.history_html || ''}
                     </div>
                 </div>
             </div>

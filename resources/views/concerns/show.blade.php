@@ -120,6 +120,7 @@
         </div>
     </div>
 
+    @include('partials.ticket-history-panel', ['ticket' => $concern])
     <div class="mt-3">
         <a href="{{ route('concerns.my') }}" class="btn btn-secondary">Back to My Concerns</a>
     </div>

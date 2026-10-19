@@ -53,6 +53,7 @@
         </div>
     </div>
 
+    @include('partials.ticket-history-panel', ['ticket' => $report])
     <div class="mt-3">
         <a href="{{ route('reports.index') }}" class="btn btn-secondary">Back to My Reports</a>
         @if($report->user_id === auth()->id() && $report->status !== 'Resolved')

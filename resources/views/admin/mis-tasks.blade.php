@@ -440,7 +440,7 @@ function viewConcern(id) {
                         <p><strong>Description:</strong></p>
                         <p style="white-space: pre-wrap;">${concern.description || 'No description provided'}</p>
                         ${imageHtml}
-                        ${resolutionHtml}
+                        ${resolutionHtml}${concern.history_html || ''}
                     </div>
                 </div>
             </div>

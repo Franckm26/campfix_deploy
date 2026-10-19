@@ -123,6 +123,7 @@
             </div>
         </div>
     @endif
+    @include('partials.ticket-history-panel', ['ticket' => $report])
 </div>
 <div class="modal-footer">
     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>

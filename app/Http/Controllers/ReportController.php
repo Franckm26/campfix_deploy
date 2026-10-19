@@ -370,7 +370,7 @@ class ReportController extends Controller
 
         // Allow admin roles and maintenance users to view their assigned reports,
         // plus shared Rooms reports visible to all maintenance users
-        if (! in_array($user->role, ['building_admin', 'mis', 'school_admin', 'admin'])) {
+        if (! $user->isSystemAdministrator() && ! in_array($user->role, ['building_admin', 'mis', 'school_admin', 'admin'])) {
             $isSharedRoomsReport = $user->role === 'maintenance'
                 && strtolower(trim($report->category->name ?? '')) === 'rooms';
 
@@ -382,11 +382,12 @@ class ReportController extends Controller
         }
 
         // OWASP API3: Object Property Level Authorization - filter sensitive fields
-        $canSeeSensitiveFields = in_array($user->role, ['building_admin', 'mis', 'school_admin', 'admin']) || $report->assigned_to === $user->id;
+        $canSeeSensitiveFields = $user->isSystemAdministrator() || in_array($user->role, ['building_admin', 'mis', 'school_admin', 'admin']) || $report->assigned_to === $user->id;
 
         $reportData = $report->toArray();
         $reportData['reported_by_name'] = $report->reporter_display_name;
         $reportData['assigned_user_name'] = $report->assignedTo ? $report->assignedTo->name : null;
+        $reportData['history_html'] = app(\App\Services\TicketHistoryService::class)->renderFor($report, $user);
         
         // Format dates properly
         $reportData['created_at'] = $report->created_at ? $report->created_at->copy()->timezone('Asia/Manila')->format('M d, Y h:i A') : null;

@@ -1872,7 +1872,7 @@ class ConcernController extends Controller
 
             // For admins and MIS, include archived and deleted concerns
             $isMIS = $user->role === 'mis';
-            $isAdmin = in_array($user->role, ['admin', 'building_admin', 'school_admin']);
+            $isAdmin = $user->isSystemAdministrator() || in_array($user->role, ['admin', 'building_admin', 'school_admin']);
             
             if ($isMIS || $isAdmin) {
                 // Admins can view all concerns including archived/deleted
@@ -1901,7 +1901,7 @@ class ConcernController extends Controller
             }
 
             // Determine if user can see sensitive fields (OWASP API3: Object Property Level Authorization)
-            $canSeeSensitiveFields = in_array($user->role, ['building_admin', 'mis', 'school_admin', 'admin']) || $concern->assigned_to === $user->id;
+            $canSeeSensitiveFields = $user->isSystemAdministrator() || in_array($user->role, ['building_admin', 'mis', 'school_admin', 'admin']) || $concern->assigned_to === $user->id;
             // Format the concern data for the view modal (matching viewConcern expectations)
             $formattedConcern = [
                 'id' => $concern->id,
@@ -1929,6 +1929,7 @@ class ConcernController extends Controller
             ];
 
             // Add sensitive fields only for authorized users
+            $formattedConcern['history_html'] = app(\App\Services\TicketHistoryService::class)->renderFor($concern, $user);
             if ($canSeeSensitiveFields) {
                 $formattedConcern['resolution_notes'] = $concern->resolution_notes;
                 $formattedConcern['cost'] = $concern->cost;
