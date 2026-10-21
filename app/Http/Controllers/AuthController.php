@@ -381,7 +381,7 @@ class AuthController extends Controller
             $smsSent = $smsService->sendOtp($user->phone, (string) $otp);
 
             if (! $smsSent) {
-                return back()->with('error', 'Failed to send SMS. Please try again or choose email instead.');
+                return back()->with('error', $smsService->failureMessage());
             }
         }
 

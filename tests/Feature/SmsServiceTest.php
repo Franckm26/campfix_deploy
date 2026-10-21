@@ -90,4 +90,33 @@ class SmsServiceTest extends TestCase
         $this->assertFalse((new SmsService)->sendOtp('09171234567', '123456'));
         Log::shouldHaveReceived('warning')->with('UniSMS connection failed', ['exception_type' => ConnectionException::class])->once();
     }
+
+    public function test_safe_error_references_distinguish_deployment_and_phone_configuration_failures(): void
+    {
+        $service = new SmsService;
+        config(['services.sms.api_key' => '']);
+        $this->assertFalse($service->sendOtp('09171234567', '123456'));
+        $this->assertStringContainsString('SMS-CONFIG-KEY', $service->failureMessage());
+        config(['services.sms.api_key' => 'test-secret']);
+        $this->assertFalse($service->sendOtp('123', '123456'));
+        $this->assertStringContainsString('SMS-PHONE', $service->failureMessage());
+        $this->assertStringNotContainsString('test-secret', $service->failureMessage());
+    }
+
+    public function test_provider_error_references_are_specific_but_never_echo_provider_content(): void
+    {
+        Http::fakeSequence()->push(['errors' => 'Invalid secret test-secret'], 401)
+            ->push(['errors' => ['sender_id' => ['Unknown sender']]], 422)
+            ->push(['errors' => 'Insufficient credits for 09171234567'], 422)
+            ->push(['errors' => 'Rate limited'], 429)
+            ->push('"Rejected"', 422, ['Content-Type' => 'application/json']);
+        $service = new SmsService;
+        foreach (['SMS-AUTH', 'SMS-SENDER', 'SMS-CREDITS', 'SMS-RATE-LIMIT', 'SMS-PROVIDER-422'] as $reference) {
+            $this->assertFalse($service->sendOtp('09171234567', '123456'));
+            $this->assertStringContainsString($reference, $service->failureMessage());
+            $this->assertStringNotContainsString('test-secret', $service->failureMessage());
+            $this->assertStringNotContainsString('09171234567', $service->failureMessage());
+            $this->assertStringNotContainsString('123456', $service->failureMessage());
+        }
+    }
 }

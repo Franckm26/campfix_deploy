@@ -7,6 +7,20 @@ use Illuminate\Support\Facades\Log;
 
 class SmsService
 {
+    private ?string $failureCode = null;
+
+    public function failureMessage(): string
+    {
+        $code = $this->failureCode ?? 'SMS-UNKNOWN';
+        $message = match ($code) {
+            'SMS-PHONE' => 'Your saved phone number is not a valid Philippine mobile number.',
+            'SMS-RATE-LIMIT' => 'SMS requests are temporarily limited. Please wait before trying again.',
+            default => 'SMS verification is temporarily unavailable.',
+        };
+
+        return $message.' Please choose email instead. Reference: '.$code.'.';
+    }
+
     public function sendOtp(string $phoneNumber, string $otp): bool
     {
         return $this->sendMessage($phoneNumber, "Your CampFix verification code is: {$otp}. This code expires in 5 minutes.");
@@ -19,12 +33,14 @@ class SmsService
 
     private function sendMessage(string $phoneNumber, string $message): bool
     {
+        $this->failureCode = null;
         $apiKey = trim((string) config('services.sms.api_key'));
         $apiUrl = trim((string) config('services.sms.api_url'));
         $senderId = trim((string) (config('services.sms.sender_id') ?: config('services.sms.sender_name', 'CampFix')));
         $recipient = $this->cleanPhoneNumber($phoneNumber);
 
         if ($apiKey === '' || $apiUrl === '' || $senderId === '') {
+            $this->recordFailure($apiKey === '' ? 'SMS-CONFIG-KEY' : ($apiUrl === '' ? 'SMS-CONFIG-URL' : 'SMS-CONFIG-SENDER'));
             Log::warning('UniSMS is not configured', [
                 'missing_api_key' => $apiKey === '',
                 'missing_api_url' => $apiUrl === '',
@@ -35,6 +51,7 @@ class SmsService
         }
 
         if ($recipient === null) {
+            $this->recordFailure('SMS-PHONE');
             Log::warning('UniSMS recipient is not a valid Philippine mobile number');
 
             return false;
@@ -53,6 +70,7 @@ class SmsService
 
             $status = $response->json('message.status');
             if (! $response->successful() || $status === 'failed' || $response->json('success') === false) {
+                $this->recordFailure($this->providerFailureCode($response->status(), $response->json() ?? []));
                 // Provider responses can echo the OTP, recipient and message. Log only safe diagnostics.
                 Log::warning('UniSMS rejected the message', [
                     'http_status' => $response->status(),
@@ -67,11 +85,44 @@ class SmsService
 
             return true;
         } catch (\Exception $exception) {
+            $this->recordFailure('SMS-CONNECTION');
             // Connection exceptions can embed request details, so do not log their message.
             Log::warning('UniSMS connection failed', ['exception_type' => get_class($exception)]);
 
             return false;
         }
+    }
+
+    private function recordFailure(string $code): void
+    {
+        $this->failureCode = $code;
+        Log::warning('UniSMS delivery failure', ['code' => $code]);
+    }
+
+    private function providerFailureCode(int $httpStatus, mixed $payload): string
+    {
+        $payload = is_array($payload) ? $payload : [];
+        if (in_array($httpStatus, [401, 403], true)) {
+            return 'SMS-AUTH';
+        }
+        if ($httpStatus === 429) {
+            return 'SMS-RATE-LIMIT';
+        }
+
+        // Classify errors into fixed codes without exposing any provider response content.
+        $errors = $payload['errors'] ?? [];
+        $reason = strtolower(json_encode([$errors, $payload['message']['fail_reason'] ?? null]) ?: '');
+        if ($httpStatus === 402 || str_contains($reason, 'credit') || str_contains($reason, 'balance')) {
+            return 'SMS-CREDITS';
+        }
+        if ((is_array($errors) && array_key_exists('sender_id', $errors)) || str_contains($reason, 'sender')) {
+            return 'SMS-SENDER';
+        }
+        if (is_array($errors) && array_key_exists('recipient', $errors)) {
+            return 'SMS-PHONE';
+        }
+
+        return 'SMS-PROVIDER-'.$httpStatus;
     }
 
     private function cleanPhoneNumber(string $phoneNumber): ?string
