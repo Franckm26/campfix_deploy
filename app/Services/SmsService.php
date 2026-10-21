@@ -15,6 +15,7 @@ class SmsService
         $message = match ($code) {
             'SMS-PHONE' => 'Your saved phone number is not a valid Philippine mobile number.',
             'SMS-RATE-LIMIT' => 'SMS requests are temporarily limited. Please wait before trying again.',
+            'SMS-NETWORK' => 'The SMS sender cannot deliver to your mobile network.',
             default => 'SMS verification is temporarily unavailable.',
         };
 
@@ -114,6 +115,12 @@ class SmsService
         $reason = strtolower(json_encode([$errors, $payload['message']['fail_reason'] ?? null]) ?: '');
         if ($httpStatus === 402 || str_contains($reason, 'credit') || str_contains($reason, 'balance')) {
             return 'SMS-CREDITS';
+        }
+        // UniSMS's default sender rejects some networks with a recipient validation error.
+        // Its wording includes "Sender ID", so identify this before generic sender errors.
+        if (preg_match('/smart|\btnt\b|\bsun\b|network/', $reason)
+            && preg_match('/can.t send|cannot send|not supported|unsupported|not allowed|restricted/', $reason)) {
+            return 'SMS-NETWORK';
         }
         if ((is_array($errors) && array_key_exists('sender_id', $errors)) || str_contains($reason, 'sender')) {
             return 'SMS-SENDER';

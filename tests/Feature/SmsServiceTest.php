@@ -119,4 +119,16 @@ class SmsServiceTest extends TestCase
             $this->assertStringNotContainsString('123456', $service->failureMessage());
         }
     }
+
+    public function test_default_sender_network_restriction_is_not_misreported_as_invalid_sender(): void
+    {
+        Http::fake(['*' => Http::response(['errors' => [
+            'recipient' => ["This Sender ID can't send to Smart, TNT or Sun numbers. Use a registered Sender ID."],
+        ]], 422)]);
+        $service = new SmsService;
+        $this->assertFalse($service->sendOtp('09181234567', '123456'));
+        $this->assertStringContainsString('SMS-NETWORK', $service->failureMessage());
+        $this->assertStringContainsString('cannot deliver to your mobile network', $service->failureMessage());
+        $this->assertStringNotContainsString('SMS-SENDER', $service->failureMessage());
+    }
 }
