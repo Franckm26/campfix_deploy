@@ -44,6 +44,7 @@ return [
         'api_key'     => env('SMS_API_KEY'),
         'api_url'     => env('SMS_API_URL', 'https://unismsapi.com/api/sms'),
         'sender_name' => env('SMS_SENDER_NAME', 'CampFix'),
+        'sender_id'   => env('SMS_SENDER_ID') ?: env('SMS_SENDER_NAME', 'CampFix'),
     ],
 
     /*

@@ -7,125 +7,84 @@ use Illuminate\Support\Facades\Log;
 
 class SmsService
 {
-    protected $apiKey;
-
-    protected $apiUrl;
-
-    protected $senderName;
-
-    public function __construct()
-    {
-        $this->apiKey = config('services.sms.api_key');
-        $this->apiUrl = config('services.sms.api_url');
-        $this->senderName = config('services.sms.sender_name', 'CampFix');
-    }
-
-    /**
-     * Send OTP via SMS using UnisSMS API
-     *
-     * @param  string  $phoneNumber  Recipient's phone number
-     * @param  string  $otp  The OTP code to send
-     * @return bool True if SMS was sent successfully, false otherwise
-     */
     public function sendOtp(string $phoneNumber, string $otp): bool
     {
+        return $this->sendMessage($phoneNumber, "Your CampFix verification code is: {$otp}. This code expires in 5 minutes.");
+    }
+
+    public function sendSmsNotification(string $phoneNumber, string $message): bool
+    {
+        return $this->sendMessage($phoneNumber, $message);
+    }
+
+    private function sendMessage(string $phoneNumber, string $message): bool
+    {
+        $apiKey = trim((string) config('services.sms.api_key'));
+        $apiUrl = trim((string) config('services.sms.api_url'));
+        $senderId = trim((string) (config('services.sms.sender_id') ?: config('services.sms.sender_name', 'CampFix')));
+        $recipient = $this->cleanPhoneNumber($phoneNumber);
+
+        if ($apiKey === '' || $apiUrl === '' || $senderId === '') {
+            Log::warning('UniSMS is not configured', [
+                'missing_api_key' => $apiKey === '',
+                'missing_api_url' => $apiUrl === '',
+                'missing_sender_id' => $senderId === '',
+            ]);
+
+            return false;
+        }
+
+        if ($recipient === null) {
+            Log::warning('UniSMS recipient is not a valid Philippine mobile number');
+
+            return false;
+        }
+
         try {
-            $cleanPhone = $this->cleanPhoneNumber($phoneNumber);
-            $message = "Your CampFix verification code is: {$otp}. This code expires in 5 minutes.";
-
-            // UnisSMS uses HTTP Basic Auth: API key as username, empty password
-            $response = Http::timeout(10)
-                ->withBasicAuth($this->apiKey, '')
-                ->withHeaders([
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json',
-                ])
-                ->post($this->apiUrl, [
-                    'recipient' => $cleanPhone,
-                    'content'   => $message,
+            // UniSMS requires an account-approved sender ID on every request.
+            $response = Http::connectTimeout(5)->timeout(10)
+                ->withBasicAuth($apiKey, '')
+                ->acceptJson()->asJson()
+                ->post($apiUrl, [
+                    'recipient' => $recipient,
+                    'content' => $message,
+                    'sender_id' => $senderId,
                 ]);
 
-            if ($response->failed()) {
-                Log::error('UnisSMS OTP request failed:', [
-                    'status' => $response->status(),
-                    'body'   => $response->body(),
-                    'phone'  => $cleanPhone,
+            $status = $response->json('message.status');
+            if (! $response->successful() || $status === 'failed' || $response->json('success') === false) {
+                // Provider responses can echo the OTP, recipient and message. Log only safe diagnostics.
+                Log::warning('UniSMS rejected the message', [
+                    'http_status' => $response->status(),
+                    'message_failed' => $status === 'failed',
+                    'validation_fields' => array_keys((array) $response->json('errors', [])),
                 ]);
+
                 return false;
             }
 
-            $responseData = $response->json();
+            Log::info('UniSMS accepted the message', ['http_status' => $response->status()]);
 
-            Log::info('UnisSMS OTP Response:', [
-                'status'   => $response->status(),
-                'phone'    => $cleanPhone,
-                'response' => $responseData,
-            ]);
+            return true;
+        } catch (\Exception $exception) {
+            // Connection exceptions can embed request details, so do not log their message.
+            Log::warning('UniSMS connection failed', ['exception_type' => get_class($exception)]);
 
-            return $response->successful();
-
-        } catch (\Exception $e) {
-            Log::error('SMS OTP sending failed: ' . $e->getMessage());
             return false;
         }
     }
 
-    /**
-     * Send a custom SMS notification via UnisSMS API
-     *
-     * @param  string  $phoneNumber  Recipient's phone number
-     * @param  string  $message  The message to send
-     * @return bool True if SMS was sent successfully, false otherwise
-     */
-    public function sendSmsNotification(string $phoneNumber, string $message): bool
+    private function cleanPhoneNumber(string $phoneNumber): ?string
     {
-        try {
-            $cleanPhone = $this->cleanPhoneNumber($phoneNumber);
-
-            // UnisSMS uses HTTP Basic Auth: API key as username, empty password
-            $response = Http::timeout(10)
-                ->withBasicAuth($this->apiKey, '')
-                ->withHeaders([
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json',
-                ])
-                ->post($this->apiUrl, [
-                    'recipient' => $cleanPhone,
-                    'content'   => $message,
-                ]);
-
-            Log::info('UnisSMS Notification Response:', [
-                'status' => $response->status(),
-                'body'   => $response->body(),
-                'phone'  => $cleanPhone,
-            ]);
-
-            return $response->successful();
-
-        } catch (\Exception $e) {
-            Log::error('SMS notification failed: ' . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Clean and format phone number to international format (+63XXXXXXXXXX)
-     */
-    private function cleanPhoneNumber(string $phoneNumber): string
-    {
-        // Remove all non-numeric characters
-        $cleaned = preg_replace('/[^0-9]/', '', $phoneNumber);
-
-        // 09XXXXXXXXX → 639XXXXXXXXX
-        if (strlen($cleaned) == 11 && substr($cleaned, 0, 1) == '0') {
-            $cleaned = '63' . substr($cleaned, 1);
+        $digits = preg_replace('/[^0-9]/', '', $phoneNumber);
+        if (str_starts_with($digits, '0063')) {
+            $digits = substr($digits, 2);
+        } elseif (preg_match('/^09\d{9}$/', $digits)) {
+            $digits = '63'.substr($digits, 1);
+        } elseif (preg_match('/^9\d{9}$/', $digits)) {
+            $digits = '63'.$digits;
         }
 
-        // 9XXXXXXXXX → 639XXXXXXXXX
-        if (strlen($cleaned) == 10 && substr($cleaned, 0, 1) == '9') {
-            $cleaned = '63' . $cleaned;
-        }
-
-        return '+' . $cleaned;
+        return preg_match('/^639\d{9}$/', $digits) ? '+'.$digits : null;
     }
 }
