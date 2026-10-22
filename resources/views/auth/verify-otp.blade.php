@@ -95,7 +95,7 @@
     
     <!-- Subtitle -->
     <p class="subtitle">
-        Enter the 6-digit code sent to<br>
+        {{ session('otp_delivery_pending') ? 'If your code arrives, enter the 6-digit code for' : 'Enter the 6-digit code sent to' }}<br>
         <strong>
             @php
                 $destination = session('otp_destination') ?? session('otp_email') ?? 'your email';
@@ -109,6 +109,11 @@
     </p>
     
     <!-- Error Message -->
+    @if(session('warning'))
+        <div class="alert" role="status" style="background:#fff3cd;color:#664d03;border:1px solid #ffecb5;padding:12px;margin-bottom:16px;border-radius:6px;">
+            {{ session('warning') }}
+        </div>
+    @endif
     @if(session('error'))
         <div class="alert alert-error">
             {{ session('error') }}

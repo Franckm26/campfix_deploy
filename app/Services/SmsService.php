@@ -2,12 +2,20 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class SmsService
 {
     private ?string $failureCode = null;
+
+    private bool $deliveryUncertain = false;
+
+    public function deliveryMayHaveSucceeded(): bool
+    {
+        return $this->deliveryUncertain;
+    }
 
     public function failureMessage(): string
     {
@@ -35,6 +43,7 @@ class SmsService
     private function sendMessage(string $phoneNumber, string $message): bool
     {
         $this->failureCode = null;
+        $this->deliveryUncertain = false;
         $apiKey = trim((string) config('services.sms.api_key'));
         $apiUrl = trim((string) config('services.sms.api_url'));
         $senderId = trim((string) (config('services.sms.sender_id') ?: config('services.sms.sender_name', 'CampFix')));
@@ -60,7 +69,7 @@ class SmsService
 
         try {
             // UniSMS requires an account-approved sender ID on every request.
-            $response = Http::connectTimeout(5)->timeout(10)
+            $response = Http::connectTimeout(5)->timeout(20)
                 ->withBasicAuth($apiKey, '')
                 ->acceptJson()->asJson()
                 ->post($apiUrl, [
@@ -86,12 +95,43 @@ class SmsService
 
             return true;
         } catch (\Exception $exception) {
-            $this->recordFailure('SMS-CONNECTION');
+            $errno = $this->curlErrorNumber($exception);
+            $transportFailure = $exception instanceof ConnectionException;
+            $code = $transportFailure ? match ($errno) {
+                3 => 'SMS-CONFIG-URL',
+                5, 6 => 'SMS-DNS',
+                7 => 'SMS-CONNECT',
+                28 => 'SMS-TIMEOUT',
+                35, 51, 58, 60, 77, 83, 90, 91 => 'SMS-TLS',
+                default => 'SMS-CONNECTION',
+            } : 'SMS-CLIENT';
+            // A timeout or lost response can happen after UniSMS accepts and sends the SMS.
+            // Never retry the billable POST automatically or discard its verification challenge.
+            $this->deliveryUncertain = $transportFailure && ! in_array($code, ['SMS-CONFIG-URL', 'SMS-DNS', 'SMS-CONNECT', 'SMS-TLS'], true);
+            $this->recordFailure($code);
             // Connection exceptions can embed request details, so do not log their message.
-            Log::warning('UniSMS connection failed', ['exception_type' => get_class($exception)]);
+            Log::warning('UniSMS connection failed', ['exception_type' => get_class($exception), 'curl_errno' => $errno, 'delivery_uncertain' => $this->deliveryUncertain]);
 
             return false;
         }
+    }
+
+    private function curlErrorNumber(\Exception $exception): ?int
+    {
+        $cause = $exception;
+        for ($depth = 0; $cause && $depth < 5; $depth++, $cause = $cause->getPrevious()) {
+            if (method_exists($cause, 'getHandlerContext')) {
+                $context = $cause->getHandlerContext();
+                if (! empty($context['errno'])) {
+                    return (int) $context['errno'];
+                }
+            }
+            if (preg_match('/cURL error\s+(\d+)/i', $cause->getMessage(), $match)) {
+                return (int) $match[1];
+            }
+        }
+
+        return null;
     }
 
     private function recordFailure(string $code): void

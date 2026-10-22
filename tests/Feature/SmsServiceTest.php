@@ -88,7 +88,7 @@ class SmsServiceTest extends TestCase
         Log::spy();
         Http::fake(fn () => throw new ConnectionException('Secret content: 123456'));
         $this->assertFalse((new SmsService)->sendOtp('09171234567', '123456'));
-        Log::shouldHaveReceived('warning')->with('UniSMS connection failed', ['exception_type' => ConnectionException::class])->once();
+        Log::shouldHaveReceived('warning')->with('UniSMS connection failed', ['exception_type' => ConnectionException::class, 'curl_errno' => null, 'delivery_uncertain' => true])->once();
     }
 
     public function test_safe_error_references_distinguish_deployment_and_phone_configuration_failures(): void
@@ -130,5 +130,29 @@ class SmsServiceTest extends TestCase
         $this->assertStringContainsString('SMS-NETWORK', $service->failureMessage());
         $this->assertStringContainsString('cannot deliver to your mobile network', $service->failureMessage());
         $this->assertStringNotContainsString('SMS-SENDER', $service->failureMessage());
+    }
+
+    public function test_timeout_is_uncertain_and_is_not_automatically_retried(): void
+    {
+        Http::fake(fn () => throw new ConnectionException('cURL error 28: request timed out'));
+        $service = new SmsService;
+        $this->assertFalse($service->sendOtp('09171234567', '123456'));
+        $this->assertTrue($service->deliveryMayHaveSucceeded());
+        $this->assertStringContainsString('SMS-TIMEOUT', $service->failureMessage());
+    }
+
+    public function test_dns_tls_and_connect_failures_are_not_treated_as_possible_delivery(): void
+    {
+        $errno = 6;
+        Http::fake(function () use (&$errno) {
+            throw new ConnectionException('cURL error '.$errno.': connection failure');
+        });
+        $service = new SmsService;
+        foreach ([6 => 'SMS-DNS', 7 => 'SMS-CONNECT', 60 => 'SMS-TLS'] as $number => $code) {
+            $errno = $number;
+            $this->assertFalse($service->sendOtp('09171234567', '123456'));
+            $this->assertFalse($service->deliveryMayHaveSucceeded());
+            $this->assertStringContainsString($code, $service->failureMessage());
+        }
     }
 }

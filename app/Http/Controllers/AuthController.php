@@ -335,6 +335,7 @@ class AuthController extends Controller
         ]);
 
         $destination = '';
+        $smsPending = false;
 
         if ($deliveryMethod === 'email' || $deliveryMethod === 'backup_email') {
             // Determine which email to use
@@ -380,7 +381,8 @@ class AuthController extends Controller
             $smsService = new SmsService;
             $smsSent = $smsService->sendOtp($user->phone, (string) $otp);
 
-            if (! $smsSent) {
+            $smsPending = $smsService->deliveryMayHaveSucceeded();
+            if (! $smsSent && ! $smsPending) {
                 return back()->with('error', $smsService->failureMessage());
             }
         }
@@ -390,8 +392,13 @@ class AuthController extends Controller
             'otp_delivery' => $deliveryMethod,
             'otp_destination' => $destination,
             'last_otp_method' => $deliveryMethod, // Store the last method used
+            'otp_delivery_pending' => $smsPending,
             'reset_timer' => true
         ]);
+
+        if ($smsPending) {
+            return redirect('/verify-otp')->with('warning', 'SMS confirmation is delayed. If the code arrives, enter it below. If it does not arrive, choose "Try another way" to use email.');
+        }
 
         // Format the display message
         $methodDisplay = $deliveryMethod === 'backup_email' ? 'backup email' : $deliveryMethod;
