@@ -310,11 +310,16 @@
                                     </div>
                                     <div class="text-end ms-3">
                                         @php
-                                            $daysUntil = \Carbon\Carbon::parse($event->event_date)->diffInDays(now(), false);
+                                            $eventDay = \Carbon\Carbon::createFromFormat('!Y-m-d', \Carbon\Carbon::parse($event->event_date)->format('Y-m-d'), 'Asia/Manila');
+                                            $daysUntil = (int) \Carbon\Carbon::today('Asia/Manila')->diffInDays($eventDay, false);
                                             $isUrgent = $daysUntil <= 3 && $daysUntil >= 0;
                                         @endphp
                                         @if($daysUntil < 0)
-                                            <span class="badge bg-danger">{{ abs($daysUntil) }} days overdue</span>
+                                            <span class="badge bg-danger">{{ abs($daysUntil) }} {{ abs($daysUntil) === 1 ? 'day' : 'days' }} overdue</span>
+                                        @elseif($daysUntil === 0)
+                                            <span class="badge bg-warning text-dark">Today</span>
+                                        @elseif($daysUntil === 1)
+                                            <span class="badge bg-warning text-dark">Tomorrow</span>
                                         @elseif($isUrgent)
                                             <span class="badge bg-warning text-dark">{{ $daysUntil }} days left</span>
                                         @else
