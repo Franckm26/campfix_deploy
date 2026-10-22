@@ -531,13 +531,14 @@
 
     function formatEventDate(dateStr) {
         if (!dateStr) return 'N/A';
-        const date = new Date(`${dateStr}T00:00:00`);
-        if (isNaN(date.getTime())) return dateStr;
+        const date = new Date(`${String(dateStr).slice(0, 10)}T00:00:00Z`);
+        if (isNaN(date.getTime())) return 'N/A';
 
         return date.toLocaleDateString('en-US', {
             month: 'short',
             day: '2-digit',
-            year: 'numeric'
+            year: 'numeric',
+            timeZone: 'UTC'
         });
     }
 
