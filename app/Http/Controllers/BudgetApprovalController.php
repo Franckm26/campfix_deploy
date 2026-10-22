@@ -10,6 +10,7 @@ use App\Support\BudgetApprovalSchema;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
 class BudgetApprovalController extends Controller
@@ -21,9 +22,14 @@ class BudgetApprovalController extends Controller
 
         $status = $request->string('status')->toString();
         $search = trim($request->string('search')->toString());
+        $viewType = $request->validate(['view' => ['nullable', 'in:active,archives,deleted']])['view'] ?? 'active';
 
-        $budgets = Report::with(['category', 'user', 'budgetRequester', 'budgetReviewer'])
+        $budgets = Report::withTrashed()->with(['category', 'user', 'budgetRequester', 'budgetReviewer'])
             ->whereNotNull('budget_status')
+            ->when($viewType === 'deleted', fn ($query) => $query->where(fn ($deleted) => $deleted->where('is_deleted', true)->orWhereNotNull('deleted_at')),
+                fn ($query) => $query->where('is_deleted', false)->whereNull('deleted_at'))
+            ->when($viewType === 'archives', fn ($query) => $query->whereHas('archivedByUsers', fn ($users) => $users->where('users.id', auth()->id())))
+            ->when($viewType === 'active', fn ($query) => $query->whereDoesntHave('archivedByUsers', fn ($users) => $users->where('users.id', auth()->id())))
             ->when(in_array($status, [Report::BUDGET_PENDING, Report::BUDGET_APPROVED, Report::BUDGET_REJECTED], true), fn ($query) => $query->where('budget_status', $status))
             ->when($search !== '', function ($query) use ($search) {
                 $term = '%'.mb_strtolower($search).'%';
@@ -38,7 +44,34 @@ class BudgetApprovalController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('school-admin.budget-approvals', compact('budgets', 'status', 'search'));
+        return view('school-admin.budget-approvals', compact('budgets', 'status', 'search', 'viewType'));
+    }
+
+    public function show(int $id): View
+    {
+        $this->authorizeSchoolAdministrator();
+        $report = Report::withTrashed()->with(['category', 'user', 'budgetRequester', 'budgetReviewer'])
+            ->whereNotNull('budget_status')->findOrFail($id);
+
+        return view('reports.show_modal', ['report' => $report, 'showBudgetDetails' => true]);
+    }
+
+    public function restoreDeleted(int $id): JsonResponse
+    {
+        $this->authorizeSchoolAdministrator();
+        return DB::transaction(function () use ($id) {
+            $report = Report::withTrashed()->whereNotNull('budget_status')->lockForUpdate()->findOrFail($id);
+            abort_unless($report->is_deleted || $report->trashed(), 422, 'This report is not deleted.');
+            $report->forceFill([
+                'is_deleted' => false, 'deleted_at' => null, 'deleted_by' => null,
+                'school_admin_deleted' => false, 'school_admin_archived' => false,
+                'is_archived' => false, 'archive_folder_id' => null,
+            ])->save();
+            $report->archivedByUsers()->detach(auth()->id());
+            ActivityLog::log('report_restored', 'Restored budget report: '.$report->title, $report->id, 'report');
+
+            return response()->json(['success' => true, 'message' => 'Report restored successfully.']);
+        });
     }
 
     public function request(Request $request, Report $report): JsonResponse
@@ -68,6 +101,13 @@ class BudgetApprovalController extends Controller
 
             $report->update($values);
             $report->concern?->update($values);
+            // A revised budget must reappear for review even if the earlier request was archived.
+            if (Schema::hasColumn('reports', 'school_admin_archived')) {
+                $report->update(['school_admin_archived' => false]);
+            }
+            if (Schema::hasTable('user_archived_reports')) {
+                $report->archivedByUsers()->detach(User::where('role', User::ROLE_SCHOOL_ADMIN)->pluck('id'));
+            }
         });
 
         $report->refresh();

@@ -144,7 +144,9 @@ class BudgetApprovalWorkflowTest extends TestCase
         $this->assertStringContainsString('class="card mb-4"', $approvalView);
         $this->assertStringNotContainsString('Review budget requests submitted for concerns already in progress.', $approvalView);
         $this->assertStringNotContainsString('assignReport(', $approvalView);
-        $this->assertStringNotContainsString('Archive', $approvalView);
+        $this->assertStringContainsString('Archive budget report', $approvalView);
+        $this->assertStringContainsString('View budget report', $approvalView);
+        $this->assertStringContainsString('Delete budget report', $approvalView);
         $this->assertStringContainsString("['admin', 'building_admin', 'academic_head', 'mis']", $adminController);
     }
 

@@ -297,6 +297,11 @@ Route::get('/school-admin/budget-approvals', [BudgetApprovalController::class, '
     ->middleware(['auth', 'admin', 'throttle:admin'])
     ->name('school-admin.budget-approvals');
 
+Route::get('/school-admin/budget-approvals/{id}/details', [BudgetApprovalController::class, 'show'])
+    ->middleware(['auth', 'admin', 'throttle:admin'])->name('school-admin.budget-approvals.details');
+Route::post('/school-admin/budget-approvals/{id}/restore-deleted', [BudgetApprovalController::class, 'restoreDeleted'])
+    ->middleware(['auth', 'admin', 'throttle:status-updates'])->name('school-admin.budget-approvals.restore-deleted');
+
 /* FACULTY - Event Requests */
 Route::middleware(['auth', 'throttle:web'])->group(function () {
     // Event requests

@@ -3,6 +3,9 @@
     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
 </div>
 <div class="modal-body">
+    @if($showBudgetDetails ?? false)
+        @include('school-admin.partials.budget-details')
+    @endif
     @include('partials.reopen-ticket', ['ticket' => $report, 'context' => 'modal'])
     <div class="card border-0">
         <div class="card-header bg-light">

@@ -351,6 +351,10 @@ class ReportController extends Controller
         // Also remove from user's archive using pivot table (user-based restoring)
         $report->archivedByUsers()->detach($user->id);
 
+        if (request()->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'Report restored successfully.']);
+        }
+
         // Redirect maintenance users to their assigned reports page
         if ($user->role === 'maintenance') {
             return redirect()->route('reports.assigned')->with('success', 'Report restored successfully.');
