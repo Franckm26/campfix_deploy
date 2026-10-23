@@ -1257,7 +1257,7 @@
                 <h5 class="modal-title"><i class="fas fa-upload me-2"></i>Import Users from CSV</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form action="{{ route('admin.users.import') }}" method="POST" enctype="multipart/form-data">
+            <form id="userImportForm" action="{{ route('admin.users.import') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 <div class="modal-body">
 
@@ -1306,7 +1306,7 @@
 
                         <div class="mb-3">
                             <label class="form-label fw-semibold">School Year Folder</label>
-                            <input type="text" name="archive_folder_name" class="form-control" value="{{ now()->year }}-{{ now()->year + 1 }}" placeholder="e.g., 2026-2027" required>
+                            <input type="text" name="archive_folder_name" class="form-control" value="{{ old('archive_folder_name', now()->year.'-'.(now()->year + 1)) }}" placeholder="e.g., 2026-2027" required>
                             <small class="text-muted">Archived returning students are restored by student ID into this folder, keeping their existing passwords and history. Welcome emails are queued only for new accounts.</small>
                             <small class="text-muted">The folder will be created automatically if it doesn't exist.</small>
                         </div>
@@ -1416,6 +1416,9 @@
 </style>
 
 <script>
+@include('admin.partials.user-import-feedback')
+@include('admin.partials.user-import-submit')
+
 // Role defaults for import (mirrors PHP)
 const importRoleDefaults = {
     student: ['concerns','settings'],

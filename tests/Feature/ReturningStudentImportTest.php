@@ -64,9 +64,71 @@ class ReturningStudentImportTest extends TestCase
             $this->fail('Executable import was accepted.');
         } catch (\Illuminate\Validation\ValidationException $exception) {
             $this->assertArrayHasKey('file', $exception->errors());
+            $this->assertSame('userImport', $exception->errorBag);
         }
         $this->assertSame(1, User::count());
         $this->assertSame(0, UserArchiveFolder::count());
+    }
+
+    public function test_random_text_import_shows_an_import_error_without_creating_records(): void
+    {
+        Schema::table('users', fn (Blueprint $table) => $table->string('student_id')->nullable());
+        $actor = User::forceCreate(['name' => 'Administrator', 'email' => 'admin@example.com', 'password' => 'unchanged', 'role' => 'superadmin', 'is_superadmin' => true]);
+        $this->actingAs($actor);
+        $request = Request::create('/admin/users/import', 'POST', [
+            'default_role' => 'student', 'file_format' => 'masterlist',
+        ], [], ['file' => \Illuminate\Http\UploadedFile::fake()->createWithContent('random.txt', "Random text\nThis is not a user masterlist\nMore random words\n")]);
+        try {
+            app(AdminController::class)->importUsers($request);
+            $this->fail('Random text was reported as a successful import.');
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $this->assertSame('userImport', $exception->errorBag);
+            $this->assertStringContainsString('No importable users were found', $exception->errors()['file'][0]);
+        }
+        $this->assertSame(1, User::count());
+        $this->assertSame(0, UserArchiveFolder::count());
+        $this->assertSame(0, \App\Models\ActivityLog::count());
+    }
+
+    public function test_unsupported_uploads_all_use_the_import_error_feedback(): void
+    {
+        $actor = User::forceCreate(['name' => 'Administrator', 'email' => 'admin@example.com', 'password' => 'unchanged', 'role' => 'superadmin', 'is_superadmin' => true]);
+        $this->actingAs($actor);
+        $files = array_map(fn ($name) => \Illuminate\Http\UploadedFile::fake()->createWithContent($name, 'Not a user import'),
+            ['photo.png', 'document.pdf', 'archive.zip', 'program.exe', 'invalid.xlsx']);
+        $files[] = \Illuminate\Http\UploadedFile::fake()->create('oversized.csv', 2049, 'text/csv');
+        foreach ($files as $file) {
+            $request = Request::create('/admin/users/import', 'POST', [
+                'default_role' => 'student', 'file_format' => 'masterlist',
+            ], [], ['file' => $file]);
+            try {
+                app(AdminController::class)->importUsers($request);
+                $this->fail('Unsupported upload was accepted: '.$file->getClientOriginalName());
+            } catch (\Illuminate\Validation\ValidationException $exception) {
+                $this->assertSame('userImport', $exception->errorBag);
+                $this->assertArrayHasKey('file', $exception->errors());
+            }
+        }
+        $this->assertSame(1, User::count());
+        $this->assertSame(0, \App\Models\ActivityLog::count());
+    }
+
+    public function test_import_feedback_uses_sweetalert_and_escapes_error_text(): void
+    {
+        $message = 'Invalid file </script><script>alert("unsafe")</script>';
+        $errors = (new \Illuminate\Support\ViewErrorBag())->put('userImport', new \Illuminate\Support\MessageBag(['file' => $message]));
+        $html = view('admin.partials.user-import-feedback', compact('errors'))->render();
+        $this->assertStringContainsString('Swal.fire', $html);
+        $this->assertStringContainsString('Unable to import users', $html);
+        $this->assertStringContainsString('text:', $html);
+        $this->assertStringNotContainsString('</script>', $html);
+        $this->assertStringContainsString('selectImportRole(role)', $html);
+    }
+
+    public function test_other_form_errors_do_not_trigger_the_import_alert(): void
+    {
+        $errors = (new \Illuminate\Support\ViewErrorBag())->put('default', new \Illuminate\Support\MessageBag(['email' => 'Email is required.']));
+        $this->assertSame('', trim(view('admin.partials.user-import-feedback', compact('errors'))->render()));
     }
 
     public function test_email_match_restores_legacy_student_without_student_id(): void
@@ -200,5 +262,10 @@ class ReturningStudentImportTest extends TestCase
         // No delivery table is needed: restoration must never insert a welcome email.
         app(AdminController::class)->importUsers($request);
         $this->assertStringContainsString('restored 0 returning students', session('success'));
+        $request->headers->set('Accept', 'application/json');
+        $result = app(AdminController::class)->importUsers($request)->getData(true);
+        $this->assertTrue($result['success']);
+        $this->assertSame(route('admin.users'), $result['redirect']);
+        $this->assertStringContainsString('restored 0 returning students', $result['message']);
     }
 }

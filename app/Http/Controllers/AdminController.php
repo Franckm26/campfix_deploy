@@ -4232,7 +4232,12 @@ class AdminController extends Controller
     // Import users from CSV / XLSX
     public function importUsers(Request $request)
     {
-        return DB::transaction(fn () => $this->performUserImport($request));
+        try {
+            return DB::transaction(fn () => $this->performUserImport($request));
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            // Keep import feedback separate from the Add User form's errors.
+            throw $exception->errorBag('userImport')->redirectTo(route('admin.users'));
+        }
     }
 
     private function performUserImport(Request $request)
@@ -4263,6 +4268,7 @@ class AdminController extends Controller
         );
 
         $rowCount = 0;
+        $validRowCount = 0;
         $skippedRows = [];
 
         $existingEmails = User::withoutGlobalScopes()->selectRaw('LOWER(email) as email')->pluck('email')->toArray();
@@ -4422,6 +4428,7 @@ class AdminController extends Controller
                 }
             }
 
+            $validRowCount++;
             $emailLower     = strtolower(trim($email));
             $studentIdLower = strtolower(trim((string) $studentId));
 
@@ -4496,6 +4503,12 @@ class AdminController extends Controller
             $rowCount++;
         }
 
+        if ($validRowCount === 0) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'file' => 'No importable users were found. Please upload a valid user CSV, tab-separated TXT or XLSX file with the required columns.',
+            ]);
+        }
+
         $queuedEmailCount = 0;
         if (! empty($usersToCreate)) {
             foreach (array_chunk($usersToCreate, 500) as $chunk) {
@@ -4555,7 +4568,11 @@ class AdminController extends Controller
             : '';
 
         $updatedProfiles = count($studentProfileUpdates);
-        return redirect()->route('admin.users')->with('success', "Imported {$rowCount} new users, restored {$restoredCount} returning students, updated {$updatedProfiles} student profiles, and queued {$queuedEmailCount} welcome email(s) for automatic daily Brevo delivery!{$debugMsg}");
+        $message = "Imported {$rowCount} new users, restored {$restoredCount} returning students, updated {$updatedProfiles} student profiles, and queued {$queuedEmailCount} welcome email(s) for automatic daily Brevo delivery!{$debugMsg}";
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => $message, 'redirect' => route('admin.users')]);
+        }
+        return redirect()->route('admin.users')->with('success', $message);
     }
 
     // Activity logs
