@@ -52,6 +52,23 @@ class ReturningStudentImportTest extends TestCase
         });
     }
 
+    public function test_unsafe_user_import_is_rejected_before_accounts_are_changed(): void
+    {
+        $actor = User::forceCreate(['name' => 'Administrator', 'email' => 'admin@example.com', 'password' => 'unchanged', 'role' => 'superadmin', 'is_superadmin' => true]);
+        $this->actingAs($actor);
+        $request = Request::create('/admin/users/import', 'POST', [
+            'default_role' => 'student', 'file_format' => 'standard',
+        ], [], ['file' => \Illuminate\Http\UploadedFile::fake()->createWithContent('users.php', '<?php echo 1;')]);
+        try {
+            app(AdminController::class)->importUsers($request);
+            $this->fail('Executable import was accepted.');
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $this->assertArrayHasKey('file', $exception->errors());
+        }
+        $this->assertSame(1, User::count());
+        $this->assertSame(0, UserArchiveFolder::count());
+    }
+
     public function test_email_match_restores_legacy_student_without_student_id(): void
     {
         Schema::table('users', fn (Blueprint $table) => $table->string('student_id')->nullable());

@@ -5,6 +5,11 @@
 
     RewriteEngine On
 
+    # Uploaded files are content only. Do not serve scripts, configuration,
+    # HTML or SVG from public storage, including URLs with extra path segments.
+    RewriteRule ^storage/.*\.(php[0-9]*|phtml|pht|phar|cgi|pl|py|sh|asp|aspx|jsp|shtml|html?|svg|htaccess|user\.ini)([./]|$) - [F,L,NC]
+    RewriteRule ^storage/(?!.*\.(jpe?g|png|gif|webp|pdf|docx?|txt)$) - [F,L,NC]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

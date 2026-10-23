@@ -1313,6 +1313,7 @@
                         <div class="mb-3">
                             <label class="form-label fw-semibold">CSV / XLSX File</label>
                             <input type="file" name="file" id="importFileInput" class="form-control" accept=".csv,.txt,.xlsx" required>
+                            <small class="text-muted d-block">CSV, tab-separated TXT or XLSX. Maximum 2 MB and 10,000 rows including headers. Save older XLS files as XLSX before importing.</small>
                             <small class="text-muted" id="staffImportNote" style="display:none">
                                 <i class="fas fa-info-circle text-info"></i> <strong>Staff Import:</strong> 
                                 If your CSV has a "STAFF" column (column 7), roles will be automatically assigned based on position 

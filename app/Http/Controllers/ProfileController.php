@@ -120,21 +120,16 @@ class ProfileController extends Controller
 
     public function uploadProfilePicture(Request $request)
     {
+        $request->validate([
+            'profile_picture' => \App\Services\ImageUploadSecurity::rules(true),
+        ]);
         try {
-            $request->validate([
-                'profile_picture' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048', // 2MB max
-            ]);
-
             $user = Auth::user();
 
             if ($request->hasFile('profile_picture')) {
                 $supabaseStorage = new SupabaseStorage();
 
-                // Delete old picture if exists and it's a Supabase URL
-                if ($user->profile_picture && str_contains($user->profile_picture, 'supabase')) {
-                    $supabaseStorage->delete($user->profile_picture);
-                    Log::info('Deleted old profile picture from Supabase', ['url' => $user->profile_picture]);
-                }
+                $oldPicture = $user->profile_picture;
 
                 // Upload new picture to Supabase Storage
                 $publicUrl = $supabaseStorage->upload($request->file('profile_picture'), 'profile_pictures');
@@ -152,6 +147,10 @@ class ProfileController extends Controller
                 // Update user with the public URL
                 $user->profile_picture = $publicUrl;
                 $user->save();
+
+                if ($oldPicture && str_contains($oldPicture, 'supabase')) {
+                    $supabaseStorage->delete($oldPicture);
+                }
 
                 Log::info('Profile picture uploaded successfully', [
                     'user_id' => $user->id,
@@ -183,10 +182,10 @@ class ProfileController extends Controller
             ]);
             
             if ($request->expectsJson()) {
-                return response()->json(['success' => false, 'message' => 'Server error: ' . $e->getMessage()], 500);
+                return response()->json(['success' => false, 'message' => 'Unable to upload the profile picture. Please try again.'], 500);
             }
             
-            return redirect()->route('profile.index')->with('error', 'Failed to upload profile picture: ' . $e->getMessage());
+            return redirect()->route('profile.index')->with('error', 'Unable to upload the profile picture. Please try again.');
         }
     }
 

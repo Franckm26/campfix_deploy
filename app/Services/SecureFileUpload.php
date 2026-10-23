@@ -70,6 +70,9 @@ class SecureFileUpload
     public function validateAndStore(UploadedFile $file, string $category, string $directory): ?string
     {
         try {
+            if (in_array($category, ['images', 'reports', 'concerns'], true)) {
+                ImageUploadSecurity::validate($file);
+            }
             // 1. Check if file is valid
             if (!$file->isValid()) {
                 SecurityLogger::logFileUploadSecurity([
@@ -166,7 +169,7 @@ class SecureFileUpload
      */
     protected function generateSecureFilename(UploadedFile $file): string
     {
-        $extension = strtolower($file->getClientOriginalExtension());
+        $extension = $file->guessExtension();
         return bin2hex(random_bytes(16)) . '.' . $extension;
     }
 

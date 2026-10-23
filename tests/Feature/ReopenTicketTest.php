@@ -147,6 +147,24 @@ class ReopenTicketTest extends TestCase
         }
     }
 
+    public function test_concern_image_replacement_rejects_script_uploads_without_changing_the_record(): void
+    {
+        Schema::table('categories', fn (Blueprint $table) => $table->json('issues')->nullable());
+        $this->actingAs($this->reporter);
+        $request = Request::create('/concerns/'.$this->concern->id, 'POST', [
+            'location' => $this->concern->location,
+            'category_id' => $this->concern->category_id,
+            'description' => 'Existing concern',
+        ], [], ['image' => \Illuminate\Http\UploadedFile::fake()->createWithContent('bad.php', '<?php echo 1;')]);
+        try {
+            app(\App\Http\Controllers\ConcernController::class)->update($request, $this->concern->id);
+            $this->fail('Script upload was accepted.');
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $this->assertArrayHasKey('image', $exception->errors());
+        }
+        $this->assertNull($this->concern->fresh()->image_path);
+    }
+
     public function test_original_reporter_reopens_both_records_and_preserves_resolution_history(): void
     {
         $this->actingAs($this->reporter)->postJson(route('concerns.reopen', $this->concern), ['reason' => 'The same connection is still failing.'])

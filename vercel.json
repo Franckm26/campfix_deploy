@@ -94,8 +94,18 @@
       "dest": "/public/js/$1"
     },
     {
+      "src": "/storage/.*\\.(?:php[0-9]*|phtml|pht|phar|cgi|pl|py|sh|asp|aspx|jsp|shtml|html?|svg|htaccess|user\\.ini)(?:[./].*)?$",
+      "status": 403,
+      "caseSensitive": false
+    },
+    {
+      "src": "/storage/(.*\\.(?:jpe?g|png|gif|webp|pdf|docx?|txt))",
+      "dest": "/public/storage/$1",
+      "caseSensitive": false
+    },
+    {
       "src": "/storage/(.*)",
-      "dest": "/public/storage/$1"
+      "status": 403
     },
     {
       "src": "/favicon.ico",

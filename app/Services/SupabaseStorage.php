@@ -41,8 +41,9 @@ class SupabaseStorage
      */
     public function upload(UploadedFile $file, string $path): ?string
     {
+        ImageUploadSecurity::validate($file);
         try {
-            $filename = $path . '/' . bin2hex(random_bytes(16)) . '.' . $file->getClientOriginalExtension();
+            $filename = $path . '/' . ImageUploadSecurity::filename($file);
             
             Log::info('Attempting Supabase upload', [
                 'filename' => $filename,

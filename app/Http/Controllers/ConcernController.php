@@ -174,7 +174,7 @@ class ConcernController extends Controller
                 'category_id' => 'required|exists:categories,id',
                 'description' => 'nullable|string',
                 'details' => 'nullable|string|max:2000',
-                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'image' => \App\Services\ImageUploadSecurity::rules(),
                 'is_anonymous' => 'nullable|boolean',
             ]);
 
@@ -849,6 +849,7 @@ class ConcernController extends Controller
             'status' => 'nullable|in:Pending,Assigned,In Progress,Resolved,Closed',
             'assigned_to' => 'nullable|exists:maintenance_staff,id',
             'cost' => 'nullable|numeric|min:0',
+            'image' => \App\Services\ImageUploadSecurity::rules(),
         ]);
 
         if ($request->input('status') === 'Resolved'
@@ -870,11 +871,16 @@ class ConcernController extends Controller
         // Handle image upload
         $imagePath = $concern->image_path;
         if ($request->hasFile('image')) {
-            // Delete old image
-            if ($concern->image_path) {
-                Storage::disk('public')->delete($concern->image_path);
+            $file = $request->file('image');
+            $imagePath = in_array(config('app.env'), ['production', 'vercel'], true)
+                ? (new SupabaseStorage())->upload($file, 'concerns')
+                : (new SecureFileUpload())->validateAndStore($file, 'concerns', 'concerns');
+
+            if (!$imagePath) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'image' => 'The image could not be stored. Please try again.',
+                ]);
             }
-            $imagePath = $request->file('image')->store('concerns', 'public');
         }
 
         $updateData = [

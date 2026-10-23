@@ -4247,7 +4247,7 @@ class AdminController extends Controller
         set_time_limit(300);
 
         $request->validate([
-            'file'         => 'required',
+            'file'         => \App\Services\UserImportFile::rules(),
             'default_role' => 'required|in:student,faculty,staff',
             'file_format'  => 'required|in:masterlist,standard',
             'archive_folder_name' => 'nullable|string|max:255',
@@ -4256,37 +4256,11 @@ class AdminController extends Controller
         $isMasterlist = $request->input('file_format') === 'masterlist';
         $defaultRole  = $request->input('default_role', 'student');
         $folderName   = trim($request->input('archive_folder_name') ?: now()->year.'-'.(now()->year + 1));
-        $extension    = strtolower($request->file('file')->getClientOriginalExtension());
-        $filePath     = $request->file('file')->getRealPath();
-
-        // Build flat array of rows
-        $allRows = [];
-        if (in_array($extension, ['xlsx', 'xls'])) {
-            $xlsx = \Shuchkin\SimpleXLSX::parse($filePath);
-            if ($xlsx) {
-                if ($isMasterlist && $defaultRole === 'student') {
-                    foreach ($xlsx->sheetNames() as $sheetIndex => $sheetName) {
-                        $sheetRows = \App\Services\StudentMasterlistRows::normalize($xlsx->rows($sheetIndex));
-                        if ($allRows !== []) {
-                            array_shift($sheetRows);
-                        }
-                        $allRows = array_merge($allRows, $sheetRows);
-                    }
-                } else {
-                    $allRows = $xlsx->rows();
-                }
-            }
-        } else {
-            $delimiter = $isMasterlist ? "\t" : ',';
-            $handle = fopen($filePath, 'r');
-            while (($row = fgetcsv($handle, 2000, $delimiter)) !== false) {
-                $allRows[] = $row;
-            }
-            fclose($handle);
-            if ($isMasterlist && $defaultRole === 'student') {
-                $allRows = \App\Services\StudentMasterlistRows::normalize($allRows);
-            }
-        }
+        $extension = strtolower($request->file('file')->getClientOriginalExtension());
+        // Validate and bound all input before any account records are changed.
+        $allRows = (new \App\Services\UserImportFile())->rows(
+            $request->file('file'), $isMasterlist, $isMasterlist && $defaultRole === 'student'
+        );
 
         $rowCount = 0;
         $skippedRows = [];
