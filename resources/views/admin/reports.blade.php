@@ -920,7 +920,7 @@
                                             <form action="{{ route('admin.deletedReports.permanentDelete', $report->id) }}" method="POST" class="d-inline">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-danger" title="Permanently Delete" onclick="return confirm('Are you sure you want to permanently delete this report?')">
+                                                <button type="submit" class="btn btn-sm btn-danger" title="Permanently Delete" data-ticket-delete-confirm>
                                                     <i class="fas fa-times-circle"></i>
                                                 </button>
                                             </form>
@@ -1040,7 +1040,7 @@
                                 <form action="{{ route('admin.deletedReports.permanentDelete', $report->id) }}" method="POST" style="flex: 1;">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-danger w-100" onclick="return confirm('Are you sure you want to permanently delete this report?')">
+                                    <button type="submit" class="btn btn-sm btn-danger w-100" data-ticket-delete-confirm>
                                         <i class="fas fa-times-circle"></i> Delete
                                     </button>
                                 </form>
@@ -1869,18 +1869,6 @@ function confirmModalAction() {
 // Deleted Reports JavaScript Functions
 let currentDeletedReportId = null;
 
-function deletedReportsToggleSelectAll() {
-    const selectAll = document.getElementById('deletedReportsSelectAll');
-    const checkboxes = document.querySelectorAll('.deleted-report-checkbox');
-    
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = selectAll.checked;
-    });
-    
-    deletedReportsUpdateSelectedCount();
-    updateDeletedBulkActions();
-}
-
 function deletedReportsUpdateSelectedCount() {
     const countEl = document.getElementById('deletedReportsSelectedCount');
     const reportIdsEl = document.getElementById('selectedDeletedReportIds');
@@ -1895,31 +1883,6 @@ function deletedReportsUpdateSelectedCount() {
 
     const selectedIds = Array.from(checkboxes).map(cb => cb.value);
     reportIdsEl.value = selectedIds.join(',');
-}
-
-function deletedReportsBulkRestore() {
-    const checkboxes = document.querySelectorAll('.deleted-report-checkbox:checked');
-    if (checkboxes.length === 0) {
-        alert('Please select at least one concern to restore.');
-        return;
-    }
-
-    if (confirm('Are you sure you want to restore ' + checkboxes.length + ' concern(s)?')) {
-        // Clear existing inputs
-        const container = document.getElementById('selectedDeletedReportIdsContainer');
-        container.innerHTML = '';
-
-        // Add hidden inputs for each selected ID
-        checkboxes.forEach(checkbox => {
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = 'ids[]';
-            input.value = checkbox.value;
-            container.appendChild(input);
-        });
-
-        document.getElementById('deletedReportsBulkRestoreForm').submit();
-    }
 }
 
 function showDeletedReportsContextMenu(e, reportId) {
@@ -3005,305 +2968,9 @@ if (retentionDaysElement) {
 </script>
 
 <script>
-// Checkbox functions for bulk actions
-function toggleAllReports(checkbox) {
-    const checkboxes = document.querySelectorAll('.report-checkbox');
-    checkboxes.forEach(cb => cb.checked = checkbox.checked);
-    updateActiveBulkActions();
-}
-
-function getSelectedReports() {
-    const checkboxes = document.querySelectorAll('.report-checkbox:checked');
-    return Array.from(checkboxes).map(cb => cb.value);
-}
-
-// Checkbox functions for resolved reports
-function toggleAllResolvedReports(checkbox) {
-    const checkboxes = document.querySelectorAll('.resolved-report-checkbox');
-    checkboxes.forEach(cb => cb.checked = checkbox.checked);
-    updateResolvedBulkActions();
-}
-
-function getSelectedResolvedReports() {
-    const checkboxes = document.querySelectorAll('.resolved-report-checkbox:checked');
-    return Array.from(checkboxes).map(cb => cb.value);
-}
-
-// Update bulk actions visibility for Active Reports
-function updateActiveBulkActions() {
-    const selected = document.querySelectorAll('.active-checkbox:checked');
-    const bulkActions = document.getElementById('activeBulkActions');
-    const countSpan = document.getElementById('activeSelectedCount');
-    
-    if (selected.length > 0) {
-        bulkActions.style.display = 'block';
-        countSpan.textContent = selected.length + ' selected';
-    } else {
-        bulkActions.style.display = 'none';
-    }
-}
-
-// Update bulk actions visibility for Resolved Reports
-function updateResolvedBulkActions() {
-    const selected = document.querySelectorAll('.resolved-checkbox:checked');
-    const bulkActions = document.getElementById('resolvedBulkActions');
-    const countSpan = document.getElementById('resolvedSelectedCount');
-    
-    if (selected.length > 0) {
-        bulkActions.style.display = 'block';
-        countSpan.textContent = selected.length + ' selected';
-    } else {
-        bulkActions.style.display = 'none';
-    }
-}
-
-// Batch archive selected active reports
-function batchArchiveSelected() {
-    const selected = document.querySelectorAll('.active-checkbox:checked');
-    const ids = Array.from(selected).map(cb => cb.value);
-    
-    if (ids.length === 0) return;
-    
-    if (confirm('Are you sure you want to archive ' + ids.length + ' report(s)?')) {
-        fetch('/concerns/batch-archive', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ ids: ids })
-        }).then(response => response.json())
-        .then(data => {
-            alert(data.message);
-            location.reload();
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error archiving reports');
-        });
-    }
-}
-
-// Batch soft delete selected active reports
-function batchSoftDeleteSelected() {
-    const selected = document.querySelectorAll('.active-checkbox:checked');
-    const ids = Array.from(selected).map(cb => cb.value);
-    
-    if (ids.length === 0) return;
-    
-    if (confirm('Are you sure you want to delete ' + ids.length + ' report(s)?')) {
-        fetch('/concerns/batch-soft-delete', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ ids: ids })
-        }).then(response => response.json())
-        .then(data => {
-            alert(data.message);
-            location.reload();
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error deleting reports');
-        });
-    }
-}
-
-// Batch archive resolved reports
-function batchArchiveResolved() {
-    const selected = document.querySelectorAll('.resolved-checkbox:checked');
-    const ids = Array.from(selected).map(cb => cb.value);
-    
-    if (ids.length === 0) return;
-    
-    if (confirm('Are you sure you want to archive ' + ids.length + ' resolved report(s)?')) {
-        fetch('/concerns/batch-archive', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ ids: ids })
-        }).then(response => response.json())
-        .then(data => {
-            alert(data.message);
-            location.reload();
-        }).catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while archiving reports.');
-        });
-    }
-}
-
-// Batch soft delete resolved reports
-function batchSoftDeleteResolved() {
-    const selected = document.querySelectorAll('.resolved-checkbox:checked');
-    const ids = Array.from(selected).map(cb => cb.value);
-    
-    if (ids.length === 0) return;
-    
-    if (confirm('Are you sure you want to delete ' + ids.length + ' resolved report(s)? They will be moved to the deleted folder.')) {
-        fetch('/concerns/batch-soft-delete', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ ids: ids })
-        }).then(response => response.json())
-        .then(data => {
-            alert(data.message);
-            location.reload();
-        }).catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while deleting reports.');
-        });
-    }
-}
-
-// Update bulk actions visibility for Archived Reports
-function updateArchiveBulkActions() {
-    const selected = document.querySelectorAll('.archive-checkbox:checked');
-    const bulkActions = document.getElementById('archiveBulkActions');
-    const countSpan = document.getElementById('archiveSelectedCount');
-    
-    if (selected.length > 0) {
-        bulkActions.style.display = 'block';
-        countSpan.textContent = selected.length + ' selected';
-    } else {
-        bulkActions.style.display = 'none';
-    }
-}
-
-// Toggle all archived checkboxes
-function toggleAllArchived(checkbox) {
-    const checkboxes = document.querySelectorAll('.archive-checkbox');
-    checkboxes.forEach(cb => cb.checked = checkbox.checked);
-    updateArchiveBulkActions();
-}
-
-// Batch restore archived reports
-function batchRestoreArchived() {
-    const selected = document.querySelectorAll('.archive-checkbox:checked');
-    const ids = Array.from(selected).map(cb => cb.value);
-    
-    if (ids.length === 0) return;
-    
-    if (confirm('Are you sure you want to restore ' + ids.length + ' archived report(s)?')) {
-        fetch('/concerns/batch-restore', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ ids: ids })
-        }).then(response => response.json())
-        .then(data => {
-            alert(data.message);
-            location.reload();
-        }).catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while restoring reports.');
-        });
-    }
-}
-
-// Batch soft delete archived reports
-function batchSoftDeleteArchived() {
-    const selected = document.querySelectorAll('.archive-checkbox:checked');
-    const ids = Array.from(selected).map(cb => cb.value);
-    
-    if (ids.length === 0) return;
-    
-    if (confirm('Are you sure you want to delete ' + ids.length + ' archived report(s)? They will be moved to the deleted folder.')) {
-        fetch('/concerns/batch-soft-delete', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ ids: ids })
-        }).then(response => response.json())
-        .then(data => {
-            alert(data.message);
-            location.reload();
-        }).catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while deleting reports.');
-        });
-    }
-}
-
-// Update bulk actions visibility for Deleted Reports
-function updateDeletedBulkActions() {
-    const selected = document.querySelectorAll('.deleted-checkbox:checked');
-    const bulkActions = document.getElementById('deletedBulkActions');
-    const countSpan = document.getElementById('deletedSelectedCount');
-    
-    if (selected.length > 0) {
-        bulkActions.style.display = 'block';
-        countSpan.textContent = selected.length + ' selected';
-    } else {
-        bulkActions.style.display = 'none';
-    }
-}
-
-// Batch restore deleted reports
-function batchRestoreDeleted() {
-    const selected = document.querySelectorAll('.deleted-checkbox:checked');
-    const ids = Array.from(selected).map(cb => cb.value);
-    
-    if (ids.length === 0) return;
-    
-    if (confirm('Are you sure you want to restore ' + ids.length + ' deleted report(s)?')) {
-        fetch('/concerns/batch-restore-deleted', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ ids: ids })
-        }).then(response => response.json())
-        .then(data => {
-            alert(data.message);
-            location.reload();
-        }).catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while restoring reports.');
-        });
-    }
-}
-
-// Batch permanent delete reports
-function batchPermanentDelete() {
-    const selected = document.querySelectorAll('.deleted-checkbox:checked');
-    const ids = Array.from(selected).map(cb => cb.value);
-    
-    if (ids.length === 0) return;
-    
-    if (confirm('?? WARNING: Are you sure you want to PERMANENTLY DELETE ' + ids.length + ' report(s)? This action CANNOT be undone!')) {
-        if (confirm('This is your final warning. The selected reports will be permanently deleted. Continue?')) {
-            fetch('/concerns/batch-permanent-delete', {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ ids: ids })
-            }).then(response => response.json())
-            .then(data => {
-                alert(data.message);
-                location.reload();
-            }).catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred while permanently deleting reports.');
-            });
-        }
-    }
-}
-
+</script>
+@include('partials.ticket-bulk-actions', ['bulkResource' => 'reports'])
+<script>
 // View Report from table button using SweetAlert2
 function viewReport(id) {
     window.currentReportId = id;
