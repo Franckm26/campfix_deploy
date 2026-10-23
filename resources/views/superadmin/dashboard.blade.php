@@ -143,12 +143,6 @@
 {{-- All Concerns and Open Concerns are temporarily hidden; the remaining tiles still use $stats. --}}
 <div class="section-title"><i class="fas fa-clipboard-list"></i> Daily Operations</div>
 <div class="operations-grid">
-    <a href="{{ route('superadmin.concerns', ['status'=>'Resolved']) }}" class="module-card green">
-        <div class="module-icon" style="background:rgba(34,197,94,.15);color:#4ade80"><i class="fas fa-circle-check"></i></div>
-        <div class="module-title">Resolved Concerns</div>
-        <div class="module-count">{{ number_format($stats['resolved_concerns']) }}</div>
-        <div class="module-sub">All time</div>
-    </a>
     <a href="{{ route('superadmin.reports') }}" class="module-card blue">
         <div class="module-icon" style="background:rgba(59,130,246,.15);color:#60a5fa"><i class="fas fa-file-lines"></i></div>
         <div class="module-title">All Reports</div>
