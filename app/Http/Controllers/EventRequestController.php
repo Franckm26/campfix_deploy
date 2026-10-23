@@ -2123,7 +2123,6 @@ class EventRequestController extends Controller
 
         $allRequests = $query->orderBy('created_at', 'desc')->get();
         $allRequests->each(function ($eventRequest) {
-            $this->recordRequesterApprovalIfNeeded($eventRequest);
             $this->repairPendingApprovalLevel($eventRequest);
         });
 

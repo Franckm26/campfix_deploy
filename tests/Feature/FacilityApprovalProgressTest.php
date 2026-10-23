@@ -7,6 +7,7 @@ use App\Models\EventRequest;
 use App\Models\User;
 use App\Services\FacilityApprovalProgress;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
@@ -31,7 +32,28 @@ class FacilityApprovalProgressTest extends TestCase
                 $table->unsignedBigInteger('approved_by'.$suffix)->nullable(); $table->timestamp('approved_at'.$suffix)->nullable();
             }
             $table->boolean('is_deleted')->default(false); $table->timestamps();
+            $table->date('event_date')->nullable();
+            foreach (['student', 'faculty', 'building_admin', 'school_admin', 'academic_head', 'program_head', 'mis', 'maintenance'] as $role) {
+                $table->boolean($role.'_archived')->default(false);
+            }
         });
+    }
+
+    public function test_pending_approval_page_loads_existing_requests_without_changing_approval_history(): void
+    {
+        $approver = User::forceCreate(['name' => 'School Approver', 'email' => 'approver@example.com', 'role' => 'school_admin']);
+        $event = $this->event(['user_id' => $approver->id, 'event_date' => now()->addDays(2)->toDateString()]);
+        $event->save();
+        $before = $event->fresh()->getAttributes();
+        $this->actingAs($approver);
+
+        $view = app(EventRequestController::class)->adminIndex(Request::create('/events/admin'));
+
+        $this->assertSame('admin.events', $view->name());
+        $this->assertSame('pending', $view->getData()['viewType']);
+        $this->assertSame([$event->id], $view->getData()['requests']->pluck('id')->all());
+        $this->assertSame($before, $event->fresh()->getAttributes());
+        $this->assertStringContainsString('3 / 4', $this->renderTracker($view->getData()['requests']->first()));
     }
 
     private function event(array $overrides = []): EventRequest
