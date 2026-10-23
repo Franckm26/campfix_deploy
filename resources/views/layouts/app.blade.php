@@ -358,7 +358,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <i class="fas fa-calendar me-1"></i> Request
                         </a>
                         <a href="{{ route('events.calendar') }}" class="{{ Request::is('events-calendar') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
-                            <i class="fas fa-calendar-check me-1"></i> Upcoming Events
+                            <i class="fas fa-calendar-check me-1"></i> Calendar
                         </a>
                     </div>
                 </div>
@@ -414,7 +414,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <i class="fas fa-calendar me-1"></i> Request
                     </a>
                     <a href="{{ route('events.calendar') }}" class="{{ Request::is('events-calendar*') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
-                        <i class="fas fa-calendar-check me-1"></i> Upcoming Events
+                        <i class="fas fa-calendar-check me-1"></i> Calendar
                     </a>
                 </div>
             </div>
@@ -457,7 +457,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <i class="fas fa-calendar me-1"></i> Request
                         </a>
                         <a href="{{ route('events.calendar') }}" class="{{ Request::is('events-calendar') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
-                            <i class="fas fa-calendar-check me-1"></i> Upcoming Events
+                            <i class="fas fa-calendar-check me-1"></i> Calendar
                         </a>
                     @endif
                 </div>
@@ -494,7 +494,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <i class="fas fa-calendar me-1"></i> Request
                         </a>
                         <a href="{{ route('events.calendar') }}" class="{{ Request::is('events-calendar') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
-                            <i class="fas fa-calendar-check me-1"></i> Upcoming Events
+                            <i class="fas fa-calendar-check me-1"></i> Calendar
                         </a>
                     @endif
                 </div>
