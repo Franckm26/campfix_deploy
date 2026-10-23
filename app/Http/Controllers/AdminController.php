@@ -5413,10 +5413,11 @@ class AdminController extends Controller
         $priorityLevel = $hazardReports > 0 || $riskIndex >= 60 || $resolutionRate < 50
             ? 'Critical'
             : ($riskIndex >= 30 || $resolutionRate < $targetResolutionRate ? 'High' : 'Normal');
-        $repairHistories = app(\App\Services\TicketRecurrenceService::class)->histories($reports);
-        $recurringIssueStats = $reports
+        $assetRecurrence = app(\App\Services\TicketRecurrenceService::class)->forCurrentAssets($reports);
+        $repairHistories = $assetRecurrence['histories'];
+        $recurringIssueStats = $assetRecurrence['tickets']
             ->filter(fn ($report) => filled($report->title) && filled($report->location))
-            ->groupBy(fn ($report) => strtolower(trim((string) $report->title)).'|'.strtolower(trim((string) $report->location)))
+            ->groupBy(fn ($report) => app(\App\Services\AssetReplacementService::class)->scopeKey($report))
             ->map(function ($items) use ($reportWeight, $monthStart, $repairHistories) {
                 $open = $items->filter(fn ($report) => strtolower((string) $report->status) !== 'resolved')->sum($reportWeight);
                 $resolvedItems = $items->filter(fn ($report) => strtolower((string) $report->status) === 'resolved');

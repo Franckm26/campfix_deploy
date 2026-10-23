@@ -228,6 +228,136 @@ class ReopenTicketTest extends TestCase
         return app(\App\Http\Controllers\AdminController::class)->analytics($request)->getData();
     }
 
+    private function recordReplacement(?User $actor = null, ?string $operationId = null, ?Report $report = null)
+    {
+        return $this->actingAs($actor ?? $this->mis)->postJson(route('tickets.assetReplacement', [
+            'resource' => 'reports', 'id' => ($report ?? $this->report)->id,
+        ]), ['replacement_details' => 'New network device, asset tag NEW-304', 'replacement_notes' => 'Old unit replaced and installation tested.',
+            'confirmed_replacement' => true, 'operation_id' => $operationId ?? (string) \Illuminate\Support\Str::uuid()]);
+    }
+
+    private function reopenAndComplete(): void
+    {
+        $this->actingAs($this->reporter)->postJson(route('concerns.reopen', $this->concern), ['reason' => 'Same issue returned'])->assertOk();
+        foreach ([$this->concern->fresh(), $this->report->fresh()] as $ticket) {
+            $ticket->update(['status' => 'Resolved', 'resolved_at' => now()]);
+        }
+    }
+
+    public function test_recording_replacement_clears_old_recurrence_but_preserves_ticket_history(): void
+    {
+        $this->reopenAndComplete();
+        Report::create($this->report->only(['user_id', 'category_id', 'title', 'location', 'status', 'resolved_at', 'cost']));
+        $this->assertCount(1, $this->recurrenceAnalytics()['recurringIssueStats']);
+        $this->recordReplacement()->assertOk()->assertJsonPath('success', true);
+        $this->assertCount(0, $this->recurrenceAnalytics()['recurringIssueStats']);
+        $this->assertSame(2, ActivityLog::whereIn('action', ['concern_reopened', 'report_reopened'])->count());
+        $this->assertEquals(150, $this->report->fresh()->cost);
+        $html = app(\App\Services\TicketHistoryService::class)->renderFor($this->report->fresh(), $this->mis);
+        $this->assertStringContainsString('Previous repair', $html);
+        $this->assertStringContainsString('New network device, asset tag NEW-304', $html);
+        $this->assertStringContainsString('Asset replaced', $html);
+    }
+
+    public function test_new_asset_first_failure_does_not_inherit_old_repair_cycles(): void
+    {
+        $this->reopenAndComplete();
+        $this->recordReplacement()->assertOk();
+        $this->actingAs($this->reporter)->postJson(route('concerns.reopen', $this->concern), ['reason' => 'New unit failed'])->assertOk();
+        $this->assertCount(0, $this->recurrenceAnalytics()['recurringIssueStats']);
+        foreach ([$this->concern->fresh(), $this->report->fresh()] as $ticket) {
+            $ticket->update(['status' => 'Resolved', 'resolved_at' => now()]);
+        }
+        $this->assertCount(0, $this->recurrenceAnalytics()['recurringIssueStats']);
+        $this->actingAs($this->reporter)->postJson(route('concerns.reopen', $this->concern), ['reason' => 'New unit failed again'])->assertOk();
+        $issue = $this->recurrenceAnalytics()['recurringIssueStats']->first();
+        $this->assertSame(1, $issue['repair_cycles']);
+        $this->assertSame(1, $issue['reopenings']);
+        $this->assertSame(2, $issue['count']);
+    }
+
+    public function test_new_tickets_in_the_same_location_start_with_the_new_asset_history_only(): void
+    {
+        $this->reopenAndComplete();
+        $this->recordReplacement()->assertOk();
+        $new = Report::create($this->report->only(['user_id', 'category_id', 'title', 'location', 'status', 'resolved_at', 'cost']));
+        $this->assertCount(0, $this->recurrenceAnalytics()['recurringIssueStats']);
+        $this->actingAs($this->reporter)->postJson(route('reports.reopen', $new), ['reason' => 'New asset issue returned'])->assertOk();
+        $issue = $this->recurrenceAnalytics()['recurringIssueStats']->first();
+        $this->assertSame(1, $issue['repair_cycles']);
+        $this->assertSame(2, $issue['count']);
+    }
+
+    public function test_replacement_does_not_clear_other_locations_or_other_issues(): void
+    {
+        $this->reopenAndComplete();
+        foreach (['Room 888', 'Room 999'] as $location) {
+            for ($i = 0; $i < 2; $i++) Report::create(array_merge($this->report->only(['user_id', 'category_id', 'title', 'status', 'resolved_at', 'cost']), ['location' => $location]));
+        }
+        for ($i = 0; $i < 2; $i++) Report::create(array_merge($this->report->only(['user_id', 'category_id', 'location', 'status', 'resolved_at', 'cost']), ['title' => 'Different issue']));
+        $this->recordReplacement()->assertOk();
+        $issues = $this->recurrenceAnalytics()['recurringIssueStats'];
+        $this->assertCount(3, $issues);
+        $this->assertSame(['Different issue'], $issues->where('location', $this->report->location)->pluck('issue')->all());
+        $this->assertSame(['Room 888', 'Room 999'], $issues->where('issue', $this->report->title)->pluck('location')->sort()->values()->all());
+    }
+
+    public function test_replacement_is_staff_only_requires_resolution_and_is_idempotent(): void
+    {
+        $this->recordReplacement($this->reporter)->assertForbidden();
+        $other = $this->user('building_admin');
+        $this->recordReplacement($other)->assertForbidden();
+        $this->report->update(['status' => 'Assigned']);
+        $this->recordReplacement()->assertForbidden();
+        $this->report->update(['status' => 'Resolved']);
+        $operation = (string) \Illuminate\Support\Str::uuid();
+        $first = $this->recordReplacement(null, $operation)->assertOk()->json('replacement_id');
+        $this->assertSame($first, $this->recordReplacement(null, $operation)->assertOk()->json('replacement_id'));
+        $this->assertSame(1, ActivityLog::where('action', 'asset_replaced')->count());
+    }
+
+    public function test_mis_recurrence_alert_also_resets_after_replacement(): void
+    {
+        $this->reopenAndComplete();
+        $this->recordReplacement()->assertOk();
+        $this->actingAs($this->mis);
+        $request = Request::create('/analytics');
+        $request->setUserResolver(fn () => $this->mis);
+        $alerts = app(RoleAnalyticsController::class)->index($request)->getData()['decisionAlerts'];
+        $this->assertNotContains('Recurring MIS issues', $alerts->pluck('title')->all());
+    }
+
+    public function test_replacement_requires_details_notes_and_explicit_confirmation(): void
+    {
+        $this->actingAs($this->mis)->postJson(route('tickets.assetReplacement', ['resource' => 'reports', 'id' => $this->report->id]), [
+            'replacement_details' => ' ', 'replacement_notes' => '', 'operation_id' => (string) \Illuminate\Support\Str::uuid(),
+        ])->assertUnprocessable()->assertJsonValidationErrors(['replacement_details', 'replacement_notes', 'confirmed_replacement']);
+        $this->assertSame(0, ActivityLog::where('action', 'asset_replaced')->count());
+    }
+
+    public function test_a_later_replacement_starts_another_fresh_asset_generation(): void
+    {
+        $this->reopenAndComplete();
+        $this->recordReplacement()->assertOk();
+        $this->reopenAndComplete();
+        $this->reopenAndComplete();
+        $this->assertCount(1, $this->recurrenceAnalytics()['recurringIssueStats']);
+        $this->recordReplacement()->assertOk();
+        $this->assertCount(0, $this->recurrenceAnalytics()['recurringIssueStats']);
+        $this->assertSame(2, ActivityLog::where('action', 'asset_replaced')->count());
+        $this->assertSame(3, ActivityLog::where('action', 'concern_reopened')->count());
+    }
+
+    public function test_replacement_history_escapes_staff_entered_details(): void
+    {
+        $this->actingAs($this->mis)->postJson(route('tickets.assetReplacement', ['resource' => 'reports', 'id' => $this->report->id]), [
+            'replacement_details' => '<script>alert(1)</script>', 'replacement_notes' => 'Complete replacement verified.',
+            'confirmed_replacement' => true, 'operation_id' => (string) \Illuminate\Support\Str::uuid(),
+        ])->assertOk();
+        $html = app(\App\Services\TicketHistoryService::class)->renderFor($this->report->fresh(), $this->mis);
+        $this->assertStringNotContainsString('<script>alert(1)</script>', $html);
+    }
+
     public function test_first_reopening_triggers_a_recurring_repair_decision_alert(): void
     {
         $this->assertCount(0, $this->recurrenceAnalytics()['recurringIssueStats']);

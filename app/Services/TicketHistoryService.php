@@ -15,9 +15,12 @@ class TicketHistoryService
     // Call after the detail endpoint has authorized access to the ticket itself.
     public function renderFor(Concern|Report $ticket, User $viewer): string
     {
+        $replacementService = app(AssetReplacementService::class);
+        $canRecordReplacement = $replacementService->canRecord($ticket, $viewer);
         if (! $viewer->isSystemAdministrator()
             && ! in_array($viewer->role, ['mis', 'building_admin', 'school_admin'], true)
-            && ! ($viewer->role === 'maintenance' && (int) $ticket->assigned_to === (int) $viewer->id)) {
+            && ! ($viewer->role === 'maintenance' && (int) $ticket->assigned_to === (int) $viewer->id)
+            && !$canRecordReplacement) {
             return '';
         }
 
@@ -56,7 +59,9 @@ class TicketHistoryService
             ]));
         }
 
-        return view('partials.ticket-history', ['history' => $history])->render();
+        return view('partials.ticket-history', ['history' => $history])->render()
+            .view('partials.asset-replacement', ['ticket' => $ticket, 'canRecordReplacement' => $canRecordReplacement,
+                'replacements' => $replacementService->historyFor($ticket)])->render();
     }
 
     public function snapshot(Concern|Report $ticket): array

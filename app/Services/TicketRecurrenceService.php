@@ -14,6 +14,36 @@ class TicketRecurrenceService
     /** Completed repairs preserved when a ticket was reopened, keyed by ticket ID. */
     public function histories(Collection $tickets): Collection
     {
+        return $this->forCurrentAssets($tickets)['histories'];
+    }
+
+    public function forCurrentAssets(Collection $tickets): array
+    {
+        $histories = $this->allHistories($tickets);
+        $service = app(AssetReplacementService::class);
+        $replacements = $service->latestFor($tickets);
+        $current = $tickets->filter(function ($ticket) use ($service, $replacements, $histories) {
+            $replacement = $replacements->get($service->scopeKey($ticket));
+            if (!$replacement) return true;
+            $baseline = $replacement->metadata[$ticket instanceof Report ? 'baseline_report_ids' : 'baseline_concern_ids'] ?? [];
+            $events = $histories->get($ticket->id, collect())->filter(fn ($event) => $event['log_id'] > $replacement->id)->values();
+            if (in_array((int) $ticket->id, array_map('intval', $baseline), true)) {
+                if ($events->isEmpty()) {
+                    $histories->put($ticket->id, collect());
+                    return false;
+                }
+                // The first later reopening is the new asset's first failure;
+                // its saved resolution still belongs to the previous asset.
+                $events->shift();
+            }
+            $histories->put($ticket->id, $events);
+            return true;
+        });
+        return ['tickets' => $current, 'histories' => $histories];
+    }
+
+    private function allHistories(Collection $tickets): Collection
+    {
         $result = $tickets->mapWithKeys(fn ($ticket) => [$ticket->id => collect()]);
         if ($tickets->isEmpty() || !Schema::hasTable('activity_logs')) return $result;
         $reportIds = $tickets->filter(fn ($ticket) => $ticket instanceof Report)->pluck('id');
@@ -59,7 +89,7 @@ class TicketRecurrenceService
                 }
             }
             $result->put($ticket->id, $events->map(fn ($entry, $key) => [
-                'key' => $key, 'resolved_at' => $entry['resolved_at'], 'reopened_at' => $entry['reopened_at'],
+                'key' => $key, 'log_id' => $entry['log_id'], 'resolved_at' => $entry['resolved_at'], 'reopened_at' => $entry['reopened_at'],
             ])->values());
         }
         return $result;
@@ -71,7 +101,7 @@ class TicketRecurrenceService
         if (strtolower($saved['status'] ?? 'Resolved') !== 'resolved') return null;
         if ($this->normalize($saved['title'] ?? $ticket->title) !== $this->normalize($ticket->title)
             || $this->normalize($saved['location'] ?? $ticket->location) !== $this->normalize($ticket->location)) return null;
-        return ['resolved_at' => $this->date($saved['resolved_at'] ?? null), 'reopened_at' => $log->created_at,
+        return ['log_id' => $log->id, 'resolved_at' => $this->date($saved['resolved_at'] ?? null), 'reopened_at' => $log->created_at,
             'actor' => $log->user_id, 'reason' => $log->metadata['reason'] ?? $log->description];
     }
 

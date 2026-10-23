@@ -206,6 +206,7 @@ Route::middleware(['auth', 'throttle:notifications'])->group(function () {
 Route::middleware(['auth', 'throttle:web'])->group(function () {
     Route::get('/my-concerns', [ConcernController::class, 'myConcerns'])->name('concerns.my');
     Route::post('/ticket-batch/{resource}/{action}', \App\Http\Controllers\TicketBatchController::class)->middleware('throttle:batch')->name('tickets.batch');
+    Route::post('/tickets/{resource}/{id}/asset-replacement', [\App\Http\Controllers\AssetReplacementController::class, 'store'])->whereNumber('id')->middleware('throttle:status-updates')->name('tickets.assetReplacement');
     Route::get('/user/archive', [ConcernController::class, 'userArchive'])->name('user.archive');
     Route::get('/concerns/create', [ConcernController::class, 'create'])->name('concerns.create');
     Route::post('/submit-concern', [ConcernController::class, 'store'])->middleware('throttle:submissions')->name('concerns.store');

@@ -2999,6 +2999,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 @endauth
 </script>
 
+<script src="{{ asset('js/asset-replacement.js') }}"></script>
 @yield('scripts')
 
 </body>
