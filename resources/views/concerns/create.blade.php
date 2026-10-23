@@ -9,7 +9,7 @@
                     <h4 class="mb-0">Submit New Concern</h4>
                 </div>
                 <div class="card-body">
-                    <form action="{{ route('concerns.store') }}" method="POST" enctype="multipart/form-data" id="concernForm">
+                    <form action="{{ route('concerns.store') }}" method="POST" enctype="multipart/form-data" id="concernForm" data-concern-upload-form data-success-url="{{ route('concerns.my') }}">
                         @csrf
 
                         <div class="mb-2 mb-md-3">
@@ -105,6 +105,8 @@
 </div>
 
 @section('scripts')
+<script src="{{ asset('js/image-upload-feedback.js') }}"></script>
+@include('partials.concern-upload-errors')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Preview button click handler

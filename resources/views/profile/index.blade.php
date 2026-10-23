@@ -6,6 +6,7 @@
 @endsection
 
 @section('scripts')
+<script src="{{ asset('js/image-upload-feedback.js') }}"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
 @endsection
 
@@ -23,18 +24,27 @@ document.addEventListener('DOMContentLoaded', function() {
     // When file is selected
     fileInput.addEventListener('change', function(e) {
         const file = e.target.files[0];
+        nextBtn.disabled = true;
         if (file) {
-            // Validate file size (2MB)
-            if (file.size > 2 * 1024 * 1024) {
-                alert('File size must be less than 2MB');
+            const error = ImageUploadFeedback.validate(file);
+            if (error) {
+                fileInput.value = '';
+                ImageUploadFeedback.show(error, 'Invalid profile picture');
                 return;
             }
 
             const reader = new FileReader();
             reader.onload = function(e) {
+                if (fileInput.files[0] !== file) return;
+                cropperImg.onload = () => { nextBtn.disabled = fileInput.files[0] !== file; };
+                cropperImg.onerror = () => {
+                    fileInput.value = '';
+                    nextBtn.disabled = true;
+                    ImageUploadFeedback.show('This file could not be opened as an image. Please choose another picture.', 'Invalid profile picture');
+                };
                 cropperImg.src = e.target.result;
-                nextBtn.disabled = false;
             };
+            reader.onerror = () => ImageUploadFeedback.show('The picture could not be read. Please choose another file.', 'Invalid profile picture');
             reader.readAsDataURL(file);
         } else {
             nextBtn.disabled = true;
@@ -43,6 +53,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Next button - go to cropping
     nextBtn.addEventListener('click', function() {
+        const file = fileInput.files[0];
+        const error = file ? ImageUploadFeedback.validate(file) : 'Please choose a valid profile picture first.';
+        if (error) {
+            nextBtn.disabled = true;
+            ImageUploadFeedback.show(error, 'Invalid profile picture');
+            return;
+        }
         fileStep.style.display = 'none';
         cropStep.style.display = 'block';
 
@@ -94,12 +111,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         modal.hide();
                         location.reload();
                     } else {
-                        alert('Failed to remove profile picture');
+                        ImageUploadFeedback.show('Failed to remove profile picture. Please try again.', 'Unable to remove picture');
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Failed to remove profile picture');
+                    ImageUploadFeedback.show('Failed to remove profile picture. Please try again.', 'Unable to remove picture');
                 });
             }
         });
@@ -107,13 +124,29 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Crop and upload
     cropBtn.addEventListener('click', function() {
+        const file = fileInput.files[0];
+        const error = file ? ImageUploadFeedback.validate(file) : 'Please choose a valid profile picture first.';
+        if (error) {
+            nextBtn.disabled = true;
+            ImageUploadFeedback.show(error, 'Invalid profile picture');
+            return;
+        }
         if (cropper) {
             const canvas = cropper.getCroppedCanvas({
                 width: 300,
                 height: 300
             });
 
+            if (!canvas) {
+                ImageUploadFeedback.show('The picture could not be processed. Please choose another image.', 'Unable to upload profile picture');
+                return;
+            }
+
             canvas.toBlob(function(blob) {
+                if (!blob) {
+                    ImageUploadFeedback.show('The picture could not be processed. Please choose another image.', 'Unable to upload profile picture');
+                    return;
+                }
                 const formData = new FormData();
                 formData.append('profile_picture', blob, 'profile.jpg');
 
@@ -125,19 +158,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     },
                     body: formData
                 })
-                .then(response => {
-                    if (response.ok) {
+                .then(response => ImageUploadFeedback.readResponse(response))
+                .then(data => {
+                    if (data.success) {
                         // Close modal and reload
                         const modal = bootstrap.Modal.getInstance(document.getElementById('uploadPictureModal'));
                         modal.hide();
                         location.reload();
                     } else {
-                        alert('Upload failed');
+                        ImageUploadFeedback.show('Upload failed. Please try again.', 'Unable to upload profile picture');
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Upload failed');
+                    ImageUploadFeedback.show(error.message || 'Upload failed. Please try again.', 'Unable to upload profile picture');
                 });
             }, 'image/jpeg', 0.9);
         }
@@ -418,7 +452,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div id="file-selection-step">
                     <div class="mb-3">
                         <label for="profile_picture" class="form-label">Choose a profile picture</label>
-                        <input type="file" class="form-control" id="profile_picture" accept="image/*">
+                        <input type="file" class="form-control" id="profile_picture" accept=".jpg,.jpeg,.png,.gif">
                         <small class="text-muted">Accepted formats: JPEG, PNG, JPG, GIF. Max size: 2MB</small>
                     </div>
                     <div class="text-center d-flex justify-content-between align-items-center">

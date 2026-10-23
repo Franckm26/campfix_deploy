@@ -1,5 +1,9 @@
 @extends('layouts.app')
 
+@section('scripts')
+<script src="{{ asset('js/image-upload-feedback.js') }}"></script>
+@endsection
+
 @section('styles')
 <link href="{{ asset('css/admin.css') }}" rel="stylesheet">
 <style>
@@ -2195,9 +2199,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                 }
                 if (!response.ok) {
-                    return response.json().then(data => {
-                        throw { duplicate: false, data: data };
-                    });
+                    return ImageUploadFeedback.readResponse(response);
                 }
                 return response.json();
             })
@@ -2250,12 +2252,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     showDuplicateAlert(concernData);
                 } else {
                     // Other error
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: error.data?.message || error.message || 'Failed to submit concern. Please try again.',
-                        confirmButtonColor: '#d33'
-                    });
+                    ImageUploadFeedback.show(error.message || 'Failed to submit concern. Please try again.', 'Unable to submit concern');
                 }
             });
         });
@@ -3818,21 +3815,14 @@ if (editConcernForm) {
                 'Accept': 'application/json'
             }
         })
-        .then(response => response.json())
+        .then(response => ImageUploadFeedback.readResponse(response, 'The concern could not be updated. Please try again.'))
         .then(data => {
             if (data.success) {
                 bootstrap.Modal.getInstance(document.getElementById('editConcernModal')).hide();
                 location.reload();
-            } else if (data.errors) {
-                alert('Validation errors: ' + Object.values(data.errors).flat().join('\n'));
-            } else if (data.message) {
-                alert(data.message);
             }
         })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error updating concern.');
-        });
+        .catch(error => ImageUploadFeedback.show(error.message, 'Unable to update concern'));
     });
 }
 

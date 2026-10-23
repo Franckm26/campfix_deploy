@@ -292,7 +292,7 @@ class ConcernController extends Controller
                 $imagePath = $supabaseStorage->upload($request->file('image'), 'concerns');
                 
                 if ($imagePath === null) {
-                    return redirect()->back()->withInput()->with('error', 'Failed to upload image to cloud storage.');
+                    throw \Illuminate\Validation\ValidationException::withMessages(['image' => 'The image could not be uploaded. Please try again.']);
                 }
             } else {
                 // Local storage for development
@@ -304,7 +304,7 @@ class ConcernController extends Controller
                 );
 
                 if ($imagePath === null) {
-                    return redirect()->back()->withInput()->with('error', 'Invalid file upload. Please ensure the file is a valid image under 2MB.');
+                    throw \Illuminate\Validation\ValidationException::withMessages(['image' => 'Please choose a valid JPEG, PNG or GIF image no larger than 2 MB.']);
                 }
             }
         }
@@ -434,6 +434,8 @@ class ConcernController extends Controller
 
         return redirect()->route('concerns.my')->with('success', 'Concern submitted successfully!');
         
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             \Log::error('Error submitting concern: ' . $e->getMessage(), [
                 'user_id' => auth()->id(),
@@ -443,11 +445,11 @@ class ConcernController extends Controller
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Error submitting concern: ' . $e->getMessage()
+                    'message' => 'The concern could not be submitted. Please try again.'
                 ], 500);
             }
             
-            return redirect()->back()->withInput()->with('error', 'Error submitting concern: ' . $e->getMessage());
+            return redirect()->back()->withInput()->with('error', 'The concern could not be submitted. Please try again.');
         }
     }
 

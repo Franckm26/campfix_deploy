@@ -165,6 +165,31 @@ class ReopenTicketTest extends TestCase
         $this->assertNull($this->concern->fresh()->image_path);
     }
 
+    public function test_new_concern_upload_validation_is_not_converted_to_a_server_error(): void
+    {
+        Schema::create('user_rate_limits', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('user_id');
+            $table->string('action_type');
+            $table->integer('count')->default(0);
+            $table->date('date');
+            $table->timestamps();
+        });
+        $this->actingAs($this->reporter);
+        $request = Request::create('/concerns', 'POST', [
+            'location' => 'Room 301', 'category_id' => $this->concern->category_id,
+        ], [], ['image' => \Illuminate\Http\UploadedFile::fake()->createWithContent('bad.jpg', '<?php echo 1;')]);
+        $request->headers->set('Accept', 'application/json');
+        try {
+            app(\App\Http\Controllers\ConcernController::class)->store($request);
+            $this->fail('Invalid image did not produce a validation error.');
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $this->assertArrayHasKey('image', $exception->errors());
+            $this->assertSame(422, $exception->status);
+        }
+        $this->assertSame(1, Concern::count());
+    }
+
     public function test_original_reporter_reopens_both_records_and_preserves_resolution_history(): void
     {
         $this->actingAs($this->reporter)->postJson(route('concerns.reopen', $this->concern), ['reason' => 'The same connection is still failing.'])

@@ -1,5 +1,9 @@
 @extends('superadmin.layout')
 
+@section('scripts')
+<script src="{{ asset('js/image-upload-feedback.js') }}"></script>
+@endsection
+
 @section('page_title', 'All Reports')
 
 @section('content')
@@ -519,7 +523,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     'Accept': 'application/json'
                 }
             })
-            .then(response => response.json())
+            .then(response => ImageUploadFeedback.readResponse(response, 'The concern could not be submitted. Please try again.'))
             .then(data => {
                 console.log('[DEBUG] Success response:', data);
                 
@@ -555,15 +559,7 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => {
                 console.error('Error:', error);
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: error.message || 'Failed to submit concern. Please try again.'
-                    });
-                } else {
-                    alert('Error: ' + (error.message || 'Failed to submit concern'));
-                }
+                ImageUploadFeedback.show(error.message || 'Failed to submit concern. Please try again.', 'Unable to submit concern');
             })
             .finally(() => {
                 if (submitBtn) {

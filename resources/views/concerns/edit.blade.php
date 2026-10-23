@@ -1,5 +1,10 @@
 @extends('layouts.app')
 
+@section('scripts')
+<script src="{{ asset('js/image-upload-feedback.js') }}"></script>
+@include('partials.concern-upload-errors')
+@endsection
+
 @section('content')
 <div class="container-fluid px-3">
     <div class="row justify-content-center">
@@ -9,7 +14,7 @@
                     <h4>Edit Concern</h4>
                 </div>
                 <div class="card-body">
-                    <form action="{{ route('concerns.update', $concern->id) }}" method="POST" enctype="multipart/form-data">
+                    <form action="{{ route('concerns.update', $concern->id) }}" method="POST" enctype="multipart/form-data" data-concern-upload-form data-success-url="{{ route('concerns.my') }}">
                         @csrf
                         @method('PUT')
 

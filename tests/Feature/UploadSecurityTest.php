@@ -70,6 +70,16 @@ class UploadSecurityTest extends TestCase
         app(ProfileController::class)->uploadProfilePicture($request);
     }
 
+    public function test_concern_upload_validation_feedback_safely_renders_the_error_message(): void
+    {
+        $message = 'Invalid image </script><script>alert(1)</script>';
+        $errors = (new \Illuminate\Support\ViewErrorBag())->put('default', new \Illuminate\Support\MessageBag(['image' => $message]));
+        $html = view('partials.concern-upload-errors', compact('errors'))->render();
+        $this->assertStringContainsString('ImageUploadFeedback.show', $html);
+        $this->assertStringContainsString('Invalid concern image', $html);
+        $this->assertStringNotContainsString($message, $html);
+    }
+
     public function test_oversized_image_is_rejected(): void
     {
         $this->expectException(ValidationException::class);
