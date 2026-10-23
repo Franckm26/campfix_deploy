@@ -5413,24 +5413,29 @@ class AdminController extends Controller
         $priorityLevel = $hazardReports > 0 || $riskIndex >= 60 || $resolutionRate < 50
             ? 'Critical'
             : ($riskIndex >= 30 || $resolutionRate < $targetResolutionRate ? 'High' : 'Normal');
+        $repairHistories = app(\App\Services\TicketRecurrenceService::class)->histories($reports);
         $recurringIssueStats = $reports
             ->filter(fn ($report) => filled($report->title) && filled($report->location))
             ->groupBy(fn ($report) => strtolower(trim((string) $report->title)).'|'.strtolower(trim((string) $report->location)))
-            ->map(function ($items) use ($reportWeight, $monthStart) {
+            ->map(function ($items) use ($reportWeight, $monthStart, $repairHistories) {
                 $open = $items->filter(fn ($report) => strtolower((string) $report->status) !== 'resolved')->sum($reportWeight);
                 $resolvedItems = $items->filter(fn ($report) => strtolower((string) $report->status) === 'resolved');
                 $hazards = $items->filter(fn ($report) => (bool) $report->is_safety_hazard)->sum($reportWeight);
                 $cost = (float) $items->sum(fn ($report) => (float) ($report->cost ?? 0));
-                $repairCycles = $resolvedItems->count();
-                $reportCount = $items->sum($reportWeight);
-                $trend = collect(range(0, 5))->map(function ($offset) use ($items, $monthStart, $reportWeight) {
+                $pastRepairs = $items->flatMap(fn ($report) => $repairHistories->get($report->id, collect()))->unique('key');
+                $reopenings = $pastRepairs->count();
+                $repairCycles = $resolvedItems->count() + $reopenings;
+                $reportCount = $items->sum($reportWeight) + $reopenings;
+                $trend = collect(range(0, 5))->map(function ($offset) use ($items, $monthStart, $reportWeight, $pastRepairs) {
                     $month = $monthStart->copy()->addMonths($offset);
                     $monthKey = $month->format('Y-m');
 
                     return [
                         'label' => $month->format('M Y'),
-                        'reports' => $items->filter(fn ($report) => $report->created_at && $report->created_at->format('Y-m') === $monthKey)->sum($reportWeight),
-                        'repairs' => $items->filter(fn ($report) => $report->resolved_at && $report->resolved_at->format('Y-m') === $monthKey)->count(),
+                        'reports' => $items->filter(fn ($report) => $report->created_at && $report->created_at->format('Y-m') === $monthKey)->sum($reportWeight)
+                            + $pastRepairs->filter(fn ($repair) => $repair['reopened_at']?->format('Y-m') === $monthKey)->count(),
+                        'repairs' => $items->filter(fn ($report) => $report->resolved_at && $report->resolved_at->format('Y-m') === $monthKey)->count()
+                            + $pastRepairs->filter(fn ($repair) => $repair['resolved_at']?->format('Y-m') === $monthKey)->count(),
                     ];
                 })->values()->all();
 
@@ -5440,13 +5445,14 @@ class AdminController extends Controller
                     'count' => $reportCount,
                     'open' => $open,
                     'repair_cycles' => $repairCycles,
+                    'reopenings' => $reopenings,
                     'hazards' => $hazards,
                     'cost' => $cost,
                     'recurrence_score' => ($repairCycles * 5) + $reportCount + ($hazards * 4) + min(20, (int) floor($cost / 1000)),
                     'trend' => $trend,
                 ];
             })
-            ->filter(fn ($issue) => $issue['repair_cycles'] >= 2)
+            ->filter(fn ($issue) => $issue['repair_cycles'] >= 2 || $issue['reopenings'] > 0)
             ->sortBy([['repair_cycles', 'desc'], ['recurrence_score', 'desc'], ['count', 'desc']])
             ->values();
         $topRecurringIssue = $recurringIssueStats->first();
@@ -5552,11 +5558,11 @@ class AdminController extends Controller
                 'key' => 'recurring-repair-'.substr(md5(strtolower($issue.'|'.$location)), 0, 10),
                 'level' => $isCritical ? 'critical' : 'warning',
                 'title' => "Evaluate replacing {$issue} in {$location}",
-                'body' => "{$recurringIssue['count']} report(s), {$recurringIssue['repair_cycles']} completed repair cycle(s), {$recordedCost} recorded repair cost.",
-                'why' => "The same {$issue} issue in {$location} returned after multiple completed repairs, indicating a possible ageing asset, recurring component failure, or unresolved root cause.",
+                'body' => "{$recurringIssue['count']} report occurrence(s), {$recurringIssue['reopenings']} reopening(s), {$recurringIssue['repair_cycles']} completed repair cycle(s), {$recordedCost} recorded repair cost.",
+                'why' => "The same {$issue} issue in {$location} returned after a completed repair, indicating a possible ageing asset, recurring component failure, or unresolved root cause.",
                 'priority' => $isCritical ? 'Critical' : 'High',
                 'impact' => 'Continuing to repair the same issue in the same location may cost more over time than replacing the failing asset or component.',
-                'stats' => ['Issue' => $issue, 'Location' => $location, 'Issue reports' => $recurringIssue['count'], 'Completed repairs' => $recurringIssue['repair_cycles'], 'Recorded repair cost' => $recordedCost, 'Open reports' => $recurringIssue['open']],
+                'stats' => ['Issue' => $issue, 'Location' => $location, 'Issue reports' => $recurringIssue['count'], 'Reopenings' => $recurringIssue['reopenings'], 'Completed repairs' => $recurringIssue['repair_cycles'], 'Recorded repair cost' => $recordedCost, 'Open reports' => $recurringIssue['open']],
                 'actions' => ['Obtain a replacement quotation for this location', 'Compare the quotation with cumulative and projected repair cost', 'Inspect asset age and recurring failed parts', 'Replace the asset or component when replacement offers better lifecycle value'],
                 'trend' => $recurringIssue['trend'],
                 'related_reports' => $reportEvidence($reports->filter(fn ($report) => strcasecmp(trim((string) $report->title), $issue) === 0 && strcasecmp(trim((string) $report->location), $location) === 0)->sortByDesc('created_at')),
@@ -5610,6 +5616,7 @@ class AdminController extends Controller
             'categoryWorkspace',
             'trendStats',
             'decisionAlerts',
+            'recurringIssueStats',
             'executiveSummary',
             'targetResolutionRate',
             'pendingReports',

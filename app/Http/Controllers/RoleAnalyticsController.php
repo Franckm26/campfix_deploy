@@ -312,6 +312,12 @@ class RoleAnalyticsController extends Controller
         $stale = $open->filter(fn (Concern $concern) => $concern->created_at && $concern->created_at->lte(now()->subDays(7)));
         $alerts = collect();
 
+        $histories = app(\App\Services\TicketRecurrenceService::class)->histories($reports);
+        $reopened = $reports->filter(fn ($concern) => $histories->get($concern->id, collect())->isNotEmpty());
+        if ($reopened->isNotEmpty()) {
+            $alerts->push($this->decisionAlert('Recurring MIS issues', 'warning', $reopened->count().' Technology/Internet ticket(s) returned after a completed repair.', 'Reopened tickets indicate the same issue has recurred after an earlier resolution.', 'Review repair history, investigate the root cause, and assess whether a lasting repair or replacement is needed.', $reopened, $misAssignees));
+        }
+
         if ($unassigned->isNotEmpty()) {
             $alerts->push($this->decisionAlert('Unassigned MIS work', 'warning', $unassigned->count().' Technology/Internet task(s) still need an owner.', 'Unclaimed work cannot progress through the MIS resolution workflow.', 'Assign ownership and priority before service delays increase.', $unassigned, $misAssignees));
         }

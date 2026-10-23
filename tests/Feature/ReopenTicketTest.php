@@ -219,6 +219,111 @@ class ReopenTicketTest extends TestCase
         $this->assertSame('Assigned', $this->concern->fresh()->status);
     }
 
+    private function recurrenceAnalytics(): array
+    {
+        $viewer = $this->user('admin');
+        $this->actingAs($viewer);
+        $request = Request::create('/admin/analytics');
+        $request->setUserResolver(fn () => $viewer);
+        return app(\App\Http\Controllers\AdminController::class)->analytics($request)->getData();
+    }
+
+    public function test_first_reopening_triggers_a_recurring_repair_decision_alert(): void
+    {
+        $this->assertCount(0, $this->recurrenceAnalytics()['recurringIssueStats']);
+        $this->actingAs($this->reporter)->postJson(route('concerns.reopen', $this->concern), ['reason' => 'Same issue returned'])->assertOk();
+        $data = $this->recurrenceAnalytics();
+        $issue = $data['recurringIssueStats']->first();
+        $this->assertSame(1, $issue['reopenings']);
+        $this->assertSame(1, $issue['repair_cycles']);
+        $this->assertSame(2, $issue['count']);
+        $this->assertEquals(150, $issue['cost']);
+        $this->assertSame(1, $data['totalReports']);
+        $alert = $data['decisionAlerts']->first(fn ($alert) => str_starts_with($alert['key'], 'recurring-repair-'));
+        $this->assertSame('warning', $alert['level']);
+        $this->assertSame(1, $alert['stats']['Reopenings']);
+    }
+
+    public function test_repeated_repair_cycles_count_history_without_double_counting_paired_logs(): void
+    {
+        for ($cycle = 0; $cycle < 3; $cycle++) {
+            if ($cycle > 0) {
+                foreach ([$this->concern->fresh(), $this->report->fresh()] as $ticket) {
+                    $ticket->update(['status' => 'Resolved', 'resolved_at' => now()]);
+                }
+            }
+            $this->actingAs($this->reporter)->postJson(route('concerns.reopen', $this->concern), ['reason' => 'Same issue returned'])->assertOk();
+        }
+        $this->assertSame(6, ActivityLog::whereIn('action', ['concern_reopened', 'report_reopened'])->count());
+        $data = $this->recurrenceAnalytics();
+        $issue = $data['recurringIssueStats']->first();
+        $this->assertSame(3, $issue['reopenings']);
+        $this->assertSame(3, $issue['repair_cycles']);
+        $this->assertSame(4, $issue['count']);
+        $this->assertSame(3, array_sum(array_column($issue['trend'], 'reports')) - 1);
+        $this->assertSame('critical', $data['decisionAlerts']->first()['level']);
+        ActivityLog::where('action', 'report_reopened')->orderBy('id')->first()->delete();
+        $this->assertSame(3, $this->recurrenceAnalytics()['recurringIssueStats']->first()['reopenings']);
+    }
+
+    public function test_latest_completed_repair_is_added_to_the_saved_repair_cycles(): void
+    {
+        $this->actingAs($this->reporter)->postJson(route('concerns.reopen', $this->concern), ['reason' => 'Same issue returned'])->assertOk();
+        foreach ([$this->concern->fresh(), $this->report->fresh()] as $ticket) {
+            $ticket->update(['status' => 'Resolved', 'resolved_at' => now()]);
+        }
+        $issue = $this->recurrenceAnalytics()['recurringIssueStats']->first();
+        $this->assertSame(2, $issue['repair_cycles']);
+        $this->assertSame(1, $issue['reopenings']);
+    }
+
+    public function test_concern_history_is_used_when_the_report_history_is_missing(): void
+    {
+        $this->actingAs($this->reporter)->postJson(route('concerns.reopen', $this->concern), ['reason' => 'Same issue returned'])->assertOk();
+        ActivityLog::where('action', 'report_reopened')->delete();
+        $issue = $this->recurrenceAnalytics()['recurringIssueStats']->first();
+        $this->assertSame(1, $issue['repair_cycles']);
+        $this->assertSame(1, $issue['reopenings']);
+    }
+
+    public function test_paired_legacy_snapshots_with_a_missing_resolution_date_count_once(): void
+    {
+        $this->actingAs($this->reporter)->postJson(route('concerns.reopen', $this->concern), ['reason' => 'Same issue returned'])->assertOk();
+        $log = ActivityLog::where('action', 'report_reopened')->firstOrFail();
+        $saved = $log->old_values;
+        unset($saved['resolved_at']);
+        $log->update(['old_values' => $saved]);
+        $issue = $this->recurrenceAnalytics()['recurringIssueStats']->first();
+        $this->assertSame(1, $issue['reopenings']);
+        $this->assertSame(1, $issue['repair_cycles']);
+    }
+
+    public function test_mis_decision_alerts_include_reopened_technology_issues(): void
+    {
+        $this->actingAs($this->reporter)->postJson(route('concerns.reopen', $this->concern), ['reason' => 'Same issue returned'])->assertOk();
+        $this->actingAs($this->mis);
+        $request = Request::create('/analytics');
+        $request->setUserResolver(fn () => $this->mis);
+        $data = app(RoleAnalyticsController::class)->index($request)->getData();
+        $this->assertContains('Recurring MIS issues', $data['decisionAlerts']->pluck('title')->all());
+    }
+
+    public function test_previous_repairs_for_a_different_issue_are_not_counted_against_the_new_issue(): void
+    {
+        $this->actingAs($this->reporter)->postJson(route('concerns.reopen', $this->concern), ['reason' => 'Same issue returned'])->assertOk();
+        $this->report->update(['title' => 'Different issue', 'location' => 'Room 999']);
+        $this->assertCount(0, $this->recurrenceAnalytics()['recurringIssueStats']);
+    }
+
+    public function test_two_separate_completed_reports_still_trigger_the_existing_recurrence_alert(): void
+    {
+        Report::create($this->report->only(['user_id', 'category_id', 'title', 'location', 'status', 'resolved_at', 'cost']));
+        $issue = $this->recurrenceAnalytics()['recurringIssueStats']->first();
+        $this->assertSame(2, $issue['repair_cycles']);
+        $this->assertSame(0, $issue['reopenings']);
+        $this->assertSame(2, $issue['count']);
+    }
+
     public function test_unassigned_ticket_returns_to_pending(): void
     {
         $this->concern->update(['assigned_to' => null]);
@@ -287,6 +392,8 @@ class ReopenTicketTest extends TestCase
         $this->actingAs($this->reporter)->postJson(route('reports.reopen', $this->report), ['reason' => 'Still broken'])->assertOk();
         $this->assertSame('Assigned', $this->report->fresh()->status);
         $this->assertSame('Resolved', $this->concern->fresh()->status);
+        $histories = app(\App\Services\TicketRecurrenceService::class)->histories(collect([$this->report->fresh()]));
+        $this->assertCount(1, $histories->get($this->report->id));
     }
 
     public function test_rooms_auto_resolution_does_not_close_reopened_tickets(): void
