@@ -781,6 +781,10 @@ class AuthController extends Controller
 
     protected function hasAllowedEmailDomain(string $email): bool
     {
+        // Temporarily allow valid email addresses from any domain.
+        return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
+
+        /* School-domain restriction temporarily disabled.
         $domain = strtolower(substr(strrchr($email, '@') ?: '', 1));
         $allowedDomains = collect(config('services.microsoft.allowed_domains', ['novaliches.sti.edu.ph']))
             ->map(fn ($allowedDomain) => strtolower(trim($allowedDomain)))
@@ -788,6 +792,7 @@ class AuthController extends Controller
             ->all();
 
         return in_array($domain, $allowedDomains, true);
+        */
     }
 
     protected function validateMicrosoftRedirectUri(): void

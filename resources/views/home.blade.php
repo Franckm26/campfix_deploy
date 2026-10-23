@@ -291,9 +291,9 @@
                 @csrf
                 <div style="margin-bottom: 18px;">
                     <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1e293b;">Email</label>
-                    <input type="email" name="email" id="login-email" required style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px;" placeholder="name@novaliches.sti.edu.ph">
+                    <input type="email" name="email" id="login-email" required style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px;" placeholder="name@example.com">
                     <small id="login-email-error" style="color: #dc2626; font-size: 12px; display: none;"></small>
-                    <small style="color: #64748b; font-size: 12px;">Use your @novaliches.sti.edu.ph account.</small>
+                    {{-- <small style="color: #64748b; font-size: 12px;">Use your @novaliches.sti.edu.ph account.</small> --}}
                 </div>
                 <div style="margin-bottom: 18px;">
                     <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1e293b;">Password</label>
@@ -391,7 +391,9 @@
         }
 
         function hasAllowedLoginDomain(email) {
-            return email.toLowerCase().endsWith('@novaliches.sti.edu.ph');
+            // School-domain restriction temporarily disabled.
+            // return email.toLowerCase().endsWith('@novaliches.sti.edu.ph');
+            return validateEmail(email);
         }
         
         function showError(element, errorElement, message) {
