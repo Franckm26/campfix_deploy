@@ -458,8 +458,7 @@ class EventRequestController extends Controller
         // Check if user can view this event
         // Allow if: user owns the event OR user can approve requests
         if ((int)$event->user_id === (int)$user->id || $user->canApproveRequests()) {
-            $this->recordRequesterApprovalIfNeeded($event);
-
+            $event->setAttribute('approval_progress_html', \Illuminate\Support\Facades\Blade::render('<x-request-progress-tracker :request="$event" title="Approval Progress" />', ['event' => $event]));
             return response()->json(['event' => $event]);
         }
 
@@ -486,64 +485,6 @@ class EventRequestController extends Controller
         }
 
         return response()->json(['error' => 'Unauthorized'], 403);
-    }
-
-    private function recordRequesterApprovalIfNeeded(EventRequest $event): void
-    {
-        if ($event->status !== EventRequest::STATUS_PENDING || ! $event->user) {
-            return;
-        }
-
-        $requester = $event->user;
-        $history = $event->approval_history ?? [];
-        $changed = false;
-
-        $recordApproval = function (int $level, string $role, string $field, string $dateField) use ($event, $requester, &$history, &$changed) {
-            if ($event->{$field}) {
-                return;
-            }
-
-            $event->{$field} = $requester->id;
-            $event->{$dateField} = now();
-            $history[] = [
-                'level' => $level,
-                'role' => $role,
-                'approver' => $requester->name,
-                'approver_id' => $requester->id,
-                'at' => now()->toDateTimeString(),
-                'notes' => 'Auto-approved (requester is also approver)',
-            ];
-            $changed = true;
-        };
-
-        if (($event->education_level ?? 'tertiary') !== 'shs' && $requester->isProgramHead()) {
-            $recordApproval(EventRequest::LEVEL_1_PROGRAM_HEAD, 'Program Head', 'approved_by_level_1', 'approved_at_level_1');
-        }
-
-        if ($requester->isAcademicHead()) {
-            $recordApproval(EventRequest::LEVEL_2_ACADEMIC_HEAD, 'Academic Head', 'approved_by_level_2', 'approved_at_level_2');
-        }
-
-        if ($requester->isBuildingAdmin()) {
-            $recordApproval(EventRequest::LEVEL_3_BUILDING_ADMIN, 'Building Admin', 'approved_by_level_3', 'approved_at_level_3');
-        }
-
-        if (! $changed) {
-            return;
-        }
-
-        $event->approval_history = $history;
-
-        if ($event->isFullyApproved()) {
-            $event->status = EventRequest::STATUS_APPROVED;
-            $event->approved_by = $requester->id;
-            $event->approved_at = now();
-            $event->approval_level = EventRequest::LEVEL_APPROVED;
-        } else {
-            $event->approval_level = $event->getNextApprovalLevel() ?? $event->approval_level;
-        }
-
-        $event->save();
     }
 
     // Show user's event requests - Only for faculty
