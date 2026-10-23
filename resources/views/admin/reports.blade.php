@@ -400,8 +400,8 @@
                                         <td>
                                             {{ $report->reporter_display_name }}
                                         </td>
-                                        <td>{{ $report->created_at->format('m/d/Y') }}</td>
-                                        <td>{{ $report->resolved_at ? $report->resolved_at->format('M d, Y g:i A') : '-' }}</td>
+                                        <td>{{ $report->created_at->copy()->timezone('Asia/Manila')->format('m/d/Y') }}</td>
+                                        <td>{{ $report->resolved_at ? $report->resolved_at->copy()->timezone('Asia/Manila')->format('M d, Y h:i A') : '-' }}</td>
                                         <td>
                                             @include('partials.reopen-ticket', ['ticket' => $report, 'context' => 'admin-table'])
                                             <div class="btn-group" role="group">
@@ -652,8 +652,8 @@
                                             <td>
                                                 {{ $concern->is_anonymous ? 'Anonymous' : $concern->reporter_display_name }}
                                             </td>
-                                            <td>{{ $concern->created_at->format('m/d/Y') }}</td>
-                                            <td>{{ $concern->resolved_at ? $concern->resolved_at->format('m/d/Y') : '-' }}</td>
+                                            <td>{{ $concern->created_at->copy()->timezone('Asia/Manila')->format('m/d/Y') }}</td>
+                                            <td>{{ $concern->resolved_at ? $concern->resolved_at->copy()->timezone('Asia/Manila')->format('M d, Y h:i A') : '-' }}</td>
                                             <td>
                                                 <div class="btn-group" role="group">
                                                     <button type="button" class="btn btn-sm btn-info" onclick="viewConcern({{ $concern->id }})" title="View">
