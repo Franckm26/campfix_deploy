@@ -1898,11 +1898,16 @@ function cancelEventRequest(eventId) {
 function rescheduleEventRequest(eventId) {
     Swal.fire({
         title: 'Reschedule facility request',
-        html: `<input id="rescheduleDate" type="date" class="swal2-input" aria-label="New event date"><input id="rescheduleStart" type="time" class="swal2-input" aria-label="New start time"><input id="rescheduleEnd" type="time" class="swal2-input" aria-label="New end time"><textarea id="rescheduleReason" class="swal2-textarea" placeholder="Reason (optional)"></textarea>`,
+        html: `<input id="rescheduleDate" type="date" min="{{ now()->toDateString() }}" required class="swal2-input" aria-label="New event date"><input id="rescheduleStart" type="time" class="swal2-input" aria-label="New start time"><input id="rescheduleEnd" type="time" class="swal2-input" aria-label="New end time"><textarea id="rescheduleReason" class="swal2-textarea" placeholder="Reason (optional)"></textarea>`,
         showCancelButton: true,
         confirmButtonText: 'Submit for approval',
         preConfirm: () => {
-            const eventDate = document.getElementById('rescheduleDate').value;
+            const dateInput = document.getElementById('rescheduleDate');
+            const eventDate = dateInput.value;
+            if (!eventDate || !dateInput.checkValidity()) {
+                Swal.showValidationMessage('Choose today or a future date. Past dates cannot be selected.');
+                return false;
+            }
             const startTime = document.getElementById('rescheduleStart').value;
             const endTime = document.getElementById('rescheduleEnd').value;
             if (!eventDate || !startTime || !endTime || endTime <= startTime) {
