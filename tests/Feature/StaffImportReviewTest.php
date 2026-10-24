@@ -91,6 +91,45 @@ class StaffImportReviewTest extends TestCase
         $this->assertNull(session('staff_import_review'));
     }
 
+    public function test_program_head_department_choices_are_available_and_selected_department_is_saved(): void
+    {
+        $preview = $this->preview();
+        $this->assertSame(['GE', 'ICT', 'Business Management', 'THM'], $preview['departments']);
+        $row = array_intersect_key($preview['rows'][0], array_flip(['row_id', 'name', 'email', 'role']));
+        $row['role'] = 'program_head';
+        $row['department'] = 'ICT';
+        $response = $this->confirm($preview, [$row]);
+        $this->assertSame(200, $response->getStatusCode(), $response->getContent());
+        $user = User::where('email', $row['email'])->sole();
+        $this->assertSame('program_head', $user->role);
+        $this->assertSame('ICT', $user->department);
+        $this->assertSame(User::defaultPermissions('program_head'), $user->permissions);
+    }
+
+    public function test_program_head_requires_a_valid_department_before_any_accounts_are_created(): void
+    {
+        $preview = $this->preview();
+        $rows = array_map(fn ($row) => array_intersect_key($row, array_flip(['row_id', 'name', 'email', 'role'])), $preview['rows']);
+        $rows[1]['role'] = 'program_head';
+        foreach ([null, '', 'Unknown department', ['ICT']] as $department) {
+            $rows[1]['department'] = $department;
+            try { $this->confirm($preview, $rows); $this->fail('Invalid Program Head department accepted.'); }
+            catch (ValidationException $exception) { $this->assertArrayHasKey('rows.1.department', $exception->errors()); }
+            $this->assertSame(1, User::count());
+            $this->assertSame(0, WelcomeEmailDelivery::count());
+        }
+    }
+
+    public function test_department_is_not_assigned_after_switching_to_another_staff_role(): void
+    {
+        $preview = $this->preview();
+        $row = array_intersect_key($preview['rows'][0], array_flip(['row_id', 'name', 'email', 'role']));
+        $row['department'] = 'THM';
+        $response = $this->confirm($preview, [$row]);
+        $this->assertSame(200, $response->getStatusCode(), $response->getContent());
+        $this->assertNull(User::where('email', $row['email'])->sole()->department);
+    }
+
     public function test_staff_masterlist_generates_names_emails_and_position_roles_before_review(): void
     {
         $preview = $this->preview("NO\tLAST NAME\tFIRST NAME\tMIDDLE NAME\tOTHER\tEMPLOYEE\tSTAFF\n1\tDoe\tJane\tA\t\tNVS123\tSchool Administrator\n");

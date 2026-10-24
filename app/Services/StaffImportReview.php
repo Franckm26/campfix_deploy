@@ -8,6 +8,8 @@ use Illuminate\Validation\ValidationException;
 
 class StaffImportReview
 {
+    public const DEPARTMENTS = ['GE', 'ICT', 'Business Management', 'THM'];
+
     public const ROLES = [
         'faculty' => 'Faculty / Other Staff', 'maintenance' => 'Maintenance', 'mis' => 'MIS',
         'school_admin' => 'School Administrator', 'building_admin' => 'Building Administrator',

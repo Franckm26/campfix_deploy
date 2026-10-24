@@ -4423,7 +4423,7 @@ class AdminController extends Controller
                     $name = $row[4];
                     $studentId = $studentId ?: null;
                 }
-                $department = null;
+                $department = $reviewedStaff !== null && $role === 'program_head' ? ($row[5] ?? null) : null;
                 $level      = null;
 
                 if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {

@@ -1,6 +1,6 @@
 (function () {
     'use strict';
-    let rows = [], roles = {}, token = null, page = 0, busy = false, generation = 0;
+    let rows = [], roles = {}, departments = [], token = null, page = 0, busy = false, generation = 0;
     const pageSize = 50, byId = id => document.getElementById(id);
     function errors(messages) {
         const box = byId('staffReviewErrors');
@@ -24,7 +24,24 @@
             const roleCell = document.createElement('td'), select = document.createElement('select');
             select.className = 'form-select'; select.setAttribute('aria-label', 'Role');
             Object.entries(roles).forEach(([value, label]) => { const option = document.createElement('option'); option.value = value; option.textContent = label; select.appendChild(option); });
-            select.value = row.role; select.addEventListener('change', () => { row.role = select.value; }); roleCell.appendChild(select); tr.appendChild(roleCell);
+            select.value = row.role; roleCell.appendChild(select);
+            const departmentField = document.createElement('label'), departmentSelect = document.createElement('select');
+            departmentField.className = 'mt-2';
+            const departmentLabel = document.createElement('span'); departmentLabel.className = 'd-block small mb-1';
+            departmentLabel.textContent = 'Department (required)'; departmentField.appendChild(departmentLabel);
+            departmentSelect.className = 'form-select'; departmentSelect.setAttribute('aria-label', 'Department');
+            const placeholder = document.createElement('option'); placeholder.value = ''; placeholder.textContent = 'Select Department'; departmentSelect.appendChild(placeholder);
+            departments.forEach(department => { const option = document.createElement('option'); option.value = department; option.textContent = department; departmentSelect.appendChild(option); });
+            departmentSelect.value = row.department || '';
+            function updateDepartment() {
+                const required = row.role === 'program_head';
+                departmentField.style.display = required ? 'block' : 'none';
+                departmentSelect.required = required; departmentSelect.disabled = !required;
+                if (!required) { row.department = null; departmentSelect.value = ''; }
+            }
+            select.addEventListener('change', () => { row.role = select.value; updateDepartment(); });
+            departmentSelect.addEventListener('change', () => { row.department = departmentSelect.value; });
+            departmentField.appendChild(departmentSelect); roleCell.appendChild(departmentField); updateDepartment(); tr.appendChild(roleCell);
             const action = document.createElement('td'), remove = document.createElement('button');
             remove.type = 'button'; remove.className = 'btn btn-sm btn-outline-danger'; remove.textContent = 'Remove';
             remove.addEventListener('click', () => { rows = rows.filter(item => item !== row); render(); }); action.appendChild(remove); tr.appendChild(action);
@@ -60,7 +77,7 @@
         try {
             const data = await send(byId('staffImportReview').dataset.previewUrl, new FormData(form));
             if (current !== generation) return;
-            rows = data.rows; roles = data.roles; token = data.token;
+            rows = data.rows; roles = data.roles; departments = data.departments; token = data.token;
             byId('importStep2').style.display = 'none'; byId('staffImportReview').style.display = 'block';
             byId('dot2').classList.remove('active'); byId('dot2').classList.add('done'); byId('dot3').classList.add('active');
             render();
@@ -74,6 +91,7 @@
         const issues = [], seen = new Set();
         rows.forEach((row, index) => {
             if (!row.name.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.email.trim())) issues.push('Row ' + (index + 1) + ': enter a name and valid email.');
+            if (row.role === 'program_head' && !departments.includes(row.department)) issues.push('Row ' + (index + 1) + ': select a department for the Program Head.');
             const email = row.email.trim().toLowerCase();
             if (seen.has(email)) issues.push('Row ' + (index + 1) + ': email is repeated in this list.');
             seen.add(email);
@@ -84,7 +102,7 @@
         Swal.fire({title: 'Importing reviewed staff...', allowOutsideClick: false, allowEscapeKey: false, showConfirmButton: false, didOpen: () => Swal.showLoading()});
         try {
             const data = await send(byId('staffImportReview').dataset.confirmUrl, {
-                preview_token: token, rows: rows.map(({row_id, name, email, role}) => ({row_id, name, email, role})),
+                preview_token: token, rows: rows.map(({row_id, name, email, role, department}) => ({row_id, name, email, role, department: role === 'program_head' ? department : null})),
                 archive_folder_name: form.querySelector('[name="archive_folder_name"]').value,
             }, true);
             await Swal.fire({icon: 'success', title: 'Import complete', text: data.message});

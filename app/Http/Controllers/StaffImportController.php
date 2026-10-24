@@ -22,6 +22,7 @@ class StaffImportController extends Controller
             'expires_at' => now()->addMinutes(30)->timestamp, 'rows' => $rows]);
         $emails = User::withoutGlobalScopes()->pluck('email')->map(fn ($email) => strtolower($email))->all();
         return response()->json(['success' => true, 'token' => $token, 'roles' => StaffImportReview::ROLES,
+            'departments' => StaffImportReview::DEPARTMENTS,
             'rows' => array_map(fn ($row) => array_merge(array_intersect_key($row, array_flip(['row_id', 'name', 'email', 'role'])),
                 ['warning' => in_array($row['email'], $emails, true) ? 'Email already exists. Change it or remove this row.' : null]), $rows)]);
     }
@@ -38,17 +39,18 @@ class StaffImportController extends Controller
         if (is_array($rows)) {
             foreach ($rows as &$row) {
                 if (!is_array($row)) continue;
-                foreach (['name', 'email'] as $key) if (is_string($row[$key] ?? null)) $row[$key] = trim($row[$key]);
+                foreach (['name', 'email', 'department'] as $key) if (is_string($row[$key] ?? null)) $row[$key] = trim($row[$key]);
                 if (is_string($row['email'] ?? null)) $row['email'] = strtolower($row['email']);
             }
             unset($row);
             $request->merge(['rows' => $rows]);
         }
         $data = $request->validate([
-            'rows' => 'required|array|min:1|max:9999', 'rows.*' => 'required|array:row_id,name,email,role',
+            'rows' => 'required|array|min:1|max:9999', 'rows.*' => 'required|array:row_id,name,email,role,department',
             'rows.*.row_id' => 'required|string|distinct', 'rows.*.name' => 'required|string|max:255',
             'rows.*.email' => 'required|email|max:255|distinct:ignore_case',
             'rows.*.role' => ['required', Rule::in(array_keys(StaffImportReview::ROLES))],
+            'rows.*.department' => ['required_if:rows.*.role,program_head', 'nullable', Rule::in(StaffImportReview::DEPARTMENTS)],
             'archive_folder_name' => 'nullable|string|max:255',
         ]);
         $original = collect($draft['rows'])->keyBy('row_id');
@@ -62,7 +64,8 @@ class StaffImportController extends Controller
             if (filled($source['employee_id']) && in_array(strtolower($source['employee_id']), $ids, true)) {
                 throw ValidationException::withMessages(['rows.'.$index.'.name' => 'This employee ID already exists. Remove this row from the import.']);
             }
-            $reviewed[] = [$source['employee_id'], $row['email'], $source['password'], $row['role'], $row['name']];
+            $reviewed[] = [$source['employee_id'], $row['email'], $source['password'], $row['role'], $row['name'],
+                $row['role'] === 'program_head' ? $row['department'] : null];
             if (filled($source['employee_id'])) $ids[] = strtolower($source['employee_id']);
         }
         $request->merge(['default_role' => 'staff', 'file_format' => 'standard']);
