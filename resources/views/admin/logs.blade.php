@@ -365,27 +365,27 @@
                                             }
 
                                         // ── Notification sent — event approval chain ─────────────
-                                        } elseif ($action === 'notification_sent' && str_contains($desc, "Event request '")) {
+                                        } elseif ($action === 'notification_sent' && preg_match("/(?:Event|Facility) request '/i", $desc)) {
 
                                             // FULLY APPROVED
-                                            if (preg_match("/Event request '(.+?)' FULLY APPROVED - Notification sent to (.+)/i", $desc, $m)) {
-                                                $friendlyLines[] = 'Event request <strong>\'' . e($m[1]) . '\'</strong> has been <strong>fully approved</strong>.';
+                                            if (preg_match("/(?:Event|Facility) request '(.+?)' FULLY APPROVED - Notification sent to (.+)/i", $desc, $m)) {
+                                                $friendlyLines[] = 'Facility request <strong>\'' . e($m[1]) . '\'</strong> has been <strong>fully approved</strong>.';
                                                 $friendlyLines[] = 'Notification sent to <strong>' . e($m[2]) . '</strong>.';
 
                                             // approved by X - Waiting for Y
-                                            } elseif (preg_match("/Event request '(.+?)' approved by (.+?) - Waiting for (.+?) - Notification sent to (.+)/i", $desc, $m)) {
-                                                $friendlyLines[] = 'Event request <strong>\'' . e($m[1]) . '\'</strong> approved by <strong>' . e($m[2]) . '</strong>.';
+                                            } elseif (preg_match("/(?:Event|Facility) request '(.+?)' approved by (.+?) - Waiting for (.+?) - Notification sent to (.+)/i", $desc, $m)) {
+                                                $friendlyLines[] = 'Facility request <strong>\'' . e($m[1]) . '\'</strong> approved by <strong>' . e($m[2]) . '</strong>.';
                                                 $friendlyLines[] = 'Waiting for <strong>' . e($m[3]) . '</strong>.';
                                                 $friendlyLines[] = 'Notification sent to <strong>' . e($m[4]) . '</strong>.';
 
                                             // rejected
-                                            } elseif (preg_match("/Event request '(.+?)' rejected by (.+?) - Notification sent to (.+)/i", $desc, $m)) {
-                                                $friendlyLines[] = 'Event request <strong>\'' . e($m[1]) . '\'</strong> was <strong>rejected</strong> by <strong>' . e($m[2]) . '</strong>.';
+                                            } elseif (preg_match("/(?:Event|Facility) request '(.+?)' rejected by (.+?) - Notification sent to (.+)/i", $desc, $m)) {
+                                                $friendlyLines[] = 'Facility request <strong>\'' . e($m[1]) . '\'</strong> was <strong>rejected</strong> by <strong>' . e($m[2]) . '</strong>.';
                                                 $friendlyLines[] = 'Notification sent to <strong>' . e($m[3]) . '</strong>.';
 
                                             // old format fallback: "approved by X - Waiting for Next Level"
-                                            } elseif (preg_match("/Event request '(.+?)' approved by (.+?) - Waiting for Next Level - Notification sent to (.+)/i", $desc, $m)) {
-                                                $friendlyLines[] = 'Event request <strong>\'' . e($m[1]) . '\'</strong> approved by <strong>' . e($m[2]) . '</strong>.';
+                                            } elseif (preg_match("/(?:Event|Facility) request '(.+?)' approved by (.+?) - Waiting for Next Level - Notification sent to (.+)/i", $desc, $m)) {
+                                                $friendlyLines[] = 'Facility request <strong>\'' . e($m[1]) . '\'</strong> approved by <strong>' . e($m[2]) . '</strong>.';
                                                 $friendlyLines[] = 'Waiting for next approver.';
                                                 $friendlyLines[] = 'Notification sent to <strong>' . e($m[3]) . '</strong>.';
 

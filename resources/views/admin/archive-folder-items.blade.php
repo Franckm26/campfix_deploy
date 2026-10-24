@@ -480,9 +480,9 @@
                     <thead>
                         <tr>
                             <th style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" id="selectAllFacilities" onchange="toggleSelectAll('facilities')"></th>
-                            <th>Event Title</th>
+                            <th>Request Title</th>
                             <th>Facility</th>
-                            <th>Event Date</th>
+                            <th>Date of Use</th>
                             <th>Status</th>
                             <th>Requested By</th>
                             <th>Archived Date</th>
@@ -544,7 +544,7 @@
                         </div>
                         <div class="archive-item-card-body">
                             <div class="archive-item-card-field">
-                                <span class="archive-item-card-label">Event:</span>
+                                <span class="archive-item-card-label">Facility Request:</span>
                                 <span class="archive-item-card-value">{{ $facility->event_title }}</span>
                             </div>
                             <div class="archive-item-card-field">
@@ -552,7 +552,7 @@
                                 <span class="archive-item-card-value">{{ $facility->facility }}</span>
                             </div>
                             <div class="archive-item-card-field">
-                                <span class="archive-item-card-label">Event Date:</span>
+                                <span class="archive-item-card-label">Date of Use:</span>
                                 <span class="archive-item-card-value">{{ $facility->event_date }}</span>
                             </div>
                             <div class="archive-item-card-field">

@@ -18,6 +18,6 @@ class EventController extends Controller
     {
         Event::create($request->all());
 
-        return back()->with('success', 'Event added');
+        return back()->with('success', 'Facility Request added');
     }
 }

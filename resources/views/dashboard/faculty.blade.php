@@ -104,7 +104,7 @@
         min-height: 220px;
     }
 
-    /* Event Request Slide */
+    /* Facility Request Slide */
     .slide-event {
         display: flex !important;
         min-height: 220px;
@@ -417,7 +417,7 @@
     }
     .mini-cal-grid .mini-day.other { color: var(--cal-other-month); }
 
-    /* ── Upcoming Events Card ── */
+    /* ── Upcoming Facility Requests Card ── */
     .upcoming-card {
         background: var(--cal-bg);
         border: 1px solid var(--cal-border);
@@ -493,7 +493,7 @@
         <!-- Left / Main Column -->
         <div class="faculty-main-col">
 
-            <!-- My Event Requests Carousel -->
+            <!-- My Facility Requests Carousel -->
             <div class="welcome-card">
                 <div class="welcome-card-header">
                     <div style="display:flex; align-items:center; gap:0;">
@@ -602,8 +602,8 @@
                                     <div class="se-bg"></div>
                                     <div class="se-content">
                                         <div class="se-icon"><i class="fas fa-calendar-plus"></i></div>
-                                        <div class="se-title">No Event Requests Yet</div>
-                                        <div class="se-sub">Submit your first event request to get started.</div>
+                                        <div class="se-title">No Facility Requests Yet</div>
+                                        <div class="se-sub">Submit your first facility request to get started.</div>
                                         <a href="javascript:void(0)" class="se-btn" onclick="openEventModal('{{ now()->toDateString() }}')">
                                             <i class="fas fa-plus me-1"></i> New Request
                                         </a>
@@ -736,7 +736,7 @@
                         <div class="quick-action-icon" style="background:#e3f2fd;">
                             <i class="fas fa-calendar-plus" style="color:#1565c0;"></i>
                         </div>
-                        New Event Request
+                        New Facility Request
                     </a>
                     <a href="{{ route('events.my') }}" class="quick-action-btn">
                         <div class="quick-action-icon" style="background:#ede7f6;">
@@ -778,9 +778,9 @@
                 </div>
             </div>
 
-            <!-- Upcoming Events -->
+            <!-- Upcoming Facility Requests -->
             <div class="upcoming-card">
-                <h6><i class="fas fa-calendar-day text-primary"></i> Upcoming Events</h6>
+                <h6><i class="fas fa-calendar-day text-primary"></i> Upcoming Facility Requests</h6>
                 @php
                     $upcoming = collect($calendarEvents ?? [])
                         ->filter(fn($e) => ($e['start'] ?? '') >= now()->toDateString())
@@ -789,7 +789,7 @@
                         ->values();
                 @endphp
                 @if($upcoming->isEmpty())
-                    <p style="font-size:12px; color:var(--cal-text-muted); text-align:center; margin:8px 0;">No upcoming events.</p>
+                    <p style="font-size:12px; color:var(--cal-text-muted); text-align:center; margin:8px 0;">No upcoming facility requests.</p>
                 @else
                     @foreach($upcoming as $ev)
                     <div class="upcoming-item">

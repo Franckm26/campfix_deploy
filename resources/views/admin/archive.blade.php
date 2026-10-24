@@ -41,7 +41,7 @@
                 <table class="table table-hover">
                     <thead>
                         <tr>
-                            <th>Event Ticket</th>                            <th>Priority</th>
+                            <th>Request Ticket</th>                            <th>Priority</th>
                             <th>Status</th>
                             <th>Reported By</th>
                             <th>Archived Date</th>
@@ -99,18 +99,18 @@
     </div>
     @endif
 
-    <!-- Archived Events -->
+    <!-- Archived Facility Requests -->
     @if($archivedEvents->count() > 0)
     <div class="card mb-4">
         <div class="card-header">
-            <h5 class="mb-0"><i class="fas fa-calendar"></i> Archived Events ({{ $archivedEvents->count() }})</h5>
+            <h5 class="mb-0"><i class="fas fa-calendar"></i> Archived Facility Requests ({{ $archivedEvents->count() }})</h5>
         </div>
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-hover">
                     <thead>
                         <tr>
-                            <th>Event Ticket</th>                            <th>Event Date</th>
+                            <th>Request Ticket</th>                            <th>Date of Use</th>
                             <th>Status</th>
                             <th>Requested By</th>
                             <th>Archived Date</th>
@@ -144,7 +144,7 @@
                                         </button>
                                     </form>
                                     <form method="POST" action="{{ route('admin.events.softDelete', $event->id) }}" class="d-inline"
-                                          onsubmit="return confirm('Move this event to deleted? It can be restored from the deleted folder.')">
+                                          onsubmit="return confirm('Move this facility request to deleted? It can be restored from the deleted folder.')">
                                         @csrf
                                         <button type="submit" class="btn btn-sm btn-danger" title="Delete">
                                             <i class="fas fa-trash"></i> Delete
@@ -171,7 +171,7 @@
                 <table class="table table-hover">
                     <thead>
                         <tr>
-                            <th>Event Ticket</th>                            <th>Status</th>
+                            <th>Request Ticket</th>                            <th>Status</th>
                             <th>Reported By</th>
                             <th>Archived Date</th>
                             <th>Actions</th>
@@ -230,7 +230,7 @@
                 <table class="table table-hover">
                     <thead>
                         <tr>
-                            <th>Event Ticket</th>
+                            <th>Request Ticket</th>
                             <th>Status</th>
                             <th>Requested By</th>
                             <th>Archived Date</th>

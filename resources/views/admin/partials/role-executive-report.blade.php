@@ -6,7 +6,7 @@
         : ($fromDate ? 'From '.$fromDate : ($toDate ? 'Through '.$toDate : 'All available records'));
     $totalRecords = (int) $operations->sum(fn ($operation) => $operation['stats']['total']);
     $completedRecords = (int) $operations->sum(fn ($operation) => $operation['stats']['completed']);
-    $recordLabel = $mode === 'mis' ? 'Technology/Internet reports' : 'event requests';
+    $recordLabel = $mode === 'mis' ? 'Technology/Internet reports' : 'facility requests';
     $completionLabel = $mode === 'mis' ? 'resolved' : 'approved';
 @endphp
 

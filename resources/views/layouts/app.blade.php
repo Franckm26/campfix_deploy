@@ -452,7 +452,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <a href="/building-admin/events" class="{{ Request::is('building-admin/events') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
                         <i class="fas fa-calendar-alt me-1"></i> Pending Approval
                     </a>
-                    @if(auth()->user()->canAccess('events'))
+                    @if(auth()->user()->canAccess('facility requests'))
                         <a href="{{ route('events.my') }}" class="{{ Request::is('my-events') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
                             <i class="fas fa-calendar me-1"></i> Request
                         </a>
@@ -489,7 +489,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <a href="/{{ $roleSlug }}/events" class="{{ Request::is("{$roleSlug}/events") ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
                         <i class="fas fa-calendar-alt me-1"></i> Pending Approval
                     </a>
-                    @if(auth()->user()->canAccess('events'))
+                    @if(auth()->user()->canAccess('facility requests'))
                         <a href="{{ route('events.my') }}" class="{{ Request::is('my-events') ? 'active' : '' }}" style="padding-left:36px;padding-top:6px;padding-bottom:6px;font-size:13px;">
                             <i class="fas fa-calendar me-1"></i> Request
                         </a>
@@ -772,7 +772,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="mb-3">
                         <label for="modal_description" class="form-label">Description *</label>
                         <textarea class="form-control @error('description') is-invalid @enderror" id="modal_description" name="description" 
-                            rows="4" placeholder="Describe the event purpose and details..." required maxlength="500" oninput="updateDescCount()">{{ old('description') }}</textarea>
+                            rows="4" placeholder="Describe the facility request purpose and details..." required maxlength="500" oninput="updateDescCount()">{{ old('description') }}</textarea>
                         <div class="d-flex justify-content-end">
                             <small id="desc_char_count" class="text-muted">0 / 500</small>
                         </div>
@@ -825,7 +825,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <h6 class="border-bottom pb-2 mb-3">Event Details</h6>
+                <h6 class="border-bottom pb-2 mb-3">Facility Request Details</h6>
                 <div class="row mb-2">
                     <div class="col-md-4 fw-bold">Category:</div>
                     <div class="col-md-8" id="preview_category"></div>
@@ -1357,9 +1357,9 @@ document.addEventListener('DOMContentLoaded', function() {
             isValid = false;
         }
         
-        // Validate Event Date
+        // Validate Date of Use
         if (!eventDate.value) {
-            showFieldError(eventDate, 'Event date is required');
+            showFieldError(eventDate, 'Date of use is required');
             errors.push('Date is required');
             isValid = false;
         } else {
@@ -1367,7 +1367,7 @@ document.addEventListener('DOMContentLoaded', function() {
             var today = new Date();
             today.setHours(0, 0, 0, 0);
             if (selectedDate < today) {
-                showFieldError(eventDate, 'Event date cannot be in the past');
+                showFieldError(eventDate, 'Date of use cannot be in the past');
                 errors.push('Date cannot be in the past');
                 isValid = false;
             }

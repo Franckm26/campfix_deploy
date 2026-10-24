@@ -38,10 +38,10 @@
         <table class="sa-table">
             <thead>
                 <tr>
-                    <th>Event Ticket</th>
+                    <th>Request Ticket</th>
                     <th>Requested By</th>
                     <th>Department</th>
-                    <th>Event Date</th>
+                    <th>Date of Use</th>
                     <th>Status</th>
                     <th>Submitted</th>
                     <th>Actions</th>
@@ -208,7 +208,7 @@
                     <div class="mb-3">
                         <label for="nr_description" class="form-label">Description *</label>
                         <textarea class="form-control" id="nr_description" name="description"
-                            rows="4" placeholder="Describe the event purpose and details..."
+                            rows="4" placeholder="Describe the facility request purpose and details..."
                             required maxlength="500" oninput="nrUpdateDescCount()"></textarea>
                         <div class="d-flex justify-content-end">
                             <small id="nr_desc_char_count" class="text-muted">0 / 500</small>
@@ -413,7 +413,7 @@ function nrConfirmSubmit() {
 
         if (data.success) {
             if (typeof Swal !== 'undefined') {
-                Swal.fire({ icon: 'success', title: 'Submitted!', text: data.message || 'Event request submitted successfully.', timer: 3000, timerProgressBar: true });
+                Swal.fire({ icon: 'success', title: 'Submitted!', text: data.message || 'Facility request submitted successfully.', timer: 3000, timerProgressBar: true });
             }
             form.reset();
             setTimeout(() => location.reload(), 2500);

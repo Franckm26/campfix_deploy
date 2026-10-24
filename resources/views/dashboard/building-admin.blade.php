@@ -98,7 +98,7 @@
         <div class="col-md-3">
             <div class="card bg-success text-white">
                 <div class="card-body py-3 px-3">
-                    <h6 class="mb-1">Upcoming Events</h6>
+                    <h6 class="mb-1">Upcoming Facility Requests</h6>
                     <h3 class="mb-1">{{ $approvedEvents }}</h3>
                     <a href="{{ route('events.calendar') }}" class="text-white text-decoration-underline small">View Calendar</a>
                 </div>
@@ -126,7 +126,7 @@
                         <span class="badge bg-white text-warning">{{ $pendingConcerns }}</span>
                     </div>
                     <div class="d-flex justify-content-between align-items-center">
-                        <small>Upcoming Approved Events</small>
+                        <small>Upcoming Approved Facility Requests</small>
                         <span class="badge bg-white text-success">{{ $approvedEvents }}</span>
                     </div>
                 </div>
@@ -188,15 +188,15 @@
         </div>
     </div>
 
-    <!-- Approved Events List and Quick Actions -->
+    <!-- Approved Facility Requests List and Quick Actions -->
     <div class="row">
         <div class="col-md-8">
             <div class="card">
                 <div class="card-header py-2 px-3 d-flex justify-content-between align-items-center">
-                    <span class="mb-0"><i class="fas fa-calendar-check me-1"></i> Upcoming Approved Events</span>
+                    <span class="mb-0"><i class="fas fa-calendar-check me-1"></i> Upcoming Approved Facility Requests</span>
                     <div>
                         <button type="button" class="btn btn-sm btn-primary me-2" onclick="openEventRequestModal()">
-                            <i class="fas fa-plus"></i> Add Event
+                            <i class="fas fa-plus"></i> Add Facility Request
                         </button>
                         <a href="{{ route('events.calendar') }}" class="btn btn-sm btn-outline-primary">
                             <i class="fas fa-calendar"></i> Full Calendar
@@ -230,17 +230,17 @@
                         @if($approvedEvents > 5)
                             <div class="text-center mt-2">
                                 <a href="{{ route('events.calendar') }}" class="btn btn-outline-primary btn-sm">
-                                    <i class="fas fa-calendar"></i> View All Events ({{ $approvedEvents }} total)
+                                    <i class="fas fa-calendar"></i> View All Facility Requests ({{ $approvedEvents }} total)
                                 </a>
                             </div>
                         @endif
                     @else
                         <div class="text-center py-4">
                             <i class="fas fa-calendar-times fa-2x text-muted mb-2"></i>
-                            <h6 class="text-muted">No Upcoming Events</h6>
-                            <p class="text-muted small mb-2">There are no approved events scheduled for the coming days.</p>
+                            <h6 class="text-muted">No Upcoming Facility Requests</h6>
+                            <p class="text-muted small mb-2">There are no approved facility requests scheduled for the coming days.</p>
                             <a href="{{ route('events.calendar') }}" class="btn btn-outline-primary btn-sm">
-                                <i class="fas fa-calendar"></i> View Events Calendar
+                                <i class="fas fa-calendar"></i> View Facilities Calendar
                             </a>
                         </div>
                     @endif
@@ -268,7 +268,7 @@
                             <i class="fas fa-calendar me-2"></i> Request
                         </a>
                         <a href="{{ route('events.calendar') }}" class="btn btn-outline-success btn-sm text-start">
-                            <i class="fas fa-calendar-check me-2"></i> Upcoming Events
+                            <i class="fas fa-calendar-check me-2"></i> Upcoming Facility Requests
                         </a>
                         <a href="{{ route('admin.management') }}" class="btn btn-outline-secondary btn-sm text-start">
                             <i class="fas fa-tools me-2"></i> Management

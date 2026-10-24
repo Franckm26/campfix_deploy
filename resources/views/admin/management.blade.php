@@ -136,7 +136,7 @@
                 <li class="nav-item">
                     <a class="nav-link {{ $tab === 'events' ? 'active' : '' }}"
                        href="{{ route($managementIndexRoute, ['tab' => 'events']) }}">
-                        <i class="fas fa-calendar-check"></i> Event Setup
+                        <i class="fas fa-calendar-check"></i> Facility Request Setup
                         <span class="badge bg-secondary ms-1">{{ $events->total() }}</span>
                     </a>
                 </li>
@@ -506,13 +506,13 @@
     @if($tab === 'events')
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0"><i class="fas fa-sliders text-primary"></i> Event Request Approvals</h5>
+            <h5 class="mb-0"><i class="fas fa-sliders text-primary"></i> Facility Request Approvals</h5>
             <a class="btn btn-primary btn-sm" href="{{ route($managementEventsRoute) }}"><i class="fas fa-arrow-up-right-from-square"></i> Review requests</a>
         </div>
         <div class="card-body">
-            <p class="text-muted">Define who approves each event request based on its intended user and request type.</p>
+            <p class="text-muted">Define who approves each facility request based on its intended user and request type.</p>
             @if(! $eventSetupReady)
-                <div class="alert alert-warning mb-4"><i class="fas fa-database"></i> Event Setup will be available after the latest database migration is applied. The existing event-request workflow remains available.</div>
+                <div class="alert alert-warning mb-4"><i class="fas fa-database"></i> Facility Request Setup will be available after the latest database migration is applied. The existing event-request workflow remains available.</div>
             @else
             @include('admin.partials.event-setup-lists')
             @if(false)
@@ -535,8 +535,8 @@
             <div class="row g-4 mb-4 event-setup-grid approval-configuration-grid">
                 <div class="col-12">
                     <div class="border rounded p-4">
-                        <h4 class="mb-1"><i class="fas fa-route text-primary me-2"></i>Event Request Approval Configuration</h4>
-                        <p class="text-muted mb-0">Configure who approves each event based on its intended user and request type. Approvers act from first to last in the order shown.</p>
+                        <h4 class="mb-1"><i class="fas fa-route text-primary me-2"></i>Facility Request Approval Configuration</h4>
+                        <p class="text-muted mb-0">Configure who approves each facility request based on its intended user and request type. Approvers act from first to last in the order shown.</p>
                     </div>
                 </div>
                 @if(! $approvalConfigurationReady)
@@ -544,15 +544,15 @@
                 @else
                     <div class="col-lg-6">
                         <div class="border rounded p-4 h-100">
-                            <div class="d-flex justify-content-between align-items-center gap-2 mb-3"><div><h6 class="mb-1"><i class="fas fa-users text-primary me-2"></i>Intended Users</h6><small class="text-muted">Who the event is for, such as Tertiary or SHS.</small></div><button class="btn btn-sm btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#eventIntendedUserModal"><i class="fas fa-plus"></i> Add user group</button></div>
+                            <div class="d-flex justify-content-between align-items-center gap-2 mb-3"><div><h6 class="mb-1"><i class="fas fa-users text-primary me-2"></i>Intended Users</h6><small class="text-muted">Who the facility request is for, such as Tertiary or SHS.</small></div><button class="btn btn-sm btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#eventIntendedUserModal"><i class="fas fa-plus"></i> Add user group</button></div>
                             @forelse($eventIntendedUsers as $item)
-                                <div class="border-top"><strong>{{ $item->name }}</strong><small class="d-block text-muted">Used in the event request form and approval combinations.</small><form class="d-inline" method="POST" action="{{ route('admin.management.event-setup.toggle', ['type' => 'intended-user', 'id' => $item->id]) }}">@csrf @method('PATCH')<button class="btn btn-link btn-sm p-0">Delete</button></form></div>
+                                <div class="border-top"><strong>{{ $item->name }}</strong><small class="d-block text-muted">Used in the facility request form and approval combinations.</small><form class="d-inline" method="POST" action="{{ route('admin.management.event-setup.toggle', ['type' => 'intended-user', 'id' => $item->id]) }}">@csrf @method('PATCH')<button class="btn btn-link btn-sm p-0">Delete</button></form></div>
                             @empty <p class="text-muted mb-0">No intended users yet.</p> @endforelse
                         </div>
                     </div>
                     <div class="col-lg-6">
                         <div class="border rounded p-4 h-100">
-                            <div class="d-flex justify-content-between align-items-center gap-2 mb-3"><div><h6 class="mb-1"><i class="fas fa-file-signature text-primary me-2"></i>Request Types</h6><small class="text-muted">What kind of event is being requested.</small></div><button class="btn btn-sm btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#eventRequestTypeModal"><i class="fas fa-plus"></i> Add type</button></div>
+                            <div class="d-flex justify-content-between align-items-center gap-2 mb-3"><div><h6 class="mb-1"><i class="fas fa-file-signature text-primary me-2"></i>Request Types</h6><small class="text-muted">What kind of facility request is being requested.</small></div><button class="btn btn-sm btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#eventRequestTypeModal"><i class="fas fa-plus"></i> Add type</button></div>
                             @forelse($eventRequestTypes as $item)
                                 <div class="border-top"><strong>{{ $item->name }}</strong><small class="d-block text-muted">Default: {{ collect($item->approval_roles)->map(fn($role) => $approvalRoles[$role] ?? $role)->implode(' → ') }}</small><form class="d-inline" method="POST" action="{{ route('admin.management.event-setup.toggle', ['type' => 'request-type', 'id' => $item->id]) }}">@csrf @method('PATCH')<button class="btn btn-link btn-sm p-0">Delete</button></form></div>
                             @empty <p class="text-muted mb-0">No request types yet.</p> @endforelse
@@ -610,7 +610,7 @@
                             deleteButton.classList.add('btn-outline-danger');
                         }
                         form.addEventListener('submit', function (event) {
-                            if (!window.confirm('Delete this item? Existing event requests will keep their saved information.')) event.preventDefault();
+                            if (!window.confirm('Delete this item? Existing facility requests will keep their saved information.')) event.preventDefault();
                         });
                         var editButton = document.createElement('button');
                         editButton.type = 'button';
@@ -894,7 +894,7 @@
                         var editing = Boolean(item);
                         Swal.fire({
                             title: editing ? 'Edit Intended User' : 'Add Intended User',
-                            text: editing ? 'Update the audience-group name.' : 'Add an audience group for the event request form.',
+                            text: editing ? 'Update the audience-group name.' : 'Add an audience group for the facility request form.',
                             input: 'text',
                             inputValue: editing ? item.name : '',
                             inputPlaceholder: 'e.g. Junior High School',
@@ -982,8 +982,8 @@
                                 icon: 'warning',
                                 title: 'Delete ' + form.dataset.itemType + '?',
                                 text: form.dataset.itemType === 'approval chain'
-                                    ? form.dataset.itemName + ' will be removed. Existing event requests keep their saved route; new requests will use the request type default.'
-                                    : form.dataset.itemName + ' will be removed. Existing event requests keep their saved information.',
+                                    ? form.dataset.itemName + ' will be removed. Existing facility requests keep their saved route; new requests will use the request type default.'
+                                    : form.dataset.itemName + ' will be removed. Existing facility requests keep their saved information.',
                                 showCancelButton: true,
                                 confirmButtonText: 'Delete',
                                 confirmButtonColor: '#dc3545'
@@ -1004,7 +1004,7 @@
 ══════════════════════════════════════════════════════════════════════════ --}}
 
 @if(false)
-{{-- Event Request Type Modal --}}
+{{-- Facility Request Type Modal --}}
 <div class="modal fade" id="eventRequestTypeModal" tabindex="-1" aria-labelledby="eventRequestTypeModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
         <div class="modal-content">
@@ -1038,7 +1038,7 @@
     <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
-                <div><h5 class="modal-title" id="eventIntendedUserModalLabel"><i class="fas fa-users text-primary"></i> Add intended user</h5><small class="text-muted">Add the audience groups available in the event request form.</small></div>
+                <div><h5 class="modal-title" id="eventIntendedUserModalLabel"><i class="fas fa-users text-primary"></i> Add intended user</h5><small class="text-muted">Add the audience groups available in the facility request form.</small></div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="eventIntendedUserForm" method="POST" action="{{ route('admin.management.event-intended-users.store') }}">
@@ -1079,7 +1079,7 @@
                         @endforeach
                     </div>
                     <div class="approval-flow-preview d-flex flex-wrap align-items-center gap-2" id="chainFlowPreview"><span class="text-muted">Select one or more approvers.</span></div>
-                    <div class="small text-muted mt-3"><i class="fas fa-info-circle"></i> Including Program Head automatically requires a department in the event request form.</div>
+                    <div class="small text-muted mt-3"><i class="fas fa-info-circle"></i> Including Program Head automatically requires a department in the facility request form.</div>
                 </div>
                 <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" type="submit"><i class="fas fa-save"></i> Save Approval Chain</button></div>
             </form>

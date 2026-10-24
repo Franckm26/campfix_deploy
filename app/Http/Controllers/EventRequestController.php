@@ -40,7 +40,7 @@ class EventRequestController extends Controller
             try {
                 $level = (int) ($eventRequest->approval_level ?: EventRequest::LEVEL_NONE);
                 $eventName = $eventRequest->location.' - '.\Carbon\Carbon::parse($eventRequest->event_date)->format('M d, Y');
-                $notes = 'Automatically rejected because the event date has already passed.';
+                $notes = 'Automatically rejected because the date of use has already passed.';
                 $history = $eventRequest->approval_history ?? [];
                 $history[] = [
                     'level' => $level,
@@ -62,7 +62,7 @@ class EventRequestController extends Controller
 
                 ActivityLog::log(
                     'event_auto_rejected_expired',
-                    "Event request '{$eventName}' (ID: {$eventRequest->id}) automatically rejected because the event date has already passed.",
+                    "Facility request '{$eventName}' (ID: {$eventRequest->id}) automatically rejected because the date of use has already passed.",
                     $eventRequest->id,
                     'event_request'
                 );
@@ -79,7 +79,7 @@ class EventRequestController extends Controller
 
                 $rejectedCount++;
             } catch (\Throwable $e) {
-                Log::error('Failed to auto-reject expired event request', [
+                Log::error('Failed to auto-reject expired facility request', [
                     'event_request_id' => $eventRequest->id,
                     'error' => $e->getMessage(),
                 ]);
@@ -93,7 +93,7 @@ class EventRequestController extends Controller
     public function create()
     {
         if (auth()->user()->role !== 'faculty' && ! auth()->user()->isSystemAdministrator()) {
-            return redirect('/dashboard')->with('error', 'You do not have permission to create event requests.');
+            return redirect('/dashboard')->with('error', 'You do not have permission to create facility requests.');
         }
 
         // Redirect to my events page with modal trigger
@@ -126,9 +126,9 @@ class EventRequestController extends Controller
             $allowedRoles = ['faculty', 'school_admin', 'academic_head', 'program_head', 'building_admin', 'admin', 'superadmin'];
             if (!in_array(auth()->user()->role, $allowedRoles)) {
                 if ($request->expectsJson()) {
-                    return response()->json(['success' => false, 'message' => 'You do not have permission to create event requests.'], 403);
+                    return response()->json(['success' => false, 'message' => 'You do not have permission to create facility requests.'], 403);
                 }
-                return redirect('/dashboard')->with('error', 'You do not have permission to create event requests.');
+                return redirect('/dashboard')->with('error', 'You do not have permission to create facility requests.');
             }
 
             // Check daily submission limit (5 per day)
@@ -139,12 +139,12 @@ class EventRequestController extends Controller
                 if ($request->expectsJson()) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'You have reached your daily submission limit of 5 event requests. Please try again tomorrow.',
+                        'message' => 'You have reached your daily submission limit of 5 facility requests. Please try again tomorrow.',
                         'remaining_attempts' => $remaining
                     ], 429);
                 }
                 
-                return redirect()->back()->with('error', 'You have reached your daily submission limit of 5 event requests. Please try again tomorrow.');
+                return redirect()->back()->with('error', 'You have reached your daily submission limit of 5 facility requests. Please try again tomorrow.');
             }
             
             $validatedData = $request->validate([
@@ -162,8 +162,8 @@ class EventRequestController extends Controller
                 'picture' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
             ], [
                 'description.required' => 'The description is required.',
-                'event_date.required' => 'The event date is required.',
-                'event_date.after_or_equal' => 'The event date cannot be in the past.',
+                'event_date.required' => 'The date of use is required.',
+                'event_date.after_or_equal' => 'The date of use cannot be in the past.',
                 'location.required' => 'The location is required.',
                 'location.min' => 'The location must be at least 3 characters.',
                 'start_time.required' => 'The start time is required.',
@@ -258,7 +258,7 @@ class EventRequestController extends Controller
 
             ActivityLog::log(
                 'event_request_created',
-                "New event request submitted: '{$eventRequest->title}' (ID: {$eventRequest->id}) by {$user->name} ({$user->role}) - Location: {$eventRequest->event_location}, Date: " . ($eventRequest->start_date ? $eventRequest->start_date->format('M d, Y') : 'N/A') . ", Attendees: {$eventRequest->expected_attendees}, Audience: {$eventRequest->intended_for}",
+                "New facility request submitted: '{$eventRequest->title}' (ID: {$eventRequest->id}) by {$user->name} ({$user->role}) - Location: {$eventRequest->event_location}, Date: " . ($eventRequest->start_date ? $eventRequest->start_date->format('M d, Y') : 'N/A') . ", Attendees: {$eventRequest->expected_attendees}, Audience: {$eventRequest->intended_for}",
                 null
             );
 
@@ -404,7 +404,7 @@ class EventRequestController extends Controller
 
                 ActivityLog::log(
                     'event_auto_approved',
-                    'Event request auto-approved for requester at their approval level',
+                    'Facility request auto-approved for requester at their approval level',
                     null
                 );
             }
@@ -417,8 +417,8 @@ class EventRequestController extends Controller
             }
 
             $message = $autoApproved 
-                ? 'Event request submitted successfully! Your approval has been automatically recorded. Waiting for other approvers.'
-                : 'Event request submitted successfully! Waiting for approval.';
+                ? 'Facility request submitted successfully! Your approval has been automatically recorded. Waiting for other approvers.'
+                : 'Facility request submitted successfully! Waiting for approval.';
 
             if ($request->expectsJson()) {
                 return response()->json([
@@ -438,7 +438,7 @@ class EventRequestController extends Controller
             }
             throw $e;
         } catch (\Exception $e) {
-            \Log::error('Event request store error: ' . $e->getMessage(), [
+            \Log::error('Facility request store error: ' . $e->getMessage(), [
                 'exception' => get_class($e),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
@@ -449,7 +449,7 @@ class EventRequestController extends Controller
                     'message' => 'An error occurred: ' . $e->getMessage()
                 ], 500);
             }
-            return redirect()->back()->with('error', 'An error occurred while creating the event request: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'An error occurred while creating the facility request: ' . $e->getMessage());
         }
     }
 
@@ -506,11 +506,11 @@ class EventRequestController extends Controller
         $allowedRoles = ['faculty', 'building_admin', 'school_admin', 'academic_head', 'program_head', 'principal_assistant'];
 
         if (! auth()->user()->canAccess('events')) {
-            return redirect('/dashboard')->with('error', 'You do not have permission to view event requests.');
+            return redirect('/dashboard')->with('error', 'You do not have permission to view facility requests.');
         }
 
         if (!in_array(auth()->user()->role, $allowedRoles) && ! auth()->user()->isSystemAdministrator()) {
-            return redirect('/dashboard')->with('error', 'You do not have permission to view event requests.');
+            return redirect('/dashboard')->with('error', 'You do not have permission to view facility requests.');
         }
 
         $viewType = $request->get('view', 'active'); // 'active', 'approved', 'finished', 'rejected', 'archives', or 'deleted'
@@ -742,7 +742,7 @@ class EventRequestController extends Controller
 
         if ($user->isSystemAdministrator()) {
             if ($eventRequest->status !== EventRequest::STATUS_PENDING) {
-                return back()->with('error', 'Only pending event requests can be approved.');
+                return back()->with('error', 'Only pending facility requests can be approved.');
             }
 
             $history = $eventRequest->approval_history ?? [];
@@ -766,13 +766,13 @@ class EventRequestController extends Controller
 
             ActivityLog::log(
                 'event_approved_by_system_administrator',
-                "Event request ID {$eventRequest->id} approved by System Administrator {$user->name}.",
+                "Facility request ID {$eventRequest->id} approved by System Administrator {$user->name}.",
                 $eventRequest->id,
                 'event_request'
             );
             $this->sendApprovalNotification($eventRequest, EventRequest::LEVEL_APPROVED, 'Approved');
 
-            return back()->with('success', 'Event request approved by the System Administrator.');
+            return back()->with('success', 'Facility request approved by the System Administrator.');
         }
 
         if ($eventRequest->hasConfiguredApprovalRoute()) {
@@ -781,17 +781,17 @@ class EventRequestController extends Controller
         $isShs = ($eventRequest->education_level ?? 'tertiary') === 'shs';
 
         if ($isShs && $user->isProgramHead()) {
-            return back()->with('error', 'Senior High School event requests do not require Program Head approval.');
+            return back()->with('error', 'Senior High School facility requests do not require Program Head approval.');
         }
 
         // SHS chain: Principal Assistant (level 1) → Academic Head (level 2) → School Admin (final)
         if ($isShs && $user->isPrincipalAssistant()) {
             if (! $eventRequest->canBeApprovedAtLevel(EventRequest::LEVEL_1_PROGRAM_HEAD)) {
-                return back()->with('error', 'This event request is not waiting for Principal Assistant approval.');
+                return back()->with('error', 'This facility request is not waiting for Principal Assistant approval.');
             }
 
             if ($eventRequest->hasUserApprovedAtLevel($user->id, 1)) {
-                return back()->with('error', 'You have already approved this event request.');
+                return back()->with('error', 'You have already approved this facility request.');
             }
 
             $eventRequest->approved_by_level_1 = $user->id;
@@ -811,22 +811,22 @@ class EventRequestController extends Controller
             $eventRequest->status = 'Pending';
             $eventRequest->save();
 
-            ActivityLog::log('event_approved_level_1', "Event '{$eventRequest->title}' (ID: {$eventRequest->id}) approved by Principal Assistant: {$user->name} - Requestor: {$eventRequest->user->name}, Location: {$eventRequest->event_location}, Date: " . ($eventRequest->start_date ? $eventRequest->start_date->format('M d, Y') : 'N/A'), null);
+            ActivityLog::log('event_approved_level_1', "Facility Request '{$eventRequest->title}' (ID: {$eventRequest->id}) approved by Principal Assistant: {$user->name} - Requestor: {$eventRequest->user->name}, Location: {$eventRequest->event_location}, Date: " . ($eventRequest->start_date ? $eventRequest->start_date->format('M d, Y') : 'N/A'), null);
             $this->sendApprovalNotification($eventRequest, 1, 'Approved');
 
             $notificationService = new NotificationService;
             $notificationService->notifyApproversOfNewEvent($eventRequest);
 
-            return back()->with('success', 'Event request approved! Forwarded to Academic Head.');
+            return back()->with('success', 'Facility request approved! Forwarded to Academic Head.');
         }
 
         if ($isShs && $user->isAcademicHead()) {
             if (! $eventRequest->canBeApprovedAtLevel(EventRequest::LEVEL_2_ACADEMIC_HEAD)) {
-                return back()->with('error', 'This event request is still waiting for the previous approval level.');
+                return back()->with('error', 'This facility request is still waiting for the previous approval level.');
             }
 
             if ($eventRequest->hasUserApprovedAtLevel($user->id, 2)) {
-                return back()->with('error', 'You have already approved this event request.');
+                return back()->with('error', 'You have already approved this facility request.');
             }
 
             $eventRequest->approved_by_level_2 = $user->id;
@@ -856,7 +856,7 @@ class EventRequestController extends Controller
             $eventRequest->notes = $request->notes;
             $eventRequest->save();
 
-            ActivityLog::log('event_approved_level_2', "Event '{$eventRequest->title}' (ID: {$eventRequest->id}) approved by Academic Head: {$user->name} - Requestor: {$eventRequest->user->name}, Location: {$eventRequest->event_location}, Date: " . ($eventRequest->start_date ? $eventRequest->start_date->format('M d, Y') : 'N/A'), null);
+            ActivityLog::log('event_approved_level_2', "Facility Request '{$eventRequest->title}' (ID: {$eventRequest->id}) approved by Academic Head: {$user->name} - Requestor: {$eventRequest->user->name}, Location: {$eventRequest->event_location}, Date: " . ($eventRequest->start_date ? $eventRequest->start_date->format('M d, Y') : 'N/A'), null);
             $this->sendApprovalNotification($eventRequest, 2, 'Approved');
 
             if ($eventRequest->status !== 'Approved') {
@@ -864,18 +864,18 @@ class EventRequestController extends Controller
                 $notificationService->notifyApproversOfNewEvent($eventRequest);
             }
 
-            return back()->with('success', $eventRequest->status === 'Approved' ? 'Event request fully approved!' : 'Event request approved! Forwarded to School Admin.');
+            return back()->with('success', $eventRequest->status === 'Approved' ? 'Facility request fully approved!' : 'Facility request approved! Forwarded to School Admin.');
         }
 
         // Determine approval level based on user role
         if ($user->isProgramHead()) {
             if (! $eventRequest->canBeApprovedAtLevel(EventRequest::LEVEL_1_PROGRAM_HEAD)) {
-                return back()->with('error', 'This event request is not waiting for Program Head approval.');
+                return back()->with('error', 'This facility request is not waiting for Program Head approval.');
             }
 
             // Check if this user has already approved at this level
             if ($eventRequest->hasUserApprovedAtLevel($user->id, 1)) {
-                return back()->with('error', 'You have already approved this event request.');
+                return back()->with('error', 'You have already approved this facility request.');
             }
 
             // Level 1: Program Head approval
@@ -923,7 +923,7 @@ class EventRequestController extends Controller
 
             ActivityLog::log(
                 'event_approved_level_1',
-                "Event '{$eventRequest->title}' (ID: {$eventRequest->id}) approved by Program Head: {$user->name} - Requestor: {$eventRequest->user->name}, Department: {$eventRequest->department}, Location: {$eventRequest->event_location}, Date: " . ($eventRequest->start_date ? $eventRequest->start_date->format('M d, Y') : 'N/A'),
+                "Facility Request '{$eventRequest->title}' (ID: {$eventRequest->id}) approved by Program Head: {$user->name} - Requestor: {$eventRequest->user->name}, Department: {$eventRequest->department}, Location: {$eventRequest->event_location}, Date: " . ($eventRequest->start_date ? $eventRequest->start_date->format('M d, Y') : 'N/A'),
                 null
             );
 
@@ -938,12 +938,12 @@ class EventRequestController extends Controller
 
         } elseif ($user->isAcademicHead()) {
             if (! $eventRequest->canBeApprovedAtLevel(EventRequest::LEVEL_2_ACADEMIC_HEAD)) {
-                return back()->with('error', 'This event request is still waiting for the previous approval level.');
+                return back()->with('error', 'This facility request is still waiting for the previous approval level.');
             }
 
             // Check if this user has already approved at this level
             if ($eventRequest->hasUserApprovedAtLevel($user->id, 2)) {
-                return back()->with('error', 'You have already approved this event request.');
+                return back()->with('error', 'You have already approved this facility request.');
             }
 
             // Level 2: Academic Head approval
@@ -989,7 +989,7 @@ class EventRequestController extends Controller
 
             ActivityLog::log(
                 'event_approved_level_2',
-                "Event '{$eventRequest->title}' (ID: {$eventRequest->id}) approved by Academic Head: {$user->name} - Requestor: {$eventRequest->user->name}, Department: {$eventRequest->department}, Location: {$eventRequest->event_location}, Date: " . ($eventRequest->start_date ? $eventRequest->start_date->format('M d, Y') : 'N/A'),
+                "Facility Request '{$eventRequest->title}' (ID: {$eventRequest->id}) approved by Academic Head: {$user->name} - Requestor: {$eventRequest->user->name}, Department: {$eventRequest->department}, Location: {$eventRequest->event_location}, Date: " . ($eventRequest->start_date ? $eventRequest->start_date->format('M d, Y') : 'N/A'),
                 null
             );
 
@@ -1004,12 +1004,12 @@ class EventRequestController extends Controller
 
         } elseif ($user->isBuildingAdmin()) {
             if (! $eventRequest->canBeApprovedAtLevel(EventRequest::LEVEL_3_BUILDING_ADMIN)) {
-                return back()->with('error', 'This event request is still waiting for the previous approval level.');
+                return back()->with('error', 'This facility request is still waiting for the previous approval level.');
             }
 
             // Building Admin approval is role-level; one Building Admin approval satisfies this step.
             if ($eventRequest->isApprovedByAllBuildingAdmins()) {
-                return back()->with('error', 'This event request has already been approved by a Building Admin.');
+                return back()->with('error', 'This facility request has already been approved by a Building Admin.');
             }
 
             // Level 3: Building Admin approval
@@ -1080,7 +1080,7 @@ class EventRequestController extends Controller
 
             ActivityLog::log(
                 'event_approved_level_3',
-                "Event '{$eventRequest->title}' (ID: {$eventRequest->id}) approved by Building Admin: {$user->name} - Requestor: {$eventRequest->user->name}, Location: {$eventRequest->event_location}, Date: " . ($eventRequest->start_date ? $eventRequest->start_date->format('M d, Y') : 'N/A'),
+                "Facility Request '{$eventRequest->title}' (ID: {$eventRequest->id}) approved by Building Admin: {$user->name} - Requestor: {$eventRequest->user->name}, Location: {$eventRequest->event_location}, Date: " . ($eventRequest->start_date ? $eventRequest->start_date->format('M d, Y') : 'N/A'),
                 null
             );
 
@@ -1110,7 +1110,7 @@ class EventRequestController extends Controller
                     $eventRequest->save();
                 }
 
-                return back()->with('error', 'This event request is still waiting for the previous approval level.');
+                return back()->with('error', 'This facility request is still waiting for the previous approval level.');
             }
 
             // Check if this user has already approved at this level
@@ -1122,9 +1122,9 @@ class EventRequestController extends Controller
                     $eventRequest->approved_at = now();
                     $eventRequest->approval_level = EventRequest::LEVEL_APPROVED;
                     $eventRequest->save();
-                    return back()->with('success', 'Event request fully approved!');
+                    return back()->with('success', 'Facility request fully approved!');
                 }
-                return back()->with('error', 'You have already approved this event request.');
+                return back()->with('error', 'You have already approved this facility request.');
             }
 
             // Level 4: School Admin / Principal final approval
@@ -1147,7 +1147,7 @@ class EventRequestController extends Controller
 
             ActivityLog::log(
                 'event_approved',
-                "Event '{$eventRequest->title}' (ID: {$eventRequest->id}) FULLY APPROVED by School Admin: {$user->name} - Requestor: {$eventRequest->user->name}, Location: {$eventRequest->event_location}, Date: " . ($eventRequest->start_date ? $eventRequest->start_date->format('M d, Y') : 'N/A') . ", Attendees: {$eventRequest->expected_attendees}",
+                "Facility Request '{$eventRequest->title}' (ID: {$eventRequest->id}) FULLY APPROVED by School Admin: {$user->name} - Requestor: {$eventRequest->user->name}, Location: {$eventRequest->event_location}, Date: " . ($eventRequest->start_date ? $eventRequest->start_date->format('M d, Y') : 'N/A') . ", Attendees: {$eventRequest->expected_attendees}",
                 null
             );
 
@@ -1162,7 +1162,7 @@ class EventRequestController extends Controller
 
             ActivityLog::log(
                 'event_approved',
-                "Event '{$eventRequest->title}' (ID: {$eventRequest->id}) approved by {$user->name} ({$user->role}) - Requestor: {$eventRequest->user->name}, Location: {$eventRequest->event_location}, Date: " . ($eventRequest->start_date ? $eventRequest->start_date->format('M d, Y') : 'N/A'),
+                "Facility Request '{$eventRequest->title}' (ID: {$eventRequest->id}) approved by {$user->name} ({$user->role}) - Requestor: {$eventRequest->user->name}, Location: {$eventRequest->event_location}, Date: " . ($eventRequest->start_date ? $eventRequest->start_date->format('M d, Y') : 'N/A'),
                 null
             );
 
@@ -1174,7 +1174,7 @@ class EventRequestController extends Controller
         $eventRequest->save();
 
         $message = $eventRequest->status === 'Approved'
-            ? 'Event request fully approved!'
+            ? 'Facility request fully approved!'
             : 'Your approval has been recorded. Waiting for other approvers.';
 
         return back()->with('success', $message);
@@ -1203,10 +1203,10 @@ class EventRequestController extends Controller
             $eventRequest->approval_level = $nextLevel;
         }
         $eventRequest->save();
-        ActivityLog::log('event_approved_configured_route', "Event request ID {$eventRequest->id} approved by {$user->name} as {$requiredRole}", null);
+        ActivityLog::log('event_approved_configured_route', "Facility request ID {$eventRequest->id} approved by {$user->name} as {$requiredRole}", null);
         $this->sendApprovalNotification($eventRequest, $level, 'Approved');
         if ($eventRequest->status === EventRequest::STATUS_PENDING) (new NotificationService)->notifyApproversOfNewEvent($eventRequest);
-        return back()->with('success', $eventRequest->status === EventRequest::STATUS_APPROVED ? 'Event request fully approved.' : 'Approved and forwarded to the next approver.');
+        return back()->with('success', $eventRequest->status === EventRequest::STATUS_APPROVED ? 'Facility request fully approved.' : 'Approved and forwarded to the next approver.');
     }
 
     /**
@@ -1297,21 +1297,21 @@ class EventRequestController extends Controller
 
         ActivityLog::log(
             'event_rejected',
-            'Event rejected by '.$rejectRole.': ',
+            'Facility Request rejected by '.$rejectRole.': ',
             null
         );
 
         // Notify the requester about rejection
         $this->sendApprovalNotification($eventRequest, $rejectLevel, 'Rejected');
 
-        return back()->with('success', 'Event request rejected!');
+        return back()->with('success', 'Facility request rejected!');
     }
 
     // Show all approved events (calendar view)
     public function calendar(Request $request)
     {
         if (! auth()->user()->canAccess('events')) {
-            return redirect('/dashboard')->with('error', 'You do not have permission to view events.');
+            return redirect('/dashboard')->with('error', 'You do not have permission to view facility requests.');
         }
 
         $month = $request->month ?? now()->month;
@@ -1528,9 +1528,9 @@ class EventRequestController extends Controller
         fclose($handle);
 
         if ($importedCount > 0) {
-            return redirect()->route('events.calendar')->with('success', "Successfully imported $importedCount events!");
+            return redirect()->route('events.calendar')->with('success', "Successfully imported $importedCount facility requests!");
         } else {
-            return redirect()->route('events.calendar')->with('error', 'No events were imported. Please check your CSV file format.');
+            return redirect()->route('events.calendar')->with('error', 'No facility requests were imported. Please check your CSV file format.');
         }
     }
 
@@ -1663,11 +1663,11 @@ class EventRequestController extends Controller
 
         ActivityLog::log(
             'event_cancelled',
-            "Event request cancelled: {$eventRequest->location}. Reason: ".($request->input('reason') ?: 'Not provided'),
+            "Facility request cancelled: {$eventRequest->location}. Reason: ".($request->input('reason') ?: 'Not provided'),
             null
         );
 
-        return redirect()->route('events.my')->with('success', 'Event request cancelled.');
+        return redirect()->route('events.my')->with('success', 'Facility request cancelled.');
     }
 
     public function reschedule(Request $request, $id)
@@ -1704,7 +1704,7 @@ class EventRequestController extends Controller
             'notes' => trim(($eventRequest->notes ? $eventRequest->notes."\n" : '').'Reschedule requested: '.(($validated['reason'] ?? null) ?: 'No reason provided')),
         ]);
 
-        return redirect()->route('events.my')->with('success', 'Event request rescheduled and returned for approval.');
+        return redirect()->route('events.my')->with('success', 'Facility request rescheduled and returned for approval.');
     }
 
     // Delete event request (soft delete - moves to deleted events)
@@ -1714,24 +1714,24 @@ class EventRequestController extends Controller
 
         // Allow owner or admin to delete
         if ((int)$eventRequest->user_id !== (int)auth()->id() && ! auth()->user()->canApproveRequests()) {
-            return redirect()->route('events.my')->with('error', 'You cannot delete this event request.');
+            return redirect()->route('events.my')->with('error', 'You cannot delete this facility request.');
         }
 
         // Permanent delete — physically remove from database
         if ($request->input('permanent') == '1') {
             ActivityLog::log(
                 'event_permanent_deleted',
-                'Event permanently deleted: ',
+                'Facility Request permanently deleted: ',
                 null
             );
 
             $eventRequest->delete();
 
             if ($request->expectsJson()) {
-                return response()->json(['success' => true, 'message' => 'Event permanently deleted.']);
+                return response()->json(['success' => true, 'message' => 'Facility Request permanently deleted.']);
             }
 
-            return redirect()->route('events.my')->with('success', 'Event permanently deleted.');
+            return redirect()->route('events.my')->with('success', 'Facility Request permanently deleted.');
         }
 
         // Soft delete — move to deleted folder
@@ -1743,7 +1743,7 @@ class EventRequestController extends Controller
             $deletedFolder = ArchiveFolder::create([
                 'name' => 'Deleted Events',
                 'type' => 'mixed',
-                'description' => 'Deleted event requests',
+                'description' => 'Deleted facility requests',
                 'is_system' => true,
             ]);
         }
@@ -1755,15 +1755,15 @@ class EventRequestController extends Controller
 
         ActivityLog::log(
             'event_deleted',
-            "Event '{$eventRequest->title}' (ID: {$eventRequest->id}) moved to deleted folder by " . auth()->user()->name . " (" . auth()->user()->role . ") - Location: {$eventRequest->event_location}, Date: " . ($eventRequest->start_date ? $eventRequest->start_date->format('M d, Y') : 'N/A'),
+            "Facility Request '{$eventRequest->title}' (ID: {$eventRequest->id}) moved to deleted folder by " . auth()->user()->name . " (" . auth()->user()->role . ") - Location: {$eventRequest->event_location}, Date: " . ($eventRequest->start_date ? $eventRequest->start_date->format('M d, Y') : 'N/A'),
             null
         );
 
         if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => 'Event request deleted.']);
+            return response()->json(['success' => true, 'message' => 'Facility request deleted.']);
         }
 
-        return redirect()->route('events.my')->with('success', 'Event request deleted.');
+        return redirect()->route('events.my')->with('success', 'Facility request deleted.');
     }
 
     // Archive event request
@@ -1774,7 +1774,7 @@ class EventRequestController extends Controller
 
         // Owner or admin can archive
         if ((int)$eventRequest->user_id !== (int)$user->id && ! $user->canApproveRequests()) {
-            return redirect()->route('events.my')->with('error', 'You cannot archive this event request.');
+            return redirect()->route('events.my')->with('error', 'You cannot archive this facility request.');
         }
 
         $role = $user->role;
@@ -1787,7 +1787,7 @@ class EventRequestController extends Controller
 
         // Check if already archived by this role
         if ($eventRequest->$archiveColumn) {
-            return redirect()->route('events.my')->with('error', 'This event is already archived by your role.');
+            return redirect()->route('events.my')->with('error', 'This facility request is already archived by your role.');
         }
 
         // Set role-specific archive column to true (role-based archiving)
@@ -1802,16 +1802,16 @@ class EventRequestController extends Controller
 
         ActivityLog::log(
             'event_archived',
-            'Event archived: ',
+            'Facility Request archived: ',
             null
         );
 
         // Return JSON for AJAX requests
         if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => 'Event request archived successfully.']);
+            return response()->json(['success' => true, 'message' => 'Facility request archived successfully.']);
         }
 
-        return redirect()->route('events.my')->with('success', 'Event request archived successfully.');
+        return redirect()->route('events.my')->with('success', 'Facility request archived successfully.');
     }
 
     // Restore event request - handles both archive restore and deleted restore
@@ -1824,9 +1824,9 @@ class EventRequestController extends Controller
         // Only owner or admin can restore
         if ((int)$eventRequest->user_id !== (int)$user->id && ! $user->canApproveRequests()) {
             if (request()->expectsJson()) {
-                return response()->json(['success' => false, 'message' => 'You cannot restore this event request.'], 403);
+                return response()->json(['success' => false, 'message' => 'You cannot restore this facility request.'], 403);
             }
-            return redirect()->route('events.my')->with('error', 'You cannot restore this event request.');
+            return redirect()->route('events.my')->with('error', 'You cannot restore this facility request.');
         }
 
         // If restoring from deleted state
@@ -1838,15 +1838,15 @@ class EventRequestController extends Controller
 
             ActivityLog::log(
                 'event_restored_from_deleted',
-                "Event '{$eventRequest->title}' (ID: {$eventRequest->id}) restored from deleted folder by " . $user->name . " ({$user->role})",
+                "Facility Request '{$eventRequest->title}' (ID: {$eventRequest->id}) restored from deleted folder by " . $user->name . " ({$user->role})",
                 null
             );
 
             if (request()->expectsJson()) {
-                return response()->json(['success' => true, 'message' => 'Event request restored successfully.']);
+                return response()->json(['success' => true, 'message' => 'Facility request restored successfully.']);
             }
 
-            return redirect()->route('events.my')->with('success', 'Event request restored successfully.');
+            return redirect()->route('events.my')->with('success', 'Facility request restored successfully.');
         }
 
         // Restoring from archive
@@ -1869,15 +1869,15 @@ class EventRequestController extends Controller
 
         ActivityLog::log(
             'event_restored',
-            "Event '{$eventRequest->title}' (ID: {$eventRequest->id}) restored from archive by " . $user->name . " ({$user->role})",
+            "Facility Request '{$eventRequest->title}' (ID: {$eventRequest->id}) restored from archive by " . $user->name . " ({$user->role})",
             null
         );
 
         if (request()->expectsJson()) {
-            return response()->json(['success' => true, 'message' => 'Event request restored successfully.']);
+            return response()->json(['success' => true, 'message' => 'Facility request restored successfully.']);
         }
 
-        return redirect()->route('events.my')->with('success', 'Event request restored successfully.');
+        return redirect()->route('events.my')->with('success', 'Facility request restored successfully.');
     }
 
     // Batch archive events
@@ -1903,11 +1903,11 @@ class EventRequestController extends Controller
             }
         }
 
-        ActivityLog::log('events_batch_archived', "Batch archived {$archivedCount} events");
+        ActivityLog::log('events_batch_archived', "Batch archived {$archivedCount} facility requests");
 
         return response()->json([
             'success' => true,
-            'message' => "Successfully archived {$archivedCount} event(s)"
+            'message' => "Successfully archived {$archivedCount} facility request(s)"
         ]);
     }
 
@@ -1933,11 +1933,11 @@ class EventRequestController extends Controller
             }
         }
 
-        ActivityLog::log('events_batch_deleted', "Batch deleted {$deletedCount} events");
+        ActivityLog::log('events_batch_deleted', "Batch deleted {$deletedCount} facility requests");
 
         return response()->json([
             'success' => true,
-            'message' => "Successfully deleted {$deletedCount} event(s)"
+            'message' => "Successfully deleted {$deletedCount} facility request(s)"
         ]);
     }
 
@@ -1964,11 +1964,11 @@ class EventRequestController extends Controller
             }
         }
 
-        ActivityLog::log('events_batch_restored', "Batch restored {$restoredCount} events from archive");
+        ActivityLog::log('events_batch_restored', "Batch restored {$restoredCount} facility requests from archive");
 
         return response()->json([
             'success' => true,
-            'message' => "Successfully restored {$restoredCount} event(s)"
+            'message' => "Successfully restored {$restoredCount} facility request(s)"
         ]);
     }
 
@@ -1994,11 +1994,11 @@ class EventRequestController extends Controller
             }
         }
 
-        ActivityLog::log('events_batch_restored_from_deleted', "Batch restored {$restoredCount} events from deleted");
+        ActivityLog::log('events_batch_restored_from_deleted', "Batch restored {$restoredCount} facility requests from deleted");
 
         return response()->json([
             'success' => true,
-            'message' => "Successfully restored {$restoredCount} event(s) from deleted"
+            'message' => "Successfully restored {$restoredCount} facility request(s) from deleted"
         ]);
     }
 

@@ -2,7 +2,7 @@
 
 <div class="card mt-4" id="discussionCard">
     <div class="card-header bg-info text-white">
-        <h5 class="mb-0"><i class="fas fa-comments me-2"></i>Event Discussion</h5>
+        <h5 class="mb-0"><i class="fas fa-comments me-2"></i>Facility Request Discussion</h5>
     </div>
     <div class="card-body" style="max-height: 400px; overflow-y: auto;" id="chatContainer">
         <div id="chatMessages" class="mb-3">

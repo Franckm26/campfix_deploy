@@ -5,8 +5,8 @@
 @endsection
 
 @section('page_title')
-<h2><i class="fas fa-trash-alt"></i> Deleted Events</h2>
-<p>Events in this folder can be restored or permanently deleted.</p>
+<h2><i class="fas fa-trash-alt"></i> Deleted Facility Requests</h2>
+<p>Facility requests in this folder can be restored or permanently deleted.</p>
 @endsection
 
 @section('content')
@@ -40,7 +40,7 @@
             <div class="row align-items-center">
                 <div class="col-md-8">
                     <h5 class="mb-1"><i class="fas fa-clock"></i> Auto-filter Settings</h5>
-                    <p class="mb-0 text-muted">Show events that have been deleted for the selected period or less.</p>
+                    <p class="mb-0 text-muted">Show facility requests that have been deleted for the selected period or less.</p>
                 </div>
                 <div class="col-md-4">
                     <select id="retentionDays" class="form-select">
@@ -59,8 +59,8 @@
         <div class="card-body bg-warning bg-opacity-10">
             <div class="row align-items-center">
                 <div class="col-12">
-                    <h5 class="mb-1"><i class="fas fa-info-circle"></i> About Deleted Events</h5>
-                    <p class="mb-0 text-muted">Events that have been deleted are moved here. You can restore them to their original state or permanently delete them. Once permanently deleted, events cannot be recovered.</p>
+                    <h5 class="mb-1"><i class="fas fa-info-circle"></i> About Deleted Facility Requests</h5>
+                    <p class="mb-0 text-muted">Facility Requests that have been deleted are moved here. You can restore them to their original state or permanently delete them. Once permanently deleted, facility requests cannot be recovered.</p>
                 </div>
                 <div class="col-md-4 text-end">
                     <span class="badge bg-warning fs-5">{{ $events->count() }} events</span>
@@ -98,14 +98,14 @@
                     <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#permanentDeleteAllModal">
                         <i class="fas fa-times-circle"></i> Permanently Delete All
                     </button>
-                    <span id="selectedCount" class="text-muted ms-3">0 events selected</span>
+                    <span id="selectedCount" class="text-muted ms-3">0 facility requests selected</span>
                 </div>
             </div>
         </div>
     </div>
     @endif
 
-    <!-- Deleted Events Table -->
+    <!-- Deleted Facility Requests Table -->
     <div class="card">
         <div class="card-body">
             <div class="table-responsive">
@@ -113,7 +113,7 @@
                     <thead>
                         <tr>
                             <th style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
-                            <th>Event Ticket</th>                            <th>Event Date</th>
+                            <th>Request Ticket</th>                            <th>Date of Use</th>
                             <th>Location</th>
                             <th>Department</th>
                             <th>Priority</th>
@@ -183,7 +183,7 @@
                                         <form action="{{ route('admin.deletedEvents.permanentDelete', $event->id) }}" method="POST" class="d-inline">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-danger" title="Permanently Delete" onclick="return confirm('Are you sure you want to permanently delete this event?')">
+                                            <button type="submit" class="btn btn-sm btn-danger" title="Permanently Delete" onclick="return confirm('Are you sure you want to permanently delete this facility request?')">
                                                 <i class="fas fa-times-circle"></i>
                                             </button>
                                         </form>
@@ -196,12 +196,12 @@
                                 <div class="modal-dialog">
                                     <div class="modal-content">
                                         <div class="modal-header bg-danger text-white">
-                                            <h5 class="modal-title">Permanently Delete Event</h5>
+                                            <h5 class="modal-title">Permanently Delete Facility Request</h5>
                                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                         </div>
                                         <div class="modal-body">
                                             <p>Are you sure you want to permanently delete <strong>EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</strong>?</p>
-                                            <p class="text-danger"><i class="fas fa-exclamation-triangle"></i> This action cannot be undone. The event will be permanently removed from the system.</p>
+                                            <p class="text-danger"><i class="fas fa-exclamation-triangle"></i> This action cannot be undone. The facility request will be permanently removed from the system.</p>
                                         </div>
                                         <div class="modal-footer">
                                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -220,13 +220,13 @@
                                 <div class="modal-dialog modal-lg modal-dialog-centered">
                                     <div class="modal-content">
                                         <div class="modal-header">
-                                            <h5 class="modal-title">Event Request Details</h5>
+                                            <h5 class="modal-title">Facility Request Details</h5>
                                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                         </div>
                                         <div class="modal-body">
                                             <div class="row">
                                                 <div class="col-md-6">
-                                                    <p><strong>Event Ticket:</strong> EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</p>                                                    <p><strong>Status:</strong>
+                                                    <p><strong>Request Ticket:</strong> EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</p>                                                    <p><strong>Status:</strong>
                                                         <span class="badge bg-{{
                                                             $event->status == 'Approved' ? 'success' :
                                                             ($event->status == 'Pending' ? 'warning' :
@@ -238,7 +238,7 @@
                                                 </div>
                                                 <div class="col-md-6">
                                                     <p><strong>Requestor:</strong> {{ $event->user->name ?? 'N/A' }}</p>
-                                                    <p><strong>Event Date:</strong> {{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</p>
+                                                    <p><strong>Date of Use:</strong> {{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</p>
                                                     <p><strong>Time:</strong> {{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}</p>
                                                     <p><strong>Location:</strong> {{ $event->location }}</p>
                                                 </div>
@@ -268,10 +268,10 @@
                                 <td colspan="13" class="text-center p-4">
                                     <div class="alert alert-info mb-0">
                                         <i class="fas fa-check-circle fa-2x d-block mb-3"></i>
-                                        <h5>No Deleted Events</h5>
-                                        <p class="mb-0">Deleted events will appear here. You can delete events from the Events page.</p>
+                                        <h5>No Deleted Facility Requests</h5>
+                                        <p class="mb-0">Deleted facility requests will appear here. You can delete facility requests from the Facilities page.</p>
                                         <a href="{{ route('admin.events') }}" class="btn btn-primary mt-3">
-                                            <i class="fas fa-calendar-alt"></i> Go to Events
+                                            <i class="fas fa-calendar-alt"></i> Go to Facilities
                                         </a>
                                     </div>
                                 </td>
@@ -289,12 +289,12 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title">Permanently Delete All Events</h5>
+                <h5 class="modal-title">Permanently Delete All Facility Requests</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <p>Are you sure you want to permanently delete all <strong>{{ $events->count() }}</strong> events?</p>
-                <p class="text-danger"><i class="fas fa-exclamation-triangle"></i> This action cannot be undone. All events will be permanently removed from the system.</p>
+                <p>Are you sure you want to permanently delete all <strong>{{ $events->count() }}</strong> facility requests?</p>
+                <p class="text-danger"><i class="fas fa-exclamation-triangle"></i> This action cannot be undone. All facility requests will be permanently removed from the system.</p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -330,7 +330,7 @@
         const countEl = document.getElementById('selectedCount');
         const eventIdsEl = document.getElementById('selectedEventIds');
         
-        // Return early if elements don't exist (no events)
+        // Return early if elements don't exist (no facility requests)
         if (!countEl || !eventIdsEl) {
             return;
         }
@@ -380,7 +380,7 @@
 
     function contextRestore() {
         hideContextMenu();
-        if (confirm('Are you sure you want to restore this event?')) {
+        if (confirm('Are you sure you want to restore this facility request?')) {
             const form = document.createElement('form');
             form.method = 'POST';
             form.action = '/admin/deleted-events/' + currentEventId + '/restore';

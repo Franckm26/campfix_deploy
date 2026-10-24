@@ -184,12 +184,12 @@
         </div>
     </div>
 
-    <!-- Archive Event Modal -->
+    <!-- Archive Facility Request Modal -->
     <div class="modal fade" id="archiveEventModal" tabindex="-1" aria-labelledby="archiveEventModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="archiveEventModalLabel">Archive Event</h5>
+                    <h5 class="modal-title" id="archiveEventModalLabel">Archive Facility Request</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="archiveEventForm" method="POST">
@@ -197,7 +197,7 @@
                     <div class="modal-body">
                         <input type="hidden" id="archiveEventId" name="event_id" value="">
                         <div class="alert alert-warning">
-                            <i class="fas fa-exclamation-triangle"></i> This event will be archived and hidden from your active list.
+                            <i class="fas fa-exclamation-triangle"></i> This facility request will be archived and hidden from your active list.
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -209,12 +209,12 @@
         </div>
     </div>
 
-    <!-- Delete Event Modal -->
+    <!-- Delete Facility Request Modal -->
     <div class="modal fade" id="deleteEventModal" tabindex="-1" aria-labelledby="deleteEventModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="deleteEventModalLabel">Delete Event</h5>
+                    <h5 class="modal-title" id="deleteEventModalLabel">Delete Facility Request</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="deleteEventForm" method="POST">
@@ -222,9 +222,9 @@
                     <div class="modal-body">
                         <input type="hidden" id="deleteEventId" name="event_id" value="">
                         <div class="alert alert-danger">
-                            <i class="fas fa-exclamation-triangle"></i> This event will be moved to deleted. You can restore it later from the Deleted tab.
+                            <i class="fas fa-exclamation-triangle"></i> This facility request will be moved to deleted. You can restore it later from the Deleted tab.
                         </div>
-                        <p class="mb-0">Are you sure you want to delete this event?</p>
+                        <p class="mb-0">Are you sure you want to delete this facility request?</p>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -322,8 +322,8 @@
             <table class="table table-hover" style="display: table !important;">
                 <thead>
                     <tr>
-                        <th>Event Ticket</th>
-                        <th>Requestor</th>                        <th>Event Date</th>
+                        <th>Request Ticket</th>
+                        <th>Requestor</th>                        <th>Date of Use</th>
                         <th>Time</th>
                         <th>Location</th>
                         <th>Status</th>
@@ -400,7 +400,7 @@
                                             </div>
                                             <div class="col-md-6">
                                                 <p><strong>Requestor:</strong> {{ $request->user->name ?? 'N/A' }}</p>
-                                                <p><strong>Event Date:</strong> {{ \Carbon\Carbon::parse($request->event_date)->format('m/d/Y') }}</p>
+                                                <p><strong>Date of Use:</strong> {{ \Carbon\Carbon::parse($request->event_date)->format('m/d/Y') }}</p>
                                                 <p><strong>Time:</strong> {{ \Carbon\Carbon::parse($request->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($request->end_time)->format('g:i A') }}</p>
                                                 <p><strong>Location:</strong> {{ $request->location }}</p>
                                             </div>
@@ -418,7 +418,7 @@
                                         <hr>
                                         <x-request-progress-tracker :request="$request" title="Approval Progress" />
                                         
-                                        <!-- PDF Download Button for Approved Events -->
+                                        <!-- PDF Download Button for Approved Facility Requests -->
                                         @if($request->status == 'Approved')
                                         <div class="text-center my-3">
                                             <a href="{{ route('events.pdf', $request->id) }}" class="btn btn-primary btn-lg" target="_blank">
@@ -465,7 +465,7 @@
             </table>
         </div>
 
-        <!-- Mobile Card Layout for Pending Events -->
+        <!-- Mobile Card Layout for Pending Facility Requests -->
         <div class="mobile-event-cards">
             @foreach($requests as $request)
                 <div class="event-card">
@@ -485,7 +485,7 @@
                             <span class="event-card-value">{{ $request->user->name ?? 'N/A' }}</span>
                         </div>
                         <div class="event-card-field">
-                            <span class="event-card-label">Event Date:</span>
+                            <span class="event-card-label">Date of Use:</span>
                             <span class="event-card-value">{{ \Carbon\Carbon::parse($request->event_date)->format('m/d/Y') }}</span>
                         </div>
                         <div class="event-card-field">
@@ -534,10 +534,10 @@
     @endif
 
     @if(($viewType ?? '') == 'approved')
-    <!-- Approved Events Section -->
+    <!-- Approved Facility Requests Section -->
     <div class="card">
         <div class="card-header">
-            <h5 class="mb-0"><i class="fas fa-check-circle text-success"></i> Approved Events
+            <h5 class="mb-0"><i class="fas fa-check-circle text-success"></i> Approved Facility Requests
                 @if(isset($approvedEvents))
                     <span class="badge bg-success ms-2">{{ $approvedEvents->count() }}</span>
                 @endif
@@ -549,8 +549,8 @@
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th>Event Ticket</th>
-                                <th>Requestor</th>                                <th>Event Date</th>
+                                <th>Request Ticket</th>
+                                <th>Requestor</th>                                <th>Date of Use</th>
                                 <th>Time</th>
                                 <th>Location</th>
                                 <th>Status</th>
@@ -600,7 +600,7 @@
                                                     </div>
                                                     <div class="col-md-6">
                                                         <p><strong>Requestor:</strong> {{ $event->user->name ?? 'N/A' }}</p>
-                                                        <p><strong>Event Date:</strong> {{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</p>
+                                                        <p><strong>Date of Use:</strong> {{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</p>
                                                         <p><strong>Time:</strong> {{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}</p>
                                                         <p><strong>Location:</strong> {{ $event->location }}</p>
                                                     </div>
@@ -627,7 +627,7 @@
                     </table>
                 </div>
 
-                <!-- Mobile Card Layout for Approved Events -->
+                <!-- Mobile Card Layout for Approved Facility Requests -->
                 <div class="mobile-event-cards">
                     @foreach($approvedEvents as $event)
                         <div class="event-card">
@@ -641,7 +641,7 @@
                                     <span class="event-card-value">{{ $event->user->name ?? 'N/A' }}</span>
                                 </div>
                                 <div class="event-card-field">
-                                    <span class="event-card-label">Event Date:</span>
+                                    <span class="event-card-label">Date of Use:</span>
                                     <span class="event-card-value">{{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</span>
                                 </div>
                                 <div class="event-card-field">
@@ -671,8 +671,8 @@
             @else
                 <div class="text-center py-5">
                     <i class="fas fa-check-circle fa-3x text-muted mb-3"></i>
-                    <h5 class="text-muted">No approved upcoming events</h5>
-                    <p class="text-muted">Approved events with a future date will appear here.</p>
+                    <h5 class="text-muted">No approved upcoming facility requests</h5>
+                    <p class="text-muted">Approved facility requests with a future date will appear here.</p>
                 </div>
             @endif
         </div>
@@ -680,10 +680,10 @@
     @endif
 
     @if(($viewType ?? '') == 'finished')
-    <!-- Finished Events Section -->
+    <!-- Finished Facility Requests Section -->
     <div class="card">
         <div class="card-header">
-            <h5 class="mb-0"><i class="fas fa-flag-checkered" style="color:#6f42c1;"></i> Finished Events
+            <h5 class="mb-0"><i class="fas fa-flag-checkered" style="color:#6f42c1;"></i> Finished Facility Requests
                 @if(isset($finishedEvents))
                     <span class="badge ms-2" style="background:#6f42c1;">{{ $finishedEvents->count() }}</span>
                 @endif
@@ -695,8 +695,8 @@
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th>Event Ticket</th>
-                                <th>Requestor</th>                                <th>Event Date</th>
+                                <th>Request Ticket</th>
+                                <th>Requestor</th>                                <th>Date of Use</th>
                                 <th>Time</th>
                                 <th>Location</th>
                                 <th>Actions</th>
@@ -740,7 +740,7 @@
                                                     </div>
                                                     <div class="col-md-6">
                                                         <p><strong>Requestor:</strong> {{ $event->user->name ?? 'N/A' }}</p>
-                                                        <p><strong>Event Date:</strong> {{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</p>
+                                                        <p><strong>Date of Use:</strong> {{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</p>
                                                         <p><strong>Time:</strong> {{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}</p>
                                                         <p><strong>Location:</strong> {{ $event->location }}</p>
                                                     </div>
@@ -767,7 +767,7 @@
                     </table>
                 </div>
 
-                <!-- Mobile Card Layout for Finished Events -->
+                <!-- Mobile Card Layout for Finished Facility Requests -->
                 <div class="mobile-event-cards">
                     @foreach($finishedEvents as $event)
                         <div class="event-card">
@@ -781,7 +781,7 @@
                                     <span class="event-card-value">{{ $event->user->name ?? 'N/A' }}</span>
                                 </div>
                                 <div class="event-card-field">
-                                    <span class="event-card-label">Event Date:</span>
+                                    <span class="event-card-label">Date of Use:</span>
                                     <span class="event-card-value">{{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</span>
                                 </div>
                                 <div class="event-card-field">
@@ -811,8 +811,8 @@
             @else
                 <div class="text-center py-5">
                     <i class="fas fa-flag-checkered fa-3x text-muted mb-3"></i>
-                    <h5 class="text-muted">No finished events yet</h5>
-                    <p class="text-muted">Approved events whose date has passed will appear here.</p>
+                    <h5 class="text-muted">No finished facility requests yet</h5>
+                    <p class="text-muted">Approved facility requests whose date has passed will appear here.</p>
                 </div>
             @endif
         </div>
@@ -820,10 +820,10 @@
     @endif
 
     @if(($viewType ?? '') == 'rejected')
-    <!-- Rejected Events Section -->
+    <!-- Rejected Facility Requests Section -->
     <div class="card">
         <div class="card-header">
-            <h5 class="mb-0"><i class="fas fa-times-circle text-danger"></i> Rejected Events
+            <h5 class="mb-0"><i class="fas fa-times-circle text-danger"></i> Rejected Facility Requests
                 @if(isset($rejectedEvents))
                     <span class="badge bg-danger ms-2">{{ $rejectedEvents->count() }}</span>
                 @endif
@@ -835,8 +835,8 @@
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th>Event Ticket</th>
-                                <th>Requestor</th>                                <th>Event Date</th>
+                                <th>Request Ticket</th>
+                                <th>Requestor</th>                                <th>Date of Use</th>
                                 <th>Time</th>
                                 <th>Location</th>
                                 <th>Reason</th>
@@ -882,7 +882,7 @@
                                                     </div>
                                                     <div class="col-md-6">
                                                         <p><strong>Requestor:</strong> {{ $event->user->name ?? 'N/A' }}</p>
-                                                        <p><strong>Event Date:</strong> {{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</p>
+                                                        <p><strong>Date of Use:</strong> {{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</p>
                                                         <p><strong>Time:</strong> {{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}</p>
                                                         <p><strong>Location:</strong> {{ $event->location }}</p>
                                                     </div>
@@ -909,7 +909,7 @@
                     </table>
                 </div>
 
-                <!-- Mobile Card Layout for Rejected Events -->
+                <!-- Mobile Card Layout for Rejected Facility Requests -->
                 <div class="mobile-event-cards">
                     @foreach($rejectedEvents as $event)
                         <div class="event-card">
@@ -923,7 +923,7 @@
                                     <span class="event-card-value">{{ $event->user->name ?? 'N/A' }}</span>
                                 </div>
                                 <div class="event-card-field">
-                                    <span class="event-card-label">Event Date:</span>
+                                    <span class="event-card-label">Date of Use:</span>
                                     <span class="event-card-value">{{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</span>
                                 </div>
                                 <div class="event-card-field">
@@ -957,7 +957,7 @@
             @else
                 <div class="text-center py-5">
                     <i class="fas fa-times-circle fa-3x text-muted mb-3"></i>
-                    <h5 class="text-muted">No rejected events</h5>
+                    <h5 class="text-muted">No rejected facility requests</h5>
                     <p class="text-muted">Rejected facility requests will appear here.</p>
                 </div>
             @endif
@@ -966,12 +966,12 @@
     @endif
 
     @if(($viewType ?? '') == 'archives')
-    <!-- Archived Events Section -->
+    <!-- Archived Facility Requests Section -->
     <div class="row mb-4">
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-archive"></i> Archived Events</h5>
+                    <h5 class="mb-0"><i class="fas fa-archive"></i> Archived Facility Requests</h5>
                 </div>
                 <div class="card-body">
                     @if(isset($archivedEvents) && $archivedEvents->count() > 0)
@@ -979,8 +979,8 @@
                             <table class="table table-hover" style="display: table !important;">
                                 <thead>
                                     <tr>
-                                        <th>Event Ticket</th>
-                                        <th>Requestor</th>                                        <th>Event Date</th>
+                                        <th>Request Ticket</th>
+                                        <th>Requestor</th>                                        <th>Date of Use</th>
                                         <th>Time</th>
                                         <th>Location</th>
                                         <th>Status</th>
@@ -1050,7 +1050,7 @@
                                                             </div>
                                                             <div class="col-md-6">
                                                                 <p><strong>Requestor:</strong> {{ $event->user->name ?? 'N/A' }}</p>
-                                                                <p><strong>Event Date:</strong> {{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</p>
+                                                                <p><strong>Date of Use:</strong> {{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</p>
                                                                 <p><strong>Time:</strong> {{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}</p>
                                                                 <p><strong>Location:</strong> {{ $event->location }}</p>
                                                             </div>
@@ -1075,7 +1075,7 @@
                             </table>
                         </div>
 
-                        <!-- Mobile Card Layout for Archived Events -->
+                        <!-- Mobile Card Layout for Archived Facility Requests -->
                         <div class="mobile-event-cards">
                             @foreach($archivedEvents as $event)
                                 <div class="event-card">
@@ -1095,7 +1095,7 @@
                                             <span class="event-card-value">{{ $event->user->name ?? 'N/A' }}</span>
                                         </div>
                                         <div class="event-card-field">
-                                            <span class="event-card-label">Event Date:</span>
+                                            <span class="event-card-label">Date of Use:</span>
                                             <span class="event-card-value">{{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</span>
                                         </div>
                                         <div class="event-card-field">
@@ -1132,7 +1132,7 @@
 
                     @else
                         <div class="alert alert-info mb-0">
-                            <i class="fas fa-archive"></i> No archived events found.
+                            <i class="fas fa-archive"></i> No archived facility requests found.
                         </div>
                     @endif
                 </div>
@@ -1141,7 +1141,7 @@
     </div>
     @endif
 
-    <!-- Deleted Events View -->
+    <!-- Deleted Facility Requests View -->
     @if(($viewType ?? '') == 'deleted')
     <!-- Context Menu (Right-Click) -->
     <div id="deletedEventsContextMenu" class="context-menu" style="display: none;">
@@ -1154,8 +1154,8 @@
 
     <div class="row mb-4">
         <div class="col-md-12">
-            <h2><i class="fas fa-trash-alt"></i> Deleted Events</h2>
-            <p class="text-muted">Events in this folder can be restored or permanently deleted.</p>
+            <h2><i class="fas fa-trash-alt"></i> Deleted Facility Requests</h2>
+            <p class="text-muted">Facility requests in this folder can be restored or permanently deleted.</p>
         </div>
     </div>
 
@@ -1172,8 +1172,8 @@
         <div class="card-body bg-warning bg-opacity-10 py-2">
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <div>
-                    <strong><i class="fas fa-info-circle"></i> About Deleted Events</strong>
-                    <p class="mb-0 text-muted small">Events deleted are moved here. Restore or permanently delete them.</p>
+                    <strong><i class="fas fa-info-circle"></i> About Deleted Facility Requests</strong>
+                    <p class="mb-0 text-muted small">Facility requests deleted are moved here. Restore or permanently delete them.</p>
                 </div>
                 <div class="d-flex align-items-center gap-3">
                     <span class="badge bg-warning fs-6">{{ $deletedEvents->count() }} events</span>
@@ -1206,14 +1206,14 @@
                     <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deletedEventsPermanentDeleteAllModal">
                         <i class="fas fa-times-circle"></i> Permanently Delete All
                     </button>
-                    <span id="deletedEventsSelectedCount" class="text-muted ms-3">0 events selected</span>
+                    <span id="deletedEventsSelectedCount" class="text-muted ms-3">0 facility requests selected</span>
                 </div>
             </div>
         </div>
     </div>
     @endif
 
-    <!-- Deleted Events Table -->
+    <!-- Deleted Facility Requests Table -->
     <div class="card">
         <div class="card-body">
             @if(isset($deletedEvents) && $deletedEvents->count() > 0)
@@ -1222,7 +1222,7 @@
                         <thead>
                             <tr>
                                 <th style="width:1%;white-space:nowrap;text-align:center"><input type="checkbox" id="deletedEventsSelectAll" onchange="deletedEventsToggleSelectAll()"></th>
-                                <th>Event Ticket</th>                                <th>Event Date</th>
+                                <th>Request Ticket</th>                                <th>Date of Use</th>
                                 <th>Location</th>
                                 <th>Department</th>
                                 <th>Priority</th>
@@ -1293,7 +1293,7 @@
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="btn btn-sm btn-danger bg-transparent" title="Permanently Delete"
-                                                    data-confirm="Are you sure you want to permanently delete this event?"
+                                                    data-confirm="Are you sure you want to permanently delete this facility request?"
                                                     data-confirm-title="Permanent Delete"
                                                     data-confirm-ok="Yes, Delete Forever"
                                                     data-confirm-color="#dc3545">
@@ -1309,12 +1309,12 @@
                                     <div class="modal-dialog">
                                         <div class="modal-content">
                                             <div class="modal-header bg-danger text-white">
-                                                <h5 class="modal-title">Permanently Delete Event</h5>
+                                                <h5 class="modal-title">Permanently Delete Facility Request</h5>
                                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                             </div>
                                             <div class="modal-body">
                                                 <p>Are you sure you want to permanently delete <strong>EVT-{{ str_pad($event->id, 5, '0', STR_PAD_LEFT) }}</strong>?</p>
-                                                <p class="text-danger"><i class="fas fa-exclamation-triangle"></i> This action cannot be undone. The event will be permanently removed from the system.</p>
+                                                <p class="text-danger"><i class="fas fa-exclamation-triangle"></i> This action cannot be undone. The facility request will be permanently removed from the system.</p>
                                             </div>
                                             <div class="modal-footer">
                                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -1351,7 +1351,7 @@
                                                     </div>
                                                     <div class="col-md-6">
                                                         <p><strong>Requestor:</strong> {{ $event->user->name ?? 'N/A' }}</p>
-                                                        <p><strong>Event Date:</strong> {{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</p>
+                                                        <p><strong>Date of Use:</strong> {{ \Carbon\Carbon::parse($event->event_date)->format('m/d/Y') }}</p>
                                                         <p><strong>Time:</strong> {{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($event->end_time)->format('g:i A') }}</p>
                                                         <p><strong>Location:</strong> {{ $event->location }}</p>
                                                     </div>
@@ -1381,10 +1381,10 @@
                                     <td colspan="13" class="text-center p-4">
                                         <div class="alert alert-info mb-0">
                                             <i class="fas fa-check-circle fa-2x d-block mb-3"></i>
-                                            <h5>No Deleted Events</h5>
-                                            <p class="mb-0">Deleted events will appear here. You can delete events from the Events page.</p>
+                                            <h5>No Deleted Facility Requests</h5>
+                                            <p class="mb-0">Deleted facility requests will appear here. You can delete facility requests from the Facilities page.</p>
                                             <a href="{{ route($eventsIndexRoute) }}" class="btn btn-primary mt-3">
-                                                <i class="fas fa-calendar-alt"></i> Go to Events
+                                                <i class="fas fa-calendar-alt"></i> Go to Facilities
                                             </a>
                                         </div>
                                     </td>
@@ -1394,7 +1394,7 @@
                     </table>
                 </div>
 
-                <!-- Mobile Card Layout for Deleted Events -->
+                <!-- Mobile Card Layout for Deleted Facility Requests -->
                 <div class="mobile-event-cards">
                     @forelse($deletedEvents as $event)
                         <div class="event-card" data-id="{{ $event->id }}">
@@ -1419,7 +1419,7 @@
                                     </span>
                                 </div>
                                 <div class="event-card-field">
-                                    <span class="event-card-label">Event Date:</span>
+                                    <span class="event-card-label">Date of Use:</span>
                                     <span class="event-card-value">{{ $event->event_date->format('m/d/Y') }}</span>
                                 </div>
                                 <div class="event-card-field">
@@ -1458,7 +1458,7 @@
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-sm btn-danger w-100" 
-                                        data-confirm="Are you sure you want to permanently delete this event?"
+                                        data-confirm="Are you sure you want to permanently delete this facility request?"
                                         data-confirm-title="Permanent Delete"
                                         data-confirm-ok="Yes, Delete Forever"
                                         data-confirm-color="#dc3545">
@@ -1471,10 +1471,10 @@
                         <div class="text-center py-5">
                             <div class="alert alert-info mb-0">
                                 <i class="fas fa-check-circle fa-2x d-block mb-3"></i>
-                                <h5>No Deleted Events</h5>
-                                <p class="mb-0">Deleted events will appear here. You can delete events from the Events page.</p>
+                                <h5>No Deleted Facility Requests</h5>
+                                <p class="mb-0">Deleted facility requests will appear here. You can delete facility requests from the Facilities page.</p>
                                 <a href="{{ route($eventsIndexRoute) }}" class="btn btn-primary mt-3">
-                                    <i class="fas fa-calendar-alt"></i> Go to Events
+                                    <i class="fas fa-calendar-alt"></i> Go to Facilities
                                 </a>
                             </div>
                         </div>
@@ -1485,10 +1485,10 @@
                 <div class="card">
                     <div class="card-body text-center py-5">
                         <i class="fas fa-check-circle fa-2x d-block mb-3 text-success"></i>
-                        <h5>No Deleted Events</h5>
-                        <p class="mb-0 text-muted">Deleted events will appear here. You can delete events from the Events page.</p>
+                        <h5>No Deleted Facility Requests</h5>
+                        <p class="mb-0 text-muted">Deleted facility requests will appear here. You can delete facility requests from the Facilities page.</p>
                         <a href="{{ route($eventsIndexRoute) }}" class="btn btn-primary mt-3">
-                            <i class="fas fa-calendar-alt"></i> Go to Events
+                            <i class="fas fa-calendar-alt"></i> Go to Facilities
                         </a>
                     </div>
                 </div>
@@ -1499,10 +1499,10 @@
 </div>
 
 <script>
-// Archive Event Function
+// Archive Facility Request Function
 function showArchiveEventModal(eventId) {
     confirmArchive({
-        title: 'Archive Event?',
+        title: 'Archive Facility Request?',
         text: 'This event will be archived and hidden from your active list.',
         confirmButtonText: '<i class="fas fa-archive me-1"></i> Archive'
     }).then(result => {
@@ -1531,10 +1531,10 @@ function showArchiveEventModal(eventId) {
     });
 }
 
-// Delete Event Function
+// Delete Facility Request Function
 function showDeleteEventModal(eventId) {
     confirmDelete({
-        title: 'Delete Event?',
+        title: 'Delete Facility Request?',
         text: 'This event will be moved to deleted. You can restore it later from the Deleted tab.',
         confirmButtonText: '<i class="fas fa-trash me-1"></i> Delete'
     }).then(result => {
@@ -1563,10 +1563,10 @@ function showDeleteEventModal(eventId) {
     });
 }
 
-// Approve Event Function
+// Approve Facility Request Function
 function approveEvent(eventId) {
     confirmApprove({
-        title: 'Approve Event?',
+        title: 'Approve Facility Request?',
         text: 'This facility request will be approved and the requestor will be notified.',
         confirmButtonText: '<i class="fas fa-check me-1"></i> Approve'
     }).then(result => {
@@ -1595,10 +1595,10 @@ function approveEvent(eventId) {
     });
 }
 
-// Reject Event Function
+// Reject Facility Request Function
 function rejectEvent(eventId) {
     confirmReject({
-        title: 'Reject Event?',
+        title: 'Reject Facility Request?',
         text: 'This facility request will be rejected and the requestor will be notified.',
         confirmButtonText: '<i class="fas fa-times me-1"></i> Reject'
     }).then(result => {
@@ -1645,18 +1645,18 @@ function showEventActionModal(type, id, name) {
 
     if (type === 'archive') {
         modalHeader.className = 'modal-header bg-secondary text-white';
-        document.getElementById('eventActionModalLabel').innerHTML = '<i class="fas fa-archive"></i> Archive Event';
+        document.getElementById('eventActionModalLabel').innerHTML = '<i class="fas fa-archive"></i> Archive Facility Request';
         modalMessage.innerHTML = 'Are you sure you want to archive <strong>' + name + '</strong>?';
         modalAlert.classList.add('alert-info');
-        modalAlert.innerHTML = '<i class="fas fa-info-circle"></i> You can restore this event later from the Archive tab.';
+        modalAlert.innerHTML = '<i class="fas fa-info-circle"></i> You can restore this facility request later from the Archive tab.';
         confirmBtn.className = 'btn btn-secondary';
         confirmBtn.innerHTML = '<i class="fas fa-archive"></i> Archive';
     } else if (type === 'delete') {
         modalHeader.className = 'modal-header bg-danger text-white';
-        document.getElementById('eventActionModalLabel').innerHTML = '<i class="fas fa-exclamation-triangle"></i> Delete Event';
+        document.getElementById('eventActionModalLabel').innerHTML = '<i class="fas fa-exclamation-triangle"></i> Delete Facility Request';
         modalMessage.innerHTML = 'Are you sure you want to delete <strong>' + name + '</strong>?';
         modalAlert.classList.add('alert-warning');
-        modalAlert.innerHTML = '<i class="fas fa-warning"></i> This action will move the event to deleted. You can restore it later from the Deleted tab.';
+        modalAlert.innerHTML = '<i class="fas fa-warning"></i> This action will move the facility request to deleted. You can restore it later from the Deleted tab.';
         confirmBtn.className = 'btn btn-danger';
         confirmBtn.innerHTML = '<i class="fas fa-trash"></i> Delete';
     }
@@ -1711,17 +1711,17 @@ function executeEventAction(type, id) {
 </script>
 
 @if(($viewType ?? '') == 'deleted')
-<!-- Permanent Delete All Confirmation Modal for Deleted Events -->
+<!-- Permanent Delete All Confirmation Modal for Deleted Facility Requests -->
 <div class="modal fade" id="deletedEventsPermanentDeleteAllModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title">Permanently Delete All Events</h5>
+                <h5 class="modal-title">Permanently Delete All Facility Requests</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <p>Are you sure you want to permanently delete all <strong>{{ $deletedEvents->count() }}</strong> events?</p>
-                <p class="text-danger"><i class="fas fa-exclamation-triangle"></i> This action cannot be undone. All events will be permanently removed from the system.</p>
+                <p>Are you sure you want to permanently delete all <strong>{{ $deletedEvents->count() }}</strong> facility requests?</p>
+                <p class="text-danger"><i class="fas fa-exclamation-triangle"></i> This action cannot be undone. All facility requests will be permanently removed from the system.</p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -1736,11 +1736,11 @@ function executeEventAction(type, id) {
 </div>
 
 <script>
-    // Context menu variables for deleted events
+    // Context menu variables for deleted facility requests
     let deletedEventsContextMenu = document.getElementById('deletedEventsContextMenu');
     let currentDeletedEventId = null;
 
-    // Toggle select all checkboxes for deleted events
+    // Toggle select all checkboxes for deleted facility requests
     function deletedEventsToggleSelectAll() {
         const selectAll = document.getElementById('deletedEventsSelectAll');
         const checkboxes = document.querySelectorAll('.deleted-event-checkbox');
@@ -1752,12 +1752,12 @@ function executeEventAction(type, id) {
         deletedEventsUpdateSelectedCount();
     }
 
-    // Update selected count for deleted events
+    // Update selected count for deleted facility requests
     function deletedEventsUpdateSelectedCount() {
         const countEl = document.getElementById('deletedEventsSelectedCount');
         const eventIdsEl = document.getElementById('selectedDeletedEventIds');
         
-        // Return early if elements don't exist (no events)
+        // Return early if elements don't exist (no facility requests)
         if (!countEl || !eventIdsEl) {
             return;
         }
@@ -1771,7 +1771,7 @@ function executeEventAction(type, id) {
         eventIdsEl.value = JSON.stringify(selectedIds);
     }
 
-    // Bulk restore function for deleted events
+    // Bulk restore function for deleted facility requests
     function deletedEventsBulkRestore() {
         const checkboxes = document.querySelectorAll('.deleted-event-checkbox:checked');
         if (checkboxes.length === 0) {
@@ -1784,7 +1784,7 @@ function executeEventAction(type, id) {
         }
     }
 
-    // Context menu functions for deleted events
+    // Context menu functions for deleted facility requests
     function showDeletedEventsContextMenu(e, eventId) {
         e.preventDefault();
         currentDeletedEventId = eventId;
@@ -1807,7 +1807,7 @@ function executeEventAction(type, id) {
 
     function deletedEventsContextRestore() {
         hideDeletedEventsContextMenu();
-        if (confirm('Are you sure you want to restore this event?')) {
+        if (confirm('Are you sure you want to restore this facility request?')) {
             const form = document.createElement('form');
             form.method = 'POST';
             form.action = '/admin/deleted-events/' + currentDeletedEventId + '/restore';
@@ -1831,7 +1831,7 @@ function executeEventAction(type, id) {
         modal.show();
     }
 
-    // Add right-click listeners to deleted events table rows
+    // Add right-click listeners to deleted facility requests table rows
     document.querySelectorAll('#deletedEventsTable tbody tr').forEach(row => {
         row.addEventListener('contextmenu', (e) => {
             const eventId = row.getAttribute('data-id');

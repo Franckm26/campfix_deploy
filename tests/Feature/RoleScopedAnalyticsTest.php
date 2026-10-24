@@ -192,7 +192,7 @@ class RoleScopedAnalyticsTest extends TestCase
         $this->assertSame(1, collect($data['systemMetrics'])->firstWhere('label', 'Open concerns')['value']);
         $this->assertSame(2, collect($data['systemMetrics'])->firstWhere('label', 'Pending operations')['value']);
         $this->assertSame(
-            ['Open concerns', 'Open reports', 'Pending event requests', 'Locked accounts', 'Archived users', 'Deleted users'],
+            ['Open concerns', 'Open reports', 'Pending facility requests', 'Locked accounts', 'Archived users', 'Deleted users'],
             $data['operationsOverview']->pluck('label')->all()
         );
         $this->assertStringContainsString('Daily operations currently include', $data['executiveSummary']);
@@ -203,11 +203,11 @@ class RoleScopedAnalyticsTest extends TestCase
         $this->assertSame(2, collect($data['executiveBrief']['metrics'])->firstWhere('label', 'Open work items')['value']);
         $this->assertSame(1, collect($data['executiveBrief']['metrics'])->firstWhere('label', 'Pending decisions')['value']);
         $this->assertSame(
-            ['Prioritize open reports', 'Decide pending event requests', 'Monitor unresolved concerns'],
+            ['Prioritize open reports', 'Decide pending facility requests', 'Monitor unresolved concerns'],
             $data['executiveBrief']['priorities']->pluck('title')->all()
         );
         $this->assertSame('/system-admin/reports', parse_url(collect($data['operationsOverview'])->firstWhere('label', 'Open reports')['url'], PHP_URL_PATH));
-        $this->assertSame('/system-admin/events', parse_url(collect($data['operationsOverview'])->firstWhere('label', 'Pending event requests')['url'], PHP_URL_PATH));
+        $this->assertSame('/system-admin/events', parse_url(collect($data['operationsOverview'])->firstWhere('label', 'Pending facility requests')['url'], PHP_URL_PATH));
 
         $analyticsTemplate = file_get_contents(resource_path('views/superadmin/analytics.blade.php'));
         $this->assertStringContainsString('id="systemExecutiveSummaryModal"', $analyticsTemplate);

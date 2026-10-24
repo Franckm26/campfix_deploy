@@ -3319,7 +3319,7 @@ class AdminController extends Controller
         $deletedFolder = ArchiveFolder::where('name', 'Deleted Events')->first();
 
         if (! $deletedFolder) {
-            return redirect()->route('admin.events')->with('error', 'Deleted Events folder not found.');
+            return redirect()->route('admin.events')->with('error', 'Deleted Facility Requests folder not found.');
         }
 
         $user = auth()->user();
@@ -3341,7 +3341,7 @@ class AdminController extends Controller
         $event = EventRequest::with(['user', 'deletedBy'])->findOrFail($id);
 
         if (! $event->is_deleted) {
-            return redirect()->route('admin.deletedEvents')->with('error', 'Event is not in the Deleted Events folder.');
+            return redirect()->route('admin.deletedEvents')->with('error', 'Facility Request is not in the Deleted Facility Requests folder.');
         }
 
         // Use existing view modal instead of separate page
@@ -3355,7 +3355,7 @@ class AdminController extends Controller
             $event = EventRequest::findOrFail($id);
 
             if (! $event->is_deleted) {
-                return redirect()->route('admin.deletedEvents')->with('error', 'Event is not in the Deleted Events folder.');
+                return redirect()->route('admin.deletedEvents')->with('error', 'Facility Request is not in the Deleted Facility Requests folder.');
             }
 
             $eventTitle = $event->title;
@@ -3375,13 +3375,13 @@ class AdminController extends Controller
                 $oldFolder->save();
             }
 
-            ActivityLog::log('event_restored', "Event '{$eventTitle}' (ID: {$event->id}) restored from deleted by " . auth()->user()->name . " (" . auth()->user()->role . ") - Location: {$event->event_location}, Date: {$event->start_date->format('M d, Y')}");
+            ActivityLog::log('event_restored', "Facility Request '{$eventTitle}' (ID: {$event->id}) restored from deleted by " . auth()->user()->name . " (" . auth()->user()->role . ") - Location: {$event->event_location}, Date: {$event->start_date->format('M d, Y')}");
 
-            return redirect()->route('admin.deletedEvents')->with('success', "Event '{$eventTitle}' has been restored successfully!");
+            return redirect()->route('admin.deletedEvents')->with('success', "Facility Request '{$eventTitle}' has been restored successfully!");
         } catch (\Exception $e) {
-            \Log::error('Restore deleted event failed: '.$e->getMessage());
+            \Log::error('Restore deleted facility request failed: '.$e->getMessage());
 
-            return redirect()->route('admin.deletedEvents')->with('error', 'Failed to restore event. Please try again.');
+            return redirect()->route('admin.deletedEvents')->with('error', 'Failed to restore facility request. Please try again.');
         }
     }
 
@@ -3391,7 +3391,7 @@ class AdminController extends Controller
         $eventIds = $request->input('event_ids', []);
 
         if (empty($eventIds)) {
-            return redirect()->route('admin.deletedEvents')->with('error', 'No events selected.');
+            return redirect()->route('admin.deletedEvents')->with('error', 'No facility requests selected.');
         }
 
         $count = 0;
@@ -3413,12 +3413,12 @@ class AdminController extends Controller
                     $oldFolder->save();
                 }
 
-                ActivityLog::log('event_restored', "Event '{$event->title}' (ID: {$event->id}) restored from deleted (batch) by " . auth()->user()->name . " (" . auth()->user()->role . ")");
+                ActivityLog::log('event_restored', "Facility Request '{$event->title}' (ID: {$event->id}) restored from deleted (batch) by " . auth()->user()->name . " (" . auth()->user()->role . ")");
                 $count++;
             }
         }
 
-        return redirect()->route('admin.deletedEvents')->with('success', "{$count} event(s) have been restored successfully!");
+        return redirect()->route('admin.deletedEvents')->with('success', "{$count} facility request(s) have been restored successfully!");
     }
 
     // Permanently delete an event from Deleted Events folder
@@ -3427,14 +3427,14 @@ class AdminController extends Controller
         $event = EventRequest::findOrFail($id);
 
         if (! $event->is_deleted) {
-            return redirect()->route('admin.deletedEvents')->with('error', 'Event is not in the Deleted Events folder.');
+            return redirect()->route('admin.deletedEvents')->with('error', 'Facility Request is not in the Deleted Facility Requests folder.');
         }
 
         $eventTitle = $event->title;
         $folderId = $event->archive_folder_id;
 
         // Permanently delete the event
-        ActivityLog::log('event_permanent_delete', "Permanently deleted event: {$eventTitle}");
+        ActivityLog::log('event_permanent_delete', "Permanently deleted facility request: {$eventTitle}");
         $event->forceDelete();
 
         // Update folder item count
@@ -3444,7 +3444,7 @@ class AdminController extends Controller
             $folder->save();
         }
 
-        return redirect()->route('admin.deletedEvents')->with('success', "Event '{$eventTitle}' has been permanently deleted!");
+        return redirect()->route('admin.deletedEvents')->with('success', "Facility Request '{$eventTitle}' has been permanently deleted!");
     }
 
     // Permanently delete all events in Deleted Events folder
@@ -3453,7 +3453,7 @@ class AdminController extends Controller
         $deletedFolder = ArchiveFolder::where('name', 'Deleted Events')->first();
 
         if (! $deletedFolder) {
-            return redirect()->route('admin.deletedEvents')->with('error', 'Deleted Events folder not found.');
+            return redirect()->route('admin.deletedEvents')->with('error', 'Deleted Facility Requests folder not found.');
         }
 
         $events = EventRequest::where('archive_folder_id', $deletedFolder->id)
@@ -3463,14 +3463,14 @@ class AdminController extends Controller
         $count = $events->count();
 
         foreach ($events as $event) {
-            ActivityLog::log('event_permanent_delete', "Permanently deleted event: {$event->title}");
+            ActivityLog::log('event_permanent_delete', "Permanently deleted facility request: {$event->title}");
             $event->forceDelete();
         }
 
         $deletedFolder->item_count = 0;
         $deletedFolder->save();
 
-        return redirect()->route('admin.deletedEvents')->with('success', "{$count} event(s) have been permanently deleted!");
+        return redirect()->route('admin.deletedEvents')->with('success', "{$count} facility request(s) have been permanently deleted!");
     }
 
     // Archive user
@@ -8575,7 +8575,7 @@ class AdminController extends Controller
         $event = EventRequest::findOrFail($id);
 
         if ($event->is_deleted) {
-            return back()->with('error', 'Event is already deleted.');
+            return back()->with('error', 'Facility Request is already deleted.');
         }
 
         $deletedFolder = ArchiveFolder::where('name', 'Deleted Events')->where('type', 'mixed')->first();
@@ -8583,7 +8583,7 @@ class AdminController extends Controller
             $deletedFolder = ArchiveFolder::create([
                 'name' => 'Deleted Events',
                 'type' => 'mixed',
-                'description' => 'Deleted event requests',
+                'description' => 'Deleted facility requests',
                 'is_system' => true,
             ]);
         }
@@ -8593,9 +8593,9 @@ class AdminController extends Controller
         $event->deleted_by = auth()->id();
         $event->save();
 
-        ActivityLog::log('event_soft_deleted', 'Event moved to deleted: ' . $event->title, null);
+        ActivityLog::log('event_soft_deleted', 'Facility Request moved to deleted: ' . $event->title, null);
 
-        return back()->with('success', 'Event moved to deleted successfully!');
+        return back()->with('success', 'Facility Request moved to deleted successfully!');
     }
 
     // Soft delete an archived facility request (admin)

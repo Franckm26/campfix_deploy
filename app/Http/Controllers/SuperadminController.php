@@ -438,20 +438,20 @@ class SuperadminController extends Controller
             ['label' => 'Active users', 'value' => $activeUsers, 'context' => $archivedUsers.' archived · '.$deletedUsers.' deleted', 'icon' => 'fa-users', 'color' => '#1769e0'],
             ['label' => 'Locked accounts', 'value' => $lockedUsers, 'context' => $lockedUsers ? 'Requires administrator review' : 'No active lockouts', 'icon' => 'fa-lock', 'color' => $lockedUsers ? '#d93645' : '#148a58'],
             ['label' => 'Open concerns', 'value' => $openConcerns, 'context' => 'Unresolved day-to-day concerns', 'icon' => 'fa-clipboard-list', 'color' => '#e99a00'],
-            ['label' => 'Pending operations', 'value' => $openReports + $pendingEvents, 'context' => $openReports.' reports · '.$pendingEvents.' event requests', 'icon' => 'fa-list-check', 'color' => '#6f42c1'],
+            ['label' => 'Pending operations', 'value' => $openReports + $pendingEvents, 'context' => $openReports.' reports · '.$pendingEvents.' facility requests', 'icon' => 'fa-list-check', 'color' => '#6f42c1'],
         ];
 
         $operationsOverview = collect([
             ['label' => 'Open concerns', 'count' => $openConcerns, 'url' => route('superadmin.concerns')],
             ['label' => 'Open reports', 'count' => $openReports, 'url' => route('superadmin.reports', ['status' => 'Pending'])],
-            ['label' => 'Pending event requests', 'count' => $pendingEvents, 'url' => route('superadmin.events', ['view' => 'pending'])],
+            ['label' => 'Pending facility requests', 'count' => $pendingEvents, 'url' => route('superadmin.events', ['view' => 'pending'])],
             ['label' => 'Locked accounts', 'count' => $lockedUsers, 'url' => route('superadmin.users', ['view' => 'locked'])],
             ['label' => 'Archived users', 'count' => $archivedUsers, 'url' => route('superadmin.users', ['view' => 'archives'])],
             ['label' => 'Deleted users', 'count' => $deletedUsers, 'url' => route('superadmin.users', ['view' => 'deleted'])],
         ]);
 
         $executiveSummary = $lockedUsers + $openConcerns + $openReports + $pendingEvents > 0
-            ? "Daily operations currently include {$openConcerns} open concern(s), {$openReports} open report(s), {$pendingEvents} pending event request(s), and {$lockedUsers} locked account(s)."
+            ? "Daily operations currently include {$openConcerns} open concern(s), {$openReports} open report(s), {$pendingEvents} pending facility request(s), and {$lockedUsers} locked account(s)."
             : 'No open operational or account-access exceptions currently require administrator action.';
 
         $executivePriorities = collect([
@@ -469,8 +469,8 @@ class SuperadminController extends Controller
             ] : null,
             $pendingEvents > 0 ? [
                 'level' => 'warning',
-                'title' => 'Decide pending event requests',
-                'detail' => "{$pendingEvents} event request(s) are waiting for an administrative decision.",
+                'title' => 'Decide pending facility requests',
+                'detail' => "{$pendingEvents} facility request(s) are waiting for an administrative decision.",
                 'url' => route('superadmin.events', ['view' => 'pending']),
             ] : null,
             $openConcerns > 0 ? [
@@ -497,7 +497,7 @@ class SuperadminController extends Controller
                 ['label' => 'Active users', 'value' => $activeUsers, 'context' => 'Available accounts'],
                 ['label' => 'Account exceptions', 'value' => $lockedUsers, 'context' => 'Currently locked'],
                 ['label' => 'Open work items', 'value' => $openConcerns + $openReports, 'context' => 'Concerns and reports'],
-                ['label' => 'Pending decisions', 'value' => $pendingEvents, 'context' => 'Event requests'],
+                ['label' => 'Pending decisions', 'value' => $pendingEvents, 'context' => 'Facility requests'],
             ],
             'priorities' => $executivePriorities,
         ];
@@ -594,9 +594,9 @@ class SuperadminController extends Controller
         $desc  = $event->title ?? "ID:{$id}";
         $event->delete();
 
-        SuperadminActivityLog::log('event_force_deleted', "Force deleted event request: {$desc}");
+        SuperadminActivityLog::log('event_force_deleted', "Force deleted facility request: {$desc}");
 
-        return back()->with('success', 'Event request permanently deleted.');
+        return back()->with('success', 'Facility request permanently deleted.');
     }
 
     // ─────────────────────────────────────────────────────────────────────────

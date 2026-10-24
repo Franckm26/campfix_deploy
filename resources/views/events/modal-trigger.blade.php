@@ -20,7 +20,7 @@
 @section('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Auto-open the event request modal
+    // Auto-open the facility request modal
     var modal = new bootstrap.Modal(document.getElementById('eventRequestModal'));
     modal.show();
 

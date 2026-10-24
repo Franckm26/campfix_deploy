@@ -39,10 +39,10 @@ class NewEventRequestNotification extends Notification
         $requester = $this->eventRequest->user;
 
         return (new MailMessage)
-            ->subject("New Event Request Pending Approval - {$this->eventRequest->title}")
+            ->subject("New Facility Request Pending Approval - {$this->eventRequest->title}")
             ->greeting("Hello {$notifiable->name}!")
-            ->line('A new event request requires your approval.')
-            ->line('**Event Details:**')
+            ->line('A new facility request requires your approval.')
+            ->line('**Facility Request Details:**')
             ->line("- Title: {$this->eventRequest->title}")
             ->line("- Requested by: {$requester->name}")
             ->line("- Date: {$this->eventRequest->event_date->format('F j, Y')}")
@@ -51,7 +51,7 @@ class NewEventRequestNotification extends Notification
             ->line("- Category: {$this->eventRequest->category}")
             ->line("- Priority: {$this->eventRequest->priority}")
             ->line("- Description: {$this->eventRequest->description}")
-            ->action('Review Event Request', url('/admin/events'))
+            ->action('Review Facility Request', url('/admin/events'))
             ->line('Thank you for using CampFix!');
     }
 
@@ -65,8 +65,8 @@ class NewEventRequestNotification extends Notification
         $requester = $this->eventRequest->user;
 
         return [
-            'title' => 'New Event Request Pending',
-            'message' => "New event request '{$this->eventRequest->title}' from {$requester->name} requires your approval.",
+            'title' => 'New Facility Request Pending',
+            'message' => "New facility request '{$this->eventRequest->title}' from {$requester->name} requires your approval.",
             'event_title' => $this->eventRequest->title,
             'event_id' => $this->eventRequest->id,
             'requester_name' => $requester->name,

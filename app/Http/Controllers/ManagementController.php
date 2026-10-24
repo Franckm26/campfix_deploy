@@ -152,7 +152,7 @@ class ManagementController extends Controller
         } catch (Throwable $exception) {
             // A partially applied production migration must not take down the entire
             // management page. The UI will show its migration-required message.
-            Log::warning('Event approval configuration could not be loaded.', [
+            Log::warning('Facility Request approval configuration could not be loaded.', [
                 'exception' => $exception->getMessage(),
             ]);
             $eventSetupReady = false;
@@ -167,7 +167,7 @@ class ManagementController extends Controller
                 ? EventRequest::with('user')->where('is_deleted', false)->latest()->paginate(10, ['*'], 'event_page')->withQueryString()
                 : new LengthAwarePaginator([], 0, 10, 1, ['path' => $request->url(), 'pageName' => 'event_page']);
         } catch (Throwable $exception) {
-            Log::warning('Event requests could not be loaded on the management page.', [
+            Log::warning('Facility requests could not be loaded on the management page.', [
                 'exception' => $exception->getMessage(),
             ]);
             $events = new LengthAwarePaginator([], 0, 10, 1, ['path' => $request->url(), 'pageName' => 'event_page']);
@@ -198,7 +198,7 @@ class ManagementController extends Controller
             ['event_intended_user_id' => $data['event_intended_user_id'], 'event_request_type_id' => $data['event_request_type_id']],
             ['approval_roles' => array_values($data['approval_roles'])]
         );
-        return back()->with('success', 'Approval chain saved. New event requests will use this route.');
+        return back()->with('success', 'Approval chain saved. New facility requests will use this route.');
     }
 
     public function destroyEventApprovalChain(EventApprovalChain $eventApprovalChain)
@@ -206,7 +206,7 @@ class ManagementController extends Controller
         $this->guardManagementAccess();
         $eventApprovalChain->delete();
 
-        return back()->with('success', 'Approval chain deleted. New event requests will use the request type default until another chain is configured.');
+        return back()->with('success', 'Approval chain deleted. New facility requests will use the request type default until another chain is configured.');
     }
 
     public function storeEventRequestType(Request $request)
@@ -216,7 +216,7 @@ class ManagementController extends Controller
         $data = $request->validate(['name' => 'required|string|max:100|unique:event_request_types,name', 'approval_roles' => 'required|array|min:1', 'approval_roles.*' => 'required|string|in:'.$allowedRoles]);
         $roles = array_values($data['approval_roles']);
         EventRequestType::create(['name' => trim($data['name']), 'requires_department' => in_array('program_head', $roles, true), 'approval_roles' => $roles, 'is_active' => true]);
-        return back()->with('success', 'Event request type added.');
+        return back()->with('success', 'Facility request type added.');
     }
 
     public function updateEventRequestType(Request $request, EventRequestType $eventRequestType)
@@ -226,7 +226,7 @@ class ManagementController extends Controller
         $data = $request->validate(['name' => 'required|string|max:100|unique:event_request_types,name,'.$eventRequestType->id, 'approval_roles' => 'required|array|min:1', 'approval_roles.*' => 'required|string|in:'.$allowedRoles, 'is_active' => 'nullable|boolean']);
         $roles = array_values($data['approval_roles']);
         $eventRequestType->update(['name' => trim($data['name']), 'approval_roles' => $roles, 'requires_department' => in_array('program_head', $roles, true), 'is_active' => $request->boolean('is_active')]);
-        return back()->with('success', 'Event request type updated.');
+        return back()->with('success', 'Facility request type updated.');
     }
 
     public function storeEventIntendedUser(Request $request)
@@ -273,7 +273,7 @@ class ManagementController extends Controller
         $item = $model::findOrFail($id);
         $data = $request->validate(['name' => 'required|string|max:100|unique:'.$table.',name,'.$item->id]);
         $item->update(['name' => trim($data['name'])]);
-        return back()->with('success', 'Event setup item updated.');
+        return back()->with('success', 'Facility Request setup item updated.');
     }
 
     public function destroyEventSetup(string $type, int $id)
@@ -282,7 +282,7 @@ class ManagementController extends Controller
         $model = match ($type) { 'request-type' => EventRequestType::class, 'intended-user' => EventIntendedUser::class, 'department' => EventDepartment::class, default => abort(404) };
         $item = $model::findOrFail($id);
         $item->delete();
-        return back()->with('success', 'Event setup item deleted.');
+        return back()->with('success', 'Facility Request setup item deleted.');
     }
 
     // ─── STAFF ───────────────────────────────────────────────────────────────

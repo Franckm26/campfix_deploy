@@ -279,7 +279,7 @@
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <div style="cursor: pointer;" onclick="togglePendingApprovals()">
                         <i class="fas fa-tasks text-warning me-2"></i>
-                        <span class="fw-bold">Pending Event Approvals</span>
+                        <span class="fw-bold">Pending Facility Request Approvals</span>
                         <span class="badge bg-warning text-dark ms-2">{{ $pendingEventsList->count() }} requests</span>
                         <i class="fas fa-chevron-down ms-2" id="pending-chevron"></i>
                     </div>
@@ -365,7 +365,7 @@
                     <div>
                         @if(in_array($user->role, ['academic_head', 'program_head', 'principal_assistant']))
                         <button type="button" class="btn btn-sm btn-primary me-2" onclick="openEventRequestModal()">
-                            <i class="fas fa-plus"></i> Add Event
+                            <i class="fas fa-plus"></i> Add Facility Request
                         </button>
                         @endif
                         <a href="{{ route('events.calendar') }}" class="btn btn-sm btn-outline-primary">
@@ -391,15 +391,15 @@
                     @else
                         <div class="text-center py-5">
                             <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
-                            <h5 class="text-muted">No Upcoming Events</h5>
-                            <p class="text-muted mb-3">There are no approved events scheduled.</p>
+                            <h5 class="text-muted">No Upcoming Facility Requests</h5>
+                            <p class="text-muted mb-3">There are no approved facility requests scheduled.</p>
                             @if(in_array($user->role, ['school_admin', 'academic_head', 'program_head', 'principal_assistant']))
                                 <button type="button" class="btn btn-primary" onclick="openEventRequestModal()">
-                                    <i class="fas fa-plus"></i> Submit Event Request
+                                    <i class="fas fa-plus"></i> Submit Facility Request
                                 </button>
                             @else
                                 <a href="{{ route('events.calendar') }}" class="btn btn-outline-primary">
-                                    <i class="fas fa-calendar"></i> View Events Calendar
+                                    <i class="fas fa-calendar"></i> View Facilities Calendar
                                 </a>
                             @endif
                         </div>
@@ -414,13 +414,13 @@
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="pendingEventReviewModalLabel">Event Request Details</h5>
+                <h5 class="modal-title" id="pendingEventReviewModalLabel">Facility Request Details</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div id="pendingEventReviewLoading" class="text-center py-4">
                     <div class="spinner-border text-primary" role="status"></div>
-                    <div class="mt-2 text-muted">Loading event details...</div>
+                    <div class="mt-2 text-muted">Loading facility request details...</div>
                 </div>
                 <div id="pendingEventReviewError" class="alert alert-danger d-none"></div>
                 <div id="pendingEventReviewContent" class="d-none">
@@ -431,7 +431,7 @@
                             <p class="mb-2"><strong>Status:</strong> <span id="reviewEventStatus" class="badge bg-warning text-dark"></span></p>
                         </div>
                         <div class="col-md-6">
-                            <p class="mb-2"><strong>Event Date:</strong> <span id="reviewEventDate"></span></p>
+                            <p class="mb-2"><strong>Date of Use:</strong> <span id="reviewEventDate"></span></p>
                             <p class="mb-2"><strong>Time:</strong> <span id="reviewEventTime"></span></p>
                             <p class="mb-2"><strong>Location:</strong> <span id="reviewEventLocation"></span></p>
                         </div>
@@ -492,7 +492,7 @@
 
             const data = await response.json();
             if (!response.ok || !data.event) {
-                throw new Error(data.error || 'Unable to load event details.');
+                throw new Error(data.error || 'Unable to load facility request details.');
             }
 
             renderPendingEventReview(data.event);
@@ -500,7 +500,7 @@
             content.classList.remove('d-none');
         } catch (err) {
             loading.classList.add('d-none');
-            error.textContent = err.message || 'Unable to load event details.';
+            error.textContent = err.message || 'Unable to load facility request details.';
             error.classList.remove('d-none');
         }
     }
@@ -613,7 +613,7 @@
             container.innerHTML = `
                 <div class="no-events-message">
                     <i class="fas fa-calendar-day fa-2x mb-3"></i>
-                    <p>No events scheduled for ${dateDisplay}</p>
+                    <p>No facility requests scheduled for ${dateDisplay}</p>
                 </div>
             `;
             return;

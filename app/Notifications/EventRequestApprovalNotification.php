@@ -78,19 +78,19 @@ class EventRequestApprovalNotification extends Notification
 
         if ($this->status === 'Expired') {
             return (new MailMessage)
-                ->subject("Event Request AUTO-REJECTED - {$this->eventTitle}")
+                ->subject("Facility Request AUTO-REJECTED - {$this->eventTitle}")
                 ->greeting("Hello {$notifiable->name}!")
-                ->line("Your event request **'{$this->eventTitle}'** has been **AUTOMATICALLY REJECTED**.")
-                ->line('The event date has already passed before the request was fully approved.')
+                ->line("Your facility request **'{$this->eventTitle}'** has been **AUTOMATICALLY REJECTED**.")
+                ->line('The date of use has already passed before the request was fully approved.')
                 ->action('View My Requests', url('/my-events?view=rejected'))
-                ->line('Please submit a new request if you still need to schedule this event.');
+                ->line('Please submit a new request if you still need to use the facility.');
         }
 
         if ($this->status === 'Rejected') {
             return (new MailMessage)
-                ->subject("Event Request REJECTED - {$this->eventTitle}")
+                ->subject("Facility Request REJECTED - {$this->eventTitle}")
                 ->greeting("Hello {$notifiable->name}!")
-                ->line("Your event request **'{$this->eventTitle}'** has been **REJECTED** by {$levelName}.")
+                ->line("Your facility request **'{$this->eventTitle}'** has been **REJECTED** by {$levelName}.")
                 ->line('Please contact the approver for more information or submit a new request.')
                 ->action('View My Requests', url('/events/my'))
                 ->line('Thank you for using CampFix!');
@@ -98,10 +98,10 @@ class EventRequestApprovalNotification extends Notification
 
         if ($this->fullyApproved || $this->approvalLevel >= $this->totalLevels) {
             return (new MailMessage)
-                ->subject("Event Request FULLY APPROVED - {$this->eventTitle}")
-                ->greeting("Congratulations {$notifiable->name}!")
-                ->line("Your event request **'{$this->eventTitle}'** has been **FULLY APPROVED**!")
-                ->line('All approval levels have been completed. Your event is now confirmed.')
+                ->subject("Facility Request FULLY APPROVED - {$this->eventTitle}")
+                ->greeting("Hello {$notifiable->name}!")
+                ->line("Your facility request **'{$this->eventTitle}'** has been **FULLY APPROVED**!")
+                ->line('All approval levels have been completed. Your facility request is now confirmed.')
                 ->action('View My Requests', url('/events/my'))
                 ->line('Thank you for using CampFix!');
         }
@@ -110,9 +110,9 @@ class EventRequestApprovalNotification extends Notification
         $nextLevelName = $this->nextApproverName ?: ($levelNames[$nextLevel] ?? 'Next Level');
 
         return (new MailMessage)
-            ->subject("Event Request Update - {$this->eventTitle}")
+            ->subject("Facility Request Update - {$this->eventTitle}")
             ->greeting("Hello {$notifiable->name}!")
-            ->line("Your event request **'{$this->eventTitle}'** has been approved by {$levelName}.")
+            ->line("Your facility request **'{$this->eventTitle}'** has been approved by {$levelName}.")
             ->line("Current progress: Level {$this->approvalLevel} of {$this->totalLevels} approved.")
             ->line("Waiting for {$nextLevelName} review.")
             ->action('View My Requests', url('/events/my'))
@@ -137,8 +137,8 @@ class EventRequestApprovalNotification extends Notification
 
         if ($this->status === 'Expired') {
             return [
-                'title' => 'Event Request Auto-Rejected',
-                'message' => "Your event request '{$this->eventTitle}' was automatically rejected because the event date has already passed.",
+                'title' => 'Facility Request Auto-Rejected',
+                'message' => "Your facility request '{$this->eventTitle}' was automatically rejected because the date of use has already passed.",
                 'event_title' => $this->eventTitle,
                 'approval_level' => $this->approvalLevel,
                 'status' => $this->status,
@@ -148,8 +148,8 @@ class EventRequestApprovalNotification extends Notification
 
         if ($this->status === 'Rejected') {
             return [
-                'title' => 'Event Request Rejected',
-                'message' => "Your event request '{$this->eventTitle}' has been REJECTED by {$levelName}.",
+                'title' => 'Facility Request Rejected',
+                'message' => "Your facility request '{$this->eventTitle}' has been REJECTED by {$levelName}.",
                 'event_title' => $this->eventTitle,
                 'approval_level' => $this->approvalLevel,
                 'status' => $this->status,
@@ -159,8 +159,8 @@ class EventRequestApprovalNotification extends Notification
 
         if ($this->fullyApproved || $this->approvalLevel >= $this->totalLevels) {
             return [
-                'title' => 'Event Request Fully Approved',
-                'message' => "Your event request '{$this->eventTitle}' has been FULLY APPROVED!",
+                'title' => 'Facility Request Fully Approved',
+                'message' => "Your facility request '{$this->eventTitle}' has been FULLY APPROVED!",
                 'event_title' => $this->eventTitle,
                 'approval_level' => $this->approvalLevel,
                 'status' => $this->status,
@@ -172,8 +172,8 @@ class EventRequestApprovalNotification extends Notification
         $nextLevelName = $this->nextApproverName ?: ($levelNames[$nextLevel] ?? 'Next Level');
 
         return [
-            'title' => 'Event Request Update',
-            'message' => "Your event request '{$this->eventTitle}' was approved by {$levelName}. Waiting for {$nextLevelName} review.",
+            'title' => 'Facility Request Update',
+            'message' => "Your facility request '{$this->eventTitle}' was approved by {$levelName}. Waiting for {$nextLevelName} review.",
             'event_title' => $this->eventTitle,
             'approval_level' => $this->approvalLevel,
             'status' => $this->status,

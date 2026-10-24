@@ -520,7 +520,7 @@
                         <div class="setting-item">
                             <div class="setting-info">
                                 <div class="setting-label">Security Alerts</div>
-                                <div class="setting-description">Receive notifications about security events and potential misconfigurations</div>
+                                <div class="setting-description">Receive notifications about security facility requests and potential misconfigurations</div>
                             </div>
                             <label class="toggle-switch">
                                 <input type="checkbox" name="security_notifications_enabled" value="1" {{ $user->security_notifications_enabled ? 'checked' : '' }}>

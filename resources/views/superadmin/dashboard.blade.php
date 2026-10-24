@@ -157,13 +157,13 @@
     </a>
     <a href="{{ route('superadmin.events') }}" class="module-card teal">
         <div class="module-icon" style="background:rgba(20,184,166,.15);color:#2dd4bf"><i class="fas fa-calendar-days"></i></div>
-        <div class="module-title">All Events</div>
+        <div class="module-title">All Facility Requests</div>
         <div class="module-count">{{ number_format($stats['total_events']) }}</div>
         <div class="module-sub">System-wide total</div>
     </a>
     <a href="{{ route('superadmin.events', ['view'=>'pending']) }}" class="module-card yellow">
         <div class="module-icon" style="background:rgba(245,158,11,.15);color:#fbbf24"><i class="fas fa-calendar-clock"></i></div>
-        <div class="module-title">Pending Events</div>
+        <div class="module-title">Pending Facility Requests</div>
         <div class="module-count">{{ number_format($stats['pending_events']) }}</div>
         <div class="module-sub">Awaiting approval</div>
     </a>

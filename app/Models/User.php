@@ -157,7 +157,7 @@ class User extends Authenticatable implements JWTSubject
         return [
             'concerns'        => ['label' => 'Concerns'],
             'reports'         => ['label' => 'Reports'],
-            'events'          => ['label' => 'Event Requests'],
+            'events'          => ['label' => 'Facility Requests'],
             'users'           => ['label' => 'User Management'],
             'module_access'   => ['label' => 'Module Access Control'],
             'categories'      => ['label' => 'Categories'],

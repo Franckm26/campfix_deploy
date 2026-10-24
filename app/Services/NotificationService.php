@@ -91,14 +91,14 @@ class NotificationService
         $approverName = $configuredApprover ?: ($approverNames[$approvalLevel] ?? 'Approver');
 
         if ($status === 'Expired') {
-            $message = "Event request '{$eventTitle}' automatically rejected because the event date has already passed - Notification sent to {$user->email}";
+            $message = "Facility request '{$eventTitle}' automatically rejected because the date of use has already passed - Notification sent to {$user->email}";
         } elseif ($status === 'Rejected') {
-            $message = "Event request '{$eventTitle}' rejected by {$approverName} - Notification sent to {$user->email}";
+            $message = "Facility request '{$eventTitle}' rejected by {$approverName} - Notification sent to {$user->email}";
         } elseif (in_array($status, ['Fully Approved', 'Approved']) && ($fullyApproved || $approvalLevel >= $totalLevels)) {
-            $message = "Event request '{$eventTitle}' FULLY APPROVED - Notification sent to {$user->email}";
+            $message = "Facility request '{$eventTitle}' FULLY APPROVED - Notification sent to {$user->email}";
         } else {
             $nextApproverName = $configuredNextApprover ?: ($approverNames[$approvalLevel + 1] ?? 'Next Approver');
-            $message = "Event request '{$eventTitle}' approved by {$approverName} - Waiting for {$nextApproverName} - Notification sent to {$user->email}";
+            $message = "Facility request '{$eventTitle}' approved by {$approverName} - Waiting for {$nextApproverName} - Notification sent to {$user->email}";
         }
 
         ActivityLog::log('notification_sent', $message, $user->id, 'user');
@@ -174,7 +174,7 @@ class NotificationService
 
                 foreach ($approvers as $approver) {
                     $approver->notify(new NewEventRequestNotification($eventRequest));
-                    ActivityLog::log('notification_sent', 'New event request notification sent to '.$roleToNotify.': '.$approver->email, $approver->id);
+                    ActivityLog::log('notification_sent', 'New facility request notification sent to '.$roleToNotify.': '.$approver->email, $approver->id);
                 }
             }
 

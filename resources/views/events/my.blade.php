@@ -243,7 +243,7 @@
     <!-- Tab Content -->
     <div class="tab-content show" id="eventTabContent">
 
-        <!-- Active Events Tab -->
+        <!-- Active Facility Requests Tab -->
         <div class="tab-pane fade {{ ($viewType ?? 'active') === 'active' ? 'show active' : '' }}"
              id="active-events" role="tabpanel" aria-labelledby="active-tab">
 
@@ -285,7 +285,7 @@
             </div>
             @endif
 
-            <!-- Active Events List -->
+            <!-- Active Facility Requests List -->
             <div class="card">
                 <div class="card-body">
                     <!-- Bulk Actions for Active -->
@@ -307,9 +307,9 @@
                                 <thead>
                                     <tr>
                                         <th class="text-nowrap" style="min-width: 50px;"><input type="checkbox" id="selectAllActive" onchange="toggleSelectAll('active')"></th>
-                                        <th class="text-nowrap" style="min-width: 100px;">Event Ticket</th>
+                                        <th class="text-nowrap" style="min-width: 100px;">Request Ticket</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Category</th>
-                                        <th class="text-nowrap" style="min-width: 100px;">Event Date</th>
+                                        <th class="text-nowrap" style="min-width: 100px;">Date of Use</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Time</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Location</th>
                                         <th class="text-nowrap" style="min-width: 100px;">Status</th>
@@ -353,8 +353,8 @@
                                                         <form action="{{ route('events.delete', $request->id) }}" method="POST" class="d-inline">
                                                             @csrf
                                                             <button type="button" class="btn btn-sm btn-danger" onclick="cancelEventRequest({{ $request->id }})"
-                                                                data-confirm="Delete this event? It will be moved to deleted events."
-                                                                data-confirm-title="Delete Event"
+                                                                data-confirm="Delete this facility request? It will be moved to deleted facility requests."
+                                                                data-confirm-title="Delete Facility Request"
                                                                 data-confirm-ok="Yes, Delete"
                                                                 data-confirm-color="#dc3545"
                                                                 title="Delete">
@@ -362,7 +362,7 @@
                                                             </button>
                                                         </form>
                                                     @elseif(in_array($request->status, ['Pending', 'Approved']))
-                                                        {{-- Requesters may cancel pending or already approved events. --}}
+                                                        {{-- Requesters may cancel pending or already approved facility requests. --}}
                                                         <button type="button" class="btn btn-sm btn-success" onclick="rescheduleEventRequest({{ $request->id }})" title="Reschedule"><i class="fas fa-calendar-alt"></i></button>
                                                         <form action="{{ route('events.cancel', $request->id) }}" method="POST" class="d-inline">
                                                             @csrf
@@ -433,8 +433,8 @@
                                             <form action="{{ route('events.delete', $request->id) }}" method="POST" style="flex: 1;">
                                                 @csrf
                                                 <button type="button" class="btn btn-sm btn-danger w-100" onclick="cancelEventRequest({{ $request->id }})"
-                                                    data-confirm="Delete this event? It will be moved to deleted events."
-                                                    data-confirm-title="Delete Event"
+                                                    data-confirm="Delete this facility request? It will be moved to deleted facility requests."
+                                                    data-confirm-title="Delete Facility Request"
                                                     data-confirm-ok="Yes, Delete"
                                                     data-confirm-color="#dc3545">
                                                     <i class="fas fa-trash"></i> Delete
@@ -471,7 +471,7 @@
             </div>
         </div>
 
-        <!-- Approved Events Tab -->
+        <!-- Approved Facility Requests Tab -->
         <div class="tab-pane fade {{ ($viewType ?? '') === 'approved' ? 'show active' : '' }}"
              id="approved-events" role="tabpanel" aria-labelledby="approved-tab">
             <div class="card">
@@ -481,9 +481,9 @@
                             <table class="table table-hover">
                                 <thead>
                                     <tr>
-                                        <th class="text-nowrap" style="min-width: 100px;">Event Ticket</th>
+                                        <th class="text-nowrap" style="min-width: 100px;">Request Ticket</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Category</th>
-                                        <th class="text-nowrap" style="min-width: 100px;">Event Date</th>
+                                        <th class="text-nowrap" style="min-width: 100px;">Date of Use</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Time</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Location</th>
                                         <th class="text-nowrap" style="min-width: 100px;">Status</th>
@@ -584,15 +584,15 @@
                     @else
                         <div class="text-center py-5">
                             <i class="fas fa-check-circle fa-3x text-muted mb-3"></i>
-                            <h4 class="text-muted">No approved events</h4>
-                            <p>Your approved events will appear here</p>
+                            <h4 class="text-muted">No approved facility requests</h4>
+                            <p>Your approved facility requests will appear here</p>
                         </div>
                     @endif
                 </div>
             </div>
         </div>
 
-        <!-- Finished Events Tab -->
+        <!-- Finished Facility Requests Tab -->
         <div class="tab-pane fade {{ ($viewType ?? '') === 'finished' ? 'show active' : '' }}"
              id="finished-events" role="tabpanel" aria-labelledby="finished-tab">
             <div class="card">
@@ -602,9 +602,9 @@
                             <table class="table table-hover">
                                 <thead>
                                     <tr>
-                                        <th class="text-nowrap" style="min-width: 100px;">Event Ticket</th>
+                                        <th class="text-nowrap" style="min-width: 100px;">Request Ticket</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Category</th>
-                                        <th class="text-nowrap" style="min-width: 100px;">Event Date</th>
+                                        <th class="text-nowrap" style="min-width: 100px;">Date of Use</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Time</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Location</th>
                                         <th class="text-nowrap" style="min-width: 100px;">Status</th>
@@ -693,15 +693,15 @@
                     @else
                         <div class="text-center py-5">
                             <i class="fas fa-flag-checkered fa-3x text-muted mb-3"></i>
-                            <h4 class="text-muted">No finished events</h4>
-                            <p>Completed events will appear here</p>
+                            <h4 class="text-muted">No finished facility requests</h4>
+                            <p>Completed facility requests will appear here</p>
                         </div>
                     @endif
                 </div>
             </div>
         </div>
 
-        <!-- Rejected Events Tab -->
+        <!-- Rejected Facility Requests Tab -->
         <div class="tab-pane fade {{ ($viewType ?? '') === 'rejected' ? 'show active' : '' }}"
              id="rejected-events" role="tabpanel" aria-labelledby="rejected-tab">
             <div class="card">
@@ -711,9 +711,9 @@
                             <table class="table table-hover">
                                 <thead>
                                     <tr>
-                                        <th class="text-nowrap" style="min-width: 100px;">Event Ticket</th>
+                                        <th class="text-nowrap" style="min-width: 100px;">Request Ticket</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Category</th>
-                                        <th class="text-nowrap" style="min-width: 100px;">Event Date</th>
+                                        <th class="text-nowrap" style="min-width: 100px;">Date of Use</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Time</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Location</th>
                                         <th class="text-nowrap" style="min-width: 100px;">Status</th>
@@ -748,8 +748,8 @@
                                                     <form action="{{ route('events.delete', $request->id) }}" method="POST" class="d-inline">
                                                         @csrf
                                                         <button type="submit" class="btn btn-sm btn-danger"
-                                                            data-confirm="Delete this event? It will be moved to deleted events."
-                                                            data-confirm-title="Delete Event"
+                                                            data-confirm="Delete this facility request? It will be moved to deleted facility requests."
+                                                            data-confirm-title="Delete Facility Request"
                                                             data-confirm-ok="Yes, Delete"
                                                             data-confirm-color="#dc3545"
                                                             title="Delete">
@@ -803,8 +803,8 @@
                                         <form action="{{ route('events.delete', $request->id) }}" method="POST" style="flex: 1;">
                                             @csrf
                                             <button type="submit" class="btn btn-sm btn-danger w-100"
-                                                data-confirm="Delete this event? It will be moved to deleted events."
-                                                data-confirm-title="Delete Event"
+                                                data-confirm="Delete this facility request? It will be moved to deleted facility requests."
+                                                data-confirm-title="Delete Facility Request"
                                                 data-confirm-ok="Yes, Delete"
                                                 data-confirm-color="#dc3545">
                                                 <i class="fas fa-trash"></i> Delete
@@ -817,15 +817,15 @@
                     @else
                         <div class="text-center py-5">
                             <i class="fas fa-times-circle fa-3x text-muted mb-3"></i>
-                            <h4 class="text-muted">No rejected events</h4>
-                            <p>Rejected events will appear here</p>
+                            <h4 class="text-muted">No rejected facility requests</h4>
+                            <p>Rejected facility requests will appear here</p>
                         </div>
                     @endif
                 </div>
             </div>
         </div>
 
-        <!-- Archived Events Tab -->
+        <!-- Archived Facility Requests Tab -->
         <div class="tab-pane fade {{ ($viewType ?? '') === 'archives' ? 'show active' : '' }}"
              id="archived-events" role="tabpanel" aria-labelledby="archives-tab">
 
@@ -873,7 +873,7 @@
             </div>
             @endif
 
-            <!-- Archived Events List -->
+            <!-- Archived Facility Requests List -->
             <div class="card">
                 <div class="card-body">
                     <!-- Bulk Actions for Archived -->
@@ -895,9 +895,9 @@
                                 <thead>
                                     <tr>
                                         <th class="text-nowrap" style="min-width: 50px;"><input type="checkbox" id="selectAllArchive" onchange="toggleSelectAll('archive')"></th>
-                                        <th class="text-nowrap" style="min-width: 100px;">Event Ticket</th>
+                                        <th class="text-nowrap" style="min-width: 100px;">Request Ticket</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Category</th>
-                                        <th class="text-nowrap" style="min-width: 100px;">Event Date</th>
+                                        <th class="text-nowrap" style="min-width: 100px;">Date of Use</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Time</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Location</th>
                                         <th class="text-nowrap" style="min-width: 100px;">Status</th>
@@ -931,7 +931,7 @@
                                                         @csrf
                                                         <button type="submit" class="btn btn-sm btn-success"
                                                             data-confirm="Restore this request?"
-                                                            data-confirm-title="Restore Event"
+                                                            data-confirm-title="Restore Facility Request"
                                                             data-confirm-ok="Yes, Restore"
                                                             data-confirm-color="#198754"
                                                             title="Restore">
@@ -941,7 +941,7 @@
                                                     <form action="{{ route('events.delete', $request->id) }}" method="POST" class="d-inline">
                                                         @csrf
                                                         <button type="submit" class="btn btn-sm btn-danger"
-                                                            data-confirm="Permanently delete this event?"
+                                                            data-confirm="Permanently delete this facility request?"
                                                             data-confirm-title="Permanent Delete"
                                                             data-confirm-ok="Yes, Delete"
                                                             data-confirm-color="#dc3545"
@@ -998,7 +998,7 @@
                                             @csrf
                                             <button type="submit" class="btn btn-sm btn-success w-100"
                                                 data-confirm="Restore this request?"
-                                                data-confirm-title="Restore Event"
+                                                data-confirm-title="Restore Facility Request"
                                                 data-confirm-ok="Yes, Restore"
                                                 data-confirm-color="#198754">
                                                 <i class="fas fa-trash-restore"></i> Restore
@@ -1007,7 +1007,7 @@
                                         <form action="{{ route('events.delete', $request->id) }}" method="POST" style="flex: 1;">
                                             @csrf
                                             <button type="submit" class="btn btn-sm btn-danger w-100"
-                                                data-confirm="Permanently delete this event?"
+                                                data-confirm="Permanently delete this facility request?"
                                                 data-confirm-title="Permanent Delete"
                                                 data-confirm-ok="Yes, Delete"
                                                 data-confirm-color="#dc3545">
@@ -1028,7 +1028,7 @@
             </div>
         </div>
 
-        <!-- Deleted Events Tab -->
+        <!-- Deleted Facility Requests Tab -->
         <div class="tab-pane fade {{ ($viewType ?? '') === 'deleted' ? 'show active' : '' }}"
              id="deleted-events" role="tabpanel" aria-labelledby="deleted-tab">
 
@@ -1077,7 +1077,7 @@
             </div>
             @endif
 
-            <!-- Deleted Events List -->
+            <!-- Deleted Facility Requests List -->
             <div class="card">
                 <div class="card-body">
                     <!-- Bulk Actions for Deleted -->
@@ -1099,9 +1099,9 @@
                                 <thead>
                                     <tr>
                                         <th class="text-nowrap" style="min-width: 50px;"><input type="checkbox" id="selectAllDeleted" onchange="toggleSelectAll('deleted')"></th>
-                                        <th class="text-nowrap" style="min-width: 100px;">Event Ticket</th>
+                                        <th class="text-nowrap" style="min-width: 100px;">Request Ticket</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Category</th>
-                                        <th class="text-nowrap" style="min-width: 100px;">Event Date</th>
+                                        <th class="text-nowrap" style="min-width: 100px;">Date of Use</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Time</th>
                                         <th class="text-nowrap" style="min-width: 120px;">Location</th>
                                         <th class="text-nowrap" style="min-width: 100px;">Status</th>
@@ -1134,8 +1134,8 @@
                                                     <form action="{{ route('events.restore', $request->id) }}" method="POST" class="d-inline">
                                                         @csrf
                                                         <button type="submit" class="btn btn-sm btn-success"
-                                                            data-confirm="Restore this event?"
-                                                            data-confirm-title="Restore Event"
+                                                            data-confirm="Restore this facility request?"
+                                                            data-confirm-title="Restore Facility Request"
                                                             data-confirm-ok="Yes, Restore"
                                                             data-confirm-color="#198754"
                                                             title="Restore">
@@ -1146,7 +1146,7 @@
                                                         @csrf
                                                         <input type="hidden" name="permanent" value="1">
                                                         <button type="submit" class="btn btn-sm btn-danger"
-                                                            data-confirm="Permanently delete this event? This action cannot be undone."
+                                                            data-confirm="Permanently delete this facility request? This action cannot be undone."
                                                             data-confirm-title="Permanent Delete"
                                                             data-confirm-ok="Yes, Delete Forever"
                                                             data-confirm-color="#dc3545"
@@ -1202,8 +1202,8 @@
                                         <form action="{{ route('events.restore', $request->id) }}" method="POST" style="flex: 1;">
                                             @csrf
                                             <button type="submit" class="btn btn-sm btn-success w-100"
-                                                data-confirm="Restore this event?"
-                                                data-confirm-title="Restore Event"
+                                                data-confirm="Restore this facility request?"
+                                                data-confirm-title="Restore Facility Request"
                                                 data-confirm-ok="Yes, Restore"
                                                 data-confirm-color="#198754">
                                                 <i class="fas fa-trash-restore"></i> Restore
@@ -1213,7 +1213,7 @@
                                             @csrf
                                             <input type="hidden" name="permanent" value="1">
                                             <button type="submit" class="btn btn-sm btn-danger w-100"
-                                                data-confirm="Permanently delete this event? This action cannot be undone."
+                                                data-confirm="Permanently delete this facility request? This action cannot be undone."
                                                 data-confirm-title="Permanent Delete"
                                                 data-confirm-ok="Yes, Delete Forever"
                                                 data-confirm-color="#dc3545">
@@ -1521,10 +1521,10 @@ function viewEvent(id) {
             ` : ''}
             ${materialsHtml}
 
-            <!-- Event Discussion -->
+            <!-- Facility Request Discussion -->
             <div class="card mt-4">
                 <div class="card-header bg-info text-white">
-                    <h6 class="mb-0"><i class="fas fa-comments me-2"></i>Event Discussion</h6>
+                    <h6 class="mb-0"><i class="fas fa-comments me-2"></i>Facility Request Discussion</h6>
                 </div>
                 <div class="card-body" style="max-height: 400px; overflow-y: auto;" id="chatContainer-${event.id}">
                     <div id="chatMessages-${event.id}" class="mb-3">
@@ -1549,7 +1549,7 @@ function viewEvent(id) {
     })
     .catch(error => {
         console.error('Error:', error);
-        contentDiv.innerHTML = '<div class="alert alert-danger">Error loading event details: ' + error.message + '</div>';
+        contentDiv.innerHTML = '<div class="alert alert-danger">Error loading facility request details: ' + error.message + '</div>';
     });
 }
 
@@ -1650,7 +1650,7 @@ function deleteDiscussion(discussionId, eventId) {
     })
     .then(response => response.json())
     .then(data => {
-        // Reload discussions for this event
+        // Reload discussions for this facility request
         initializeDiscussionChat(eventId);
     })
     .catch(error => {
@@ -1659,7 +1659,7 @@ function deleteDiscussion(discussionId, eventId) {
     });
 }
 
-// View deleted event (includes soft-deleted events)
+// View deleted event (includes soft-deleted facility requests)
 function viewDeletedEvent(id) {
     const modal = new bootstrap.Modal(document.getElementById('viewEventModal'));
     const contentDiv = document.getElementById('viewEventContent');
@@ -1772,13 +1772,13 @@ function viewDeletedEvent(id) {
     })
     .catch(error => {
         console.error('Error:', error);
-        contentDiv.innerHTML = '<div class="alert alert-danger">Error loading event details: ' + error.message + '</div>';
+        contentDiv.innerHTML = '<div class="alert alert-danger">Error loading facility request details: ' + error.message + '</div>';
     });
 }
 
 function showEventArchiveModal(eventId) {
     confirmArchive({
-        title: 'Archive Event?',
+        title: 'Archive Facility Request?',
         text: 'This event will be archived and hidden from your active list.',
         confirmButtonText: '<i class="fas fa-archive me-1"></i> Archive'
     }).then(result => {
@@ -1904,7 +1904,7 @@ function escapeFacilityRequestText(value) {
 function rescheduleEventRequest(eventId) {
     Swal.fire({
         title: 'Reschedule facility request',
-        html: `<input id="rescheduleDate" type="date" min="{{ now()->toDateString() }}" required class="swal2-input" aria-label="New event date"><input id="rescheduleStart" type="time" class="swal2-input" aria-label="New start time"><input id="rescheduleEnd" type="time" class="swal2-input" aria-label="New end time"><textarea id="rescheduleReason" class="swal2-textarea" placeholder="Reason (optional)"></textarea>`,
+        html: `<input id="rescheduleDate" type="date" min="{{ now()->toDateString() }}" required class="swal2-input" aria-label="New date of use"><input id="rescheduleStart" type="time" class="swal2-input" aria-label="New start time"><input id="rescheduleEnd" type="time" class="swal2-input" aria-label="New end time"><textarea id="rescheduleReason" class="swal2-textarea" placeholder="Reason (optional)"></textarea>`,
         showCancelButton: true,
         confirmButtonText: 'Submit for approval',
         preConfirm: () => {
@@ -1939,7 +1939,7 @@ function batchArchiveSelected() {
     if (ids.length === 0) return;
     
     Swal.fire({
-        title: 'Archive Events?',
+        title: 'Archive Facility Requests?',
         text: `Are you sure you want to archive ${ids.length} event(s)?`,
         icon: 'warning',
         showCancelButton: true,
@@ -1985,7 +1985,7 @@ function batchSoftDeleteSelected() {
     if (ids.length === 0) return;
     
     Swal.fire({
-        title: 'Delete Events?',
+        title: 'Delete Facility Requests?',
         text: `Are you sure you want to delete ${ids.length} event(s)?`,
         icon: 'warning',
         showCancelButton: true,
@@ -2061,7 +2061,7 @@ function batchDeleteFromArchiveSelected() {
     if (ids.length === 0) return;
     
     Swal.fire({
-        title: 'Delete Archived Events?',
+        title: 'Delete Archived Facility Requests?',
         text: `Are you sure you want to delete ${ids.length} archived event(s)?`,
         icon: 'warning',
         showCancelButton: true,
@@ -2140,7 +2140,7 @@ function contextArchive() {
 function contextDelete() {
     if (window.selectedEventId && window.selectedEventView === 'active') {
         confirmDelete({
-            title: 'Delete Event?',
+            title: 'Delete Facility Request?',
             text: 'This event will be moved to deleted. You can restore it later.',
             confirmButtonText: '<i class="fas fa-trash me-1"></i> Delete'
         }).then(result => {
@@ -2165,8 +2165,8 @@ function contextDelete() {
 function contextRestore() {
     if (window.selectedEventId && (window.selectedEventView === 'archived' || window.selectedEventView === 'deleted')) {
         confirmRestore({
-            title: 'Restore Event?',
-            text: 'This will move the event back to active events.',
+            title: 'Restore Facility Request?',
+            text: 'This will move the facility request back to active facility requests.',
             confirmButtonText: '<i class="fas fa-trash-restore me-1"></i> Restore'
         }).then(result => {
             if (result.isConfirmed) {
@@ -2190,7 +2190,7 @@ function contextRestore() {
 function contextDeleteFromArchive() {
     if (window.selectedEventId && window.selectedEventView === 'archived') {
         confirmDelete({
-            title: 'Delete Archived Event?',
+            title: 'Delete Archived Facility Request?',
             text: 'This archived event will be moved to deleted.',
             confirmButtonText: '<i class="fas fa-trash me-1"></i> Delete'
         }).then(result => {

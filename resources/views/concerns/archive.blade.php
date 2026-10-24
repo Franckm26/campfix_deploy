@@ -74,7 +74,7 @@
                     <table class="table table-hover" style="display: table !important;">
                         <thead>
                             <tr>
-                                <th>Event Ticket</th>                                <th>Priority</th>
+                                <th>Request Ticket</th>                                <th>Priority</th>
                                 <th>Status</th>
                                 <th>Location</th>
                                 <th>Archived Date</th>
@@ -136,11 +136,11 @@
         </div>
     </div>
 
-    <!-- Archived Event Requests (Only for Faculty) -->
+    <!-- Archived Facility Requests (Only for Faculty) -->
     @if(auth()->user()->role === 'faculty')
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0"><i class="fas fa-calendar"></i> My Archived Event Requests</h5>
+            <h5 class="mb-0"><i class="fas fa-calendar"></i> My Archived Facility Requests</h5>
             <span class="text-muted">Total: {{ $archivedEvents->count() }} items</span>
         </div>
         <div class="card-body">
@@ -149,7 +149,7 @@
                     <table class="table table-hover" style="display: table !important;">
                         <thead>
                             <tr>
-                                <th>Event Ticket</th>                                <th>Event Date</th>
+                                <th>Request Ticket</th>                                <th>Date of Use</th>
                                 <th>Status</th>
                                 <th>Location</th>
                                 <th>Archived Date</th>
@@ -182,7 +182,7 @@
                                             </button>
                                         </form>
                                         <form method="POST" action="{{ route('events.delete', $event->id) }}" class="d-inline"
-                                              onsubmit="return confirm('Move this event to deleted? It can be restored from the deleted folder.')">
+                                              onsubmit="return confirm('Move this facility request to deleted? It can be restored from the deleted folder.')">
                                             @csrf
                                             <button type="submit" class="btn btn-sm btn-danger" title="Delete">
                                                 <i class="fas fa-trash"></i> Delete
@@ -197,7 +197,7 @@
             @else
                 <div class="text-center py-5">
                     <i class="fas fa-calendar fa-3x text-muted mb-3"></i>
-                    <p class="text-muted">No archived event requests found.</p>
+                    <p class="text-muted">No archived facility requests found.</p>
                 </div>
             @endif
         </div>

@@ -321,7 +321,7 @@
 
 @section('page_title')
 <h2><i class="fas fa-calendar-check"></i> Facilities Calendar</h2>
-<p>Comprehensive view of events, facility bookings, and maintenance activities</p>
+<p>Comprehensive view of facility requests, facility bookings, and maintenance activities</p>
 @endsection
 
 @section('content')
@@ -371,10 +371,10 @@
         <!-- Right Panel -->
         <div class="cal-right-panel">
 
-            <!-- Event Types -->
+            <!-- Request Types -->
             <div class="cal-list-card">
                 <h6><i class="fas fa-info-circle text-primary"></i> Status</h6>
-                <div class="cal-list-item"><div class="cal-dot" style="background:#26a69a"></div> Approved Events</div>
+                <div class="cal-list-item"><div class="cal-dot" style="background:#26a69a"></div> Approved Facility Requests</div>
                 <div class="cal-list-item"><div class="cal-dot" style="background:#ffa726"></div> Pending Concerns</div>
                 <div class="cal-list-item"><div class="cal-dot" style="background:#4f6ef7"></div> Assigned Concerns</div>
                 <div class="cal-list-item"><div class="cal-dot" style="background:#7c4dff"></div> In-Progress Concerns</div>
@@ -389,7 +389,7 @@
                         <label class="form-label small">Status</label>
                         <div class="form-check form-check-sm">
                             <input class="form-check-input" type="checkbox" name="filter_types[]" value="approved" id="type_approved" {{ in_array('approved', $filterTypes ?? []) ? 'checked' : '' }}>
-                            <label class="form-check-label small" for="type_approved">Approved Events</label>
+                            <label class="form-check-label small" for="type_approved">Approved Facility Requests</label>
                         </div>
                         <div class="form-check form-check-sm">
                             <input class="form-check-input" type="checkbox" name="filter_types[]" value="pending" id="type_pending" {{ in_array('pending', $filterTypes ?? []) ? 'checked' : '' }}>
@@ -422,13 +422,13 @@
     </div>
 </div>
 
-    <!-- Import Events Modal -->
+    <!-- Import Facility Requests Modal -->
     <div class="modal fade" id="importEventsModal" tabindex="-1" aria-labelledby="importEventsModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg">
                 <div class="modal-header bg-success text-white">
                     <h5 class="modal-title" id="importEventsModalLabel">
-                        <i class="fas fa-file-import me-2"></i>Import Events from CSV
+                        <i class="fas fa-file-import me-2"></i>Import Facility Requests from CSV
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -459,13 +459,13 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
         </div>
     </div>
 
-    <!-- Event Details Modal -->
+    <!-- Facility Request Details Modal -->
     <div class="modal fade" id="eventModal" tabindex="-1" aria-labelledby="eventModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg">
                 <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title" id="eventModalLabel">
-                        <i class="fas fa-calendar-alt me-2"></i>Event Details
+                        <i class="fas fa-calendar-alt me-2"></i>Facility Request Details
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -532,9 +532,9 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
 
 @section('scripts')
 <script>
-    // Get calendar events from the backend
+    // Get calendar facility requests from the backend
     let calEvents = [];
-    let allEvents = []; // Store all events
+    let allEvents = []; // Store all facility requests
     
     // Get active filters from URL
     function getActiveFilters() {
@@ -565,7 +565,7 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
         return filtered;
     }
     
-    // Fetch events from API
+    // Fetch facility requests from API
     async function fetchCalendarEvents() {
         try {
             const response = await fetch('{{ route("events.calendar.events") }}');
@@ -691,7 +691,7 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
             const evHtml = dayEvents.slice(0,3).map(e => {
                 const color = getEventColor(e.type);
                 // For events without title, use a short version of description
-                const displayTitle = e.title || (e.description ? e.description.substring(0, 30) : 'Event');
+                const displayTitle = e.title || (e.description ? e.description.substring(0, 30) : 'Facility Request');
                 const escapedTitle = displayTitle.replace(/'/g, "\\'");
                 const escapedDesc = (e.description || '').replace(/'/g, "\\'");
                 const escapedLocation = (e.location || '').replace(/'/g, "\\'");
@@ -833,7 +833,7 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
 
         const el = document.getElementById('agenda-view');
         if (!upcoming.length) {
-            el.innerHTML = '<p class="text-center mt-4" style="color:var(--cal-text-muted)">No upcoming events.</p>';
+            el.innerHTML = '<p class="text-center mt-4" style="color:var(--cal-text-muted)">No upcoming facility requests.</p>';
             return;
         }
         el.innerHTML = upcoming.map(e => {
@@ -872,11 +872,11 @@ Meeting Title,Description,2026-03-20,09:00,10:00,Room 101,meeting</pre>
         if (id.startsWith('concern_')) {
             modalLabel.innerHTML = '<i class="fas fa-tools me-2"></i>Concern Details';
         } else if (id.startsWith('event_')) {
-            modalLabel.innerHTML = '<i class="fas fa-calendar-alt me-2"></i>Event Details';
+            modalLabel.innerHTML = '<i class="fas fa-calendar-alt me-2"></i>Facility Request Details';
         } else if (id.startsWith('facility_')) {
             modalLabel.innerHTML = '<i class="fas fa-building me-2"></i>Facility Booking Details';
         } else {
-            modalLabel.innerHTML = '<i class="fas fa-calendar-alt me-2"></i>Event Details';
+            modalLabel.innerHTML = '<i class="fas fa-calendar-alt me-2"></i>Facility Request Details';
         }
         
         document.getElementById('eventTitle').textContent = title;

@@ -687,7 +687,7 @@
                                     <div class="se-content">
                                         <div class="se-icon"><i class="fas fa-bullhorn"></i></div>
                                         <div class="se-title">No Announcements</div>
-                                        <div class="se-sub">There are no upcoming approved events at this time.</div>
+                                        <div class="se-sub">There are no upcoming approved facility requests at this time.</div>
                                     </div>
                                 </div>
                             </div>

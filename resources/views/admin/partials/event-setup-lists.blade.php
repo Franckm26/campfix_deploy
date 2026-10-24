@@ -25,7 +25,7 @@
 
 <div class="event-config-card card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center gap-3">
-        <div><h5 class="mb-1"><i class="fas fa-users text-primary me-2"></i>Intended Users</h5><small class="text-muted">Audience groups available in the event request form.</small></div>
+        <div><h5 class="mb-1"><i class="fas fa-users text-primary me-2"></i>Intended Users</h5><small class="text-muted">Audience groups available in the facility request form.</small></div>
         <button class="btn btn-primary add-intended-user" type="button"><i class="fas fa-plus"></i> Add User Group</button>
     </div>
     <div class="table-responsive">
@@ -51,7 +51,7 @@
 
 <div class="event-config-card card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center gap-3">
-        <div><h5 class="mb-1"><i class="fas fa-file-signature text-primary me-2"></i>Request Types</h5><small class="text-muted">Types of event requests and their default approval route.</small></div>
+        <div><h5 class="mb-1"><i class="fas fa-file-signature text-primary me-2"></i>Request Types</h5><small class="text-muted">Types of facility requests and their default approval route.</small></div>
         <button class="btn btn-primary add-request-type" type="button"><i class="fas fa-plus"></i> Add Request Type</button>
     </div>
     <div class="table-responsive">

@@ -163,12 +163,12 @@ class RoleAnalyticsController extends Controller
 
         $summary = [
             'title' => $roleName.' Executive Summary',
-            'scope' => 'Event request approvals relevant to your role',
+            'scope' => 'Facility request approvals relevant to your role',
             'decision' => $awaiting->count() > 0
-                ? 'Review the requests waiting at your approval step, beginning with the oldest and nearest event dates.'
+                ? 'Review the requests waiting at your approval step, beginning with the oldest and nearest dates of use.'
                 : 'No request currently requires your decision. Monitor upcoming requests and completed outcomes.',
             'items' => [
-                "{$events->count()} event request(s) fall within the {$roleName} approval scope.",
+                "{$events->count()} facility request(s) fall within the {$roleName} approval scope.",
                 $awaiting->count() ? $awaiting->count().' request(s) require your decision now.' : 'No requests are currently waiting for your approval.',
                 "{$handled->count()} request(s) contain a decision recorded by you.",
                 "{$approved->count()} request(s) are fully approved and {$rejected->count()} are rejected.",
@@ -178,7 +178,7 @@ class RoleAnalyticsController extends Controller
         return view('admin.role-analytics', [
             'mode' => 'approval',
             'pageTitle' => $roleName.' Analytics',
-            'pageSubtitle' => 'Event request workload, decisions, and approval outcomes',
+            'pageSubtitle' => 'Facility request workload, decisions, and approval outcomes',
             'metrics' => $metrics,
             'statusStats' => $statusStats,
             'trendStats' => $trendStats,
@@ -273,7 +273,7 @@ class RoleAnalyticsController extends Controller
                 return [
                     'key' => 'approval-'.substr(sha1($name), 0, 12),
                     'name' => $name,
-                    'description' => 'Event requests grouped by request type',
+                    'description' => 'Facility requests grouped by request type',
                     'stats' => [
                         'total' => $items->count(),
                         'open' => $items->where('status', 'Pending')->count(),
@@ -285,7 +285,7 @@ class RoleAnalyticsController extends Controller
                         return [
                             'id' => $event->id,
                             'reference' => 'EVT-'.str_pad((string) $event->id, 5, '0', STR_PAD_LEFT),
-                            'title' => ($event->location ?: 'Event request').' - '.optional($event->event_date)->format('m/d/Y'),
+                            'title' => ($event->location ?: 'Facility request').' - '.optional($event->event_date)->format('m/d/Y'),
                             'description' => $event->description ?: 'No description provided.',
                             'location' => $event->location ?: 'Not specified',
                             'status' => $event->status ?: 'Pending',
@@ -343,20 +343,20 @@ class RoleAnalyticsController extends Controller
         $alerts = collect();
 
         if ($awaiting->isNotEmpty()) {
-            $alerts->push($this->eventDecisionAlert('Requests awaiting your decision', 'warning', $awaiting->count().' request(s) are at the '.$this->roleLabel($user->role).' approval step.', 'These requests cannot advance until your decision is recorded.', 'Review the oldest and nearest event dates first.', $awaiting));
+            $alerts->push($this->eventDecisionAlert('Requests awaiting your decision', 'warning', $awaiting->count().' request(s) are at the '.$this->roleLabel($user->role).' approval step.', 'These requests cannot advance until your decision is recorded.', 'Review the oldest and nearest dates of use first.', $awaiting));
         }
         if ($stale->isNotEmpty()) {
             $alerts->push($this->eventDecisionAlert('Aging approvals', 'critical', $stale->count().' request(s) have waited at least three days for your decision.', 'Approval delays reduce planning time for facilities and organizers.', 'Resolve blockers or record a decision promptly.', $stale));
         }
         if ($nearDate->isNotEmpty()) {
-            $alerts->push($this->eventDecisionAlert('Upcoming events still pending', 'critical', $nearDate->count().' pending event(s) are scheduled within seven days.', 'The event date may arrive before the complete approval chain finishes.', 'Coordinate with the current approver and prioritize time-sensitive requests.', $nearDate));
+            $alerts->push($this->eventDecisionAlert('Upcoming facility requests still pending', 'critical', $nearDate->count().' pending facility request(s) are scheduled within seven days.', 'The date of use may arrive before the complete approval chain finishes.', 'Coordinate with the current approver and prioritize time-sensitive requests.', $nearDate));
         }
 
         return $alerts->isEmpty() ? collect([[
             'key' => 'approval-clear', 'level' => 'success', 'title' => 'No immediate approval alerts',
-            'body' => 'No aging or time-sensitive event request currently requires your attention.',
+            'body' => 'No aging or time-sensitive facility request currently requires your attention.',
             'why' => 'The role-specific approval queue is within the current thresholds.',
-            'impact' => 'Continue monitoring new and upcoming event requests.',
+            'impact' => 'Continue monitoring new and upcoming facility requests.',
             'tickets' => [],
         ]]) : $alerts;
     }
@@ -383,7 +383,7 @@ class RoleAnalyticsController extends Controller
             'body' => $body, 'why' => $why, 'impact' => $impact,
             'tickets' => $items->take(8)->map(fn (EventRequest $event) => [
                 'reference' => 'EVT-'.str_pad((string) $event->id, 5, '0', STR_PAD_LEFT),
-                'title' => ($event->location ?: 'Event request').' - '.optional($event->event_date)->format('m/d/Y'),
+                'title' => ($event->location ?: 'Facility request').' - '.optional($event->event_date)->format('m/d/Y'),
                 'status' => $event->status ?: 'Pending',
                 'owner' => $event->requiredApprovalRole() ? $this->roleLabel($event->requiredApprovalRole()) : 'Approval complete',
                 'url' => route('admin.events', ['request' => $event->id]),
