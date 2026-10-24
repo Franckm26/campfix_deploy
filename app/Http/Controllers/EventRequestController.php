@@ -2286,7 +2286,7 @@ class EventRequestController extends Controller
                     'level' => $h['level'],
                     'role' => $role,
                     'name' => $name,
-                    'date' => isset($h['at']) ? \Carbon\Carbon::parse($h['at'])->format('m/d/Y h:i A') : 'N/A',
+                    'date' => isset($h['at']) ? \Carbon\Carbon::parse($h['at'], 'UTC')->timezone('Asia/Manila')->format('m/d/Y h:i A') : 'N/A',
                 ];
                 $seenNames[$name.'-'.$role] = true;
             }
@@ -2310,7 +2310,7 @@ class EventRequestController extends Controller
                         'level' => '1',
                         'role' => 'Building Admin',
                         'name' => $name,
-                        'date' => $eventRequest->approved_at_level_1 ? \Carbon\Carbon::parse($eventRequest->approved_at_level_1)->format('m/d/Y h:i A') : 'N/A',
+                        'date' => $eventRequest->approved_at_level_1 ? $eventRequest->approved_at_level_1->copy()->timezone('Asia/Manila')->format('m/d/Y h:i A') : 'N/A',
                     ];
                 }
             }
@@ -2334,7 +2334,7 @@ class EventRequestController extends Controller
                         'level' => '2',
                         'role' => 'Academic Head',
                         'name' => $name,
-                        'date' => $eventRequest->approved_at_level_2 ? \Carbon\Carbon::parse($eventRequest->approved_at_level_2)->format('m/d/Y h:i A') : 'N/A',
+                        'date' => $eventRequest->approved_at_level_2 ? $eventRequest->approved_at_level_2->copy()->timezone('Asia/Manila')->format('m/d/Y h:i A') : 'N/A',
                     ];
                 }
             }
@@ -2358,7 +2358,7 @@ class EventRequestController extends Controller
                         'level' => '3',
                         'role' => 'Additional Approver',
                         'name' => $name,
-                        'date' => $eventRequest->approved_at_level_3 ? \Carbon\Carbon::parse($eventRequest->approved_at_level_3)->format('m/d/Y h:i A') : 'N/A',
+                        'date' => $eventRequest->approved_at_level_3 ? $eventRequest->approved_at_level_3->copy()->timezone('Asia/Manila')->format('m/d/Y h:i A') : 'N/A',
                     ];
                 }
             }
@@ -2366,6 +2366,15 @@ class EventRequestController extends Controller
 
         // Get final approver (School Admin)
         $finalApprover = $eventRequest->approver;
+        if ($finalApprover && collect($history)->contains(function ($entry) use ($finalApprover) {
+            $samePerson = isset($entry['approver_id'])
+                ? (int) $entry['approver_id'] === (int) $finalApprover->id
+                : ($entry['approver'] ?? '') === $finalApprover->name;
+            $role = strtolower(str_replace(['_', ' '], '', $entry['role'] ?? ''));
+            return $samePerson && in_array($role, ['schooladmin', 'schooladministrator'], true);
+        })) {
+            $finalApprover = null;
+        }
 
         $pdf = \PDF::loadView('events.pdf', [
             'eventRequest' => $eventRequest,

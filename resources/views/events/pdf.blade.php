@@ -319,7 +319,7 @@
         <table class="details-table">
             <tr>
                 <th>Date Requested:</th>
-                <td colspan="3">{{ $eventRequest->created_at->format('m/d/Y') }}</td>
+                <td colspan="3">{{ $eventRequest->created_at->copy()->timezone('Asia/Manila')->format('m/d/Y') }}</td>
             </tr>
             <tr>
                 <th>Department:</th>
@@ -376,7 +376,7 @@
                 <tr>
                     <th>Approved By</th>
                     <th>Position</th>
-                    <th>Date/Time</th>
+                    <th>Date/Time (PHT, UTC+08:00)</th>
                     <th>Status</th>
                 </tr>
             </thead>
@@ -385,7 +385,7 @@
                 <tr>
                     <td>{{ $requester->name }}</td>
                     <td>Requester</td>
-                    <td>{{ $eventRequest->created_at->format('m/d/Y h:i A') }}</td>
+                    <td>{{ $eventRequest->created_at->copy()->timezone('Asia/Manila')->format('m/d/Y h:i A') }}</td>
                     <td>Submitted</td>
                 </tr>
                 @endif
@@ -401,7 +401,7 @@
                 <tr>
                     <td>{{ $finalApprover->name }}</td>
                     <td>School Admin</td>
-                    <td>{{ $eventRequest->approved_at ? \Carbon\Carbon::parse($eventRequest->approved_at)->format('m/d/Y h:i A') : 'N/A' }}</td>
+                    <td>{{ $eventRequest->approved_at ? $eventRequest->approved_at->copy()->timezone('Asia/Manila')->format('m/d/Y h:i A') : 'N/A' }}</td>
                     <td>Approved</td>
                 </tr>
                 @endif

@@ -73,6 +73,61 @@ class FacilityApprovalProgressTest extends TestCase
         return Blade::render('<x-request-progress-tracker :request="$event" title="Approval Progress" />', compact('event'));
     }
 
+    private function renderPdf(EventRequest $event): string
+    {
+        $event->save();
+        $html = '';
+        $pdf = \Mockery::mock(\Barryvdh\DomPDF\PDF::class);
+        $pdf->shouldReceive('setPaper')->once()->with('a4', 'portrait')->andReturnSelf();
+        $pdf->shouldReceive('download')->once()->with('event-request-'.$event->id.'.pdf')->andReturn(response('PDF'));
+        \PDF::shouldReceive('loadView')->once()->withArgs(function ($view, $data) use (&$html) {
+            $this->assertSame('events.pdf', $view);
+            $html = view($view, $data)->render();
+            return true;
+        })->andReturn($pdf);
+        $before = $event->fresh()->getAttributes();
+        app(EventRequestController::class)->generatePdf($event->id);
+        $this->assertSame($before, $event->fresh()->getAttributes());
+        return substr($html, strpos($html, '<!-- Approval History Table -->'));
+    }
+
+    public function test_pdf_uses_philippine_time_and_does_not_duplicate_final_approval(): void
+    {
+        $user = User::forceCreate(['name' => 'Final Approver', 'email' => 'final@example.com', 'role' => 'school_admin']);
+        $event = $this->event(['user_id' => $user->id, 'status' => 'Approved',
+            'approved_by' => $user->id, 'approved_at' => '2026-10-24 00:43:00',
+            'approval_history' => [
+                ['level' => 1, 'role' => 'Program Head', 'approver_id' => $user->id, 'approver' => $user->name, 'at' => '2026-10-24 00:41:00'],
+                ['level' => 2, 'role' => 'Academic Head', 'approver_id' => $user->id, 'approver' => $user->name, 'at' => '2026-10-24T08:42:00+08:00'],
+                ['level' => 4, 'role' => 'School Admin', 'approver_id' => $user->id, 'approver' => $user->name, 'at' => '2026-10-24 00:43:00'],
+            ]]);
+        $event->created_at = '2026-10-23 16:37:00';
+        $html = $this->renderPdf($event);
+        $this->assertStringContainsString('Date/Time (PHT, UTC+08:00)', $html);
+        $this->assertStringContainsString('10/24/2026 12:37 AM', $html);
+        $this->assertStringContainsString('10/24/2026 08:41 AM', $html);
+        $this->assertStringContainsString('10/24/2026 08:42 AM', $html);
+        $this->assertSame(1, substr_count($html, '10/24/2026 08:43 AM'));
+        $this->assertSame(1, substr_count($html, '<td>School Admin</td>'));
+    }
+
+    public function test_pdf_converts_legacy_approval_columns_and_keeps_final_approver_fallback(): void
+    {
+        $users = collect(['Program', 'Academic', 'Building', 'School'])->map(fn ($name) => User::forceCreate([
+            'name' => $name, 'email' => strtolower($name).'@example.com', 'role' => 'school_admin',
+        ]));
+        $event = $this->event(['user_id' => $users[0]->id, 'status' => 'Approved', 'approval_route' => null,
+            'approval_history' => [], 'approved_by' => $users[3]->id, 'approved_at' => '2026-10-24 16:43:00',
+            'approved_by_level_1' => $users[0]->id, 'approved_at_level_1' => '2026-10-24 16:41:00',
+            'approved_by_level_2' => $users[1]->id, 'approved_at_level_2' => '2026-10-24 16:42:00',
+            'approved_by_level_3' => $users[2]->id, 'approved_at_level_3' => '2026-10-24 16:42:30']);
+        $html = $this->renderPdf($event);
+        $this->assertStringContainsString('10/25/2026 12:41 AM', $html);
+        $this->assertSame(2, substr_count($html, '10/25/2026 12:42 AM'));
+        $this->assertStringContainsString('10/25/2026 12:43 AM', $html);
+        $this->assertSame(1, substr_count($html, '<td>School Admin</td>'));
+    }
+
     public function test_saved_four_step_route_is_used_even_for_non_academic_requests_without_approver_accounts(): void
     {
         $event = $this->event();
