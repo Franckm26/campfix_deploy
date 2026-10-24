@@ -177,8 +177,20 @@
         padding: 8px 12px !important;
     }
     #staffImportReview th:nth-child(2) { width: 34%; }
-    #staffImportReview th:nth-child(3) { width: 26%; }
-    #staffImportReview th:last-child { width: 10%; }
+    #staffImportReview th:nth-child(3) { width: auto; }
+    #staffImportReview th:last-child { width: 112px; }
+    /* Admin action icons use 28px squares; this action has a text label. */
+    #staffReviewRows td:last-child .btn {
+        width: auto;
+        min-width: 88px;
+        height: auto;
+        padding: 6px 12px !important;
+        white-space: nowrap;
+        overflow-wrap: normal;
+        word-break: normal;
+        border: 1px solid currentColor !important;
+        line-height: 1.5;
+    }
     #staffImportReview .form-control,
     #staffImportReview .form-select {
         width: 100%;
