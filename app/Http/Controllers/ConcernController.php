@@ -48,6 +48,25 @@ class ConcernController extends Controller
         }
 
         return DB::transaction(function () use ($concern, $request) {
+            $concern = Concern::whereKey($concern->id)->lockForUpdate()->firstOrFail();
+            $submittedDetails = trim((string) $request->input('details', ''));
+            if ($submittedDetails !== '' && Schema::hasColumn('concerns', 'details')) {
+                $existingDetails = trim((string) $concern->details);
+                if ($existingDetails === '' && Schema::hasColumn('reports', 'details')) {
+                    $existingDetails = trim((string) Report::where('concern_id', $concern->id)
+                        ->whereNotNull('details')->where('details', '!=', '')->latest('id')->value('details'));
+                }
+                if ($existingDetails !== $submittedDetails) {
+                    $concern->details = $existingDetails === ''
+                        ? $submittedDetails
+                        : $existingDetails."\n\n".$submittedDetails;
+                    $concern->save();
+                    if (Schema::hasColumn('reports', 'details')) {
+                        Report::where('concern_id', $concern->id)->update(['details' => $concern->details]);
+                    }
+                }
+            }
+
             ConcernReporter::firstOrCreate(
                 [
                     'concern_id' => $concern->id,
@@ -1911,11 +1930,16 @@ class ConcernController extends Controller
             // Determine if user can see sensitive fields (OWASP API3: Object Property Level Authorization)
             $canSeeSensitiveFields = $user->isSystemAdministrator() || in_array($user->role, ['building_admin', 'mis', 'school_admin', 'admin']) || $concern->assigned_to === $user->id;
             // Format the concern data for the view modal (matching viewConcern expectations)
+            $linkedReport = Report::where('concern_id', $concern->id)->latest('id')->first();
+            $details = $concern->details;
+            if (trim((string) $details) === '') {
+                $details = $linkedReport?->details;
+            }
             $formattedConcern = [
                 'id' => $concern->id,
                 'title' => $concern->title,
                 'description' => $concern->description,
-                'details' => $concern->details,
+                'details' => $details,
                 'location' => $concern->location,
                 'issue' => $concern->issue ?: $concern->title,
                 'categoryRelation' => $concern->categoryRelation,
@@ -1926,7 +1950,7 @@ class ConcernController extends Controller
                 ],
                 'assignedTo' => $concern->assignedTo,
                 'assigned_to' => $concern->assigned_to,
-                'report_id' => Report::where('concern_id', $concern->id)->latest('id')->value('id'),
+                'report_id' => $linkedReport?->id,
                 'status' => $concern->status,
                 'priority' => $concern->priority,
                 'report_count' => $concern->report_count ?? 1,

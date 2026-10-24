@@ -164,6 +164,44 @@ class ReopenTicketTest extends TestCase
             ->assertJsonPath('concern.details', null);
     }
 
+    public function test_my_concerns_view_uses_description_saved_on_the_linked_report(): void
+    {
+        $this->report->update(['details' => 'Outlet cover is loose.']);
+        $this->actingAs($this->reporter)
+            ->getJson('/concerns/'.$this->concern->id.'/modal-data')
+            ->assertOk()->assertJsonPath('concern.details', 'Outlet cover is loose.');
+
+        $this->concern->update(['details' => 'Updated concern description.']);
+        $this->getJson('/concerns/'.$this->concern->id.'/modal-data')
+            ->assertOk()->assertJsonPath('concern.details', 'Updated concern description.');
+    }
+
+    public function test_duplicate_submission_preserves_additional_description_for_viewing(): void
+    {
+        Schema::create('user_rate_limits', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('user_id');
+            $table->string('action_type');
+            $table->integer('count')->default(0);
+            $table->date('date');
+            $table->timestamps();
+        });
+        $this->concern->update(['status' => 'Pending', 'description' => 'Damaged cover', 'details' => 'Original details.']);
+        $this->report->update(['details' => 'Original details.']);
+        $this->actingAs($this->reporter)->postJson(route('concerns.store'), [
+            'category_id' => $this->concern->category_id,
+            'title' => $this->concern->title,
+            'location' => $this->concern->location,
+            'description' => 'Damaged cover',
+            'details' => 'The cover is now detached.',
+        ])->assertOk()->assertJsonPath('linked_duplicate', true);
+
+        $expected = "Original details.\n\nThe cover is now detached.";
+        $this->getJson('/concerns/'.$this->concern->id.'/modal-data')
+            ->assertOk()->assertJsonPath('concern.details', $expected);
+        $this->assertSame($expected, $this->report->fresh()->details);
+    }
+
     public function test_concern_image_replacement_rejects_script_uploads_without_changing_the_record(): void
     {
         Schema::table('categories', fn (Blueprint $table) => $table->json('issues')->nullable());
