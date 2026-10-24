@@ -140,6 +140,92 @@
     .mobile-user-cards {
         display: none;
     }
+
+    /* Keep the editable import list clear of the generic modal/table limits. */
+    #importModal .modal-dialog {
+        width: calc(100% - 32px);
+        max-width: 1440px !important;
+        margin: 16px auto !important;
+        height: calc(100dvh - 32px);
+    }
+    #importModal .modal-content {
+        max-width: none;
+        max-height: 100% !important;
+        padding: 0;
+    }
+    #importModal .modal-header,
+    #importModal .modal-footer {
+        flex-shrink: 0;
+    }
+    #staffImportReview table {
+        width: 100%;
+        min-width: 0 !important;
+        table-layout: fixed;
+        white-space: normal;
+    }
+    #staffImportReview th,
+    #staffImportReview td {
+        min-width: 0 !important;
+        max-width: none !important;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        text-align: left !important;
+    }
+    #staffImportReview th:first-child,
+    #staffImportReview td:first-child {
+        width: 30% !important;
+        padding: 8px 12px !important;
+    }
+    #staffImportReview th:nth-child(2) { width: 34%; }
+    #staffImportReview th:nth-child(3) { width: 26%; }
+    #staffImportReview th:last-child { width: 10%; }
+    #staffImportReview .form-control,
+    #staffImportReview .form-select {
+        width: 100%;
+        min-width: 0;
+    }
+
+    @media (max-width: 768px) {
+        #importModal .modal-dialog {
+            width: 100%;
+            height: 100dvh;
+            margin: 0 !important;
+        }
+        #staffImportReview .table-responsive,
+        #staffImportReview table {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            height: auto !important;
+            overflow: visible !important;
+            margin: 0;
+            padding: 0;
+        }
+        #staffImportReview thead { display: none; }
+        #staffReviewRows { display: block; }
+        #staffReviewRows tr {
+            display: block;
+            border: 1px solid var(--bs-border-color, #dee2e6);
+            border-radius: 8px;
+            margin-bottom: 16px;
+            padding: 8px;
+        }
+        #staffReviewRows td,
+        #staffReviewRows td:first-child {
+            display: block;
+            width: 100% !important;
+            padding: 8px !important;
+            border: 0;
+        }
+        #staffReviewRows td::before {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        #staffReviewRows td:nth-child(1)::before { content: 'Name'; }
+        #staffReviewRows td:nth-child(2)::before { content: 'Email'; }
+        #staffReviewRows td:nth-child(3)::before { content: 'Role'; }
+    }
 </style>
 @endsection
 
@@ -1251,7 +1337,7 @@
 
 <!-- Import Modal -->
 <div class="modal fade" id="importModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title"><i class="fas fa-upload me-2"></i>Import Users from CSV</h5>
