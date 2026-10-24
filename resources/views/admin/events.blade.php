@@ -407,7 +407,7 @@
                                         </div>
                                         <hr>
                                         <p><strong>Description:</strong></p>
-                                        <p>{{ $request->description }}</p>
+                                        <p style="white-space:pre-wrap">{{ $request->description }}</p>
                                         @if($request->notes)
                                             <hr>
                                             <p><strong>Notes:</strong></p>
@@ -607,7 +607,7 @@
                                                 </div>
                                                 <hr>
                                                 <p><strong>Description:</strong></p>
-                                                <p>{{ $event->description }}</p>
+                                                <p style="white-space:pre-wrap">{{ $event->description }}</p>
                                                 @if($event->notes)
                                                     <hr>
                                                     <p><strong>Notes:</strong></p>
@@ -747,7 +747,7 @@
                                                 </div>
                                                 <hr>
                                                 <p><strong>Description:</strong></p>
-                                                <p>{{ $event->description }}</p>
+                                                <p style="white-space:pre-wrap">{{ $event->description }}</p>
                                                 @if($event->notes)
                                                     <hr>
                                                     <p><strong>Notes:</strong></p>
@@ -889,7 +889,7 @@
                                                 </div>
                                                 <hr>
                                                 <p><strong>Description:</strong></p>
-                                                <p>{{ $event->description }}</p>
+                                                <p style="white-space:pre-wrap">{{ $event->description }}</p>
                                                 @if($event->notes)
                                                     <hr>
                                                     <p><strong>Reason for Rejection:</strong></p>
@@ -1057,7 +1057,7 @@
                                                         </div>
                                                         <hr>
                                                         <p><strong>Description:</strong></p>
-                                                        <p>{{ $event->description }}</p>
+                                                        <p style="white-space:pre-wrap">{{ $event->description }}</p>
                                                         @if($event->notes)
                                                             <hr>
                                                             <p><strong>Notes:</strong></p>
@@ -1358,7 +1358,7 @@
                                                 </div>
                                                 <hr>
                                                 <p><strong>Description:</strong></p>
-                                                <p>{{ $event->description }}</p>
+                                                <p style="white-space:pre-wrap">{{ $event->description }}</p>
                                                 @if($event->notes)
                                                     <hr>
                                                     <p><strong>Notes:</strong></p>

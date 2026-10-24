@@ -11,6 +11,7 @@ class EventRequest extends Model
         'description',
         'event_date',
         'location',
+        'requested_rooms',
         'start_time',
         'end_time',
         'category',
@@ -69,6 +70,7 @@ class EventRequest extends Model
         'approval_history' => 'array',
         'approval_route' => 'array',
         'materials_needed' => 'array',
+        'requested_rooms' => 'array',
         'is_archived' => 'boolean',
         'admin_archived' => 'boolean',
         'student_archived' => 'boolean',
@@ -88,6 +90,13 @@ class EventRequest extends Model
         'mis_deleted' => 'boolean',
         'maintenance_deleted' => 'boolean',
     ];
+
+    public function roomLocations(): array
+    {
+        return $this->requested_rooms
+            ? array_column($this->requested_rooms, 'location')
+            : [$this->location];
+    }
 
     public function user()
     {

@@ -727,7 +727,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                         <div class="row">
                         <div class="col-md-6 mb-3" id="modal_area_of_use_container" style="display: none;">
-                            <label for="modal_area_of_use" class="form-label">Location *</label>
+                            <label for="modal_area_of_use" class="form-label">Room / Facility *</label>
                             <select class="form-select @error('area_of_use') is-invalid @enderror" id="modal_area_of_use" name="area_of_use">
                                 <option value="">Select a location</option>
                                 @if(isset($facilities))
@@ -756,6 +756,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             @enderror
                         </div>
                     </div>
+
+                    @include('partials.facility-rooms')
 
                     <!-- Department (only shows when Room is selected in Area of Use) -->
                     <div class="mb-3" id="modal_department_container" style="display: none;">
@@ -881,6 +883,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     </div>
 </div>
+<script src="{{ asset('js/facility-rooms.js') }}"></script>
 <script>
 // Facility Request Form Script v2.0 - Updated 2026-06-01
 // Define updateDescCount globally so it's available for inline oninput handlers
@@ -1153,6 +1156,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    window.FacilityRooms.init({snapshot: availabilitySnapshotProvided, bookings: eventAvailabilityBookings, statuses: facilityAvailabilityStatuses, oldRooms: @json(array_values((array) old('rooms', [])))});
+
     // Availability check listeners
     var modalEventDate = document.getElementById('modal_event_date');
     var modalStartTime = document.getElementById('modal_start_time');
@@ -1166,96 +1171,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     function checkRoomAvailability() {
-        var location = modalAreaOfUse ? modalAreaOfUse.value : '';
-        var eventDate = modalEventDate ? modalEventDate.value : '';
-        var startTime = modalStartTime ? modalStartTime.value : '';
-        var endTime = modalEndTime ? modalEndTime.value : '';
-        var existingMsg = document.getElementById('modal_facility_availability_message');
-
-        if (existingMsg) existingMsg.remove();
-        if (!location || !eventDate || !startTime || !endTime || endTime <= startTime) return;
-
-        var messageDiv = document.createElement('div');
-        messageDiv.id = 'modal_facility_availability_message';
-        messageDiv.className = 'alert alert-info mt-2';
-        messageDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking availability...';
-
-        var areaOfUseContainer = document.getElementById('modal_area_of_use_container');
-        if (areaOfUseContainer) {
-            areaOfUseContainer.parentNode.insertBefore(messageDiv, areaOfUseContainer.nextSibling);
-        }
-
-        function renderAvailabilityResult(data) {
-            var currentMessage = document.getElementById('modal_facility_availability_message');
-            if (!currentMessage) return;
-
-            if (data.available) {
-                currentMessage.className = data.warning ? 'alert alert-warning mt-2' : 'alert alert-success mt-2';
-                currentMessage.textContent = data.warning || (location + ' is available for the selected time.');
-                return;
-            }
-
-            currentMessage.className = 'alert alert-danger mt-2';
-            var conflicts = Array.isArray(data.conflicting_events)
-                ? data.conflicting_events.map(function(event) {
-                    return event.start_time + ' - ' + event.end_time;
-                }).join('; ')
-                : '';
-            currentMessage.textContent = data.reason || (location + ' is not available for the selected time.');
-            if (conflicts) currentMessage.textContent += ' Conflicts: ' + conflicts;
-        }
-
-        if (availabilitySnapshotProvided) {
-            var facilityStatus = facilityAvailabilityStatuses[location] || 'available';
-            var conflicts = eventAvailabilityBookings.filter(function(booking) {
-                return booking.location === location
-                    && booking.event_date === eventDate
-                    && booking.start_time < endTime
-                    && booking.end_time > startTime;
-            });
-
-            renderAvailabilityResult({
-                available: facilityStatus !== 'unavailable' && conflicts.length === 0,
-                reason: facilityStatus === 'unavailable'
-                    ? 'This facility is currently unavailable.'
-                    : (conflicts.length ? 'This facility is already reserved during the selected time.' : null),
-                warning: facilityStatus === 'under_maintenance'
-                    ? 'Warning: this facility is currently under maintenance, but you may still request to use it.'
-                    : null,
-                conflicting_events: conflicts
-            });
-            return;
-        }
-
-        // Keep this URL relative so the request uses the exact same scheme and host
-        // as the signed-in page (apex/www production domains may differ).
-        var availabilityParams = new URLSearchParams({
-            location: location,
-            event_date: eventDate,
-            start_time: startTime,
-            end_time: endTime
-        });
-
-        fetch('/api/check-room-availability?' + availabilityParams.toString(), {
-            method: 'GET',
-            headers: {
-                'Accept': 'application/json'
-            },
-            credentials: 'same-origin'
-        })
-        .then(function(response) {
-            if (!response.ok) throw new Error('Availability request failed with status ' + response.status);
-            return response.json();
-        })
-        .then(renderAvailabilityResult)
-        .catch(function(error) {
-            console.error('Error checking facility availability:', error);
-            var currentMessage = document.getElementById('modal_facility_availability_message');
-            if (currentMessage) {
-                currentMessage.className = 'alert alert-warning mt-2';
-                currentMessage.textContent = 'Unable to check availability. Please try again.';
-            }
-        });
+        return window.FacilityRooms.checkAvailability();
     }
 
     // Function to check if required fields are filled and enable/disable Preview button
@@ -1479,6 +1395,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
+        var roomError = window.FacilityRooms.validate();
+        if (roomError) {
+            errors.push(roomError);
+            isValid = false;
+        }
+
         // Validate Description
         if (!description.value.trim()) {
             showFieldError(description, 'Description is required');
@@ -1610,6 +1532,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('preview_end_time').textContent = formatTime(endTime);
             document.getElementById('preview_location').textContent = location || 'Not specified';
             document.getElementById('preview_description').textContent = description || '-';
+            window.FacilityRooms.preview();
 
             document.getElementById('preview_area_of_use_row').style.display = areaOfUse ? 'flex' : 'none';
             document.getElementById('preview_room_number_row').style.display = 'none'; // Room number row is no longer used

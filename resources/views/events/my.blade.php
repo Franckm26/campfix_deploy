@@ -1504,14 +1504,14 @@ function viewEvent(id) {
                     <p><strong>Time:</strong> ${formatTime12(event.start_time)} - ${formatTime12(event.end_time)}</p>
                 </div>
                 <div class="col-md-6">
-                    <p><strong>Location:</strong> ${event.location}</p>
+                    <p><strong>Location:</strong> ${escapeFacilityRequestText(event.location)}</p>
                     <p><strong>Department:</strong> ${event.department || 'N/A'}</p>
                     <p><strong>Submitted:</strong> ${new Date(event.created_at).toLocaleString()}</p>
                 </div>
             </div>
             <div class="mt-3">
                 <p><strong>Description:</strong></p>
-                <p class="text-muted">${event.description}</p>
+                <p class="text-muted" style="white-space:pre-wrap">${escapeFacilityRequestText(event.description)}</p>
             </div>
             ${event.notes ? `
             <div class="mt-3">
@@ -1749,14 +1749,14 @@ function viewDeletedEvent(id) {
                     <p><strong>Time:</strong> ${formatTime12(event.start_time)} - ${formatTime12(event.end_time)}</p>
                 </div>
                 <div class="col-md-6">
-                    <p><strong>Location:</strong> ${event.location}</p>
+                    <p><strong>Location:</strong> ${escapeFacilityRequestText(event.location)}</p>
                     <p><strong>Department:</strong> ${event.department || 'N/A'}</p>
                     <p><strong>Submitted:</strong> ${new Date(event.created_at).toLocaleString()}</p>
                 </div>
             </div>
             <div class="mt-3">
                 <p><strong>Description:</strong></p>
-                <p class="text-muted">${event.description}</p>
+                <p class="text-muted" style="white-space:pre-wrap">${escapeFacilityRequestText(event.description)}</p>
             </div>
             ${event.notes ? `
             <div class="mt-3">
@@ -1893,6 +1893,12 @@ function cancelEventRequest(eventId) {
             form.submit();
         }
     });
+}
+
+function escapeFacilityRequestText(value) {
+    const element = document.createElement('div');
+    element.textContent = value ?? '';
+    return element.innerHTML;
 }
 
 function rescheduleEventRequest(eventId) {

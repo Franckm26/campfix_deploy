@@ -104,6 +104,17 @@ class EventRequestController extends Controller
     public function store(Request $request)
     {
         try {
+            $rooms = null;
+            if ($request->has('rooms')) {
+                $request->validate(['rooms' => 'required|array|min:1|max:10']);
+                $rooms = app(\App\Services\FacilityRoomSelection::class)->validate($request->input('rooms'));
+                if (count($rooms) > 1 && ! Schema::hasColumn('event_requests', 'requested_rooms')) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'rooms' => 'Multiple-room requests are not ready yet. Please contact the system administrator to apply the database update.',
+                    ]);
+                }
+                $request->merge(['location' => $rooms[0]['location'], 'area_of_use' => $rooms[0]['location']]);
+            }
             // The modal's visible location inputs are area_of_use / avr_selection.
             // Normalize them before validation so a missing client-side sync cannot reject a valid request.
             if (! filled($request->input('location'))) {
@@ -165,16 +176,15 @@ class EventRequestController extends Controller
                 'other_category.required_if' => 'Please specify the category when selecting "Other".',
             ]);
 
-            $availability = $this->facilityAvailability(
-                $validatedData['location'],
-                $validatedData['event_date'],
-                $validatedData['start_time'],
-                $validatedData['end_time']
-            );
-            if (! $availability['available']) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
-                    'location' => $availability['reason'].' Please select another facility or time.',
-                ]);
+            foreach ($rooms ?? [['location' => $validatedData['location']]] as $room) {
+                $availability = $this->facilityAvailability(
+                    $room['location'], $validatedData['event_date'], $validatedData['start_time'], $validatedData['end_time']
+                );
+                if (! $availability['available']) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'location' => $room['location'].': '.$availability['reason'].' Please select another facility or time.',
+                    ]);
+                }
             }
 
             // Process materials_needed - convert to array if provided
@@ -221,9 +231,10 @@ class EventRequestController extends Controller
 
             $eventRequest = EventRequest::create([
                 'user_id' => auth()->id(),
-                'description' => $request->description,
+                'description' => $rooms ? app(\App\Services\FacilityRoomSelection::class)->description($request->description, $rooms) : $request->description,
                 'event_date' => $request->event_date,
-                'location' => $request->location,
+                'location' => $rooms ? app(\App\Services\FacilityRoomSelection::class)->locationSummary($rooms) : $request->location,
+                ...($rooms && Schema::hasColumn('event_requests', 'requested_rooms') ? ['requested_rooms' => $rooms] : []),
                 'start_time' => $request->start_time,
                 'end_time' => $request->end_time,
                 'category' => $request->category,
@@ -514,13 +525,13 @@ class EventRequestController extends Controller
             ->whereDate('event_date', '>=', now()->toDateString())
             ->orderBy('event_date')
             ->orderBy('start_time')
-            ->get(['location', 'event_date', 'start_time', 'end_time'])
-            ->map(fn (EventRequest $event) => [
-                'location' => $event->location,
+            ->get(array_merge(['location', 'event_date', 'start_time', 'end_time'], Schema::hasColumn('event_requests', 'requested_rooms') ? ['requested_rooms'] : []))
+            ->flatMap(fn (EventRequest $event) => collect($event->roomLocations())->map(fn ($location) => [
+                'location' => $location,
                 'event_date' => $event->event_date->format('Y-m-d'),
                 'start_time' => substr((string) $event->start_time, 0, 5),
                 'end_time' => substr((string) $event->end_time, 0, 5),
-            ])
+            ]))
             ->values();
 
         // ========== APPROVED VIEW ==========
@@ -1673,6 +1684,15 @@ class EventRequestController extends Controller
             'reason' => 'nullable|string|max:1000',
         ]);
 
+        foreach ($eventRequest->roomLocations() as $location) {
+            $availability = $this->facilityAvailability($location, $validated['event_date'], $validated['start_time'], $validated['end_time'], false, $eventRequest->id);
+            if (! $availability['available']) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'event_date' => $location.': '.$availability['reason'],
+                ]);
+            }
+        }
+
         $eventRequest->update([
             'event_date' => $validated['event_date'],
             'start_time' => $validated['start_time'],
@@ -1681,7 +1701,7 @@ class EventRequestController extends Controller
             'approval_level' => 0,
             'approved_by' => null,
             'approved_at' => null,
-            'notes' => trim(($eventRequest->notes ? $eventRequest->notes."\n" : '').'Reschedule requested: '.($validated['reason'] ?: 'No reason provided')),
+            'notes' => trim(($eventRequest->notes ? $eventRequest->notes."\n" : '').'Reschedule requested: '.(($validated['reason'] ?? null) ?: 'No reason provided')),
         ]);
 
         return redirect()->route('events.my')->with('success', 'Event request rescheduled and returned for approval.');
@@ -2610,7 +2630,7 @@ class EventRequestController extends Controller
         return response()->json($availability);
     }
 
-    private function facilityAvailability(string $location, string $eventDate, string $startTime, string $endTime, bool $locationPrefix = false): array
+    private function facilityAvailability(string $location, string $eventDate, string $startTime, string $endTime, bool $locationPrefix = false, ?int $excludeId = null): array
     {
         $facility = Facility::where('name', $location)->first();
         if ($facility && $facility->status === 'unavailable') {
@@ -2630,18 +2650,17 @@ class EventRequestController extends Controller
         // older production user schemas/scopes can make an otherwise valid room
         // check fail, and requester identity is not needed for this response.
         $conflictingEvents = EventRequest::query()
-            ->select(['id', 'location', 'event_date', 'start_time', 'end_time'])
-            ->when(
-                $locationPrefix,
-                fn ($query) => $query->where('location', 'LIKE', $location.'%'),
-                fn ($query) => $query->where('location', $location)
-            )
+            ->select(array_merge(['id', 'location', 'event_date', 'start_time', 'end_time'], Schema::hasColumn('event_requests', 'requested_rooms') ? ['requested_rooms'] : []))
+            ->when($excludeId, fn ($query) => $query->where('id', '!=', $excludeId))
             ->whereDate('event_date', $eventDate)
             ->where('status', EventRequest::STATUS_APPROVED)
             ->where('start_time', '<', $endTime)
             ->where('end_time', '>', $startTime)
             ->orderBy('start_time')
-            ->get();
+            ->get()
+            ->filter(fn (EventRequest $event) => collect($event->roomLocations())->contains(
+                fn ($room) => $locationPrefix ? str_starts_with($room, $location) : $room === $location
+            ));
 
         return [
             'available' => $conflictingEvents->isEmpty(),

@@ -338,7 +338,7 @@
 
         <!-- Description -->
         <p style="margin-bottom: 5px; font-weight: bold;">Description:</p>
-        <p style="margin-bottom: 20px; padding: 10px; border: 1px solid #333; min-height: 60px;">
+        <p style="margin-bottom: 20px; padding: 10px; border: 1px solid #333; min-height: 60px; white-space:pre-line;">
             {{ $eventRequest->description ?? 'N/A' }}
         </p>
 
