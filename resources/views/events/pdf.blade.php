@@ -43,12 +43,12 @@
         }
         .letterhead-table, .footer-table {
             width: 100%;
-            table-layout: fixed;
+            table-layout: auto;
             border-collapse: collapse;
         }
         .letterhead-table td { vertical-align: middle; height: 32mm; }
-        .letterhead-logo { width: 26mm; text-align: center; }
-        .letterhead-logo img { width: 25mm; height: 25mm; }
+        .letterhead-logo { text-align: center; }
+        .letterhead-logo img { width: 22mm; height: 22mm; }
         .letterhead-info { text-align: center; padding: 0 2mm; }
         .letterhead-info .report-title { font-size: 8.5pt; line-height: 1.25; font-weight: bold; }
         .letterhead-info .address { margin-top: 4px; font-size: 7.5pt; line-height: 1.35; }
@@ -65,7 +65,7 @@
             color: #111;
         }
         .footer-table td { vertical-align: middle; }
-        .footer-logo { width: 18mm; text-align: left; }
+        .footer-logo { text-align: left; }
         .footer-logo img { width: 14mm; height: 14mm; }
         .footer-copy { font-size: 6.7pt; line-height: 1.4; }
         .footer-copy strong { font-size: 7pt; }
@@ -213,7 +213,9 @@
         $stiLogoPath = public_path('Campfix/Images/STI-Academic-Seal-One-Color_400.png');
     @endphp
     <header class="letterhead">
-        <table class="letterhead-table"><tr>
+        <table class="letterhead-table">
+            <colgroup><col style="width:18%"><col style="width:64%"><col style="width:18%"></colgroup>
+            <tr>
             <td class="letterhead-logo">
                 @if(file_exists($campfixLogoPath))
                     <img src="data:image/png;base64,{{ base64_encode(file_get_contents($campfixLogoPath)) }}" alt="CampFix logo">
@@ -235,7 +237,9 @@
         </tr></table>
     </header>
     <footer class="pdf-footer">
-        <table class="footer-table"><tr>
+        <table class="footer-table">
+            <colgroup><col style="width:11%"><col style="width:89%"></colgroup>
+            <tr>
             <td class="footer-logo">
                 @if(file_exists($stiLogoPath))
                     <img src="data:image/png;base64,{{ base64_encode(file_get_contents($stiLogoPath)) }}" alt="STI academic seal">

@@ -128,6 +128,47 @@ class FacilityApprovalProgressTest extends TestCase
         $this->assertSame(1, substr_count($html, '<td>School Admin</td>'));
     }
 
+    public function test_pdf_header_text_and_footer_copy_fit_inside_their_dividers_on_every_page(): void
+    {
+        if (! extension_loaded('gd')) $this->markTestSkipped('GD is required to render the PDF logos.');
+        foreach ([false, true] as $long) {
+            $event = $this->event(['status' => 'Approved', 'event_date' => '2026-10-31']);
+            $event->created_at = now();
+            $event->start_time = '08:30'; $event->end_time = '10:30';
+            $event->description = $long ? str_repeat("Room use: Workshop and presentations.\n", 90) : 'Workshop';
+            $pdf = app('dompdf.wrapper')->loadView('events.pdf', [
+                'eventRequest' => $event, 'requester' => (object) ['name' => 'Requester'],
+                'approvers' => [], 'finalApprover' => null,
+            ])->setPaper('a4', 'portrait');
+            $pages = [];
+            $pdf->getDomPDF()->setCallbacks([['event' => 'end_frame', 'f' => function ($frame, $canvas) use (&$pages) {
+                $node = $frame->get_node();
+                if (! $node instanceof \DOMElement) return;
+                $class = $node->getAttribute('class');
+                if (in_array($class, ['letterhead', 'report-title', 'address', 'pdf-footer', 'footer-copy'], true)) {
+                    $pages[$canvas->get_page_number()][$class] = $frame->get_border_box();
+                }
+            }]]);
+            $pdf->render();
+            $count = $pdf->getDomPDF()->getCanvas()->get_page_count();
+            $this->assertCount($count, $pages);
+            $long ? $this->assertGreaterThan(1, $count) : $this->assertSame(1, $count);
+            foreach ($pages as $boxes) {
+                $header = $boxes['letterhead']; $footer = $boxes['pdf-footer'];
+                foreach (['report-title', 'address'] as $class) {
+                    $text = $boxes[$class];
+                    $this->assertGreaterThan(250, $text['w'], 'The header text column must not collapse.');
+                    $this->assertGreaterThanOrEqual($header['x'], $text['x']);
+                    $this->assertLessThanOrEqual($header['x'] + $header['w'], $text['x'] + $text['w']);
+                    $this->assertLessThan($header['y'] + $header['h'] - 4, $text['y'] + $text['h'], 'Header text crossed the divider.');
+                }
+                $copy = $boxes['footer-copy'];
+                $this->assertLessThanOrEqual($footer['x'] + $footer['w'], $copy['x'] + $copy['w']);
+                $this->assertLessThanOrEqual($footer['y'] + $footer['h'], $copy['y'] + $copy['h']);
+            }
+        }
+    }
+
     public function test_saved_four_step_route_is_used_even_for_non_academic_requests_without_approver_accounts(): void
     {
         $event = $this->event();
