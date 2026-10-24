@@ -9,20 +9,23 @@ class FacilityRoomSelection
 {
     public function validate(array $rooms): array
     {
-        $rooms = array_map(fn ($room) => is_array($room) ? [
+        $rooms = array_values(array_map(fn ($room) => is_array($room) ? [
             'location' => is_string($room['location'] ?? null) ? trim($room['location']) : null,
             'reason' => is_string($room['reason'] ?? null) ? trim($room['reason']) : null,
-        ] : $room, $rooms);
+        ] : $room, $rooms));
 
-        Validator::make(['rooms' => $rooms], [
+        $rules = [
             'rooms' => 'required|array|min:1|max:10',
             'rooms.*' => 'required|array:location,reason',
             'rooms.*.location' => ['required', 'string', 'max:255', 'distinct:ignore_case', 'exists:facilities,name'],
-            'rooms.*.reason' => 'required|string|max:500',
-        ], [
+        ];
+        foreach ($rooms as $index => $room) {
+            $rules['rooms.'.$index.'.reason'] = ($index === 0 ? 'nullable' : 'required').'|string|max:500';
+        }
+        Validator::make(['rooms' => $rooms], $rules, [
             'rooms.*.location.distinct' => 'Select each room only once.',
             'rooms.*.location.exists' => 'Please select a listed facility.',
-            'rooms.*.reason.required' => 'Explain why you need each selected room.',
+            'rooms.*.reason.required' => 'Explain why you need each additional room.',
         ])->validate();
 
         // Preserve the facility's canonical spelling for booking comparisons.
@@ -40,6 +43,8 @@ class FacilityRoomSelection
 
     public function description(string $description, array $rooms): string
     {
+        $rooms = array_values(array_filter($rooms, fn ($room) => filled($room['reason'] ?? null)));
+        if (! $rooms) return trim($description);
         return trim($description)."\n\nRoom use:\n".implode("\n", array_map(
             fn ($room) => $room['location'].': '.$room['reason'], $rooms
         ));

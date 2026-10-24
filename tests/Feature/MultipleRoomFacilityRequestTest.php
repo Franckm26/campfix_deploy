@@ -104,7 +104,7 @@ class MultipleRoomFacilityRequestTest extends TestCase
     public function test_missing_room_reason_duplicate_room_and_unknown_room_are_rejected_without_creating_requests(): void
     {
         foreach ([
-            [['location' => 'Room 301', 'reason' => '   ']],
+            [['location' => 'Room 301'], ['location' => 'Room 302', 'reason' => '   ']],
             [['location' => 'Room 301', 'reason' => 'First'], ['location' => 'Room 301', 'reason' => 'Second']],
             [['location' => 'Unknown room', 'reason' => 'Workshop']],
         ] as $rooms) {
@@ -163,6 +163,23 @@ class MultipleRoomFacilityRequestTest extends TestCase
     {
         $this->assertSame(200, $this->submit(['rooms' => null, 'location' => 'Room 301', 'area_of_use' => 'Room 301'])->getStatusCode());
         $this->assertSame(['Room 301'], EventRequest::first()->roomLocations());
+    }
+
+    public function test_first_room_uses_description_without_a_separate_reason(): void
+    {
+        $response = $this->submit(['rooms' => [['location' => 'Room 301']]]);
+        $this->assertSame(200, $response->getStatusCode(), $response->getContent());
+        $this->assertSame('Research workshop', EventRequest::first()->description);
+    }
+
+    public function test_only_additional_rooms_require_and_display_a_reason(): void
+    {
+        $response = $this->submit(['rooms' => [['location' => 'Room 301'], $this->rooms()[1]]]);
+        $this->assertSame(200, $response->getStatusCode(), $response->getContent());
+        $event = EventRequest::first();
+        $this->assertSame(['Room 301', 'Room 302'], $event->roomLocations());
+        $this->assertStringContainsString('Room 302: Breakout groups', $event->description);
+        $this->assertStringNotContainsString('Room 301:', $event->description);
     }
 
     public function test_long_location_summary_fits_legacy_column_without_losing_selected_rooms(): void
