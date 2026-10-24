@@ -390,6 +390,10 @@ class ReportController extends Controller
 
         $reportData = $report->toArray();
         $reportData['reported_by_name'] = $report->reporter_display_name;
+        $reportData['can_record_asset_replacement'] = app(\App\Services\AssetReplacementService::class)->canRecordOnResolution($report, $user);
+        $reportData['can_request_budget'] = !$report->is_deleted && $report->status !== 'Resolved'
+            && !in_array($report->budget_status, [Report::BUDGET_PENDING, Report::BUDGET_APPROVED], true)
+            && app(BudgetApprovalController::class)->canRequest($user, $report);
         $reportData['assigned_user_name'] = $report->assignedTo ? $report->assignedTo->name : null;
         $reportData['history_html'] = app(\App\Services\TicketHistoryService::class)->renderFor($report, $user);
         
@@ -550,8 +554,17 @@ class ReportController extends Controller
             'cost' => 'nullable|numeric|min:0',
             'damaged_part' => 'nullable|string|max:255',
             'replaced_part' => 'nullable|string|max:255',
-            'resolution_notes' => 'nullable|string|max:1000'
+            'resolution_notes' => 'nullable|string|max:1000',
+            'asset_replaced' => 'sometimes|boolean'
         ]);
+
+        $replacementData = $request->boolean('asset_replaced') ? $request->validate([
+            'status' => 'required|in:Resolved',
+            'replacement_details' => 'required|string|max:255',
+            'replacement_notes' => 'required|string|max:1000',
+            'operation_id' => 'required|uuid',
+            'confirmed_replacement' => 'accepted',
+        ]) : null;
 
         $report = \App\Models\Report::findOrFail($id);
 
@@ -582,98 +595,111 @@ class ReportController extends Controller
             ], 403);
         }
 
-        $oldStatus = $report->status;
-        $newStatus = $request->status;
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($request, $report, $user, $replacementData) {
+            // Use the same lock order as reopening and recording replacements.
+            if ($report->concern_id) \App\Models\Concern::whereKey($report->concern_id)->lockForUpdate()->firstOrFail();
+            $report = Report::whereKey($report->id)->lockForUpdate()->firstOrFail();
+            $oldStatus = $report->status;
+            $newStatus = $request->status;
 
-        if ($oldStatus === 'Resolved' && $newStatus !== 'Resolved') {
-            return response()->json(['error' => 'The original reporter must use Reopen and provide a reason.'], 422);
-        }
+            if ($oldStatus === 'Resolved' && $newStatus !== 'Resolved') {
+                return response()->json(['error' => 'The original reporter must use Reopen and provide a reason.'], 422);
+            }
 
-        if ($newStatus === 'Resolved'
-            && $oldStatus !== 'Resolved'
-            && $report->hasUnapprovedBudgetRequest()) {
+            if ($newStatus === 'Resolved'
+                && $oldStatus !== 'Resolved'
+                && $report->hasUnapprovedBudgetRequest()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'The requested budget must be approved by the School Administrator before this report can be resolved.',
+                    'requires_budget_approval' => true,
+                    'budget_status' => $report->budget_status,
+                ], 422);
+            }
+
+            // Update status
+            $report->status = $newStatus;
+
+            if ($newStatus === 'In Progress' && $oldStatus !== 'In Progress' && \Illuminate\Support\Facades\Schema::hasColumn('reports', 'in_progress_at')) {
+                $report->in_progress_at = now();
+            }
+
+            // Set resolved_at timestamp if marking as resolved
+            if ($newStatus === 'Resolved' && $oldStatus !== 'Resolved') {
+                $report->resolved_at = now();
+
+                // Update resolution details if provided
+                if ($request->has('cost')) {
+                    $report->cost = $request->cost;
+                }
+                if ($request->has('damaged_part')) {
+                    $report->damaged_part = $request->damaged_part;
+                }
+                if ($request->has('replaced_part')) {
+                    $report->replaced_part = $request->replaced_part;
+                }
+                if ($request->has('resolution_notes')) {
+                    $report->resolution_notes = $request->resolution_notes;
+                }
+            }
+
+            $report->save();
+
+            // Sync the corresponding concern status
+            $concern = $report->concern;
+            if ($concern && $oldStatus !== $newStatus) {
+                $concern->status = $newStatus;
+                if ($newStatus === 'In Progress' && $oldStatus !== 'In Progress' && \Illuminate\Support\Facades\Schema::hasColumn('concerns', 'in_progress_at')) {
+                    $concern->in_progress_at = now();
+                }
+                if ($newStatus === 'Resolved') {
+                    $concern->resolved_at = now();
+                    $concern->resolution_notes = $request->resolution_notes ?? null;
+                    $concern->cost = $request->cost ?? null;
+                    $concern->damaged_part = $request->damaged_part ?? null;
+                    $concern->replaced_part = $request->replaced_part ?? null;
+                }
+                $concern->save();
+
+            }
+
+            $replacement = $replacementData ? app(\App\Services\AssetReplacementService::class)->record(
+                $report, $user, trim($replacementData['replacement_details']), trim($replacementData['replacement_notes']), $replacementData['operation_id']
+            ) : null;
+
+            if ($concern && $oldStatus !== $newStatus) {
+                $notificationService = new NotificationService;
+                if ($newStatus === 'Resolved') {
+                    $notificationService->notifyConcernResolved($concern, $user->name);
+                } else {
+                    $notificationService->notifyConcernUpdated(
+                        $concern,
+                        'Concern Status Updated',
+                        "Your concern status changed from {$oldStatus} to {$newStatus}.",
+                        $user->name
+                    );
+                }
+            }
+
+            // Log the activity
+            $logMessage = "Report #{$report->id} status changed from {$oldStatus} to {$newStatus} by " . $user->name;
+            if ($newStatus === 'Resolved' && $request->has('cost')) {
+                $logMessage .= " (Cost: ₱" . number_format($request->cost, 2) . ")";
+            }
+
+            \App\Models\ActivityLog::log(
+                'report_status_updated',
+                $logMessage,
+                $report->id,
+                'report'
+            );
+
             return response()->json([
-                'success' => false,
-                'error' => 'The requested budget must be approved by the School Administrator before this report can be resolved.',
-                'requires_budget_approval' => true,
-                'budget_status' => $report->budget_status,
-            ], 422);
-        }
-
-        // Update status
-        $report->status = $newStatus;
-
-        if ($newStatus === 'In Progress' && $oldStatus !== 'In Progress' && \Illuminate\Support\Facades\Schema::hasColumn('reports', 'in_progress_at')) {
-            $report->in_progress_at = now();
-        }
-
-        // Set resolved_at timestamp if marking as resolved
-        if ($newStatus === 'Resolved' && $oldStatus !== 'Resolved') {
-            $report->resolved_at = now();
-            
-            // Update resolution details if provided
-            if ($request->has('cost')) {
-                $report->cost = $request->cost;
-            }
-            if ($request->has('damaged_part')) {
-                $report->damaged_part = $request->damaged_part;
-            }
-            if ($request->has('replaced_part')) {
-                $report->replaced_part = $request->replaced_part;
-            }
-            if ($request->has('resolution_notes')) {
-                $report->resolution_notes = $request->resolution_notes;
-            }
-        }
-
-        $report->save();
-
-        // Sync the corresponding concern status
-        $concern = $report->concern;
-        if ($concern && $oldStatus !== $newStatus) {
-            $concern->status = $newStatus;
-            if ($newStatus === 'In Progress' && $oldStatus !== 'In Progress' && \Illuminate\Support\Facades\Schema::hasColumn('concerns', 'in_progress_at')) {
-                $concern->in_progress_at = now();
-            }
-            if ($newStatus === 'Resolved') {
-                $concern->resolved_at = now();
-                $concern->resolution_notes = $request->resolution_notes ?? null;
-                $concern->cost = $request->cost ?? null;
-                $concern->damaged_part = $request->damaged_part ?? null;
-                $concern->replaced_part = $request->replaced_part ?? null;
-            }
-            $concern->save();
-
-            $notificationService = new NotificationService;
-            if ($newStatus === 'Resolved') {
-                $notificationService->notifyConcernResolved($concern, $user->name);
-            } else {
-                $notificationService->notifyConcernUpdated(
-                    $concern,
-                    'Concern Status Updated',
-                    "Your concern status changed from {$oldStatus} to {$newStatus}.",
-                    $user->name
-                );
-            }
-        }
-
-        // Log the activity
-        $logMessage = "Report #{$report->id} status changed from {$oldStatus} to {$newStatus} by " . $user->name;
-        if ($newStatus === 'Resolved' && $request->has('cost')) {
-            $logMessage .= " (Cost: ₱" . number_format($request->cost, 2) . ")";
-        }
-        
-        \App\Models\ActivityLog::log(
-            'report_status_updated',
-            $logMessage,
-            $report->id,
-            'report'
-        );
-
-        return response()->json([
-            'success' => true,
-            'message' => "Report status updated to {$newStatus}.",
-            'report' => $report
-        ]);
+                'success' => true,
+                'message' => "Report status updated to {$newStatus}.",
+                'report' => $report,
+                'replacement_id' => $replacement?->id,
+            ]);
+        });
     }
 }

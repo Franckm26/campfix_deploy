@@ -236,6 +236,102 @@ class ReopenTicketTest extends TestCase
             'confirmed_replacement' => true, 'operation_id' => $operationId ?? (string) \Illuminate\Support\Str::uuid()]);
     }
 
+    private function replacementResolutionPayload(): array
+    {
+        return ['status' => 'Resolved', 'cost' => 500, 'resolution_notes' => 'Installed and tested new unit.',
+            'asset_replaced' => true, 'replacement_details' => 'New unit, asset tag NEW-304',
+            'replacement_notes' => 'Complete unit replacement and installation tested.',
+            'confirmed_replacement' => true, 'operation_id' => (string) \Illuminate\Support\Str::uuid()];
+    }
+
+    private function startReplacementResolution(): void
+    {
+        foreach ([$this->concern, $this->report] as $ticket) $ticket->update(['status' => 'In Progress', 'resolved_at' => null]);
+    }
+
+    public function test_replacement_can_be_recorded_while_resolving_and_a_retry_does_not_duplicate_it(): void
+    {
+        $this->startReplacementResolution();
+        $payload = $this->replacementResolutionPayload();
+        $response = $this->actingAs($this->mis)->postJson(route('reports.updateStatus', $this->report->id), $payload)->assertOk();
+        $this->assertSame('Resolved', $this->report->fresh()->status);
+        $this->assertSame('Resolved', $this->concern->fresh()->status);
+        $this->assertEquals(500, $this->report->fresh()->cost);
+        $log = ActivityLog::where('action', 'asset_replaced')->sole();
+        $this->assertSame($payload['replacement_details'], $log->metadata['replacement_details']);
+        $this->assertSame('Resolved', $log->old_values['status']);
+        $this->actingAs($this->mis)->postJson(route('reports.updateStatus', $this->report->id), $payload)
+            ->assertOk()->assertJsonPath('replacement_id', $response->json('replacement_id'));
+        $this->assertSame(1, ActivityLog::where('action', 'asset_replaced')->count());
+    }
+
+    public function test_replacement_resolution_requires_details_notes_and_confirmation_before_saving(): void
+    {
+        $this->startReplacementResolution();
+        $payload = $this->replacementResolutionPayload();
+        unset($payload['replacement_details'], $payload['replacement_notes'], $payload['confirmed_replacement']);
+        $this->actingAs($this->mis)->postJson(route('reports.updateStatus', $this->report->id), $payload)
+            ->assertUnprocessable()->assertJsonValidationErrors(['replacement_details', 'replacement_notes', 'confirmed_replacement']);
+        $this->assertSame('In Progress', $this->report->fresh()->status);
+        $this->assertSame(0, ActivityLog::where('action', 'asset_replaced')->count());
+    }
+
+    public function test_failed_replacement_authorization_rolls_back_report_and_concern_resolution(): void
+    {
+        $this->startReplacementResolution();
+        $before = $this->report->fresh()->getAttributes();
+        $this->actingAs($this->user('building_admin'))->postJson(route('reports.updateStatus', $this->report->id), $this->replacementResolutionPayload())->assertForbidden();
+        $this->assertSame($before, $this->report->fresh()->getAttributes());
+        $this->assertSame('In Progress', $this->concern->fresh()->status);
+        $this->assertSame(0, ActivityLog::where('action', 'asset_replaced')->count());
+    }
+
+    public function test_replacing_a_part_during_resolution_does_not_reset_asset_recurrence(): void
+    {
+        $this->startReplacementResolution();
+        $this->actingAs($this->mis)->postJson(route('reports.updateStatus', $this->report->id), [
+            'status' => 'Resolved', 'replaced_part' => 'Cable', 'resolution_notes' => 'Replaced only the damaged cable.',
+        ])->assertOk();
+        $this->assertSame('Resolved', $this->report->fresh()->status);
+        $this->assertSame(0, ActivityLog::where('action', 'asset_replaced')->count());
+    }
+
+    public function test_pending_budget_still_blocks_resolution_with_a_replacement(): void
+    {
+        $this->startReplacementResolution();
+        $this->report->update(['budget_status' => 'pending', 'budget_amount' => 500]);
+        $this->actingAs($this->mis)->postJson(route('reports.updateStatus', $this->report->id), $this->replacementResolutionPayload())
+            ->assertUnprocessable()->assertJsonPath('requires_budget_approval', true);
+        $this->assertSame('In Progress', $this->report->fresh()->status);
+        $this->assertSame(0, ActivityLog::where('action', 'asset_replaced')->count());
+    }
+
+    public function test_budget_can_be_requested_before_starting_work_but_pending_or_approved_requests_cannot_be_overwritten(): void
+    {
+        foreach ([$this->concern, $this->report] as $ticket) $ticket->update(['status' => 'Assigned', 'resolved_at' => null]);
+        $this->actingAs($this->mis)->getJson(route('admin.reports.modalData', $this->report))
+            ->assertOk()->assertJsonPath('report.can_request_budget', true);
+        $this->actingAs($this->mis)->postJson(route('reports.budget.request', $this->report), ['budget_amount' => 500])
+            ->assertOk()->assertJsonPath('budget_status', 'pending');
+        $this->actingAs($this->mis)->getJson(route('admin.reports.modalData', $this->report))
+            ->assertOk()->assertJsonPath('report.can_request_budget', false);
+        $this->assertSame('Assigned', $this->report->fresh()->status);
+        $this->assertSame('pending', $this->concern->fresh()->budget_status);
+        $this->actingAs($this->mis)->postJson(route('reports.budget.request', $this->report), ['budget_amount' => 999])->assertUnprocessable();
+        $this->assertEquals(500, $this->report->fresh()->budget_amount);
+        $this->assertSame(1, ActivityLog::where('action', 'budget_approval_requested')->count());
+
+        foreach ([$this->concern, $this->report] as $ticket) $ticket->update(['budget_status' => 'approved']);
+        $this->actingAs($this->mis)->postJson(route('reports.budget.request', $this->report), ['budget_amount' => 999])->assertUnprocessable();
+        $this->assertSame('approved', $this->report->fresh()->budget_status);
+
+        foreach ([$this->concern, $this->report] as $ticket) $ticket->update(['budget_status' => 'rejected']);
+        $this->actingAs($this->mis)->postJson(route('reports.budget.request', $this->report), ['budget_amount' => 400])
+            ->assertOk()->assertJsonPath('budget_status', 'pending');
+        $this->assertEquals(400, $this->report->fresh()->budget_amount);
+        $this->assertEquals(400, $this->concern->fresh()->budget_amount);
+    }
+
     private function reopenAndComplete(): void
     {
         $this->actingAs($this->reporter)->postJson(route('concerns.reopen', $this->concern), ['reason' => 'Same issue returned'])->assertOk();

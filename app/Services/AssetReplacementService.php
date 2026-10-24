@@ -31,6 +31,13 @@ class AssetReplacementService
         return $staff ? filled($staff->email) && strcasecmp($staff->email, $user->email) === 0 : (int) $ticket->assigned_to === (int) $user->id;
     }
 
+    public function canRecordOnResolution(Concern|Report $ticket, User $user): bool
+    {
+        $resolved = clone $ticket;
+        $resolved->status = 'Resolved';
+        return $this->canRecord($resolved, $user);
+    }
+
     public function latestFor(Collection $tickets): Collection
     {
         if ($tickets->isEmpty() || !Schema::hasTable('activity_logs')) return collect();

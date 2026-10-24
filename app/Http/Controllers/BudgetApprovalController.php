@@ -88,7 +88,13 @@ class BudgetApprovalController extends Controller
             return response()->json(['success' => false, 'error' => 'A budget cannot be requested after work has been resolved.'], 422);
         }
 
-        DB::transaction(function () use ($report, $validated) {
+        DB::transaction(function () use (&$report, $validated) {
+            if ($report->concern_id) \App\Models\Concern::whereKey($report->concern_id)->lockForUpdate()->firstOrFail();
+            $report = Report::whereKey($report->id)->lockForUpdate()->firstOrFail();
+            abort_unless($this->canRequest(auth()->user(), $report), 403, 'You cannot request a budget for this concern.');
+            abort_if($report->status === 'Resolved' || $report->is_deleted, 422, 'A budget cannot be requested for resolved or deleted work.');
+            abort_if(in_array($report->budget_status, [Report::BUDGET_PENDING, Report::BUDGET_APPROVED], true), 422,
+                'This report already has a pending or approved budget. A revised request is allowed only after rejection.');
             $values = [
                 'budget_amount' => $validated['budget_amount'],
                 'budget_status' => Report::BUDGET_PENDING,
@@ -199,9 +205,9 @@ class BudgetApprovalController extends Controller
         abort_unless(auth()->user()?->role === User::ROLE_SCHOOL_ADMIN, 403, 'Only the School Administrator can review concern budgets.');
     }
 
-    private function canRequest(User $user, Report $report): bool
+    public function canRequest(User $user, Report $report): bool
     {
-        if (in_array($user->role, ['admin', 'building_admin', 'academic_head', 'school_admin'], true)) {
+        if ($user->isSystemAdministrator() || in_array($user->role, ['admin', 'building_admin', 'academic_head', 'school_admin'], true)) {
             return true;
         }
 

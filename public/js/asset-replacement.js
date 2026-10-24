@@ -1,3 +1,26 @@
+window.ResolutionAssetReplacement = {
+    init() {
+        const checkbox = document.getElementById('swal-asset-replaced');
+        if (!checkbox) return;
+        checkbox.dataset.operationId = crypto.randomUUID();
+        checkbox.addEventListener('change', () => {
+            document.getElementById('swal-asset-replacement-fields').hidden = !checkbox.checked;
+        });
+    },
+    read() {
+        const checkbox = document.getElementById('swal-asset-replaced');
+        if (!checkbox || !checkbox.checked) return {};
+        const details = document.getElementById('swal-new-asset-details').value.trim();
+        const notes = document.getElementById('swal-asset-replacement-notes').value.trim();
+        if (!details || !notes) {
+            Swal.showValidationMessage('Enter the new asset details and replacement notes.');
+            return false;
+        }
+        return { asset_replaced: true, replacement_details: details, replacement_notes: notes,
+            confirmed_replacement: true, operation_id: checkbox.dataset.operationId };
+    }
+};
+
 document.addEventListener('click', async function (event) {
     const button = event.target.closest('[data-record-asset-replacement]');
     if (!button) return;

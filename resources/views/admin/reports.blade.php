@@ -2396,6 +2396,9 @@ window.viewReportProgress = async function(id) {
         const r = data.report;
         const budgetStatus = (r.budget_status || '').toLowerCase();
         const budgetAmount = Number(r.budget_amount || 0);
+        const budgetAction = r.can_request_budget
+            ? `<button type="button" class="btn btn-primary btn-sm mt-2" onclick="requestReportBudget(${r.id}, 'Report #${r.id}')"><i class="fas fa-coins me-1"></i>${budgetStatus === 'rejected' ? 'Submit Revised Budget' : 'Request Budget'}</button>`
+            : '';
 
         const statusColor = r.status === 'Resolved'    ? '#198754' :
                             r.status === 'In Progress'  ? '#ffc107' :
@@ -2404,7 +2407,7 @@ window.viewReportProgress = async function(id) {
         const steps = [
             { label: 'Submitted',    done: true,                          icon: 'fa-file-alt',    date: r.created_at },
             { label: 'Assigned',     done: !!r.assigned_to,               icon: 'fa-user-plus',   date: r.assigned_at || null, detail: r.assigned_user_name || null },
-            { label: budgetStatus ? 'Budget Approved' : 'Budget (Optional)', done: !budgetStatus || budgetStatus === 'approved', icon: 'fa-coins', date: r.budget_reviewed_at || r.budget_requested_at || null, detail: budgetStatus && r.budget_amount !== null ? `PHP ${budgetAmount.toLocaleString('en-PH', {minimumFractionDigits: 2})}` : 'No request' },
+            { label: ({pending: 'Budget Pending Approval', approved: 'Budget Approved', rejected: 'Budget Rejected'})[budgetStatus] || 'Budget (Optional)', done: budgetStatus === 'approved', icon: 'fa-coins', date: r.budget_reviewed_at || r.budget_requested_at || null, detail: budgetStatus && r.budget_amount !== null ? `PHP ${budgetAmount.toLocaleString('en-PH', {minimumFractionDigits: 2})}` : 'No request', action: budgetAction },
             { label: 'In Progress',  done: ['In Progress','Resolved'].includes(r.status), icon: 'fa-spinner', date: null },
             { label: 'Resolved',     done: r.status === 'Resolved',       icon: 'fa-check-circle', date: r.resolved_at || null },
         ];
@@ -2425,7 +2428,8 @@ window.viewReportProgress = async function(id) {
                     </div>
                     <div class="text-start pt-1">
                         <div style="font-weight:600;color:${txtCol};">${s.label}</div>
-                        ${s.detail ? `<div style="font-size:12px;color:#666;">PHP†’ ${s.detail}</div>` : ''}
+                        ${s.detail ? `<div style="font-size:12px;color:#666;">${escapeReportHtml(s.detail)}</div>` : ''}
+                        ${s.action || ''}
                         ${s.date   ? `<div style="font-size:11px;color:#999;">${s.date}</div>` : ''}
                     </div>
                 </div>`;
@@ -2471,10 +2475,10 @@ window.viewReportProgress = async function(id) {
             : budgetStatus === 'approved'
                 ? `<div class="alert alert-success mt-3 text-start"><strong><i class="fas fa-check-circle me-1"></i> Budget approved</strong><br>PHP ${budgetAmount.toLocaleString('en-PH', {minimumFractionDigits: 2})}</div>`
                 : budgetStatus === 'rejected'
-                    ? `<div class="alert alert-danger mt-3 text-start"><strong><i class="fas fa-times-circle me-1"></i> Budget rejected</strong><br>${escapeReportHtml(r.budget_rejection_reason || 'Submit a revised budget for approval.')} ${r.status === 'In Progress' ? `<div class="mt-2"><button type="button" class="btn btn-primary btn-sm" onclick="requestReportBudget(${r.id}, 'Report #${r.id}')"><i class="fas fa-coins me-1"></i>Submit Revised Budget</button></div>` : ''}</div>`
-                    : r.status === 'In Progress'
-                        ? `<div class="alert alert-light border mt-3 text-start"><strong><i class="fas fa-coins me-1"></i> Budget is optional</strong><br>If funds are needed, submit a request before resolving this concern.<div class="mt-2"><button type="button" class="btn btn-primary btn-sm" onclick="requestReportBudget(${r.id}, 'Report #${r.id}')"><i class="fas fa-coins me-1"></i>Request Budget</button></div></div>`
-                        : `<div class="alert alert-light border mt-3 text-start"><i class="fas fa-info-circle me-1"></i> Start work first. A budget can be requested later if needed.</div>`;
+                    ? `<div class="alert alert-danger mt-3 text-start"><strong><i class="fas fa-times-circle me-1"></i> Budget rejected</strong><br>${escapeReportHtml(r.budget_rejection_reason || 'Submit a revised budget for approval.')} </div>`
+                    : r.status !== 'Resolved'
+                        ? `<div class="alert alert-light border mt-3 text-start"><strong><i class="fas fa-coins me-1"></i> Budget is optional</strong><br>You can request funds from the Budget step before or after starting work. Any requested budget must be approved before resolving this concern.</div>`
+                        : '';
 
         const result = await getSwal().fire({
             title: `<span style="font-size:16px;color:#666;">Report #${r.id}</span><br><span style="font-size:20px;">${r.title || (r.description ? r.description.substring(0, 40) : 'No Title')}</span>`,
@@ -2501,7 +2505,7 @@ window.viewReportProgress = async function(id) {
             if (nextAction.action === 'request-budget') {
                 await requestReportBudget(id, r.title || `Report #${r.id}`);
             } else {
-                await proceedReportToNextLevel(id, nextAction.status, r.title || (r.description ? r.description.substring(0, 40) : 'Report #' + r.id));
+                await proceedReportToNextLevel(id, nextAction.status, r.title || (r.description ? r.description.substring(0, 40) : 'Report #' + r.id), r.can_record_asset_replacement);
             }
         } else if (result.isDismissed || !result.isConfirmed) {
             // Opening the budget form replaces this SweetAlert popup. Do not reload
@@ -2587,7 +2591,7 @@ window.reviewReportBudget = async function(reportId, action) {
 };
 
 // Function to proceed report to next level
-async function proceedReportToNextLevel(reportId, newStatus, reportTitle) {
+async function proceedReportToNextLevel(reportId, newStatus, reportTitle, canRecordReplacement = false) {
     // Show confirmation based on status
     let confirmTitle = '';
     let confirmText = '';
@@ -2626,7 +2630,7 @@ async function proceedReportToNextLevel(reportId, newStatus, reportTitle) {
             title: 'Mark Report as Resolved',
             html: `
                 <div class="text-start">
-                    <p class="mb-3">Please provide resolution details for "${reportTitle}":</p>
+                    <p class="mb-3">Please provide resolution details for "${escapeReportHtml(reportTitle)}":</p>
                     
                     <div class="mb-3">
                         <label class="form-label fw-bold">Cost (PHP‚±)</label>
@@ -2650,6 +2654,7 @@ async function proceedReportToNextLevel(reportId, newStatus, reportTitle) {
                         <label class="form-label fw-bold">Resolution Notes</label>
                         <textarea id="swal-resolution-notes" class="form-control" rows="3" placeholder="Additional details about the resolution..."></textarea>
                     </div>
+                    ${canRecordReplacement ? `@include('partials.resolution-asset-replacement')` : ''}
                 </div>
             `,
             showCancelButton: true,
@@ -2658,7 +2663,10 @@ async function proceedReportToNextLevel(reportId, newStatus, reportTitle) {
             confirmButtonColor: '#198754',
             cancelButtonColor: '#6c757d',
             width: 600,
+            didOpen: () => window.ResolutionAssetReplacement.init(),
             preConfirm: () => {
+                const replacement = window.ResolutionAssetReplacement.read();
+                if (replacement === false) return false;
                 const cost = document.getElementById('swal-cost').value;
                 const damagedPart = document.getElementById('swal-damaged-part').value;
                 const replacedPart = document.getElementById('swal-replaced-part').value;
@@ -2668,7 +2676,8 @@ async function proceedReportToNextLevel(reportId, newStatus, reportTitle) {
                     cost: cost ? parseFloat(cost) : null,
                     damaged_part: damagedPart.trim() || null,
                     replaced_part: replacedPart.trim() || null,
-                    resolution_notes: resolutionNotes.trim() || null
+                    resolution_notes: resolutionNotes.trim() || null,
+                    ...replacement
                 };
             }
         });
