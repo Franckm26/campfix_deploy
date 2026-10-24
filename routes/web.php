@@ -436,6 +436,8 @@ Route::middleware(['auth', 'admin', 'throttle:admin'])->group(function () {
     Route::post('/admin/users/restore-selected', [AdminController::class, 'restoreSelectedUsers'])->name('admin.users.restoreSelected');
     Route::post('/admin/users/restore-all-folder/{folder_id}', [AdminController::class, 'restoreAllFolderUsers'])->name('admin.users.restoreAllFolder');
     Route::post('/admin/users/import', [AdminController::class, 'importUsers'])->name('admin.users.import');
+    Route::post('/admin/users/import/staff/preview', [\App\Http\Controllers\StaffImportController::class, 'preview'])->name('admin.users.import.staff.preview');
+    Route::post('/admin/users/import/staff/confirm', [\App\Http\Controllers\StaffImportController::class, 'confirm'])->name('admin.users.import.staff.confirm');
     Route::get('/admin/users/archive-folders/{id}', [AdminController::class, 'archiveFolderUsers'])->name('admin.archiveFolderUsers');
     Route::post('/admin/users/archive-folders/{id}/delete-all', [AdminController::class, 'deleteAllFolderUsers'])->name('admin.archiveFolderUsers.deleteAll');
     Route::delete('/admin/users/archive-folders/{id}', [AdminController::class, 'deleteArchiveFolder'])->name('admin.archiveFolder.delete');

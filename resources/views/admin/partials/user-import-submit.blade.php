@@ -5,6 +5,10 @@ document.addEventListener('DOMContentLoaded', function () {
     let submitting = false;
     form.addEventListener('submit', async function (event) {
         event.preventDefault();
+        if (document.getElementById('importRoleInput').value === 'staff') {
+            await window.StaffImportReview.submit(form);
+            return;
+        }
         if (submitting) return;
         submitting = true;
         const payload = new FormData(form);

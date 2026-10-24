@@ -1266,6 +1266,7 @@
                         <span class="import-step-dot active" id="dot1">1</span>
                         <div class="flex-grow-1" style="height:2px;background:#dee2e6"></div>
                         <span class="import-step-dot" id="dot2">2</span>
+                        <span class="import-step-dot" id="dot3" style="display:none">3</span>
                     </div>
 
                     {{-- Step 1: Role selection --}}
@@ -1316,8 +1317,7 @@
                             <small class="text-muted d-block">CSV, tab-separated TXT or XLSX. Maximum 2 MB and 10,000 rows including headers. Save older XLS files as XLSX before importing.</small>
                             <small class="text-muted" id="staffImportNote" style="display:none">
                                 <i class="fas fa-info-circle text-info"></i> <strong>Staff Import:</strong> 
-                                If your CSV has a "STAFF" column (column 7), roles will be automatically assigned based on position 
-                                (MIS, School Administrator, Building Administrator, etc.).
+                                Upload a staff masterlist or a CSV with Name, Email, Role columns. Review and edit each user's name, email and role before confirming the import.
                             </small>
                         </div>
                         <div class="d-flex justify-content-end">
@@ -1326,6 +1326,8 @@
                             </button>
                         </div>
                     </div>
+
+                    @include('admin.partials.staff-import-review')
 
                     {{-- Step 3: Access control --}}
                     <div id="importStep3" style="display:none">
@@ -1415,6 +1417,7 @@
 .import-step-dot.done   { background: #198754; color: #fff; }
 </style>
 
+<script src="{{ asset('js/staff-import-review.js') }}"></script>
 <script>
 @include('admin.partials.user-import-feedback')
 @include('admin.partials.user-import-submit')
@@ -1434,6 +1437,9 @@ const importRoleDefaults = {
 };
 
 function selectImportRole(role) {
+    window.StaffImportReview.reset();
+    document.getElementById('dot3').style.display = role === 'staff' ? 'inline-flex' : 'none';
+    document.querySelector('#importStep2 button[type="submit"]').textContent = role === 'staff' ? 'Review Staff' : 'Import Users';
     document.getElementById('importRoleInput').value = role;
     document.getElementById('importRoleLabel').textContent = role.charAt(0).toUpperCase() + role.slice(1);
     
@@ -1459,6 +1465,8 @@ function selectImportRole(role) {
 }
 
 function importGoTo(step) {
+    document.getElementById('staffImportReview').style.display = 'none';
+    document.getElementById('dot3').classList.remove('active', 'done');
     document.getElementById('importStep1').style.display = step === 1 ? 'block' : 'none';
     document.getElementById('importStep2').style.display = step === 2 ? 'block' : 'none';
 

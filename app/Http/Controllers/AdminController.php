@@ -4240,7 +4240,12 @@ class AdminController extends Controller
         }
     }
 
-    private function performUserImport(Request $request)
+    public function importReviewedStaff(Request $request, array $rows)
+    {
+        return DB::transaction(fn () => $this->performUserImport($request, $rows));
+    }
+
+    private function performUserImport(Request $request, ?array $reviewedStaff = null)
     {
         if (! auth()->user()->canAccess('users_create')) {
             if (request()->expectsJson()) {
@@ -4252,7 +4257,7 @@ class AdminController extends Controller
         set_time_limit(300);
 
         $request->validate([
-            'file'         => \App\Services\UserImportFile::rules(),
+            'file'         => $reviewedStaff === null ? \App\Services\UserImportFile::rules() : ['nullable'],
             'default_role' => 'required|in:student,faculty,staff',
             'file_format'  => 'required|in:masterlist,standard',
             'archive_folder_name' => 'nullable|string|max:255',
@@ -4261,9 +4266,9 @@ class AdminController extends Controller
         $isMasterlist = $request->input('file_format') === 'masterlist';
         $defaultRole  = $request->input('default_role', 'student');
         $folderName   = trim($request->input('archive_folder_name') ?: now()->year.'-'.(now()->year + 1));
-        $extension = strtolower($request->file('file')->getClientOriginalExtension());
+        $extension = $reviewedStaff === null ? strtolower($request->file('file')->getClientOriginalExtension()) : 'reviewed';
         // Validate and bound all input before any account records are changed.
-        $allRows = (new \App\Services\UserImportFile())->rows(
+        $allRows = $reviewedStaff !== null ? array_merge([['employee_id', 'email', 'password', 'role', 'name']], $reviewedStaff) : (new \App\Services\UserImportFile())->rows(
             $request->file('file'), $isMasterlist, $isMasterlist && $defaultRole === 'student'
         );
 
@@ -4414,6 +4419,10 @@ class AdminController extends Controller
                 $password   = $row[2];
                 $role       = isset($row[3]) ? strtolower($row[3]) : $defaultRole;
                 $name       = $studentId;
+                if ($reviewedStaff !== null) {
+                    $name = $row[4];
+                    $studentId = $studentId ?: null;
+                }
                 $department = null;
                 $level      = null;
 
@@ -4510,9 +4519,12 @@ class AdminController extends Controller
         }
 
         $queuedEmailCount = 0;
+        if ($reviewedStaff !== null && $rowCount !== count($reviewedStaff)) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['rows' => 'Some reviewed accounts already exist. Review the list before importing again.']);
+        }
         if (! empty($usersToCreate)) {
             foreach (array_chunk($usersToCreate, 500) as $chunk) {
-                User::insertOrIgnore($chunk);
+                $reviewedStaff !== null ? User::insert($chunk) : User::insertOrIgnore($chunk);
             }
 
             foreach (array_chunk(array_column($usersToCreate, 'uuid'), 500) as $uuidChunk) {
