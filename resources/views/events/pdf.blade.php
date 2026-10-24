@@ -6,13 +6,12 @@
     <title>Facility Request - {{ $eventRequest->location }}</title>
     <style>
         * {
-            margin: 0;
-            padding: 0;
             box-sizing: border-box;
         }
+        body, div, p, h1, h2, h3, table, td, th { margin: 0; padding: 0; }
         
         @page {
-            margin: 155px 46px 105px;
+            margin: 45mm 14mm 30mm;
         }
 
         body {
@@ -27,121 +26,49 @@
             max-width: 800px;
             margin: 0 auto;
             background: #fff;
-            padding: 20px;
+            padding: 0;
         }
 
-        /* ── Letterhead ── */
+        /* Match the Executive Summary letterhead using PDF-compatible tables. */
         .letterhead {
-            display: table;
-            width: 100%;
             position: fixed;
-            top: -125px;
+            top: -37mm;
             left: 0;
             right: 0;
-            height: 105px;
+            height: 33mm;
+            padding: 0 8mm;
             border-bottom: 1px solid #111;
-            padding: 0 18px 12px;
-        }
-        .letterhead-logo {
-            display: table-cell;
-            width: 100px;
-            text-align: center;
-            vertical-align: middle;
-        }
-        .letterhead-logo img {
-            max-width: 78px;
-            max-height: 78px;
-        }
-        .seal {
-            display: inline-block;
-            width: 62px;
-            height: 62px;
-            border: 2px solid #555;
-            border-radius: 50%;
-            padding-top: 20px;
-            color: #444;
-            font: bold 10px Arial, sans-serif;
-        }
-        .letterhead-info {
-            display: table-cell;
-            vertical-align: middle;
-            text-align: center;
-            line-height: 1.28;
-        }
-        .letterhead-info .school-name {
-            font-size: 14px;
-            font-weight: bold;
+            font-family: Arial, sans-serif;
             color: #111;
-            letter-spacing: 0;
         }
-        .letterhead-info .school-address {
-            font-size: 12px;
-            color: #111;
-            margin-top: 1px;
+        .letterhead-table, .footer-table {
+            width: 100%;
+            table-layout: fixed;
+            border-collapse: collapse;
         }
-        .letterhead-info .school-tagline {
-            font-size: 11px;
-            color: #111;
-            font-style: normal;
-            margin-top: 1px;
-        }
-        .letterhead-info .school-title {
-            font-size: 15px;
-            font-weight: bold;
-            margin-top: 19px;
-        }
-        .matatag {
-            color: #c92831;
-            font: bold 24px Arial, sans-serif;
-            letter-spacing: 1px;
-        }
-
-        /* ── Footer ── */
+        .letterhead-table td { vertical-align: middle; height: 32mm; }
+        .letterhead-logo { width: 26mm; text-align: center; }
+        .letterhead-logo img { width: 25mm; height: 25mm; }
+        .letterhead-info { text-align: center; padding: 0 2mm; }
+        .letterhead-info .report-title { font-size: 8.5pt; line-height: 1.25; font-weight: bold; }
+        .letterhead-info .address { margin-top: 4px; font-size: 7.5pt; line-height: 1.35; }
+        .logo-fallback { font-size: 9pt; font-weight: bold; }
         .pdf-footer {
             position: fixed;
-            bottom: -76px;
+            bottom: -22mm;
             left: 0;
             right: 0;
-            height: 62px;
+            height: 17mm;
+            padding: 3mm 5mm 0;
             border-top: 1px solid #111;
-            padding: 8px 18px 0;
-            display: table;
-            width: 100%;
-        }
-        .pdf-footer .footer-name {
-            font-size: 9px;
-            font-weight: bold;
+            font-family: Arial, sans-serif;
             color: #111;
-            letter-spacing: 0;
         }
-        .pdf-footer .footer-address {
-            font-size: 8px;
-            color: #111;
-            margin-top: 1px;
-        }
-        .pdf-footer .footer-contact {
-            font-size: 8px;
-            color: #111;
-            margin-top: 1px;
-        }
-        .footer-icon, .footer-details, .footer-brand {
-            display: table-cell;
-            vertical-align: middle;
-        }
-        .footer-icon {
-            width: 72px;
-            font: 30px Arial, sans-serif;
-            text-align: center;
-        }
-        .footer-details { text-align: left; }
-        .footer-brand { width: 130px; text-align: right; }
-        .footer-brand .matatag { font-size: 22px; }
-        .footer-brand small {
-            display: block;
-            font: 6px Arial, sans-serif;
-            color: #555;
-        }
-        
+        .footer-table td { vertical-align: middle; }
+        .footer-logo { width: 18mm; text-align: left; }
+        .footer-logo img { width: 14mm; height: 14mm; }
+        .footer-copy { font-size: 6.7pt; line-height: 1.4; }
+        .footer-copy strong { font-size: 7pt; }
         .header {
             text-align: center;
             margin-bottom: 20px;
@@ -281,35 +208,49 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Letterhead -->
-        @php
-            $stiLogoPath = public_path('Campfix/Images/images.png');
-            $campfixLogoPath = public_path('Campfix/Images/fixlogo.png');
-        @endphp
-        <div class="letterhead">
-            <div class="letterhead-logo">
-                @if(file_exists($stiLogoPath))
-                    <img src="data:image/png;base64,{{ base64_encode(file_get_contents($stiLogoPath)) }}" alt="STI College Novaliches logo">
-                @else
-                    <span class="seal">STI</span>
-                @endif
-            </div>
-            <div class="letterhead-info">
-                <div class="school-name">STI COLLEGE NOVALICHES</div>
-                <div class="school-address">STI Academic Center, Diamond Avenue corner Quirino Highway</div>
-                <div class="school-tagline">San Bartolome, Novaliches, Quezon City, 1116 Metro Manila</div>
-                <div class="school-title">CAMPFIX DECISION SUPPORT SYSTEM</div>
-            </div>
-            <div class="letterhead-logo right">
+    @php
+        $campfixLogoPath = public_path('Campfix/Images/logo.png');
+        $stiLogoPath = public_path('Campfix/Images/STI-Academic-Seal-One-Color_400.png');
+    @endphp
+    <header class="letterhead">
+        <table class="letterhead-table"><tr>
+            <td class="letterhead-logo">
                 @if(file_exists($campfixLogoPath))
                     <img src="data:image/png;base64,{{ base64_encode(file_get_contents($campfixLogoPath)) }}" alt="CampFix logo">
                 @else
-                    <span class="seal">CampFix</span>
+                    <span class="logo-fallback">CampFix</span>
                 @endif
-            </div>
-        </div>
-
+            </td>
+            <td class="letterhead-info">
+                <div class="report-title">CampFix: A Web-Based Platform for Campus Facility Requests, Concern Reporting, and Data-Driven Decision Support for STI College Novaliches</div>
+                <div class="address">STI Academic Center, Diamond Avenue corner Quirino Highway<br>San Bartolome, Novaliches, Quezon City, 1116 Metro Manila</div>
+            </td>
+            <td class="letterhead-logo">
+                @if(file_exists($stiLogoPath))
+                    <img src="data:image/png;base64,{{ base64_encode(file_get_contents($stiLogoPath)) }}" alt="STI academic seal">
+                @else
+                    <span class="logo-fallback">STI</span>
+                @endif
+            </td>
+        </tr></table>
+    </header>
+    <footer class="pdf-footer">
+        <table class="footer-table"><tr>
+            <td class="footer-logo">
+                @if(file_exists($stiLogoPath))
+                    <img src="data:image/png;base64,{{ base64_encode(file_get_contents($stiLogoPath)) }}" alt="STI academic seal">
+                @else
+                    <span class="logo-fallback">STI</span>
+                @endif
+            </td>
+            <td class="footer-copy">
+                <strong>STI COLLEGE NOVALICHES</strong><br>
+                STI Academic Center, Diamond Avenue corner Quirino Highway, San Bartolome, Novaliches, Quezon City, 1116 Metro Manila<br>
+                www.sti.edu &nbsp;|&nbsp; CampFix Decision Support System &nbsp;|&nbsp; Generated by {{ auth()->user()->name ?? 'CampFix User' }}
+            </td>
+        </tr></table>
+    </footer>
+    <div class="container">
         <!-- Title -->
         <div class="header">
             <h2>FACILITY REQUEST FORM</h2>
@@ -407,19 +348,6 @@
                 @endif
             </tbody>
         </table>
-        <!-- Footer -->
-        <div class="pdf-footer">
-            <div class="footer-icon">▦</div>
-            <div class="footer-details">
-                <div class="footer-name">STI COLLEGE NOVALICHES</div>
-                <div class="footer-address">STI Academic Center, Diamond Avenue corner Quirino Highway, San Bartolome, Novaliches, Quezon City, 1116 Metro Manila</div>
-                <div class="footer-contact">Tel: (02) 8936-0818 &nbsp;|&nbsp; www.sti.edu</div>
-            </div>
-            <div class="footer-brand">
-                <div class="matatag">CAMPFIX</div>
-                <small>Executive Maintenance Analytics</small>
-            </div>
-        </div>
     </div>
 </body>
 </html>
