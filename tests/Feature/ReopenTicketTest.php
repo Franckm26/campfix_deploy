@@ -147,6 +147,23 @@ class ReopenTicketTest extends TestCase
         }
     }
 
+    public function test_my_concerns_view_returns_additional_description(): void
+    {
+        $this->reporter->update(['role' => 'faculty']);
+        $details = "The outlet cover is loose.\nNear the lobby entrance.";
+        $this->concern->update(['details' => $details]);
+
+        $this->actingAs($this->reporter)
+            ->getJson('/concerns/'.$this->concern->id.'/modal-data')
+            ->assertOk()
+            ->assertJsonPath('concern.details', $details);
+
+        $this->concern->update(['details' => null]);
+        $this->getJson('/concerns/'.$this->concern->id.'/modal-data')
+            ->assertOk()
+            ->assertJsonPath('concern.details', null);
+    }
+
     public function test_concern_image_replacement_rejects_script_uploads_without_changing_the_record(): void
     {
         Schema::table('categories', fn (Blueprint $table) => $table->json('issues')->nullable());

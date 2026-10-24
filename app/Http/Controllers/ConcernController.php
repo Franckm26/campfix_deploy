@@ -1915,6 +1915,7 @@ class ConcernController extends Controller
                 'id' => $concern->id,
                 'title' => $concern->title,
                 'description' => $concern->description,
+                'details' => $concern->details,
                 'location' => $concern->location,
                 'issue' => $concern->issue ?: $concern->title,
                 'categoryRelation' => $concern->categoryRelation,
