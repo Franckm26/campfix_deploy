@@ -1267,6 +1267,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('preview_end_time').textContent = endTime || 'Not specified';
             document.getElementById('preview_location').textContent = location || 'Not specified';
             document.getElementById('preview_description').textContent = description || 'Not specified';
+            window.FacilityRooms.preview();
 
             // Show/hide area of use row
             var areaOfUseRow = document.getElementById('preview_area_of_use_row');
