@@ -14,6 +14,29 @@ class OtpSmsDeliveryTest extends TestCase
 {
     private User $user;
 
+    public function test_timer_keeps_the_saved_expiry_after_refresh_and_a_failed_attempt(): void
+    {
+        $this->travelTo(now()->startOfSecond());
+        $this->user->update([
+            'otp' => Hash::make('123456'),
+            'otp_expires_at' => now()->utc()->addMinutes(5),
+        ]);
+        $this->withSession(['otp_user' => $this->user->id, 'reset_timer' => true])
+            ->get('/verify-otp')->assertOk()->assertViewHas('otpRemainingMilliseconds', 300000);
+
+        $this->travel(1)->minutes();
+        $this->get('/verify-otp')->assertOk()->assertViewHas('otpRemainingMilliseconds', 240000);
+        $this->from('/verify-otp')->post('/verify-otp', ['otp' => '000000'])
+            ->assertRedirect('/verify-otp')->assertSessionHas('error', 'Invalid OTP code');
+        $this->get('/verify-otp')->assertOk()->assertViewHas('otpRemainingMilliseconds', 240000);
+
+        $this->travel(5)->minutes();
+        $this->get('/verify-otp')->assertOk()->assertViewHas('otpRemainingMilliseconds', 0);
+
+        $this->user->update(['otp_expires_at' => now()->utc()->addMinutes(5)]);
+        $this->get('/verify-otp')->assertOk()->assertViewHas('otpRemainingMilliseconds', 300000);
+    }
+
     protected function setUp(): void
     {
         parent::setUp();

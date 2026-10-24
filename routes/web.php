@@ -553,7 +553,14 @@ Route::get('/verify-otp', function () {
         return redirect('/')->with('error', 'Session expired. Please login again.');
     }
 
-    return view('auth.verify-otp');
+    $user = \App\Models\User::find(session('otp_user'));
+    $expiresAt = $user?->otp_expires_at
+        ? \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $user->otp_expires_at->format('Y-m-d H:i:s'), 'UTC')->getTimestampMs()
+        : 0;
+
+    return view('auth.verify-otp', [
+        'otpRemainingMilliseconds' => max(0, $expiresAt - now()->getTimestampMs()),
+    ]);
 });
 
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);

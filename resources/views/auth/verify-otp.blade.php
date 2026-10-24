@@ -9,8 +9,9 @@
         
         .countdown-timer {
             text-align: center;
-            margin: 15px 0;
-            font-size: 0.9rem;
+            margin: 0;
+            font-size: 12px;
+            line-height: 1.4;
             color: #666;
         }
         .countdown-timer.expired {
@@ -18,10 +19,11 @@
         }
         .countdown-timer .time {
             font-weight: bold;
-            font-size: 1.1rem;
+            font-size: 12px;
             color: #007bff;
-            display: block;
-            margin-top: 3px;
+            display: inline;
+            margin-left: 4px;
+            font-variant-numeric: tabular-nums;
         }
         .countdown-timer.expired .time {
             color: #dc3545;
@@ -144,8 +146,8 @@
 
     <!-- Countdown Timer (below verify button) -->
     <div class="countdown-timer" id="countdownTimer">
-        <div>Code expires in</div>
-        <span class="time" id="timeDisplay">5:00</span>
+        <span>Code expires in</span>
+        <span class="time" id="timeDisplay"></span>
     </div>
     
     <!-- Resend Button (hidden initially, shows when timer expires) -->
@@ -180,31 +182,12 @@ const resendBtn = document.getElementById('resendBtn');
 const resendLink = document.getElementById('resendLink');
 const otpInputs = document.querySelectorAll('.otp-input');
 
-let timeLeft = 300; // 5 minutes in seconds
+// Use the server's remaining validity so refreshes and failed attempts cannot extend it.
+const expiryTime = Date.now() + @json($otpRemainingMilliseconds);
 let timerInterval;
 
-// Check if we need to reset the timer (new OTP sent)
-@if(session('reset_timer'))
-    sessionStorage.removeItem('otpExpiryTime');
-@endif
-
-// Check if there's an existing timer from a previous page load
-const storedExpiryTime = sessionStorage.getItem('otpExpiryTime');
-if (storedExpiryTime && !@json(session('reset_timer'))) {
-    const remainingTime = Math.floor((parseInt(storedExpiryTime) - Date.now()) / 1000);
-    if (remainingTime > 0 && remainingTime <= 300) {
-        timeLeft = remainingTime;
-    } else if (remainingTime <= 0) {
-        // Timer already expired
-        timeLeft = 0;
-    }
-} else {
-    // First time loading the page or timer reset, set the expiry time
-    const expiryTime = Date.now() + (timeLeft * 1000);
-    sessionStorage.setItem('otpExpiryTime', expiryTime);
-}
-
 function updateTimer() {
+    const timeLeft = Math.max(0, Math.ceil((expiryTime - Date.now()) / 1000));
     const minutes = Math.floor(timeLeft / 60);
     const seconds = timeLeft % 60;
     timeDisplay.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
@@ -225,7 +208,6 @@ function updateTimer() {
         return;
     }
     
-    timeLeft--;
 }
 
 function startTimer() {
