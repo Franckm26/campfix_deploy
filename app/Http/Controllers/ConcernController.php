@@ -826,6 +826,7 @@ class ConcernController extends Controller
         $user = auth()->user();
         DefaultCategoryService::ensureDefaults();
         $concern = Concern::findOrFail($id);
+        \App\Support\ConcernDecision::authorizeSchoolDecision($user, $concern->priority, (bool) $concern->is_safety_hazard);
 
         // Allow the submitter to update their own concern.
         // For MIS users, also allow editing concerns assigned to them because
@@ -913,8 +914,8 @@ class ConcernController extends Controller
             'cost' => $request->cost ?? $concern->cost,
         ];
 
-        // Only Building Admin and MIS can change priority
-        if (in_array($user->role, ['building_admin', 'mis']) && $request->filled('priority')) {
+        // School Admin can also triage concerns when covering an absence.
+        if (in_array($user->role, ['building_admin', 'school_admin', 'mis']) && $request->filled('priority')) {
             $updateData['priority'] = $request->priority;
         }
 
@@ -2073,6 +2074,7 @@ class ConcernController extends Controller
         $concern = Concern::findOrFail($id);
 
         $user = $request->user();
+        \App\Support\ConcernDecision::authorizeSchoolDecision($user, $concern->priority, (bool) $concern->is_safety_hazard);
         $isOwner = $concern->user_id === $user->id;
         $isLinkedReporter = $concern->hasLinkedReporter($user->id);
         $isAssignedMis = $user->role === 'mis' && $concern->assigned_to === $user->id;
@@ -2087,9 +2089,9 @@ class ConcernController extends Controller
             return response()->json(['error' => 'You cannot edit this concern once work has started or it has been completed.'], 403);
         }
 
-        // Only Building Admin and MIS can update priority
+        // School Admin can also triage concerns when covering an absence.
         $updateFields = ['title', 'description', 'location'];
-        if (in_array($user->role, ['building_admin', 'mis', 'admin'])) {
+        if (in_array($user->role, ['building_admin', 'school_admin', 'mis', 'admin'])) {
             $updateFields[] = 'priority';
         }
 
@@ -2293,6 +2295,7 @@ class ConcernController extends Controller
         $concern = Concern::findOrFail($id);
 
         // Check if user can assign: owner OR admin/school_admin/building_admin
+        \App\Support\ConcernDecision::authorizeSchoolDecision($user, $concern->priority, (bool) $concern->is_safety_hazard);
         $isOwner = $concern->user_id === $user->id;
         $isAdmin = in_array($user->role, ['admin', 'school_admin', 'building_admin']);
 

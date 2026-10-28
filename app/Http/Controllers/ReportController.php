@@ -152,6 +152,7 @@ class ReportController extends Controller
         ]);
 
         $photoPath = $report->photo_path;
+        \App\Support\ConcernDecision::authorizeSchoolDecision($user, $report->severity, (bool) $report->is_safety_hazard);
         if ($request->hasFile('photo')) {
             // Delete old photo if exists
             if ($photoPath) {
@@ -408,6 +409,7 @@ class ReportController extends Controller
         // Remove sensitive fields for unauthorized users
         if (! $canSeeSensitiveFields) {
             unset($reportData['resolution_notes']);
+        $reportData['can_resolve_decision'] = \App\Support\ConcernDecision::canResolve($user, $report->severity, (bool) $report->is_safety_hazard);
             unset($reportData['cost']);
             unset($reportData['damaged_part']);
             unset($reportData['replaced_part']);
@@ -573,7 +575,7 @@ class ReportController extends Controller
         $canUpdate = false;
 
         // MIS, School Admin, Building Admin can update any report
-        if (in_array($user->role, ['admin', 'mis', 'school_admin', 'academic_head', 'building_admin'])) {
+        if ($user->isSystemAdministrator() || in_array($user->role, ['admin', 'mis', 'school_admin', 'academic_head', 'building_admin'])) {
             $canUpdate = true;
         }
 
@@ -591,6 +593,10 @@ class ReportController extends Controller
         if (!$canUpdate) {
             return response()->json([
                 'success' => false,
+        if (! \App\Support\ConcernDecision::canDecide($user, $report->severity, (bool) $report->is_safety_hazard)) {
+            return response()->json(['success' => false, 'error' => 'School Administrators can decide only urgent and safety-hazard concerns.'], 403);
+        }
+
                 'error' => 'You do not have permission to update this report.'
             ], 403);
         }
@@ -621,6 +627,10 @@ class ReportController extends Controller
             $report->status = $newStatus;
 
             if ($newStatus === 'In Progress' && $oldStatus !== 'In Progress' && \Illuminate\Support\Facades\Schema::hasColumn('reports', 'in_progress_at')) {
+            if ($newStatus === 'Resolved' && ! \App\Support\ConcernDecision::canResolve($user, $report->severity, (bool) $report->is_safety_hazard)) {
+                return response()->json(['success' => false, 'error' => 'System Administrators can resolve only low-priority reports without safety hazards.'], 403);
+            }
+
                 $report->in_progress_at = now();
             }
 

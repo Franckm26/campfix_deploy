@@ -441,6 +441,11 @@ class AdminController extends Controller
                 return $concern;
             });
 
+            $reviewReport = Report::where('concern_id', $concern->id)->latest('id')->first();
+            if ($reviewReport) {
+                app(NotificationService::class)->notifyPriorityReviewers($reviewReport);
+            }
+
             $priorityLabel = $validated['priority'] === 'safety_hazard'
                 ? 'Safety Hazard'
                 : ucfirst($validated['priority']);
@@ -475,12 +480,14 @@ class AdminController extends Controller
 
         // Check if user is MIS or maintenance
         $user = auth()->user();
-        if (! in_array($user->role, ['mis', 'maintenance'])) {
+        if (! $user->isSystemAdministrator() && ! in_array($user->role, ['mis', 'maintenance', 'school_admin'])) {
             if ($request->expectsJson()) {
                 return response()->json(['error' => 'You do not have permission to update this concern.'], 403);
             }
             return back()->with('error', 'You do not have permission to update this concern.');
         }
+
+        \App\Support\ConcernDecision::authorizeSchoolDecision($user, $concern->priority, (bool) $concern->is_safety_hazard);
 
         // Staff can only progress work that is assigned to them.
         if ($user->role === 'maintenance' && (int) $concern->assigned_to !== (int) $user->id) {
@@ -490,7 +497,7 @@ class AdminController extends Controller
             return back()->with('error', 'You can only update concerns assigned to you.');
         }
 
-        if ($user->role === 'mis') {
+        if ($user->role === 'mis' && ! $user->isSystemAdministrator()) {
             if ((int) $concern->assigned_to !== (int) $user->id) {
                 if ($request->expectsJson()) {
                     return response()->json(['error' => 'Claim this MIS task before updating its status.'], 403);
@@ -511,6 +518,10 @@ class AdminController extends Controller
         $oldStatus = $concern->status;
         $newStatus = $request->input('status');
 
+        if (in_array($newStatus, ['Resolved', 'Closed'], true) && ! \App\Support\ConcernDecision::canResolve($user, $concern->priority, (bool) $concern->is_safety_hazard)) {
+            return response()->json(['error' => 'System Administrators can resolve only low-priority concerns without safety hazards.'], 403);
+        }
+
         if ($newStatus === 'Resolved'
             && $oldStatus !== 'Resolved'
             && $concern->hasUnapprovedBudgetRequest()) {
@@ -521,13 +532,13 @@ class AdminController extends Controller
             ], 422);
         }
 
-        if ($user->role === 'mis'
+        if ($user->role === 'mis' && ! $user->isSystemAdministrator()
             && in_array($newStatus, ['In Progress', 'Resolved'], true)
             && ! in_array($concern->priority, ['low', 'medium', 'high', 'urgent'], true)) {
             return response()->json(['error' => 'Set the task priority before starting work.'], 422);
         }
 
-        if ($user->role === 'mis' && $newStatus === 'Resolved' && blank($request->input('resolution_notes'))) {
+        if ($user->role === 'mis' && ! $user->isSystemAdministrator() && $newStatus === 'Resolved' && blank($request->input('resolution_notes'))) {
             return response()->json(['error' => 'Resolution notes are required before resolving an MIS task.'], 422);
         }
 
@@ -623,7 +634,7 @@ class AdminController extends Controller
 
             // Check if user is MIS or maintenance
             $user = auth()->user();
-            if (! in_array($user->role, ['mis', 'maintenance'])) {
+            if (! $user->isSystemAdministrator() && ! in_array($user->role, ['mis', 'maintenance', 'school_admin'])) {
                 if ($request->expectsJson()) {
                     return response()->json(['error' => 'You do not have permission to update this report.'], 403);
                 }
@@ -632,6 +643,10 @@ class AdminController extends Controller
             }
 
             // Maintenance can only update their assigned reports
+            if (! \App\Support\ConcernDecision::canDecide($user, $report->severity, (bool) $report->is_safety_hazard)) {
+                return response()->json(['error' => 'School Administrators can decide only urgent and safety-hazard concerns.'], 403);
+            }
+
             if ($user->role === 'maintenance' && $report->assigned_to !== $user->id) {
                 if ($request->expectsJson()) {
                     return response()->json(['error' => 'You can only update reports assigned to you.'], 403);
@@ -651,6 +666,10 @@ class AdminController extends Controller
 
             $oldStatus = $report->status;
             $newStatus = $request->input('status');
+
+            if ($newStatus === 'Resolved' && ! \App\Support\ConcernDecision::canResolve($user, $report->severity, (bool) $report->is_safety_hazard)) {
+                return response()->json(['error' => 'System Administrators can resolve only low-priority reports without safety hazards.'], 403);
+            }
 
             if ($oldStatus === 'Resolved' && $newStatus !== 'Resolved') {
                 return response()->json(['error' => 'The original reporter must use Reopen and provide a reason.'], 422);
@@ -798,9 +817,10 @@ class AdminController extends Controller
 
         $concern = Concern::findOrFail($id);
 
-        // School Administrators review budgets; operational roles assign work.
+        // School Administrators decide urgent and safety-hazard concerns.
         $user = auth()->user();
-        if (!in_array($user->role, ['admin', 'building_admin', 'academic_head', 'mis'])) {
+        \App\Support\ConcernDecision::authorizeSchoolDecision($user, $concern->priority, (bool) $concern->is_safety_hazard);
+        if (!in_array($user->role, ['admin', 'building_admin', 'school_admin', 'academic_head', 'mis'])) {
             if ($request->expectsJson()) {
                 return response()->json(['error' => 'You do not have permission to assign concerns.'], 403);
             }
@@ -856,12 +876,14 @@ class AdminController extends Controller
         try {
             $report = Report::findOrFail($id);
 
-            // School Administrators review budgets. System Administrators assign only
-            // Technology/Internet work to MIS; Building Administrators assign all
-            // non-technology work to maintenance; MIS staff can claim their own work.
+            // School Admin can assign urgent or safety-hazard work, including technology
+            // work to MIS. Building Admin handles maintenance assignments.
             $user = auth()->user();
+            if (! \App\Support\ConcernDecision::canDecide($user, $report->severity, (bool) $report->is_safety_hazard)) {
+                return response()->json(['error' => 'School Administrators can decide only urgent and safety-hazard concerns.'], 403);
+            }
             $isSystemAdministrator = $user->isSystemAdministrator();
-            if (! $isSystemAdministrator && !in_array($user->role, ['building_admin', 'mis'], true)) {
+            if (! $isSystemAdministrator && !in_array($user->role, ['building_admin', 'school_admin', 'mis'], true)) {
                 if ($request->expectsJson()) {
                     return response()->json(['error' => 'You do not have permission to assign reports.'], 403);
                 }
@@ -877,7 +899,7 @@ class AdminController extends Controller
             $isTechnologyCategory = $report->category && strtolower(trim($report->category->name)) === 'technology/internet';
             
             if ($isTechnologyCategory) {
-                if ($isSystemAdministrator) {
+                if ($isSystemAdministrator || $user->role === 'school_admin') {
                     $request->validate([
                         'assigned_to' => 'required|exists:users,id',
                         'notes' => 'nullable|string|max:1000',
@@ -912,7 +934,7 @@ class AdminController extends Controller
                     return response()->json(['error' => 'System Administrators can only assign Technology/Internet reports to MIS users.'], 403);
                 }
 
-                if ($user->role !== 'building_admin') {
+                if (! in_array($user->role, ['building_admin', 'school_admin'], true)) {
                     return response()->json(['error' => 'Only Building Administrators can assign maintenance reports.'], 403);
                 }
 
@@ -1015,9 +1037,11 @@ class AdminController extends Controller
 
         $report = Report::findOrFail($id);
 
-        if (auth()->user()->role !== 'building_admin') {
+        if (! in_array(auth()->user()->role, ['building_admin', 'school_admin'], true)) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
+
+        \App\Support\ConcernDecision::authorizeSchoolDecision(auth()->user(), $report->severity, (bool) $report->is_safety_hazard);
 
         // Handle safety_hazard: set severity to urgent and flag as safety hazard
         if ($request->priority === 'safety_hazard') {
@@ -1059,7 +1083,9 @@ class AdminController extends Controller
         $concern = Concern::with('categoryRelation')->findOrFail($id);
         $user = auth()->user();
 
-        $isBuildingAdmin = $user->role === 'building_admin';
+        \App\Support\ConcernDecision::authorizeSchoolDecision($user, $concern->priority, (bool) $concern->is_safety_hazard);
+
+        $isBuildingAdmin = in_array($user->role, ['building_admin', 'school_admin'], true);
         $isClaimedMisTask = $user->role === 'mis'
             && (int) $concern->assigned_to === (int) $user->id
             && strtolower(trim((string) $concern->categoryRelation?->name)) === 'technology/internet'
@@ -1087,6 +1113,11 @@ class AdminController extends Controller
                 'is_safety_hazard' => $concern->is_safety_hazard,
             ]);
 
+        $reviewReport = Report::where('concern_id', $concern->id)->latest('id')->first();
+        if ($reviewReport) {
+            app(NotificationService::class)->notifyPriorityReviewers($reviewReport);
+        }
+
         $priorityLabel = $request->priority === 'safety_hazard'
             ? 'Safety Hazard'
             : ucfirst($request->priority);
@@ -1106,7 +1137,7 @@ class AdminController extends Controller
      */
     public function getMaintenanceUsers()
     {
-        abort_unless(auth()->user()?->isSystemAdministrator() || auth()->user()?->role === 'building_admin', 403);
+        abort_unless(auth()->user()?->isSystemAdministrator() || in_array(auth()->user()?->role, ['building_admin', 'school_admin'], true), 403);
 
         $maintenanceStaff = \App\Models\MaintenanceStaff::where('is_active', true)
             ->select('id', 'name')
@@ -1121,7 +1152,7 @@ class AdminController extends Controller
      */
     public function getMisUsers()
     {
-        abort_unless(auth()->user()?->isSystemAdministrator(), 403);
+        abort_unless(auth()->user()?->isSystemAdministrator() || auth()->user()?->role === 'school_admin', 403);
 
         $misUsers = User::where('role', 'mis')
             ->select('id', 'name')
@@ -1239,6 +1270,7 @@ class AdminController extends Controller
             // Show reports archived by the current admin user
             $archivedReports = Report::archivedByUser(auth()->id())
                 ->forOperationalRole($operationalUser)
+                ->forDecisionQueue($operationalUser, $request->input('queue', 'mine'))
                 ->with('category', 'user', 'archivedByUsers')
                 ->orderBy('updated_at', 'desc')
                 ->get();
@@ -1264,6 +1296,7 @@ class AdminController extends Controller
 
             $deletedReports = Report::where('is_deleted', true)
                 ->forOperationalRole($operationalUser)
+                ->forDecisionQueue($operationalUser, $request->input('queue', 'mine'))
                 ->where('updated_at', '>=', now()->subDays($days))
                 ->with(['user', 'category', 'deletedBy'])
                 ->orderBy('updated_at', 'desc')
@@ -1307,6 +1340,7 @@ class AdminController extends Controller
             // Analytics for reports - individual repairs
             $analyticsQuery = Report::whereNotNull('location')
                 ->forOperationalRole($operationalUser)
+                ->forDecisionQueue($operationalUser, $request->input('queue', 'mine'))
                 ->where('location', '!=', '')
                 ->where('is_deleted', false)
                 ->whereNotNull('resolved_at');
@@ -1595,6 +1629,8 @@ class AdminController extends Controller
                     ->where('school_admin_archived', false)
                     ->where('admin_archived', false);
             });
+
+        $query->forDecisionQueue($operationalUser, $request->input('queue', 'mine'));
 
         // Apply status filter - include resolved if explicitly filtered, otherwise exclude
         if ($request->filled('status')) {

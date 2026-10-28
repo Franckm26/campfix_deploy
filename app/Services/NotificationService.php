@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\ActivityLog;
 use App\Models\Concern;
 use App\Models\EventRequest;
+use App\Models\Report;
 use App\Models\User;
 use App\Notifications\ConcernAssignedNotification;
 use App\Notifications\ConcernResolvedNotification;
@@ -396,6 +397,28 @@ class NotificationService
         }
 
         return $notified > 0;
+    }
+
+    public function notifyPriorityReviewers(Report $report): void
+    {
+        if ($report->is_deleted || in_array($report->status, ['Resolved', 'Closed'], true)) return;
+
+        $isEscalated = $report->severity === 'urgent' || $report->is_safety_hazard;
+        if (! $isEscalated && $report->severity !== 'low') return;
+
+        $recipients = User::where('is_archived', false)->get()->filter(function (User $user) use ($isEscalated) {
+            return $isEscalated
+                ? $user->role === 'school_admin' && ! $user->isSystemAdministrator()
+                : $user->isSystemAdministrator();
+        });
+
+        foreach ($recipients as $recipient) {
+            try {
+                $recipient->notify(new \App\Notifications\PriorityReviewNotification($report));
+            } catch (\Throwable $exception) {
+                Log::error('Priority review notification failed.', ['report_id' => $report->id, 'user_id' => $recipient->id, 'error' => $exception->getMessage()]);
+            }
+        }
     }
 
     private function logNotificationFailure(Concern $concern, string $message): void

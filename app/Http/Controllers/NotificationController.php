@@ -66,7 +66,7 @@ class NotificationController extends Controller
         }
 
         // Determine correct URL based on notification type
-        $url = null;
+        $url = $notification->data['url'] ?? null;
         $concernContext = null;
         if (str_contains($notification->type, 'Concern')) {
             $concernId = $notification->data['concern_id'] ?? null;

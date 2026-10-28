@@ -40,6 +40,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $notifyReviewers = function (\App\Models\Report $report) {
+            $snapshot = clone $report;
+            \Illuminate\Support\Facades\DB::afterCommit(function () use ($snapshot) {
+                app(\App\Services\NotificationService::class)->notifyPriorityReviewers($snapshot);
+            });
+        };
+        \App\Models\Report::created($notifyReviewers);
+        \App\Models\Report::updated(function (\App\Models\Report $report) use ($notifyReviewers) {
+            if ($report->wasChanged(['severity', 'is_safety_hazard'])) $notifyReviewers($report);
+        });
+
         // Configure Microsoft OAuth Provider
         $this->bootMicrosoftSocialite();
 

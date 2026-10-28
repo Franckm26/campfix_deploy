@@ -260,6 +260,10 @@ class User extends Authenticatable implements JWTSubject
         if (in_array($module, ['users', 'module_access', 'logs'], true) || str_starts_with($module, 'users_')) {
             return false;
         }
+        if ($this->role === 'school_admin' && $module === 'reports') {
+            return true;
+        }
+
 
         // If explicit permissions are set, use them
         if (! is_null($this->permissions)) {

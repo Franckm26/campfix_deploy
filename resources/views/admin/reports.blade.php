@@ -135,6 +135,14 @@
     $reportsIndexRoute = auth()->user()->isSystemAdministrator() ? 'superadmin.reports' : 'admin.reports';
 @endphp
 <div class="container-fluid px-3">
+    @if(auth()->user()->role === 'school_admin' || auth()->user()->isSystemAdministrator())
+        <div class="alert alert-info d-flex align-items-center justify-content-between gap-2">
+            <span>{{ auth()->user()->isSystemAdministrator() ? 'Your decision queue contains low-priority reports. Urgent and safety-hazard decisions go to the School Admin.' : 'Your decision queue contains only urgent and safety-hazard reports.' }}</span>
+            @if(auth()->user()->isSystemAdministrator())
+            <a class="btn btn-sm btn-outline-primary" href="{{ route($reportsIndexRoute, ['queue' => request('queue') === 'all' ? 'mine' : 'all']) }}">{{ request('queue') === 'all' ? 'My decision queue' : 'All reports' }}</a>
+            @endif
+        </div>
+    @endif
     
     <!-- Context Menu -->
     <div id="contextMenu" class="context-menu">
@@ -267,6 +275,7 @@
                 </a>
             </div>
             <form method="GET" action="{{ route($reportsIndexRoute) }}" id="reportsFilterForm">
+                <input type="hidden" name="queue" value="{{ request('queue', 'mine') }}">
                 <input type="hidden" name="view" value="{{ $viewType ?? 'active' }}">
                 <div class="row g-2">
                     <div class="col-6 col-md">
@@ -419,11 +428,11 @@
                                                     <button type="button" class="btn btn-sm btn-primary" onclick="assignReportToMe({{ $report->id }})" title="Assign to me">
                                                         <i class="fas fa-user-check"></i>
                                                     </button>
-                                                @elseif(auth()->user()->isSystemAdministrator() && $isTechnologyReport)
+                                                @elseif((auth()->user()->isSystemAdministrator() || auth()->user()->role === 'school_admin') && $isTechnologyReport)
                                                     <button type="button" class="btn btn-sm btn-primary" onclick="assignReportToMisUser({{ $report->id }})" title="{{ $report->assigned_to ? 'Reassign to MIS user' : 'Assign to MIS user' }}">
                                                         <i class="fas fa-user-plus"></i>
                                                     </button>
-                                                @elseif(auth()->user()->role === 'building_admin' && !$isTechnologyReport)
+                                                @elseif(in_array(auth()->user()->role, ['building_admin', 'school_admin'], true) && !$isTechnologyReport)
                                                     <button type="button" class="btn btn-sm btn-primary" onclick="assignReport({{ $report->id }})" title="{{ $report->assigned_to ? 'Reassign' : 'Assign' }}">
                                                         <i class="fas fa-user-plus"></i>
                                                     </button>
@@ -536,11 +545,11 @@
                             <button type="button" class="btn btn-sm btn-primary" onclick="assignReportToMe({{ $report->id }})">
                                 <i class="fas fa-user-check"></i> Assign to Me
                             </button>
-                            @elseif(auth()->user()->isSystemAdministrator() && $isTechnologyReport)
+                            @elseif((auth()->user()->isSystemAdministrator() || auth()->user()->role === 'school_admin') && $isTechnologyReport)
                             <button type="button" class="btn btn-sm btn-primary" onclick="assignReportToMisUser({{ $report->id }})">
                                 <i class="fas fa-user-plus"></i> {{ $report->assigned_to ? 'Reassign to MIS' : 'Assign to MIS' }}
                             </button>
-                            @elseif(auth()->user()->role === 'building_admin' && !$isTechnologyReport)
+                            @elseif(in_array(auth()->user()->role, ['building_admin', 'school_admin'], true) && !$isTechnologyReport)
                             <button type="button" class="btn btn-sm btn-primary" onclick="assignReport({{ $report->id }})">
                                 <i class="fas fa-user-plus"></i> {{ $report->assigned_to ? 'Reassign' : 'Assign' }}
                             </button>
@@ -2439,11 +2448,14 @@ window.viewReportProgress = async function(id) {
         let nextAction = null;
         let showProceedButton = false;
         
-        if (r.status === 'Assigned') {
+        if (r.status === 'Pending' && (currentReportUserRole === 'school_admin' || (@json(auth()->user()->isSystemAdministrator()) && r.can_resolve_decision))) {
+            nextAction = { status: 'In Progress', label: 'Start Review', icon: 'fa-play', color: '#ffc107' };
+            showProceedButton = true;
+        } else if (r.status === 'Assigned') {
             nextAction = { status: 'In Progress', label: 'Start Working', icon: 'fa-play', color: '#ffc107' };
             showProceedButton = true;
         } else if (r.status === 'In Progress') {
-            if (!['pending', 'rejected'].includes(budgetStatus)) {
+            if (!['pending', 'rejected'].includes(budgetStatus) && r.can_resolve_decision) {
                 nextAction = { status: 'Resolved', label: 'Mark as Resolved', icon: 'fa-check', color: '#198754' };
                 showProceedButton = true;
             }

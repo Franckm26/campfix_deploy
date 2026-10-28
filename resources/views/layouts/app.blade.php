@@ -479,6 +479,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <i class="fas fa-coins"></i> Budget Approvals
                 </a>
             @endif
+                <a href="{{ route('school-admin.reports') }}" class="{{ Request::is('school-admin/reports*') ? 'active' : '' }}" style="padding-top:8px;padding-bottom:8px;"><i class="fas fa-file-alt"></i> Reports</a>
             <div class="nav-dropdown {{ Request::is('my-events') || Request::is('events-calendar') || Request::is("{$roleSlug}/events") ? 'open' : '' }}">
                 <a href="#" class="nav-dropdown-toggle {{ Request::is('my-events') || Request::is('events-calendar') || Request::is("{$roleSlug}/events") ? 'active' : '' }}"
                    data-nav-toggle style="padding-top:8px;padding-bottom:8px;">

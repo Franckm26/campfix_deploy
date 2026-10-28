@@ -74,6 +74,9 @@ class BudgetApprovalWorkflowTest extends TestCase
 
     public function test_school_administrator_approval_is_required_before_progress(): void
     {
+        Schema::table('reports', function (Blueprint $table) {
+            $table->string('severity')->default('urgent');
+        });
         $buildingAdministrator = User::create([
             'name' => 'Building Administrator',
             'email' => 'building@example.test',
@@ -123,6 +126,12 @@ class BudgetApprovalWorkflowTest extends TestCase
         $this->assertTrue($blockedResolution->getData(true)['requires_budget_approval']);
 
         Auth::login($schoolAdministrator);
+        $schoolBlocked = app(ReportController::class)->updateStatus(
+            $this->jsonRequest(['status' => 'Resolved']),
+            $report->id
+        );
+        $this->assertSame(422, $schoolBlocked->getStatusCode());
+        $this->assertTrue($schoolBlocked->getData(true)['requires_budget_approval']);
         $approved = app(BudgetApprovalController::class)->approve($report->refresh());
         $this->assertSame(200, $approved->getStatusCode());
         $this->assertTrue($report->refresh()->hasApprovedBudget());
@@ -147,7 +156,118 @@ class BudgetApprovalWorkflowTest extends TestCase
         $this->assertStringContainsString('Archive budget report', $approvalView);
         $this->assertStringContainsString('View budget report', $approvalView);
         $this->assertStringContainsString('Delete budget report', $approvalView);
-        $this->assertStringContainsString("['admin', 'building_admin', 'academic_head', 'mis']", $adminController);
+        $this->assertStringContainsString("['admin', 'building_admin', 'school_admin', 'academic_head', 'mis']", $adminController);
+    }
+
+    public function test_decision_queues_and_priority_notifications_follow_responsibility(): void
+    {
+        \Illuminate\Support\Facades\Notification::fake();
+        Schema::table('reports', function (Blueprint $table) {
+            $table->string('severity')->nullable();
+            $table->boolean('is_safety_hazard')->default(false);
+        });
+        $school = User::create(['name' => 'School', 'role' => 'school_admin']);
+        $system = User::create(['name' => 'System', 'role' => 'admin']);
+        $building = User::create(['name' => 'Building', 'role' => 'building_admin']);
+        $low = Report::create(['title' => 'Low', 'severity' => 'low']);
+        $urgent = Report::create(['title' => 'Urgent', 'severity' => 'urgent']);
+        $hazard = Report::create(['title' => 'Hazard', 'severity' => 'low', 'is_safety_hazard' => true]);
+        $medium = Report::create(['title' => 'Medium', 'severity' => 'medium']);
+        $unclassified = Report::create(['title' => 'Needs triage']);
+
+        $this->assertEqualsCanonicalizing([$urgent->id, $hazard->id], Report::forDecisionQueue($school)->pluck('id')->all());
+        $this->assertSame([$low->id], Report::forDecisionQueue($system)->pluck('id')->all());
+        $this->assertSame(2, Report::forDecisionQueue($school, 'all')->count());
+        $this->assertSame(5, Report::forDecisionQueue($building)->count());
+        $school->forceFill(['permissions' => ['events']]);
+        $this->assertTrue($school->canAccess('reports'));
+
+        $notification = \App\Notifications\PriorityReviewNotification::class;
+        \Illuminate\Support\Facades\Notification::assertSentToTimes($school, $notification, 2);
+        \Illuminate\Support\Facades\Notification::assertSentToTimes($system, $notification, 1);
+        \Illuminate\Support\Facades\Notification::assertNotSentTo($building, $notification);
+        $medium->update(['severity' => 'urgent']);
+        $medium->update(['title' => 'Renamed urgent report']);
+        \Illuminate\Support\Facades\Notification::assertSentToTimes($school, $notification, 3);
+    }
+
+    public function test_school_admin_can_load_assignment_staff_lists(): void
+    {
+        Schema::create('maintenance_staff', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->boolean('is_active')->default(true);
+            $table->softDeletes();
+        });
+        $school = User::create(['name' => 'School', 'role' => 'school_admin']);
+        $mis = User::create(['name' => 'MIS', 'role' => 'mis']);
+        \Illuminate\Support\Facades\DB::table('maintenance_staff')->insert(['name' => 'Maintenance']);
+        Auth::login($school);
+        $controller = app(\App\Http\Controllers\AdminController::class);
+        $this->assertSame($mis->id, $controller->getMisUsers()->getData(true)['users'][0]['id']);
+        $this->assertSame('Maintenance', $controller->getMaintenanceUsers()->getData(true)['users'][0]['name']);
+    }
+
+    public function test_school_can_resolve_only_escalated_concerns_and_system_only_low_priority(): void
+    {
+        \Illuminate\Support\Facades\Notification::fake();
+        foreach (['reports', 'concerns'] as $name) {
+            Schema::table($name, function (Blueprint $table) use ($name) {
+                $table->string($name === 'reports' ? 'severity' : 'priority')->nullable();
+                $table->boolean('is_safety_hazard')->default(false);
+                $table->timestamp('resolved_at')->nullable();
+                $table->text('resolution_notes')->nullable();
+                $table->decimal('cost')->nullable();
+                $table->string('damaged_part')->nullable();
+                $table->string('replaced_part')->nullable();
+            });
+        }
+        Schema::create('report_status_logs', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('report_id');
+            $table->unsignedBigInteger('changed_by');
+            $table->string('old_status');
+            $table->string('new_status');
+            $table->timestamp('changed_at');
+            $table->timestamps();
+        });
+        $school = User::create(['name' => 'School', 'role' => 'school_admin']);
+        $system = User::create(['name' => 'System', 'role' => 'admin']);
+        $controller = app(ReportController::class);
+
+        foreach ([['urgent', false], ['low', true], ['low', false], ['medium', false]] as [$priority, $hazard]) {
+            $concern = Concern::create(['title' => 'Repair', 'priority' => $priority, 'is_safety_hazard' => $hazard, 'status' => 'In Progress']);
+            $report = Report::create(['concern_id' => $concern->id, 'severity' => $priority, 'is_safety_hazard' => $hazard, 'status' => 'In Progress']);
+            if ($priority !== 'urgent' && ! $hazard) {
+                Auth::login($school);
+                foreach (['In Progress', 'Resolved'] as $status) {
+                    $blocked = $controller->updateStatus($this->jsonRequest(['status' => $status]), $report->id);
+                    $this->assertSame(403, $blocked->getStatusCode());
+                }
+                $blockedAssignment = app(\App\Http\Controllers\AdminController::class)->assignReport($this->jsonRequest([]), $report->id);
+                $this->assertSame(403, $blockedAssignment->getStatusCode());
+            }
+            Auth::login($system);
+            $result = $controller->updateStatus($this->jsonRequest(['status' => 'Resolved', 'resolution_notes' => 'Completed']), $report->id);
+            if ($priority === 'low' && ! $hazard) {
+                $this->assertSame(200, $result->getStatusCode());
+            } else {
+                $this->assertSame(403, $result->getStatusCode());
+                $this->assertSame('In Progress', $report->refresh()->status);
+                Auth::login($school);
+                $result = $controller->updateStatus($this->jsonRequest(['status' => 'Resolved', 'resolution_notes' => 'Covered during absence']), $report->id);
+                if ($priority !== 'urgent' && ! $hazard) {
+                    $this->assertSame(403, $result->getStatusCode());
+                    $this->assertSame('In Progress', $report->refresh()->status);
+                    $this->assertSame('In Progress', $concern->refresh()->status);
+                    continue;
+                }
+                $this->assertSame(200, $result->getStatusCode());
+            }
+            $this->assertSame('Resolved', $report->refresh()->status);
+            $this->assertSame('Resolved', $concern->refresh()->status);
+            $this->assertNotNull($report->resolved_at);
+        }
     }
 
     private function jsonRequest(array $data): Request

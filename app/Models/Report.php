@@ -165,6 +165,25 @@ class Report extends Model
 
     public const BUDGET_APPROVED = 'approved';
 
+    public function scopeForDecisionQueue(Builder $query, User $user, string $queue = 'mine'): Builder
+    {
+        if ($queue === 'all' && ($user->isSystemAdministrator() || $user->role !== 'school_admin')) return $query;
+
+        if ($user->isSystemAdministrator()) {
+            return $query->where('severity', 'low')->where(function (Builder $q) {
+                $q->where('is_safety_hazard', false)->orWhereNull('is_safety_hazard');
+            });
+        }
+
+        if ($user->role === 'school_admin') {
+            return $query->where(function (Builder $q) {
+                $q->where('severity', 'urgent')->orWhere('is_safety_hazard', true);
+            });
+        }
+
+        return $query;
+    }
+
     public const BUDGET_REJECTED = 'rejected';
 
     public function budgetRequester()
