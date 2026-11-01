@@ -170,9 +170,7 @@ class Report extends Model
         if ($queue === 'all' && ($user->isSystemAdministrator() || $user->role !== 'school_admin')) return $query;
 
         if ($user->isSystemAdministrator()) {
-            return $query->where('severity', 'low')->where(function (Builder $q) {
-                $q->where('is_safety_hazard', false)->orWhereNull('is_safety_hazard');
-            });
+            return $query;
         }
 
         if ($user->role === 'school_admin') {

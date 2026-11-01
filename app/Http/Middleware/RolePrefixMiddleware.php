@@ -28,6 +28,12 @@ class RolePrefixMiddleware
             return $next($request);
         }
 
+        // Only page navigation has role-prefixed aliases. Keep JSON endpoints
+        // and form submissions on their registered routes.
+        if (! $request->isMethod('GET') || $request->expectsJson() || $request->ajax()) {
+            return $next($request);
+        }
+
         $user = auth()->user();
         $role = $user->role;
 

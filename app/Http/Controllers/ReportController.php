@@ -22,7 +22,7 @@ class ReportController extends Controller
     {
         $user = Auth::user();
 
-        if (! in_array($user->role, ['building_admin', 'mis', 'school_admin', 'admin'])) {
+        if (! $user->isSystemAdministrator() && ! in_array($user->role, ['building_admin', 'mis', 'school_admin', 'admin'])) {
             abort(403, 'Unauthorized');
         }
 
@@ -89,7 +89,7 @@ class ReportController extends Controller
         $user = Auth::user();
 
         // Allow building_admin, mis, school_admin, or maintenance access to shared Rooms reports
-        $isAdmin = in_array($user->role, ['building_admin', 'mis', 'school_admin']);
+        $isAdmin = $user->isSystemAdministrator() || in_array($user->role, ['building_admin', 'mis', 'school_admin']);
         $isAssigned = $report->assigned_to === $user->id;
         $isSharedRoomsReport = $user->role === 'maintenance'
             && strtolower(trim($report->category->name ?? '')) === 'rooms';
@@ -121,7 +121,7 @@ class ReportController extends Controller
         $user = Auth::user();
 
         // Only allow admin roles to edit reports, and it's not resolved
-        if (! in_array($user->role, ['building_admin', 'mis', 'school_admin', 'admin']) || $report->status === 'Resolved') {
+        if (! $user->isSystemAdministrator() && ! in_array($user->role, ['building_admin', 'mis', 'school_admin', 'admin']) || $report->status === 'Resolved') {
             abort(403, 'Unauthorized');
         }
 
@@ -138,7 +138,7 @@ class ReportController extends Controller
         $user = Auth::user();
 
         // Only allow admin roles to update reports, and it's not resolved
-        if (! in_array($user->role, ['building_admin', 'mis', 'school_admin', 'admin']) || $report->status === 'Resolved') {
+        if (! $user->isSystemAdministrator() && ! in_array($user->role, ['building_admin', 'mis', 'school_admin', 'admin']) || $report->status === 'Resolved') {
             abort(403, 'Unauthorized');
         }
 
@@ -201,7 +201,7 @@ class ReportController extends Controller
             }
 
             // Only allow admin roles to delete reports
-            if (! in_array($user->role, ['building_admin', 'mis', 'school_admin', 'admin'])) {
+            if (! $user->isSystemAdministrator() && ! in_array($user->role, ['building_admin', 'mis', 'school_admin', 'admin'])) {
                 if (request()->expectsJson()) {
                     return response()->json(['success' => false, 'error' => 'Unauthorized.']);
                 }
@@ -270,7 +270,7 @@ class ReportController extends Controller
         $user = Auth::user();
 
         // Allow admin roles and maintenance to archive reports
-        if (! in_array($user->role, ['building_admin', 'mis', 'school_admin', 'admin', 'maintenance'])) {
+        if (! $user->isSystemAdministrator() && ! in_array($user->role, ['building_admin', 'mis', 'school_admin', 'admin', 'maintenance'])) {
             abort(403, 'Unauthorized');
         }
 
@@ -280,7 +280,7 @@ class ReportController extends Controller
         }
 
         // Set the appropriate archive flag based on role
-        $role = $user->role;
+        $role = $user->isSystemAdministrator() ? 'admin' : $user->role;
         $archiveColumn = $role.'_archived';
 
         // Check if the column exists in the fillable array
@@ -328,7 +328,7 @@ class ReportController extends Controller
         $user = Auth::user();
 
         // Allow admin roles and maintenance to restore reports
-        if (! in_array($user->role, ['building_admin', 'mis', 'school_admin', 'maintenance'])) {
+        if (! $user->isSystemAdministrator() && ! in_array($user->role, ['building_admin', 'mis', 'school_admin', 'maintenance'])) {
             abort(403, 'Unauthorized');
         }
 
@@ -338,7 +338,7 @@ class ReportController extends Controller
         }
 
         // Set the appropriate archive flag based on role
-        $role = $user->role;
+        $role = $user->isSystemAdministrator() ? 'admin' : $user->role;
         $archiveColumn = $role.'_archived';
 
         // Check if the column exists in the fillable array
@@ -390,6 +390,7 @@ class ReportController extends Controller
         $canSeeSensitiveFields = $user->isSystemAdministrator() || in_array($user->role, ['building_admin', 'mis', 'school_admin', 'admin']) || $report->assigned_to === $user->id;
 
         $reportData = $report->toArray();
+        $reportData['can_resolve_decision'] = \App\Support\ConcernDecision::canResolve($user, $report->severity, (bool) $report->is_safety_hazard);
         $reportData['reported_by_name'] = $report->reporter_display_name;
         $reportData['can_record_asset_replacement'] = app(\App\Services\AssetReplacementService::class)->canRecordOnResolution($report, $user);
         $reportData['can_request_budget'] = !$report->is_deleted && $report->status !== 'Resolved'
@@ -409,7 +410,6 @@ class ReportController extends Controller
         // Remove sensitive fields for unauthorized users
         if (! $canSeeSensitiveFields) {
             unset($reportData['resolution_notes']);
-        $reportData['can_resolve_decision'] = \App\Support\ConcernDecision::canResolve($user, $report->severity, (bool) $report->is_safety_hazard);
             unset($reportData['cost']);
             unset($reportData['damaged_part']);
             unset($reportData['replaced_part']);
@@ -433,7 +433,7 @@ class ReportController extends Controller
         $user = Auth::user();
 
         // Only allow admin roles to edit reports
-        if (! in_array($user->role, ['building_admin', 'mis', 'school_admin', 'admin'])) {
+        if (! $user->isSystemAdministrator() && ! in_array($user->role, ['building_admin', 'mis', 'school_admin', 'admin'])) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
@@ -454,7 +454,7 @@ class ReportController extends Controller
         $user = Auth::user();
 
         // Only admin roles can access deleted reports
-        if (! in_array($user->role, ['building_admin', 'mis', 'school_admin', 'admin'])) {
+        if (! $user->isSystemAdministrator() && ! in_array($user->role, ['building_admin', 'mis', 'school_admin', 'admin'])) {
             abort(403, 'Unauthorized');
         }
 
@@ -574,6 +574,10 @@ class ReportController extends Controller
         $user = auth()->user();
         $canUpdate = false;
 
+        if (! \App\Support\ConcernDecision::canDecide($user, $report->severity, (bool) $report->is_safety_hazard)) {
+            return response()->json(['success' => false, 'error' => 'School Administrators can decide only urgent and safety-hazard concerns.'], 403);
+        }
+
         // MIS, School Admin, Building Admin can update any report
         if ($user->isSystemAdministrator() || in_array($user->role, ['admin', 'mis', 'school_admin', 'academic_head', 'building_admin'])) {
             $canUpdate = true;
@@ -593,10 +597,6 @@ class ReportController extends Controller
         if (!$canUpdate) {
             return response()->json([
                 'success' => false,
-        if (! \App\Support\ConcernDecision::canDecide($user, $report->severity, (bool) $report->is_safety_hazard)) {
-            return response()->json(['success' => false, 'error' => 'School Administrators can decide only urgent and safety-hazard concerns.'], 403);
-        }
-
                 'error' => 'You do not have permission to update this report.'
             ], 403);
         }
@@ -607,6 +607,10 @@ class ReportController extends Controller
             $report = Report::whereKey($report->id)->lockForUpdate()->firstOrFail();
             $oldStatus = $report->status;
             $newStatus = $request->status;
+
+            if ($newStatus === 'Resolved' && ! \App\Support\ConcernDecision::canResolve($user, $report->severity, (bool) $report->is_safety_hazard)) {
+                return response()->json(['success' => false, 'error' => 'This report is outside your resolution authority.'], 403);
+            }
 
             if ($oldStatus === 'Resolved' && $newStatus !== 'Resolved') {
                 return response()->json(['error' => 'The original reporter must use Reopen and provide a reason.'], 422);
@@ -627,10 +631,6 @@ class ReportController extends Controller
             $report->status = $newStatus;
 
             if ($newStatus === 'In Progress' && $oldStatus !== 'In Progress' && \Illuminate\Support\Facades\Schema::hasColumn('reports', 'in_progress_at')) {
-            if ($newStatus === 'Resolved' && ! \App\Support\ConcernDecision::canResolve($user, $report->severity, (bool) $report->is_safety_hazard)) {
-                return response()->json(['success' => false, 'error' => 'System Administrators can resolve only low-priority reports without safety hazards.'], 403);
-            }
-
                 $report->in_progress_at = now();
             }
 

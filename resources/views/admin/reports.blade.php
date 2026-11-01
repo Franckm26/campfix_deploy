@@ -135,12 +135,9 @@
     $reportsIndexRoute = auth()->user()->isSystemAdministrator() ? 'superadmin.reports' : 'admin.reports';
 @endphp
 <div class="container-fluid px-3">
-    @if(auth()->user()->role === 'school_admin' || auth()->user()->isSystemAdministrator())
+    @if(auth()->user()->role === 'school_admin' && !auth()->user()->isSystemAdministrator())
         <div class="alert alert-info d-flex align-items-center justify-content-between gap-2">
-            <span>{{ auth()->user()->isSystemAdministrator() ? 'Your decision queue contains low-priority reports. Urgent and safety-hazard decisions go to the School Admin.' : 'Your decision queue contains only urgent and safety-hazard reports.' }}</span>
-            @if(auth()->user()->isSystemAdministrator())
-            <a class="btn btn-sm btn-outline-primary" href="{{ route($reportsIndexRoute, ['queue' => request('queue') === 'all' ? 'mine' : 'all']) }}">{{ request('queue') === 'all' ? 'My decision queue' : 'All reports' }}</a>
-            @endif
+            <span>Your decision queue contains only urgent and safety-hazard reports.</span>
         </div>
     @endif
     
@@ -432,7 +429,7 @@
                                                     <button type="button" class="btn btn-sm btn-primary" onclick="assignReportToMisUser({{ $report->id }})" title="{{ $report->assigned_to ? 'Reassign to MIS user' : 'Assign to MIS user' }}">
                                                         <i class="fas fa-user-plus"></i>
                                                     </button>
-                                                @elseif(in_array(auth()->user()->role, ['building_admin', 'school_admin'], true) && !$isTechnologyReport)
+                                                @elseif((auth()->user()->isSystemAdministrator() || in_array(auth()->user()->role, ['building_admin', 'school_admin'], true)) && !$isTechnologyReport)
                                                     <button type="button" class="btn btn-sm btn-primary" onclick="assignReport({{ $report->id }})" title="{{ $report->assigned_to ? 'Reassign' : 'Assign' }}">
                                                         <i class="fas fa-user-plus"></i>
                                                     </button>
@@ -549,7 +546,7 @@
                             <button type="button" class="btn btn-sm btn-primary" onclick="assignReportToMisUser({{ $report->id }})">
                                 <i class="fas fa-user-plus"></i> {{ $report->assigned_to ? 'Reassign to MIS' : 'Assign to MIS' }}
                             </button>
-                            @elseif(in_array(auth()->user()->role, ['building_admin', 'school_admin'], true) && !$isTechnologyReport)
+                            @elseif((auth()->user()->isSystemAdministrator() || in_array(auth()->user()->role, ['building_admin', 'school_admin'], true)) && !$isTechnologyReport)
                             <button type="button" class="btn btn-sm btn-primary" onclick="assignReport({{ $report->id }})">
                                 <i class="fas fa-user-plus"></i> {{ $report->assigned_to ? 'Reassign' : 'Assign' }}
                             </button>

@@ -8,8 +8,7 @@ class ConcernDecision
 {
     public static function canResolve(User $user, ?string $priority, bool $hazard): bool
     {
-        if (! self::canDecide($user, $priority, $hazard)) return false;
-        return ! $user->isSystemAdministrator() || ($priority === 'low' && ! $hazard);
+        return self::canDecide($user, $priority, $hazard);
     }
 
     public static function canDecide(User $user, ?string $priority, bool $hazard): bool

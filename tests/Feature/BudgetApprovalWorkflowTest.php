@@ -176,7 +176,7 @@ class BudgetApprovalWorkflowTest extends TestCase
         $unclassified = Report::create(['title' => 'Needs triage']);
 
         $this->assertEqualsCanonicalizing([$urgent->id, $hazard->id], Report::forDecisionQueue($school)->pluck('id')->all());
-        $this->assertSame([$low->id], Report::forDecisionQueue($system)->pluck('id')->all());
+        $this->assertSame(5, Report::forDecisionQueue($system)->count());
         $this->assertSame(2, Report::forDecisionQueue($school, 'all')->count());
         $this->assertSame(5, Report::forDecisionQueue($building)->count());
         $school->forceFill(['permissions' => ['events']]);
@@ -208,7 +208,7 @@ class BudgetApprovalWorkflowTest extends TestCase
         $this->assertSame('Maintenance', $controller->getMaintenanceUsers()->getData(true)['users'][0]['name']);
     }
 
-    public function test_school_can_resolve_only_escalated_concerns_and_system_only_low_priority(): void
+    public function test_school_is_restricted_but_system_can_resolve_all_priorities(): void
     {
         \Illuminate\Support\Facades\Notification::fake();
         foreach (['reports', 'concerns'] as $name) {
@@ -235,7 +235,7 @@ class BudgetApprovalWorkflowTest extends TestCase
         $system = User::create(['name' => 'System', 'role' => 'admin']);
         $controller = app(ReportController::class);
 
-        foreach ([['urgent', false], ['low', true], ['low', false], ['medium', false]] as [$priority, $hazard]) {
+        foreach ([['urgent', false], ['low', true], ['low', false], ['medium', false], ['high', false], [null, false]] as [$priority, $hazard]) {
             $concern = Concern::create(['title' => 'Repair', 'priority' => $priority, 'is_safety_hazard' => $hazard, 'status' => 'In Progress']);
             $report = Report::create(['concern_id' => $concern->id, 'severity' => $priority, 'is_safety_hazard' => $hazard, 'status' => 'In Progress']);
             if ($priority !== 'urgent' && ! $hazard) {
@@ -249,24 +249,59 @@ class BudgetApprovalWorkflowTest extends TestCase
             }
             Auth::login($system);
             $result = $controller->updateStatus($this->jsonRequest(['status' => 'Resolved', 'resolution_notes' => 'Completed']), $report->id);
-            if ($priority === 'low' && ! $hazard) {
-                $this->assertSame(200, $result->getStatusCode());
-            } else {
-                $this->assertSame(403, $result->getStatusCode());
-                $this->assertSame('In Progress', $report->refresh()->status);
-                Auth::login($school);
-                $result = $controller->updateStatus($this->jsonRequest(['status' => 'Resolved', 'resolution_notes' => 'Covered during absence']), $report->id);
-                if ($priority !== 'urgent' && ! $hazard) {
-                    $this->assertSame(403, $result->getStatusCode());
-                    $this->assertSame('In Progress', $report->refresh()->status);
-                    $this->assertSame('In Progress', $concern->refresh()->status);
-                    continue;
-                }
-                $this->assertSame(200, $result->getStatusCode());
-            }
+            $this->assertSame(200, $result->getStatusCode());
             $this->assertSame('Resolved', $report->refresh()->status);
             $this->assertSame('Resolved', $concern->refresh()->status);
             $this->assertNotNull($report->resolved_at);
+        }
+    }
+
+    public function test_system_admin_can_assign_maintenance_and_technology_and_set_priority(): void
+    {
+        \Illuminate\Support\Facades\Notification::fake();
+        $this->mock(\App\Services\TicketHistoryService::class)->shouldReceive('renderFor')->andReturn('');
+        $this->mock(\App\Services\AssetReplacementService::class)->shouldReceive('canRecordOnResolution')->andReturn(true);
+        Schema::create('categories', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->timestamps();
+        });
+        Schema::create('maintenance_staff', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->softDeletes();
+        });
+        Schema::table('reports', function (Blueprint $table) {
+            $table->unsignedBigInteger('category_id')->nullable();
+            $table->timestamp('assigned_at')->nullable();
+            $table->string('severity')->nullable();
+            $table->boolean('is_safety_hazard')->default(false);
+        });
+        $maintenanceCategory = \App\Models\Category::create(['name' => 'Maintenance']);
+        $technologyCategory = \App\Models\Category::create(['name' => 'Technology/Internet']);
+        $staffId = \Illuminate\Support\Facades\DB::table('maintenance_staff')->insertGetId(['name' => 'Maintenance']);
+        $mis = User::create(['name' => 'MIS', 'role' => 'mis']);
+        $controller = app(\App\Http\Controllers\AdminController::class);
+
+        foreach (['admin', 'superadmin', 'mis'] as $role) {
+            $system = User::create(['name' => 'System', 'role' => $role]);
+            if ($role === 'mis') $system->forceFill(['is_superadmin' => true]);
+            Auth::login($system);
+            foreach ([[$maintenanceCategory, $staffId], [$technologyCategory, $mis->id]] as [$category, $assignee]) {
+                $report = Report::create(['title' => 'Repair', 'category_id' => $category->id, 'status' => 'Pending']);
+                $result = $controller->assignReport($this->jsonRequest(['assigned_to' => $assignee, 'priority' => 'high']), $report->id);
+                $this->assertSame(200, $result->getStatusCode());
+                $this->assertSame('Assigned', $report->refresh()->status);
+                $this->assertEquals($assignee, $report->assigned_to);
+                $this->assertSame('high', $report->severity);
+                $result = $controller->setReportPriority($this->jsonRequest(['priority' => 'safety_hazard']), $report->id);
+                $this->assertSame(200, $result->getStatusCode());
+                $this->assertTrue($report->refresh()->is_safety_hazard);
+                $this->assertSame('urgent', $report->severity);
+                $progress = app(ReportController::class)->apiShow($report->id);
+                $this->assertSame(200, $progress->getStatusCode());
+                $this->assertTrue($progress->getData(true)['report']['can_resolve_decision']);
+            }
         }
     }
 

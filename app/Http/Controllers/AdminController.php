@@ -519,7 +519,7 @@ class AdminController extends Controller
         $newStatus = $request->input('status');
 
         if (in_array($newStatus, ['Resolved', 'Closed'], true) && ! \App\Support\ConcernDecision::canResolve($user, $concern->priority, (bool) $concern->is_safety_hazard)) {
-            return response()->json(['error' => 'System Administrators can resolve only low-priority concerns without safety hazards.'], 403);
+            return response()->json(['error' => 'This concern is outside your resolution authority.'], 403);
         }
 
         if ($newStatus === 'Resolved'
@@ -668,7 +668,7 @@ class AdminController extends Controller
             $newStatus = $request->input('status');
 
             if ($newStatus === 'Resolved' && ! \App\Support\ConcernDecision::canResolve($user, $report->severity, (bool) $report->is_safety_hazard)) {
-                return response()->json(['error' => 'System Administrators can resolve only low-priority reports without safety hazards.'], 403);
+                return response()->json(['error' => 'This report is outside your resolution authority.'], 403);
             }
 
             if ($oldStatus === 'Resolved' && $newStatus !== 'Resolved') {
@@ -820,7 +820,7 @@ class AdminController extends Controller
         // School Administrators decide urgent and safety-hazard concerns.
         $user = auth()->user();
         \App\Support\ConcernDecision::authorizeSchoolDecision($user, $concern->priority, (bool) $concern->is_safety_hazard);
-        if (!in_array($user->role, ['admin', 'building_admin', 'school_admin', 'academic_head', 'mis'])) {
+        if (! $user->isSystemAdministrator() && !in_array($user->role, ['admin', 'building_admin', 'school_admin', 'academic_head', 'mis'])) {
             if ($request->expectsJson()) {
                 return response()->json(['error' => 'You do not have permission to assign concerns.'], 403);
             }
@@ -930,11 +930,7 @@ class AdminController extends Controller
                     return back()->with('error', 'Only the System Administrator can assign Technology/Internet reports to MIS users.');
                 }
             } else {
-                if ($isSystemAdministrator) {
-                    return response()->json(['error' => 'System Administrators can only assign Technology/Internet reports to MIS users.'], 403);
-                }
-
-                if (! in_array($user->role, ['building_admin', 'school_admin'], true)) {
+                if (! $isSystemAdministrator && ! in_array($user->role, ['building_admin', 'school_admin'], true)) {
                     return response()->json(['error' => 'Only Building Administrators can assign maintenance reports.'], 403);
                 }
 
@@ -1037,7 +1033,7 @@ class AdminController extends Controller
 
         $report = Report::findOrFail($id);
 
-        if (! in_array(auth()->user()->role, ['building_admin', 'school_admin'], true)) {
+        if (! auth()->user()->isSystemAdministrator() && ! in_array(auth()->user()->role, ['building_admin', 'school_admin'], true)) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
@@ -1085,7 +1081,7 @@ class AdminController extends Controller
 
         \App\Support\ConcernDecision::authorizeSchoolDecision($user, $concern->priority, (bool) $concern->is_safety_hazard);
 
-        $isBuildingAdmin = in_array($user->role, ['building_admin', 'school_admin'], true);
+        $isBuildingAdmin = $user->isSystemAdministrator() || in_array($user->role, ['building_admin', 'school_admin'], true);
         $isClaimedMisTask = $user->role === 'mis'
             && (int) $concern->assigned_to === (int) $user->id
             && strtolower(trim((string) $concern->categoryRelation?->name)) === 'technology/internet'
@@ -1257,10 +1253,10 @@ class AdminController extends Controller
         $viewType = $request->input('view', 'active');
         $operationalUser = $request->user();
         $categories = Category::query()
-            ->when($operationalUser->role === 'mis', function ($query) {
+            ->when(!$operationalUser->isSystemAdministrator() && $operationalUser->role === 'mis', function ($query) {
                 $query->whereRaw('LOWER(TRIM(name)) = ?', ['technology/internet']);
             })
-            ->when($operationalUser->role === 'building_admin', function ($query) {
+            ->when(!$operationalUser->isSystemAdministrator() && $operationalUser->role === 'building_admin', function ($query) {
                 $query->whereRaw('LOWER(TRIM(name)) <> ?', ['technology/internet']);
             })
             ->orderBy('name')
