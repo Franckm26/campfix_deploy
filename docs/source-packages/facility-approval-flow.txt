@@ -1,0 +1,32 @@
+// Facility request approval flow (configured approval chain).
+// Source: app/Http/Controllers/EventRequestController.php
+// Excerpt: uses the existing controller imports, models, and notification helpers.
+
+    private function approveConfiguredRoute(Request $request, EventRequest $eventRequest, User $user)
+    {
+        $level = $eventRequest->getNextApprovalLevel();
+        $requiredRole = $eventRequest->requiredApprovalRole();
+        if (! $level || ! $requiredRole) return back()->with('error', 'This request has already completed its approval route.');
+        $allowed = $user->role === $requiredRole || ($requiredRole === 'school_admin' && $user->role === 'admin');
+        if (! $allowed) return back()->with('error', 'This request is waiting for '.str_replace('_', ' ', $requiredRole).' approval.');
+        if ($eventRequest->hasUserApprovedAtLevel($user->id, $level)) return back()->with('error', 'You have already approved this request.');
+
+        $history = $eventRequest->approval_history ?? [];
+        $history[] = ['level' => $level, 'role' => ucwords(str_replace('_', ' ', $requiredRole)), 'approver' => $user->name, 'approver_id' => $user->id, 'at' => now()->toDateTimeString(), 'notes' => $request->notes];
+        $eventRequest->approval_history = $history;
+        $nextLevel = $eventRequest->getNextApprovalLevel();
+        if ($nextLevel === null) {
+            $eventRequest->status = EventRequest::STATUS_APPROVED;
+            $eventRequest->approved_by = $user->id;
+            $eventRequest->approved_at = now();
+            $eventRequest->approval_level = EventRequest::LEVEL_APPROVED;
+        } else {
+            $eventRequest->status = EventRequest::STATUS_PENDING;
+            $eventRequest->approval_level = $nextLevel;
+        }
+        $eventRequest->save();
+        ActivityLog::log('event_approved_configured_route', "Facility request ID {$eventRequest->id} approved by {$user->name} as {$requiredRole}", null);
+        $this->sendApprovalNotification($eventRequest, $level, 'Approved');
+        if ($eventRequest->status === EventRequest::STATUS_PENDING) (new NotificationService)->notifyApproversOfNewEvent($eventRequest);
+        return back()->with('success', $eventRequest->status === EventRequest::STATUS_APPROVED ? 'Facility request fully approved.' : 'Approved and forwarded to the next approver.');
+    }
