@@ -757,6 +757,11 @@
                                                 <x-request-progress-tracker :request="$event" title="Approval Progress" />
                                             </div>
                                             <div class="modal-footer">
+                                                @if($event->status === 'Approved')
+                                                    <a href="{{ route('events.pdf', $event->id) }}" class="btn btn-primary" target="_blank" rel="noopener">
+                                                        <i class="fas fa-file-pdf me-1"></i> Download PDF
+                                                    </a>
+                                                @endif
                                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                                             </div>
                                         </div>
