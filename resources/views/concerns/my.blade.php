@@ -1492,6 +1492,19 @@
                         </select>
                     </div>
 
+                    <div class="mb-3">
+                        <label for="new_priority" class="form-label">Priority *</label>
+                        <select class="form-select" id="new_priority" name="priority" required>
+                            <option value="" disabled selected>Select a priority</option>
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                            <option value="urgent">Urgent</option>
+                            <option value="safety_hazard">Safety Hazard</option>
+                        </select>
+                        <small class="text-muted">Choose Safety Hazard for an issue that could cause injury or immediate danger.</small>
+                    </div>
+
                     <!-- Issue dropdown -->
                     <div class="mb-3" id="new_issue_container" style="display: none;">
                         <label for="new_issue" class="form-label">Issue *</label>
@@ -1556,6 +1569,10 @@
                 <div class="mb-3">
                     <label class="form-label fw-bold">Category:</label>
                     <p id="review_category" class="mb-0"></p>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Priority:</label>
+                    <p id="review_priority" class="mb-0"></p>
                 </div>
                 <div class="mb-3" id="review_issue_container" style="display: none;">
                     <label class="form-label fw-bold">Issue:</label>
@@ -1675,6 +1692,8 @@ function showReviewModal() {
     // Get form values
     const categorySelect = document.getElementById('new_category_id');
     const categoryText = categorySelect.options[categorySelect.selectedIndex]?.text || '';
+    const prioritySelect = document.getElementById('new_priority');
+    const priorityText = prioritySelect.options[prioritySelect.selectedIndex]?.text || '';
     
     const issueSelect = document.getElementById('new_issue');
     const issueText = issueSelect.options[issueSelect.selectedIndex]?.text || '';
@@ -1693,6 +1712,7 @@ function showReviewModal() {
 
     // Populate review modal
     document.getElementById('review_category').textContent = categoryText;
+    document.getElementById('review_priority').textContent = priorityText;
     
     if (issueText && issueText !== 'Select an issue') {
         document.getElementById('review_issue').textContent = issueText;
