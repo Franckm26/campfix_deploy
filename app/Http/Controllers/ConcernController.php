@@ -191,6 +191,7 @@ class ConcernController extends Controller
                 'location_type' => 'nullable|in:Room,AVR,Computer Laboratory',
                 'room_number' => 'nullable|string|max:255',
                 'category_id' => 'required|exists:categories,id',
+                'priority' => 'required|in:low,medium,high,urgent,safety_hazard',
                 'description' => 'nullable|string',
                 'details' => 'nullable|string|max:2000',
                 'image' => \App\Services\ImageUploadSecurity::rules(),
@@ -328,8 +329,9 @@ class ConcernController extends Controller
             }
         }
 
-        // Priority is NOT set on submission — Building Admin sets it after assigning via the priority popup
-        $priority = null;
+        // Store safety hazards as urgent while keeping the dedicated hazard flag.
+        $isSafetyHazard = $request->input('priority') === 'safety_hazard';
+        $priority = $isSafetyHazard ? 'urgent' : $request->input('priority');
 
         // Construct location for concern
         $concernLocation = $request->location;
@@ -349,6 +351,7 @@ class ConcernController extends Controller
             'user_id' => auth()->id(), // Automatically set to authenticated user
             'status' => 'Pending',
             'priority' => $priority,
+            'is_safety_hazard' => $isSafetyHazard,
             'image_path' => $imagePath,
             'is_anonymous' => false,
         ] + Concern::reporterSnapshotFor(auth()->user());
@@ -379,8 +382,8 @@ class ConcernController extends Controller
             );
         }
 
-        // Severity for report — null until building admin sets priority after assignment
-        $severity = null;
+        // Keep the linked report's priority in sync with the concern.
+        $severity = $priority;
 
         // Construct location for report
         $reportLocation = $request->location;
@@ -399,6 +402,7 @@ class ConcernController extends Controller
             'location_type' => $request->location_type,
             'room_number' => $request->room_number,
             'severity' => $severity,
+            'is_safety_hazard' => $isSafetyHazard,
             'status' => 'Pending',
             'photo_path' => $imagePath,
         ] + Report::reporterSnapshotFor(auth()->user(), true);

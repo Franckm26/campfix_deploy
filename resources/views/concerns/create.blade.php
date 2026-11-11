@@ -32,6 +32,19 @@
                         </div>
 
                         <div class="mb-2 mb-md-3">
+                            <label for="priority" class="form-label">Priority *</label>
+                            <select class="form-select" id="priority" name="priority" required>
+                                <option value="" disabled selected>Select a priority</option>
+                                <option value="low">Low</option>
+                                <option value="medium">Medium</option>
+                                <option value="high">High</option>
+                                <option value="urgent">Urgent</option>
+                                <option value="safety_hazard">Safety Hazard</option>
+                            </select>
+                            <small class="text-muted">Choose Safety Hazard for an issue that could cause injury or immediate danger.</small>
+                        </div>
+
+                        <div class="mb-2 mb-md-3">
                             <label for="description" class="form-label">Description *</label>
                             <textarea class="form-control" id="description" name="description" 
                                 rows="3" rows-md="4" placeholder="Describe the problem in detail..." required></textarea>
