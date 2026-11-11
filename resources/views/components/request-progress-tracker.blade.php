@@ -22,12 +22,14 @@
                     <div class="approval-step {{ $step['state'] === 'waiting' ? '' : $step['state'] }}" data-approval-role="{{ $step['role'] }}">
                         <div class="step-icon mb-2">
                             @if($step['state'] === 'approved')<i class="fas fa-check-circle fa-2x text-success"></i>
+                            @elseif($step['state'] === 'bypassed')<i class="fas fa-forward fa-2x text-secondary"></i>
                             @elseif($step['state'] === 'rejected')<i class="fas fa-times-circle fa-2x text-danger"></i>
                             @else<i class="fas fa-clock fa-2x text-{{ $step['state'] === 'pending' ? 'warning' : 'muted' }}"></i>@endif
                         </div>
                         <h6>{{ $step['label'] }}</h6>
                         <small class="text-muted">
-                            @if($step['state'] === 'approved' || $step['state'] === 'rejected')
+                            @if($step['state'] === 'bypassed')Skipped by School Admin
+                            @elseif($step['state'] === 'approved' || $step['state'] === 'rejected')
                                 {{ $step['state'] === 'approved' ? 'Approved' : 'Rejected' }}@if($step['approver']) by {{ $step['approver'] }}@endif
                                 @if($step['at'])<br>{{ \Carbon\Carbon::parse($step['at'])->timezone('Asia/Manila')->format('M d, Y h:i A') }}@endif
                             @elseif($step['state'] === 'pending')Waiting for Approval
@@ -64,6 +66,7 @@
 }
 
 .approval-step.approved  { background-color: #d4edda; border: 2px solid #28a745; }
+.approval-step.bypassed { background-color: #e9ecef; border: 2px dashed #6c757d; }
 .approval-step.pending   { background-color: #fff3cd; border: 2px solid #ffc107; }
 .approval-step.rejected  { background-color: #f8d7da; border: 2px solid #dc3545; }
 

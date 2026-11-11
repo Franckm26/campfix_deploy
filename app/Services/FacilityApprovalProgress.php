@@ -24,6 +24,9 @@ class FacilityApprovalProgress
             $roles = [1 => 'program_head', 2 => 'academic_head', 3 => 'building_admin', 4 => 'school_admin'];
         }
         $history = collect($request->approval_history ?? []);
+        $schoolAdminFinalApproval = $request->status === 'Approved'
+            && $history->contains(fn ($entry) => strtolower((string) ($entry['role'] ?? '')) === 'school admin'
+                && strtolower((string) ($entry['status'] ?? $entry['action'] ?? 'approved')) === 'approved');
         $steps = [];
         foreach ($roles as $level => $role) {
             $entry = $history->filter(fn ($item) => (int) ($item['level'] ?? 0) === $level)->last() ?? [];
@@ -34,8 +37,9 @@ class FacilityApprovalProgress
             $approverId = $entry['approver_id'] ?? (!$configured ? $request->{$field} : null);
             $date = $entry['at'] ?? (!$configured ? $request->{$dateField} : null);
             $rejected = $request->status === 'Rejected' && $action === 'rejected' && $entry !== [];
-            $done = !$rejected && ($request->status === 'Approved' || ($action === 'approved' && filled($approverId)));
-            $state = $done ? 'approved' : ($rejected ? 'rejected' : ($request->status === 'Pending' && (int) $request->approval_level === $level ? 'pending' : 'waiting'));
+            $bypassed = $schoolAdminFinalApproval && $role !== 'school_admin' && $entry === [] && ! filled($approverId);
+            $done = !$rejected && ! $bypassed && ($request->status === 'Approved' || ($action === 'approved' && filled($approverId)));
+            $state = $bypassed ? 'bypassed' : ($done ? 'approved' : ($rejected ? 'rejected' : ($request->status === 'Pending' && (int) $request->approval_level === $level ? 'pending' : 'waiting')));
             $steps[] = ['level' => $level, 'role' => $role, 'label' => $labels[$role] ?? ucwords(str_replace('_', ' ', $role)),
                 'state' => $state, 'approver' => $approver, 'approver_id' => $approverId, 'at' => $date];
         }
@@ -44,7 +48,7 @@ class FacilityApprovalProgress
         foreach ($steps as &$step) $step['approver'] ??= $names->get($step['approver_id']);
         unset($step);
         $total = count($steps);
-        $done = collect($steps)->where('state', 'approved')->count();
+        $done = collect($steps)->whereIn('state', ['approved', 'bypassed'])->count();
         return ['steps' => $steps, 'total' => $total, 'completed' => $done,
             'percentage' => $request->status === 'Approved' ? 100 : ($total ? (int) round($done / $total * 100) : 0)];
     }

@@ -187,6 +187,28 @@ class NotificationService
         }
     }
 
+    /** Notify School Admins when a request enters the approval workflow. */
+    public function notifySchoolAdminsOfNewEvent(EventRequest $eventRequest): bool
+    {
+        try {
+            $schoolAdmins = User::where('role', User::ROLE_SCHOOL_ADMIN)->get();
+            foreach ($schoolAdmins as $schoolAdmin) {
+                $schoolAdmin->notify(new NewEventRequestNotification($eventRequest));
+                ActivityLog::log(
+                    'notification_sent',
+                    'New facility request notification sent to School Admin: '.$schoolAdmin->email,
+                    $schoolAdmin->id
+                );
+            }
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Failed to notify School Admins about facility request: '.$e->getMessage());
+
+            return false;
+        }
+    }
+
     /**
      * Notify building admin(s) and school admin(s) about a faculty-intended facility request.
      * Faculty requests are auto-approved — no approval chain is needed.

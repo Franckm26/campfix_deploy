@@ -218,6 +218,9 @@ class EventRequestController extends Controller
                     ->where('event_request_type_id', $requestType->id)->first()
                 : null;
             $approvalRoute = array_values($configuredChain?->approval_roles ?: ($intendedUser->approval_roles ?: ($requestType->approval_roles ?? [])));
+            // Every request requires a final School Admin decision, even when the configured chain omits that role.
+            $approvalRoute = array_values(array_filter($approvalRoute, fn ($role) => $role !== 'school_admin'));
+            $approvalRoute[] = 'school_admin';
             $requiresDepartment = in_array('program_head', $approvalRoute, true);
             if ($requiresDepartment && ! EventDepartment::where('name', $request->department)->where('is_active', true)->exists()) {
                 throw \Illuminate\Validation\ValidationException::withMessages(['department' => 'Please select an active department for this approval chain.']);
@@ -245,11 +248,11 @@ class EventRequestController extends Controller
                 ...(Schema::hasColumn('event_requests', 'intended_user') ? ['intended_user' => $intendedUser->code] : []),
                 // Kept internally for the current non-null database column; it is no longer shown or chosen by users.
                 'priority' => 'medium',
-                // Requests without configured approvers are approved immediately.
-                'status' => $approvalRoute ? 'Pending' : 'Approved',
-                'approval_level' => $approvalRoute ? $initialApprovalLevel : EventRequest::LEVEL_APPROVED,
+                // Requests remain pending until the School Admin gives the final decision.
+                'status' => 'Pending',
+                'approval_level' => $initialApprovalLevel,
                 'approval_route' => $approvalRoute,
-                'approved_at' => $approvalRoute ? null : now(),
+                'approved_at' => null,
                 'materials_needed' => $materialsNeeded,
                 'image_path' => $imagePath,
             ]);
@@ -297,7 +300,7 @@ class EventRequestController extends Controller
                     || ! $user->department
                     || $eventRequest->department === $user->department;
 
-                if ($requesterMatchesCurrentRole && $requesterMatchesDepartment) {
+                if ($user->role !== 'school_admin' && $requesterMatchesCurrentRole && $requesterMatchesDepartment) {
                     $approvalHistory[] = [
                         'level' => 1,
                         'role' => ucwords(str_replace('_', ' ', $requiredRole)),
@@ -369,17 +372,6 @@ class EventRequestController extends Controller
                 }
 
                 // Check if requester is a School Admin
-                if ($user->isSchoolAdmin()) {
-                    $approvalHistory[] = [
-                        'level' => 4,
-                        'role' => 'School Admin',
-                        'approver' => $user->name,
-                        'approver_id' => $user->id,
-                        'at' => now()->toDateTimeString(),
-                        'notes' => 'Auto-approved (requester is also approver)',
-                    ];
-                    $autoApproved = true;
-                }
             }
 
             // Save approval history if auto-approved
@@ -412,6 +404,9 @@ class EventRequestController extends Controller
             // Non-faculty: go through the normal multi-level approval chain
             try {
                 $notificationService->notifyApproversOfNewEvent($eventRequest);
+                if ($eventRequest->requiredApprovalRole() !== 'school_admin') {
+                    $notificationService->notifySchoolAdminsOfNewEvent($eventRequest);
+                }
             } catch (\Exception $notifEx) {
                 \Log::warning('Failed to send notifications: ' . $notifEx->getMessage());
             }
@@ -740,39 +735,8 @@ class EventRequestController extends Controller
         $eventRequest = EventRequest::findOrFail($id);
         $user = auth()->user();
 
-        if ($user->isSystemAdministrator()) {
-            if ($eventRequest->status !== EventRequest::STATUS_PENDING) {
-                return back()->with('error', 'Only pending facility requests can be approved.');
-            }
-
-            $history = $eventRequest->approval_history ?? [];
-            $history[] = [
-                'level' => EventRequest::LEVEL_APPROVED,
-                'role' => 'System Administrator',
-                'approver' => $user->name,
-                'approver_id' => $user->id,
-                'at' => now()->toDateTimeString(),
-                'notes' => $request->notes,
-                'action' => 'approved',
-            ];
-
-            $eventRequest->status = EventRequest::STATUS_APPROVED;
-            $eventRequest->approved_by = $user->id;
-            $eventRequest->approved_at = now();
-            $eventRequest->approval_level = EventRequest::LEVEL_APPROVED;
-            $eventRequest->approval_history = $history;
-            $eventRequest->notes = $request->notes;
-            $eventRequest->save();
-
-            ActivityLog::log(
-                'event_approved_by_system_administrator',
-                "Facility request ID {$eventRequest->id} approved by System Administrator {$user->name}.",
-                $eventRequest->id,
-                'event_request'
-            );
-            $this->sendApprovalNotification($eventRequest, EventRequest::LEVEL_APPROVED, 'Approved');
-
-            return back()->with('success', 'Facility request approved by the System Administrator.');
+        if ($user->role === 'school_admin') {
+            return $this->approveAsSchoolAdmin($request, $eventRequest, $user);
         }
 
         if ($eventRequest->hasConfiguredApprovalRoute()) {
@@ -1154,20 +1118,7 @@ class EventRequestController extends Controller
             // Notify the requester
             $this->sendApprovalNotification($eventRequest, 4, 'Fully Approved');
         } else {
-            // Fallback for any other role with approval permission
-            $eventRequest->status = 'Approved';
-            $eventRequest->approved_by = $user->id;
-            $eventRequest->approved_at = now();
-            $eventRequest->approval_level = EventRequest::LEVEL_APPROVED;
-
-            ActivityLog::log(
-                'event_approved',
-                "Facility Request '{$eventRequest->title}' (ID: {$eventRequest->id}) approved by {$user->name} ({$user->role}) - Requestor: {$eventRequest->user->name}, Location: {$eventRequest->event_location}, Date: " . ($eventRequest->start_date ? $eventRequest->start_date->format('M d, Y') : 'N/A'),
-                null
-            );
-
-            // Notify the requester
-            $this->sendApprovalNotification($eventRequest, 4, 'Approved');
+            return back()->with('error', 'Only an assigned approver or the School Administrator can approve this request.');
         }
 
         $eventRequest->notes = $request->notes;
@@ -1178,6 +1129,49 @@ class EventRequestController extends Controller
             : 'Your approval has been recorded. Waiting for other approvers.';
 
         return back()->with('success', $message);
+    }
+
+    private function approveAsSchoolAdmin(Request $request, EventRequest $eventRequest, User $user)
+    {
+        if ($eventRequest->status !== EventRequest::STATUS_PENDING) {
+            return back()->with('error', 'Only pending facility requests can be approved.');
+        }
+
+        $route = $eventRequest->approval_route ?? [];
+        $routeIndex = is_array($route) ? array_search('school_admin', $route, true) : false;
+        $schoolAdminLevel = $routeIndex === false
+            ? EventRequest::LEVEL_4_SCHOOL_ADMIN
+            : $routeIndex + 1;
+
+        $history = $eventRequest->approval_history ?? [];
+        $history[] = [
+            'level' => $schoolAdminLevel,
+            'role' => 'School Admin',
+            'approver' => $user->name,
+            'approver_id' => $user->id,
+            'at' => now()->toDateTimeString(),
+            'notes' => $request->notes,
+            'action' => 'approved',
+            'status' => 'approved',
+        ];
+
+        $eventRequest->status = EventRequest::STATUS_APPROVED;
+        $eventRequest->approved_by = $user->id;
+        $eventRequest->approved_at = now();
+        $eventRequest->approval_level = EventRequest::LEVEL_APPROVED;
+        $eventRequest->approval_history = $history;
+        $eventRequest->notes = $request->notes;
+        $eventRequest->save();
+
+        ActivityLog::log(
+            'event_fully_approved_by_school_admin',
+            "Facility request ID {$eventRequest->id} fully approved by School Admin {$user->name}.",
+            $eventRequest->id,
+            'event_request'
+        );
+        $this->sendApprovalNotification($eventRequest, $schoolAdminLevel, 'Fully Approved');
+
+        return back()->with('success', 'Facility request fully approved by the School Administrator.');
     }
 
     private function approveConfiguredRoute(Request $request, EventRequest $eventRequest, User $user)
@@ -1238,7 +1232,16 @@ class EventRequestController extends Controller
         $eventRequest = EventRequest::findOrFail($id);
         $user = auth()->user();
 
-        if ($eventRequest->hasConfiguredApprovalRoute()) {
+        if ($user->role === 'school_admin') {
+            if ($eventRequest->status !== EventRequest::STATUS_PENDING) {
+                return back()->with('error', 'Only pending facility requests can be rejected.');
+            }
+
+            $route = $eventRequest->approval_route ?? [];
+            $routeIndex = is_array($route) ? array_search('school_admin', $route, true) : false;
+            $rejectLevel = $routeIndex === false ? EventRequest::LEVEL_4_SCHOOL_ADMIN : $routeIndex + 1;
+            $rejectRole = 'School Admin';
+        } elseif ($eventRequest->hasConfiguredApprovalRoute()) {
             $rejectLevel = $eventRequest->getNextApprovalLevel();
             $requiredRole = $eventRequest->requiredApprovalRole();
             $isAllowed = $requiredRole
@@ -1288,9 +1291,11 @@ class EventRequestController extends Controller
             'level' => $rejectLevel,
             'role' => $rejectRole,
             'approver' => $user->name,
+            'approver_id' => $user->id,
             'at' => now()->toDateTimeString(),
             'notes' => $request->notes,
             'action' => 'rejected',
+            'status' => 'rejected',
         ];
         $eventRequest->approval_history = $history;
         $eventRequest->save();
@@ -2116,7 +2121,7 @@ class EventRequestController extends Controller
             ->where('program_head_archived', false)
             ->where('mis_archived', false)
             ->where('maintenance_archived', false)
-            ->whereNotIn('status', ['Approved', 'Rejected']); // Approved/Rejected events live in their own tabs
+            ->whereNotIn('status', ['Approved', 'Rejected', 'Cancelled']); // Final and cancelled requests are handled in their own views
 
         // Filter by status
         if ($request->status) {
@@ -2149,6 +2154,11 @@ class EventRequestController extends Controller
         // Filter events to show only those at the current user's approval level
         $user = auth()->user();
         $requests = $allRequests->filter(function ($eventRequest) use ($user) {
+            // School Admin reviews every request that has not been approved or rejected yet.
+            if ($user->role === 'school_admin') {
+                return true;
+            }
+
             if ($eventRequest->hasConfiguredApprovalRoute()) {
                 $requiredRole = $eventRequest->requiredApprovalRole();
                 $matchesRole = $user->role === $requiredRole

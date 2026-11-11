@@ -536,6 +536,10 @@ class EventRequest extends Model
      */
     public function isFullyApproved(): bool
     {
+        if ($this->status === self::STATUS_APPROVED) {
+            return true;
+        }
+
         if ($this->hasConfiguredApprovalRoute()) {
             return $this->getNextApprovalLevel() === null;
         }
