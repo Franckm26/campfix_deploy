@@ -155,12 +155,12 @@
 .facility-time-fields { display:flex; flex-wrap:wrap; gap:8px; min-width:0; }
 .facility-time-fields input { flex:1 1 120px; min-width:0; }
 .facility-venue-slot, #eventRequestModal .modal-body > * { max-width:100%; }
-#eventRequestModal .modal-dialog { width:95vw; max-width:1400px; height:94vh; margin:3vh auto; }
-#eventRequestModal .modal-content { width:100%; height:100%; max-height:94vh !important; min-width:0; overflow:hidden !important; }
+#eventRequestModal .modal-dialog { width:95vw !important; max-width:1400px !important; height:94vh; margin:3vh auto; }
+#eventRequestModal .modal-content { box-sizing:border-box; width:100%; max-width:none !important; height:100%; max-height:94vh !important; min-width:0; overflow:hidden !important; }
 #eventRequestModal .modal-body { min-width:0; overflow-x:hidden !important; }
 #eventRequestModal .modal-body .row { --bs-gutter-x:1rem; margin-left:calc(var(--bs-gutter-x) * -.5); margin-right:calc(var(--bs-gutter-x) * -.5); }
 @media (max-width: 767px) { .facility-form-letterhead { grid-template-columns:56px 1fr 56px; gap:6px; font-size:10px; }.facility-form-letterhead img { width:50px; height:50px; }.facility-details-table { grid-template-columns: 1fr 1.5fr; }.facility-venue-slot { grid-column:span 1; }.facility-time-fields { flex-direction:column; } }
-@media (max-width: 575.98px) { #eventRequestModal .modal-dialog { width:100vw; max-width:none; height:100vh; margin:0; } #eventRequestModal .modal-content { max-height:100vh !important; } }
+@media (max-width: 575.98px) { #eventRequestModal .modal-dialog { width:100vw !important; max-width:none !important; height:100vh; margin:0; } #eventRequestModal .modal-content { max-height:100vh !important; } }
 .modal-dialog-scrollable .modal-content {
     max-height: 90vh !important;
     overflow: hidden !important;
