@@ -143,6 +143,16 @@
 #modalMaterialsTable {
     min-width: 0 !important;
 }
+.facility-form-letterhead { display:grid; grid-template-columns:90px 1fr 90px; align-items:center; gap:14px; text-align:center; padding:4px 8px 18px; border-bottom:1px solid #333; font-size:12px; color:#111; }
+.facility-form-letterhead img { width:76px; height:76px; object-fit:contain; justify-self:center; }
+.facility-form-title { margin:18px 0 24px; text-align:center; font-family:Georgia,serif; font-weight:400; letter-spacing:.3px; }
+.facility-request-setup { padding:12px; border:1px solid #dee2e6; border-radius:6px; background:#f8f9fa; }
+.facility-details-table { display:grid; grid-template-columns: minmax(130px, 1fr) 1fr minmax(130px, 1fr) 1fr; border-top:1px solid #777; border-left:1px solid #777; }
+.facility-details-table > div { padding:8px; border-right:1px solid #777; border-bottom:1px solid #777; min-width:0; }
+.facility-details-table .facility-detail-label { background:#f1f1f1; font-weight:600; display:flex; align-items:center; }
+.facility-venue-slot { grid-column:span 3; color:#555; }
+.facility-time-fields { display:flex; gap:8px; }
+@media (max-width: 767px) { .facility-form-letterhead { grid-template-columns:56px 1fr 56px; gap:6px; font-size:10px; }.facility-form-letterhead img { width:50px; height:50px; }.facility-details-table { grid-template-columns: 1fr 1.5fr; }.facility-venue-slot { grid-column:span 1; }.facility-time-fields { flex-direction:column; } }
 .modal-dialog-scrollable .modal-content {
     max-height: 90vh !important;
     overflow: hidden !important;
@@ -664,36 +674,85 @@ document.addEventListener('DOMContentLoaded', function() {
 @if($showEventRequestModal ?? false)
 <!-- Facility Request Modal for Faculty -->
 <div class="modal fade" id="eventRequestModal" tabindex="-1" aria-labelledby="eventRequestModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable modal-fullscreen-sm-down">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="eventRequestModalLabel"><i class="fas fa-calendar-plus"></i> {{ app()->getLocale() === 'tl' ? 'Magsumite ng Facility Request' : 'Submit Facility Request' }}</h5>
+                <h5 class="modal-title" id="eventRequestModalLabel">{{ app()->getLocale() === 'tl' ? 'Magsumite ng Facility Request' : 'Facility Request Form' }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="eventRequestForm" action="{{ route('events.store') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 <input type="hidden" id="modal_location" name="location" value="">
                 <div class="modal-body">
-                    <!-- Date and Time Selection First -->
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="modal_event_date" class="form-label">Date *</label>
+                    <div class="facility-form-letterhead">
+                        <img src="{{ asset('Campfix/Images/logo.png') }}" alt="CampFix logo">
+                        <div><strong>CampFix: A Web-Based Platform for Campus Facility Requests, Concern Reporting, and Data-Driven Decision Support for STI College Novaliches</strong><br>
+                            STI Academic Center, Diamond Avenue corner Quirino Highway<br>San Bartolome, Novaliches, Quezon City, 1116 Metro Manila</div>
+                        <img src="{{ asset('Campfix/Images/STI-Academic-Seal-One-Color_400.png') }}" alt="STI academic seal">
+                    </div>
+                    <h5 class="facility-form-title">FACILITY REQUEST FORM</h5>
+
+                    <div class="facility-request-setup mb-3">
+                        <div class="small text-muted mb-2">Request setup</div>
+                        <div class="row">
+                            <div class="col-md-4 mb-2">
+                                <label for="modal_request_type" class="form-label">Request Type *</label>
+                                @php
+                                    $eventSetupAvailable = \Illuminate\Support\Facades\Schema::hasTable('event_request_types');
+                                    $eventTypes = $eventSetupAvailable ? \App\Models\EventRequestType::where('is_active', true)->orderBy('name')->get() : collect([['name' => 'Academic'], ['name' => 'Non-Academic']]);
+                                    $eventUsers = $eventSetupAvailable ? \App\Models\EventIntendedUser::where('is_active', true)->orderBy('name')->get() : collect([['name' => 'Faculty', 'code' => 'faculty'], ['name' => 'Tertiary', 'code' => 'tertiary'], ['name' => 'Senior High School', 'code' => 'shs'], ['name' => 'Staff', 'code' => 'staff'], ['name' => 'Maintenance', 'code' => 'maintenance']]);
+                                    $eventDepartments = $eventSetupAvailable ? \App\Models\EventDepartment::where('is_active', true)->orderBy('name')->get() : collect([['name' => 'GE'], ['name' => 'ICT'], ['name' => 'Business Management'], ['name' => 'THM']]);
+                                    $approvalSetupAvailable = $eventSetupAvailable && \Illuminate\Support\Facades\Schema::hasColumns('event_approval_chains', ['event_intended_user_id', 'event_request_type_id']);
+                                    $eventApprovalChains = $approvalSetupAvailable ? \App\Models\EventApprovalChain::with(['intendedUser', 'requestType'])->get() : collect();
+                                @endphp
+                                <select class="form-select @error('request_type') is-invalid @enderror" id="modal_request_type" name="request_type" required>
+                                    <option value="">Select type</option>
+                                    @foreach($eventTypes as $type)<option value="{{ is_array($type) ? $type['name'] : $type->name }}" data-requires-department="{{ (is_array($type) ? $type['name'] === 'Academic' : $type->requires_department) ? '1' : '0' }}">{{ is_array($type) ? $type['name'] : $type->name }}</option>@endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-8 mb-2">
+                                <label for="modal_intended_user" class="form-label">Intended User *</label>
+                                <select class="form-select" id="modal_intended_user" name="intended_user" required>
+                                    @foreach($eventUsers as $userOption)<option value="{{ is_array($userOption) ? $userOption['code'] : $userOption->code }}" {{ (is_array($userOption) ? $userOption['code'] : $userOption->code) === 'faculty' ? 'selected' : '' }}>{{ is_array($userOption) ? $userOption['name'] : $userOption->name }}</option>@endforeach
+                                </select>
+                            </div>
+                            <input type="hidden" name="category" value="Area Use">
+                        </div>
+                    </div>
+
+                    <div class="facility-details-table mb-3">
+                        <div class="facility-detail-label">Date Requested:</div>
+                        <div>{{ now()->timezone('Asia/Manila')->format('m/d/Y') }}</div>
+                        <div class="facility-detail-label">Department:</div>
+                        <div>
+                            <span id="modal_department_na">N/A</span>
+                            <div id="modal_department_container" style="display:none;">
+                                <select class="form-select" id="modal_department" name="department">
+                                    <option value="">Select department</option>
+                                    @foreach($eventDepartments as $departmentOption)<option value="{{ is_array($departmentOption) ? $departmentOption['name'] : $departmentOption->name }}">{{ is_array($departmentOption) ? $departmentOption['name'] : $departmentOption->name }}</option>@endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="facility-detail-label">Venue:</div>
+                        <div class="facility-venue-slot"><span id="modal_venue_placeholder">Select a room or facility below</span></div>
+                        <div class="facility-detail-label">Date Needed:</div>
+                        <div>
+                            <label for="modal_event_date" class="visually-hidden">Date Needed *</label>
                             <input type="date" class="form-control @error('event_date') is-invalid @enderror" id="modal_event_date" name="event_date"
                                 min="{{ date('Y-m-d') }}" required value="{{ old('event_date') }}">
                             @error('event_date')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
-                        <div class="col-md-3">
-                            <label for="modal_start_time" class="form-label">Start Time *</label>
+                        <div class="facility-detail-label">Time Needed:</div>
+                        <div class="facility-time-fields">
+                            <label for="modal_start_time" class="visually-hidden">Start Time *</label>
                             <input type="time" class="form-control @error('start_time') is-invalid @enderror" id="modal_start_time" name="start_time" required value="{{ old('start_time') }}">
-                            @error('start_time')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        <div class="col-md-3">
-                            <label for="modal_end_time" class="form-label">End Time *</label>
+                            <label for="modal_end_time" class="visually-hidden">End Time *</label>
                             <input type="time" class="form-control @error('end_time') is-invalid @enderror" id="modal_end_time" name="end_time" required value="{{ old('end_time') }}">
+                            @error('start_time')
+                                <div class="invalid-feedback d-block">{{ $message }}</div>
+                            @enderror
                             @error('end_time')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -701,32 +760,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
 
                     <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label for="modal_request_type" class="form-label">Request Type *</label>
-                        @php
-                            $eventSetupAvailable = \Illuminate\Support\Facades\Schema::hasTable('event_request_types');
-                            $eventTypes = $eventSetupAvailable ? \App\Models\EventRequestType::where('is_active', true)->orderBy('name')->get() : collect([['name' => 'Academic'], ['name' => 'Non-Academic']]);
-                            $eventUsers = $eventSetupAvailable ? \App\Models\EventIntendedUser::where('is_active', true)->orderBy('name')->get() : collect([['name' => 'Faculty', 'code' => 'faculty'], ['name' => 'Tertiary', 'code' => 'tertiary'], ['name' => 'Senior High School', 'code' => 'shs'], ['name' => 'Staff', 'code' => 'staff'], ['name' => 'Maintenance', 'code' => 'maintenance']]);
-                            $eventDepartments = $eventSetupAvailable ? \App\Models\EventDepartment::where('is_active', true)->orderBy('name')->get() : collect([['name' => 'GE'], ['name' => 'ICT'], ['name' => 'Business Management'], ['name' => 'THM']]);
-                            $approvalSetupAvailable = $eventSetupAvailable && \Illuminate\Support\Facades\Schema::hasColumns('event_approval_chains', ['event_intended_user_id', 'event_request_type_id']);
-                            $eventApprovalChains = $approvalSetupAvailable ? \App\Models\EventApprovalChain::with(['intendedUser', 'requestType'])->get() : collect();
-                        @endphp
-                        <select class="form-select @error('request_type') is-invalid @enderror" id="modal_request_type" name="request_type" required>
-                                <option value="">Select type</option>
-                                @foreach($eventTypes as $type)<option value="{{ is_array($type) ? $type['name'] : $type->name }}" data-requires-department="{{ (is_array($type) ? $type['name'] === 'Academic' : $type->requires_department) ? '1' : '0' }}">{{ is_array($type) ? $type['name'] : $type->name }}</option>@endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-8 mb-3">
-                            <label for="modal_intended_user" class="form-label">Intended User *</label>
-                            <select class="form-select" id="modal_intended_user" name="intended_user" required>
-                                @foreach($eventUsers as $userOption)<option value="{{ is_array($userOption) ? $userOption['code'] : $userOption->code }}" {{ (is_array($userOption) ? $userOption['code'] : $userOption->code) === 'faculty' ? 'selected' : '' }}>{{ is_array($userOption) ? $userOption['name'] : $userOption->name }}</option>@endforeach
-                            </select>
-                        </div>
-                        <!-- Hidden field for category - automatically set to Area Use -->
-                        <input type="hidden" name="category" value="Area Use">
-                        </div>
-
-                        <div class="row">
                         <div class="col-md-6 mb-3" id="modal_area_of_use_container" style="display: none;">
                             <label for="modal_area_of_use" class="form-label">Room / Facility *</label>
                             <select class="form-select @error('area_of_use') is-invalid @enderror" id="modal_area_of_use" name="area_of_use">
@@ -760,18 +793,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     @include('partials.facility-rooms')
 
-                    <!-- Department (only shows when Room is selected in Area of Use) -->
-                    <div class="mb-3" id="modal_department_container" style="display: none;">
-                        <label for="modal_department" class="form-label">Department *</label>
-                        <select class="form-select" id="modal_department" name="department">
-                            <option value="">Select department</option>
-                            @foreach($eventDepartments as $departmentOption)<option value="{{ is_array($departmentOption) ? $departmentOption['name'] : $departmentOption->name }}">{{ is_array($departmentOption) ? $departmentOption['name'] : $departmentOption->name }}</option>@endforeach
-                        </select>
-                    </div>
-
-
                     <div class="mb-3">
-                        <label for="modal_description" class="form-label">Description *</label>
+                        <label for="modal_description" class="form-label fw-bold">Description *</label>
                         <textarea class="form-control @error('description') is-invalid @enderror" id="modal_description" name="description" 
                             rows="4" placeholder="Describe the facility request purpose and details..." required maxlength="500" oninput="updateDescCount()">{{ old('description') }}</textarea>
                         <div class="d-flex justify-content-end">
@@ -791,13 +814,15 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <tr>
                                     <th style="width: 70px;">Qty</th>
                                     <th>Item</th>
-                                    <th style="width: 40px;"></th>
+                                    <th>Purpose</th>
+                                    <th style="width: 48px;"></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
                                     <td><input type="number" class="form-control form-control-sm" name="materials[0][qty]" min="1" placeholder="1"></td>
                                     <td><input type="text" class="form-control form-control-sm" name="materials[0][item]" placeholder="e.g., Projector"></td>
+                                    <td><input type="text" class="form-control form-control-sm" name="materials[0][purpose]" placeholder="Purpose"></td>
                                     <td><button type="button" class="btn btn-danger btn-sm" onclick="removeModalMaterialRow(this)"><i class="fas fa-times"></i></button></td>
                                 </tr>
                             </tbody>
@@ -925,6 +950,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var areaOfUse = document.getElementById('modal_area_of_use');
         var departmentContainer = document.getElementById('modal_department_container');
         var departmentSelect = document.getElementById('modal_department');
+        var departmentNa = document.getElementById('modal_department_na');
         var isRequired = shouldRequireDepartment(
             requestType ? requestType.value : '',
             intendedUser ? intendedUser.value : '',
@@ -934,6 +960,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (departmentContainer) {
             departmentContainer.style.display = isRequired ? 'block' : 'none';
         }
+        if (departmentNa) departmentNa.style.display = isRequired ? 'none' : 'inline';
 
         if (departmentSelect) {
             if (isRequired) {
@@ -975,6 +1002,8 @@ document.addEventListener('DOMContentLoaded', function() {
     var modalAreaOfUse = document.getElementById('modal_area_of_use');
     if (modalAreaOfUse) {
         modalAreaOfUse.addEventListener('change', function() {
+            var venuePlaceholder = document.getElementById('modal_venue_placeholder');
+            if (venuePlaceholder) venuePlaceholder.textContent = this.value || 'Select a room or facility below';
             var departmentContainer = document.getElementById('modal_department_container');
             var avrSelectionContainer = document.getElementById('modal_avr_selection_container');
             var departmentSelect = document.getElementById('modal_department');
@@ -1222,6 +1251,21 @@ document.addEventListener('DOMContentLoaded', function() {
             previewBtn.classList.toggle('btn-secondary', !isValid);
             previewBtn.classList.toggle('btn-primary', isValid);
         }
+    }
+
+    // Keep the paper-form venue cell in sync with the facility and room selectors.
+    var venuePlaceholder = document.getElementById('modal_venue_placeholder');
+    var firstRoomLocation = document.getElementById('first-room-location');
+    function syncPaperVenue() {
+        if (!venuePlaceholder) return;
+        var selectedArea = document.getElementById('modal_area_of_use');
+        var roomValue = firstRoomLocation ? firstRoomLocation.value : '';
+        venuePlaceholder.textContent = roomValue || (selectedArea && selectedArea.value) || 'Select a room or facility below';
+    }
+    if (firstRoomLocation) firstRoomLocation.addEventListener('change', syncPaperVenue);
+    if (document.getElementById('facility-room-selection')) {
+        document.getElementById('facility-room-selection').addEventListener('change', syncPaperVenue);
+        document.getElementById('facility-room-selection').addEventListener('input', syncPaperVenue);
     }
     
     // Add event listeners to all required fields to update Preview button state
@@ -1702,6 +1746,7 @@ document.addEventListener('DOMContentLoaded', function() {
             newRow.innerHTML = `
                 <td><input type="number" class="form-control form-control-sm" name="materials[${modalMaterialRowCount}][qty]" min="1" placeholder="1"></td>
                 <td><input type="text" class="form-control form-control-sm" name="materials[${modalMaterialRowCount}][item]" placeholder="e.g., Projector"></td>
+                <td><input type="text" class="form-control form-control-sm" name="materials[${modalMaterialRowCount}][purpose]" placeholder="Purpose"></td>
                 <td><button type="button" class="btn btn-danger btn-sm" onclick="removeModalMaterialRow(this)"><i class="fas fa-times"></i></button></td>
             `;
             modalMaterialRowCount++;
