@@ -144,15 +144,23 @@
     min-width: 0 !important;
 }
 .facility-form-letterhead { display:grid; grid-template-columns:90px 1fr 90px; align-items:center; gap:14px; text-align:center; padding:4px 8px 18px; border-bottom:1px solid #333; font-size:12px; color:#111; }
+.facility-form-letterhead > div { min-width:0; overflow-wrap:anywhere; }
 .facility-form-letterhead img { width:76px; height:76px; object-fit:contain; justify-self:center; }
 .facility-form-title { margin:18px 0 24px; text-align:center; font-family:Georgia,serif; font-weight:400; letter-spacing:.3px; }
 .facility-request-setup { padding:12px; border:1px solid #dee2e6; border-radius:6px; background:#f8f9fa; }
-.facility-details-table { display:grid; grid-template-columns: minmax(130px, 1fr) 1fr minmax(130px, 1fr) 1fr; border-top:1px solid #777; border-left:1px solid #777; }
-.facility-details-table > div { padding:8px; border-right:1px solid #777; border-bottom:1px solid #777; min-width:0; }
+.facility-details-table { display:grid; grid-template-columns: minmax(110px, 1fr) minmax(0, 1fr) minmax(110px, 1fr) minmax(0, 1fr); border-top:1px solid #777; border-left:1px solid #777; }
+.facility-details-table > div { padding:8px; border-right:1px solid #777; border-bottom:1px solid #777; min-width:0; overflow-wrap:anywhere; }
 .facility-details-table .facility-detail-label { background:#f1f1f1; font-weight:600; display:flex; align-items:center; }
 .facility-venue-slot { grid-column:span 3; color:#555; }
-.facility-time-fields { display:flex; gap:8px; }
+.facility-time-fields { display:flex; flex-wrap:wrap; gap:8px; min-width:0; }
+.facility-time-fields input { flex:1 1 120px; min-width:0; }
+.facility-venue-slot, #eventRequestModal .modal-body > * { max-width:100%; }
+#eventRequestModal .modal-dialog { width:95vw; max-width:1400px; height:94vh; margin:3vh auto; }
+#eventRequestModal .modal-content { width:100%; height:100%; max-height:94vh !important; min-width:0; overflow:hidden !important; }
+#eventRequestModal .modal-body { min-width:0; overflow-x:hidden !important; }
+#eventRequestModal .modal-body .row { --bs-gutter-x:1rem; margin-left:calc(var(--bs-gutter-x) * -.5); margin-right:calc(var(--bs-gutter-x) * -.5); }
 @media (max-width: 767px) { .facility-form-letterhead { grid-template-columns:56px 1fr 56px; gap:6px; font-size:10px; }.facility-form-letterhead img { width:50px; height:50px; }.facility-details-table { grid-template-columns: 1fr 1.5fr; }.facility-venue-slot { grid-column:span 1; }.facility-time-fields { flex-direction:column; } }
+@media (max-width: 575.98px) { #eventRequestModal .modal-dialog { width:100vw; max-width:none; height:100vh; margin:0; } #eventRequestModal .modal-content { max-height:100vh !important; } }
 .modal-dialog-scrollable .modal-content {
     max-height: 90vh !important;
     overflow: hidden !important;
